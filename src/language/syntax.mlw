@@ -1,0 +1,32 @@
+
+module Syntax
+  type variable
+  type split = bool
+  
+  type expression =
+    | ELiteral string
+    | EVariable variable
+    | ESubshell statement
+    | EConcat expression expression
+
+  with expressions =
+    list (expression, split)
+
+  with return_code =
+    | CSuccess
+    | CFailure
+    | CPrevious
+
+  with statement =
+    | SAssignment variable expression
+    | SSequence statement statement
+    | SSubshell statement
+    | SIf statement statement statement
+    | SPipe statement statement
+    | SWhile statement statement
+    | SNoOutput statement
+    | SForeach variable expressions statement
+    | SNot statement
+    | SCall string expressions
+    | SExit return_code
+end
