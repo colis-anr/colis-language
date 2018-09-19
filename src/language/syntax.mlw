@@ -1,8 +1,14 @@
 
 module Syntax
+
+  use mystring.String
+  use list.List
+
   type variable
   type split = bool
   
+  (* TODO Add `Arg int` (`$n`) and `EArgs` (`$@`) here or test variables matching `[0-9@]`
+     in `eval_variable` - they should not be searched in the environment *)
   type expression =
     | ELiteral string
     | EVariable variable
@@ -17,6 +23,7 @@ module Syntax
     | CFailure
     | CPrevious
 
+  (* TODO add utilities `true`, `false` to UNIX specification *)
   with statement =
     | SAssignment variable expression
     | SSequence statement statement

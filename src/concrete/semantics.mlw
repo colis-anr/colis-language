@@ -1,0 +1,185 @@
+
+module Semantics
+  use bool.Bool
+  use list.List
+  use list.Append
+  use option.Option
+  use map.Map
+  use mystring.String
+  use syntax.Syntax
+  use context.Context
+
+  type stdout = string (* TODO Define and use a buffer type? *)
+
+  type behaviour =
+    | BNormal bool
+    | BExit bool
+    (* No functions - no return-behaviour behaviour (for now) *)
+
+  let function behaviour_to_bool : behaviour -> bool =
+    fun b ->
+      match b with
+      | BNormal b'
+      | BExit b' -> b'
+      end
+
+  let function bool_to_behaviour : bool -> bool -> behaviour =
+    fun b strict ->
+      match b, strict with
+      | False, True -> BExit False
+      | _ -> BNormal b
+      end
+
+  let function bo_compose : option bool -> option bool -> option bool =
+    fun b1 b2 ->
+      match b2 with
+      | None -> b1
+      | _ -> b2
+      end
+
+  let function bo_behaviour : option bool -> bool -> behaviour =
+    fun b strict ->
+      match b with
+      | Some b' -> bool_to_behaviour b' strict
+      | None -> BNormal True
+      end
+
+  let function return_code_to_bool : return_code -> bool -> bool =
+    fun c previous ->
+      match c with
+      | CSuccess -> True
+      | CFailure -> False
+      | CPrevious -> previous
+      end
+
+  (** Interprete a command defined in the *Specification of UNIX Commands* *)
+  val function interp_command context string : (string, bool, context)
+
+  (** A wrapper that sets the behaviour in the context *)
+  inductive eval_stmt context statement stdout behaviour context =
+   
+    | eval_stmt_set_previous: forall ctx ctx' ctx'' out st b.
+      eval_stmt' ctx st out b ctx' ->
+      ctx'' = {ctx' with previous = behaviour_to_bool b} ->
+      eval_stmt ctx st out b ctx''
+
+  with eval_stmt' context statement stdout behaviour context =
+
+    | eval_assign: forall ctx ctx' ctx'' v e s b b'.
+      eval_expr ctx e s b ctx' ->
+      b' = bo_behaviour b (strict ctx) ->
+      (* Keep only unreversables from ctx' and set variable in environment *)
+      ctx'' = {(with_unreversable ctx ctx') with senv = ctx.senv[v <- s]} ->
+      eval_stmt' ctx (SAssignment v e)
+        empty b' ctx''
+
+    | eval_sequence_normal: forall ctx ctx1 ctx2 s1 s2 out1 out2 b1 b2.
+      eval_stmt ctx s1 out1 (BNormal b1) ctx1 ->
+      eval_stmt ctx s2 out2 b2 ctx2 ->
+      eval_stmt' ctx (SSequence s1 s2)
+        (out1 ^ out2) b2 ctx2
+
+    | eval_sequence_transmit: forall ctx ctx1 s1 s2 out b1.
+      match b1 with BNormal _ -> false | _ -> true end ->
+      eval_stmt ctx s1 out b1 ctx1 ->
+      eval_stmt' ctx (SSequence s1 s2)
+        out b1 ctx1
+
+    | eval_subshell: forall ctx ctx' ctx'' st out b b'.
+      eval_stmt ctx st out b ctx' ->
+      b' = bool_to_behaviour (behaviour_to_bool b) (strict ctx) ->
+      ctx'' = with_unreversable ctx ctx' ->
+      eval_stmt' ctx (SSubshell st)
+        out b' ctx''
+
+    | eval_if_true: forall ctx s1 s2 s3 out1 out2 b2 ctx1 ctx2.
+      eval_stmt {ctx with under_condition = True} s1 out1 (BNormal True) ctx1 ->
+      eval_stmt {ctx1 with under_condition = ctx.under_condition} s2 out2 b2 ctx2 ->
+      eval_stmt' ctx (SIf s1 s2 s3)
+        (out1 ^ out2) b2 ctx2
+
+    | eval_if_false: forall ctx s1 s2 s3 out1 out3 b3 ctx1 ctx3.
+      eval_stmt {ctx with under_condition = True} s1 out1 (BNormal False) ctx1 ->
+      eval_stmt {ctx1 with under_condition = ctx.under_condition} s3 out3 b3 ctx3 ->
+      eval_stmt' ctx (SIf s1 s2 s3)
+        (out1 ^ out3) b3 ctx3
+
+    | eval_if_transmit: forall ctx s1 s2 s3 out1 b1 ctx1.
+      eval_stmt {ctx with under_condition = True} s1 out1 b1 ctx1 ->
+      match b1 with BNormal _ -> false | _ -> true end ->
+      eval_stmt' ctx (SIf s1 s2 s3)
+        out1 b1
+        {ctx1 with under_condition = ctx.under_condition}
+
+    | eval_pipe: forall ctx ctx1 ctx2 st1 st2 out1 out2 b1 b2.
+      eval_stmt ctx st1 out1 b1 ctx1 ->
+      eval_stmt {ctx1 with stdin = out1} st2 out2 b2 ctx2 ->
+      eval_stmt' ctx (SPipe st1 st2)
+        out2 b2 {ctx2 with stdin = ctx1.stdin}
+
+    | eval_nooutput: forall ctx ctx' st out b.
+      eval_stmt ctx st out b ctx' ->
+      eval_stmt' ctx (SNoOutput st)
+        empty b ctx'
+
+    | eval_not: forall ctx ctx' st out b b'.
+      eval_stmt {ctx with under_condition = True} st out b ctx' ->
+      b' = match b with BNormal b -> BNormal (notb b) | _ -> b end ->
+      eval_stmt' ctx (SNot st)
+        out b'
+        {ctx' with under_condition = ctx.under_condition}
+
+    | eval_exit: forall ctx b c.
+      b = return_code_to_bool c ctx.previous ->
+      eval_stmt' ctx (SExit c)
+        empty (BExit b) ctx
+
+    | eval_call: forall ctx ctx1 ctx2 nm es l out b1 b2 b3.
+      eval_exprs ctx es l b1 ctx1 ->
+      (out, b2, ctx2) = interp_command {ctx1 with args = l} nm ->
+      b3 = bool_to_behaviour b2 (strict ctx2) ->
+      eval_stmt' ctx (SCall nm es)
+        out b3
+        {ctx2 with args = ctx1.args}
+
+   (* TODO SWhile, SForeach *)
+
+  (** Evaluation of an expression to a string *)
+  with eval_expr context expression string (option bool) context =
+
+    | eval_literal: forall ctx s.
+      eval_expr ctx (ELiteral s)
+        s None ctx
+
+    | eval_variable: forall ctx v.
+      eval_expr ctx (EVariable v)
+        ctx.senv[v] None ctx
+
+    | eval_esubshell: forall ctx ctx' ctx'' st out b b'.
+      eval_stmt ctx st out b ctx' ->
+      b' = Some (behaviour_to_bool b) ->
+      ctx'' = with_unreversable ctx ctx' ->
+      eval_expr ctx (ESubshell st)
+        out b' ctx''
+
+    | eval_concat: forall ctx ctx1 ctx2 e1 e2 s1 s2 b1 b2 b3.
+      eval_expr ctx e1 s1 b1 ctx1 ->
+      eval_expr ctx1 e2 s2 b2 ctx2 ->
+      b3 = bo_compose b1 b2 ->
+      eval_expr ctx (EConcat e1 e2)
+        (s1 ^ s2) b3 ctx2
+
+  (** Evaluation of expressions to a list of strings *)
+  with eval_exprs context expressions (list string) (option bool) context =
+
+    | eval_exprs_nil: forall ctx.
+      eval_exprs ctx Nil Nil None ctx
+
+    | eval_exprs_cons: forall ctx ctx1 ctx2 e s l1 l2 b1 b2 b3 sp es.
+      eval_expr ctx e s b1 ctx1 ->
+      l1 = (if sp then split s else Cons s Nil) ->
+      eval_exprs ctx1 es l2 b2 ctx2 ->
+      b3 = bo_compose b1 b2 ->
+      eval_exprs ctx (Cons (e, sp) es)
+        (l1 ++ l2) b3 ctx2
+end

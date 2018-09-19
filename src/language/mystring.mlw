@@ -1,0 +1,12 @@
+module String
+
+  use list.List
+
+  type string
+
+  val constant empty : string
+
+  val function (^) string string : string
+
+  val function split string : list string
+end
