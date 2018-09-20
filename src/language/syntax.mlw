@@ -1,19 +1,34 @@
 
+module Variable
+
+  type variable
+
+end
+
 module Syntax
 
   use mystring.String
   use list.List
 
-  type variable
+  use Variable
+
   type split = bool
   
-  (* TODO Add `Arg int` (`$n`) and `EArgs` (`$@`) here or test variables matching `[0-9@]`
-     in `eval_variable` - they should not be searched in the environment *)
   type expression =
     | ELiteral string
     | EVariable variable
+    | EArg int | EArgs | EPrevious (* @NJ TODO `$<n>`, `$@`, `$?` better explicit than as
+      normal variable? Can be differentiated while parsing, right? *)
     | ESubshell statement
     | EConcat expression expression
+
+  (* TODO Or concat as flat list of expressions in a separate type instead? Like this
+
+     type component = Literal _ | Variable _ | Arg | Args | Previous | Subshell _
+     type expression = Concat (list component)
+
+     Only possible without quotes within expression.
+  *)
 
   with expressions =
     list (expression, split)
@@ -29,11 +44,13 @@ module Syntax
     | SSequence statement statement
     | SSubshell statement
     | SIf statement statement statement
+    | SNot statement
     | SPipe statement statement
     | SWhile statement statement
     | SNoOutput statement
     | SForeach variable expressions statement
-    | SNot statement
     | SCall string expressions
     | SExit return_code
+      (* CM: but `exit $ret` not representable? `SExit expression`instead with `$?` as
+         expression? *)
 end

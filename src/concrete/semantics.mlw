@@ -1,50 +1,136 @@
+module Mode
 
-module Semantics
-  use bool.Bool
-  use list.List
-  use list.Append
+  type mode = Strict | Unstrict
+end
+
+module Behaviour
+
   use option.Option
-  use map.Map
-  use mystring.String
-  use syntax.Syntax
-  use context.Context
+  use Mode
 
-  type stdout = string (* TODO Define and use a buffer type? *)
-
+  (* No return-behaviour behaviour since we do not implement functions (for now) *)
   type behaviour =
     | BNormal bool
     | BExit bool
-    (* No functions - no return-behaviour behaviour (for now) *)
 
-  let function behaviour_to_bool : behaviour -> bool =
+  let function behaviour_of_bool : mode -> bool -> behaviour =
+    fun strict b ->
+      match strict, b with
+      | Strict, False -> BExit False
+      | _ -> BNormal b
+      end
+
+  let function behaviour_of_bool_opt : mode -> option bool -> behaviour =
+    fun strict b ->
+      match b with
+      | Some b' -> behaviour_of_bool strict b'
+      | None -> BNormal True
+      end
+
+  let function bool_of_behaviour : behaviour -> bool =
     fun b ->
       match b with
       | BNormal b'
       | BExit b' -> b'
       end
+end
 
-  let function bool_to_behaviour : bool -> bool -> behaviour =
-    fun b strict ->
-      match b, strict with
-      | False, True -> BExit False
-      | _ -> BNormal b
-      end
+module Filesystem
+  type filesystem
+  val constant empty_filesystem: filesystem
+end
 
-  let function bo_compose : option bool -> option bool -> option bool =
-    fun b1 b2 ->
-      match b2 with
-      | None -> b1
-      | _ -> b2
-      end
+(** {2 Contexts for the evaluation} *)
 
-  let function bo_behaviour : option bool -> bool -> behaviour =
-    fun b strict ->
-      match b with
-      | Some b' -> bool_to_behaviour b' strict
-      | None -> BNormal True
-      end
+module Context
 
-  let function return_code_to_bool : return_code -> bool -> bool =
+  use list.List
+  use map.Map
+  use mystring.String
+  use bool.Bool
+
+  use syntax.Variable
+
+  use Mode
+  use Filesystem
+  use Behaviour
+
+  (** {3 Read-only context for the evaluation of a term} *)
+
+  type input = {
+    arguments: list string; (* Better an array? Advantages? *)
+    previous: bool; (* result of last command, i.e. `$?`, default true *)
+    under_condition: bool; (* evaluation below a condition implying unstrict mode *)
+  }
+
+  (** Strict evaluation mode ("false is fatal") applies outside of conditions.
+
+      To implement "set -e/+e", a second field indicating the global strict mode
+      `strict_mode` has to be added in the context and added in this test as
+      `ctx.strict_mode && negb ctx.under_condition` to account for the following example:
+
+      bash --posix -e -c 'if set +e; then echo X; fi; false; echo A/$?'; echo --$?~
+  *)
+  let function strict : input -> mode =
+    fun inp ->
+      if notb (inp.under_condition)
+      then Strict
+      else Unstrict
+
+  (** {3 Read/write context for the evaluation of a term} *)
+
+  type irreversable = {
+    filesystem: filesystem;
+    stdin: string; (* : @NJ How is this used in Debian scripts? Required interface for stdin? *)
+  }
+
+  type state = {irr: irreversable; env: map variable string}
+
+  (* BB: The evaluation state should comprise `filesystem`, `stdin`, and `senv`. The
+     `filesystem` and `stdin`, however, are differentin being unreversable parts of the
+     system (what’s done is done, even in subprocesses) but changes in the environment
+     may be just ignored (e.g., for subprocesses).
+
+     Other ideas? Better name?
+
+     Or keep together in one record and have a function
+
+     (* A helper to take only the unreversable fields from a subprocess *)
+     let function with_unreversable : state -> state -> state =
+       fun st1 st2 ->
+         {st1 with filesystem = st2.filesystem; stdin = st2.stdin}
+  *)
+
+  (** {3 Write-only evaluation of a term} *)
+
+  type output = {
+    stdout: string; (* Better implement and use a buffer? *)
+    behaviour: behaviour;
+  }
+
+  (* Combine a sequence of two outputs, ignoring the behaviour of the first output *)
+  let function seq_outputs : output -> output -> output =
+    fun out1 out2 ->
+      { stdout = out1.stdout ^ out2.stdout;
+        behaviour = out2.behaviour }
+end
+
+(** {2 Semantics of the CoLiS language} *)
+
+module Semantics
+
+  use list.List
+  use list.Append
+  use option.Option
+  use map.Map
+
+  use mystring.String
+  use syntax.Syntax
+
+  use Behaviour
+  use Context
+
+  let function bool_of_return_code : return_code -> bool -> bool =
     fun c previous ->
       match c with
       | CSuccess -> True
@@ -52,134 +138,126 @@ module Semantics
       | CPrevious -> previous
       end
 
-  (** Interprete a command defined in the *Specification of UNIX Commands* *)
-  val function interp_command context string : (string, bool, context)
+  let function get_option opt default =
+    match opt with
+    | Some v -> v
+    | None -> default
+    end
 
-  (** A wrapper that sets the behaviour in the context *)
-  inductive eval_stmt context statement stdout behaviour context =
-   
-    | eval_stmt_set_previous: forall ctx ctx' ctx'' out st b.
-      eval_stmt' ctx st out b ctx' ->
-      ctx'' = {ctx' with previous = behaviour_to_bool b} ->
-      eval_stmt ctx st out b ctx''
+  (** Interprete a command defined in the document *Specification of UNIX Commands*.
 
-  with eval_stmt' context statement stdout behaviour context =
+      It acts upon the input and irreversable state, and returns a stdout, a behaviour
+      (True/False), and another irreversable state *)
+  val function interp_builtin input irreversable string (list string) :
+    (string, bool, irreversable)
 
-    | eval_assign: forall ctx ctx' ctx'' v e s b b'.
-      eval_expr ctx e s b ctx' ->
-      b' = bo_behaviour b (strict ctx) ->
-      (* Keep only unreversables from ctx' and set variable in environment *)
-      ctx'' = {(with_unreversable ctx ctx') with senv = ctx.senv[v <- s]} ->
-      eval_stmt' ctx (SAssignment v e)
-        empty b' ctx''
+  (* Universal variables for results of function applications and constructors in the
+     inductive definition below can be replaced by let-bindings when the following bug
+     report is resolved:
 
-    | eval_sequence_normal: forall ctx ctx1 ctx2 s1 s2 out1 out2 b1 b2.
-      eval_stmt ctx s1 out1 (BNormal b1) ctx1 ->
-      eval_stmt ctx s2 out2 b2 ctx2 ->
-      eval_stmt' ctx (SSequence s1 s2)
-        (out1 ^ out2) b2 ctx2
+     https://gitlab.inria.fr/why3/why3/issues/185
+   *)
 
-    | eval_sequence_transmit: forall ctx ctx1 s1 s2 out b1.
-      match b1 with BNormal _ -> false | _ -> true end ->
-      eval_stmt ctx s1 out b1 ctx1 ->
-      eval_stmt' ctx (SSequence s1 s2)
-        out b1 ctx1
+  inductive eval_stmt input state statement state output =
 
-    | eval_subshell: forall ctx ctx' ctx'' st out b b'.
-      eval_stmt ctx st out b ctx' ->
-      b' = bool_to_behaviour (behaviour_to_bool b) (strict ctx) ->
-      ctx'' = with_unreversable ctx ctx' ->
-      eval_stmt' ctx (SSubshell st)
-        out b' ctx''
+   | eval_assign: forall inp sta irr' sta'' v e s b out.
+     eval_expr inp sta e s irr' b ->
+     sta'' = { irr = irr'; env = sta.env[v <- s] } ->
+     out = {stdout = empty; behaviour = behaviour_of_bool_opt (strict inp) b} ->
+     eval_stmt inp sta (SAssignment v e) sta'' out
 
-    | eval_if_true: forall ctx s1 s2 s3 out1 out2 b2 ctx1 ctx2.
-      eval_stmt {ctx with under_condition = True} s1 out1 (BNormal True) ctx1 ->
-      eval_stmt {ctx1 with under_condition = ctx.under_condition} s2 out2 b2 ctx2 ->
-      eval_stmt' ctx (SIf s1 s2 s3)
-        (out1 ^ out2) b2 ctx2
+   | eval_sequence_normal: forall inp sta s1 s2 sta1 sta2 out1 out2 out3 b1.
+     eval_stmt inp sta s1 sta1 {out1 with behaviour = BNormal b1} ->
+     eval_stmt {inp with previous = b1} sta1 s2 sta2 out2 ->
+     out3 = seq_outputs out1 out2 ->
+     eval_stmt inp sta (SSequence s1 s2) sta2 out3
 
-    | eval_if_false: forall ctx s1 s2 s3 out1 out3 b3 ctx1 ctx3.
-      eval_stmt {ctx with under_condition = True} s1 out1 (BNormal False) ctx1 ->
-      eval_stmt {ctx1 with under_condition = ctx.under_condition} s3 out3 b3 ctx3 ->
-      eval_stmt' ctx (SIf s1 s2 s3)
-        (out1 ^ out3) b3 ctx3
+   | eval_sequence_abort: forall inp sta s1 s2 sta1 out1 b1.
+     match b1 with BExit _ -> true | BNormal _ -> false end ->
+     eval_stmt inp sta s1 sta1 {out1 with behaviour = b1} ->
+     eval_stmt inp sta (SSequence s1 s2) sta1 out1
 
-    | eval_if_transmit: forall ctx s1 s2 s3 out1 b1 ctx1.
-      eval_stmt {ctx with under_condition = True} s1 out1 b1 ctx1 ->
-      match b1 with BNormal _ -> false | _ -> true end ->
-      eval_stmt' ctx (SIf s1 s2 s3)
-        out1 b1
-        {ctx1 with under_condition = ctx.under_condition}
+   | eval_subshell: forall inp sta sta' sta'' stm out out'.
+     eval_stmt inp sta stm sta' out ->
+     sta'' = {sta with irr = sta'.irr} ->
+     let b = behaviour_of_bool (strict inp) (bool_of_behaviour out.behaviour) in
+     out' = {out with behaviour = b} ->
+     eval_stmt inp sta (SSubshell stm) sta'' out'
 
-    | eval_pipe: forall ctx ctx1 ctx2 st1 st2 out1 out2 b1 b2.
-      eval_stmt ctx st1 out1 b1 ctx1 ->
-      eval_stmt {ctx1 with stdin = out1} st2 out2 b2 ctx2 ->
-      eval_stmt' ctx (SPipe st1 st2)
-        out2 b2 {ctx2 with stdin = ctx1.stdin}
+   | eval_if_true: forall inp sta sta1 sta2 s1 s2 s3 out1 out2 out3.
+     eval_stmt {inp with under_condition = True} sta s1 sta1 {out1 with behaviour = BNormal True} ->
+     eval_stmt inp sta1 s2 sta2 out2 ->
+     out3 = seq_outputs out1 out2 ->
+     eval_stmt inp sta (SIf s1 s2 s3) sta2 out3
 
-    | eval_nooutput: forall ctx ctx' st out b.
-      eval_stmt ctx st out b ctx' ->
-      eval_stmt' ctx (SNoOutput st)
-        empty b ctx'
+   | eval_if_false: forall inp sta sta1 sta2 s1 s2 s3 out1 out2 out3.
+     eval_stmt {inp with under_condition = True} sta s1 sta1 {out1 with behaviour = BNormal False} ->
+     eval_stmt inp sta1 s3 sta2 out2 ->
+     out3 = seq_outputs out1 out2 ->
+     eval_stmt inp sta (SIf s1 s2 s3) sta2 out3
 
-    | eval_not: forall ctx ctx' st out b b'.
-      eval_stmt {ctx with under_condition = True} st out b ctx' ->
-      b' = match b with BNormal b -> BNormal (notb b) | _ -> b end ->
-      eval_stmt' ctx (SNot st)
-        out b'
-        {ctx' with under_condition = ctx.under_condition}
+   | eval_if_transmit: forall inp sta sta1 s1 s2 s3 b1 out1.
+     match b1 with BExit _ -> true | BNormal _ -> false end ->
+     eval_stmt {inp with under_condition = True} sta s1 sta1 {out1 with behaviour = b1} ->
+     eval_stmt inp sta (SIf s1 s2 s3) sta1 out1
 
-    | eval_exit: forall ctx b c.
-      b = return_code_to_bool c ctx.previous ->
-      eval_stmt' ctx (SExit c)
-        empty (BExit b) ctx
+   | eval_nooutput: forall inp sta sta' st out out'.
+     eval_stmt inp sta st sta' out ->
+     out = {out with stdout = empty} ->
+     eval_stmt inp sta (SNoOutput st) sta' out'
 
-    | eval_call: forall ctx ctx1 ctx2 nm es l out b1 b2 b3.
-      eval_exprs ctx es l b1 ctx1 ->
-      (out, b2, ctx2) = interp_command {ctx1 with args = l} nm ->
-      b3 = bool_to_behaviour b2 (strict ctx2) ->
-      eval_stmt' ctx (SCall nm es)
-        out b3
-        {ctx2 with args = ctx1.args}
+   | eval_pipe: forall inp sta sta1 sta2 s1 s2 out1 out2.
+     eval_stmt inp sta s1 sta1 out1 ->
+     eval_stmt inp {sta1 with irr = {sta1.irr with stdin = out1.stdout}} s2 sta2 out2 ->
+     eval_stmt inp sta (SPipe s1 s2) sta2 out2
 
+   | eval_call: forall inp sta sta' s es ss irr1 irr2 b1 b2 stdout1 out.
+     eval_exprs inp sta es ss irr1 b1 -> (* b1 is ignored *)
+     (stdout1, b2, irr2) = interp_builtin inp sta.irr s ss ->
+     out = {stdout = stdout1; behaviour = behaviour_of_bool (strict inp) b2} ->
+     sta' = {irr = irr2; env = sta.env} ->
+     eval_stmt inp sta (SCall s es) sta' out
+
+   (* TODO SNot/SNotTrue/SFalse, decide syntax first *)
+   (* TODO SExit, decide argument type first *)
    (* TODO SWhile, SForeach *)
 
   (** Evaluation of an expression to a string *)
-  with eval_expr context expression string (option bool) context =
+  with eval_expr input state expression string irreversable (option bool)  =
 
-    | eval_literal: forall ctx s.
-      eval_expr ctx (ELiteral s)
-        s None ctx
+    | eval_literal: forall inp sta s. 
+      eval_expr inp sta (ELiteral s) s sta.irr None
 
-    | eval_variable: forall ctx v.
-      eval_expr ctx (EVariable v)
-        ctx.senv[v] None ctx
+    | eval_variable: forall inp sta v s.
+      s = sta.env[v] ->
+      eval_expr inp sta (EVariable v) s sta.irr None
 
-    | eval_esubshell: forall ctx ctx' ctx'' st out b b'.
-      eval_stmt ctx st out b ctx' ->
-      b' = Some (behaviour_to_bool b) ->
-      ctx'' = with_unreversable ctx ctx' ->
-      eval_expr ctx (ESubshell st)
-        out b' ctx''
+    | eval_esubshell: forall inp sta sta' stm out b.
+      eval_stmt inp sta stm sta' out ->
+      b = Some (bool_of_behaviour out.behaviour) ->
+      eval_expr inp sta (ESubshell stm) out.stdout sta'.irr b
 
-    | eval_concat: forall ctx ctx1 ctx2 e1 e2 s1 s2 b1 b2 b3.
-      eval_expr ctx e1 s1 b1 ctx1 ->
-      eval_expr ctx1 e2 s2 b2 ctx2 ->
-      b3 = bo_compose b1 b2 ->
-      eval_expr ctx (EConcat e1 e2)
-        (s1 ^ s2) b3 ctx2
+    (* TODO EConcat, but decide first syntax for concat *)
 
-  (** Evaluation of expressions to a list of strings *)
-  with eval_exprs context expressions (list string) (option bool) context =
+  (** Evaluation of expressions to a list of strings
 
-    | eval_exprs_nil: forall ctx.
-      eval_exprs ctx Nil Nil None ctx
+      CM: reuse `input.previous` instead of `option bool` or at least `bool` with default
+      `True`
 
-    | eval_exprs_cons: forall ctx ctx1 ctx2 e s l1 l2 b1 b2 b3 sp es.
-      eval_expr ctx e s b1 ctx1 ->
+      BB: Indeed, even shell is using something like input.previous for this - the
+      following line print "A/123-B/0" !
+
+      bash --posix -c 'x=$(exit 123)$(echo A/$?)-$(echo B/$?); echo $x'
+  *)
+  with eval_exprs input state expressions (list string) irreversable bool =
+
+    | eval_exprs_nil: forall inp sta.
+      eval_exprs inp sta Nil Nil sta.irr inp.previous
+
+    | eval_exprs_cons: forall inp sta e sp es s irr1 irr2 bo b l1 l2 l3.
+      eval_expr inp sta e s irr1 bo ->
       l1 = (if sp then split s else Cons s Nil) ->
-      eval_exprs ctx1 es l2 b2 ctx2 ->
-      b3 = bo_compose b1 b2 ->
-      eval_exprs ctx (Cons (e, sp) es)
-        (l1 ++ l2) b3 ctx2
+      eval_exprs {inp with previous = get_option bo inp.previous} {sta with irr=irr1} es l2 irr2 b ->
+      l3 = l1 ++ l2 ->
+      eval_exprs inp sta (Cons (e, sp) es) l3 irr2 b
 end
