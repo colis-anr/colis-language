@@ -262,7 +262,7 @@ module Semantics
     | eval_exprs_cons: forall prev inp sta e sp es s irr1 irr2 bo b l1 l2 l3.
       eval_expr inp sta e s irr1 bo ->
       l1 = (if sp then split s else Cons s Nil) ->
-      eval_exprs (get_option bo inp.previous) inp {sta with irr=irr1} es l2 irr2 b ->
+      eval_exprs (get_option bo previous) inp {sta with irr=irr1} es l2 irr2 b ->
       l3 = l1 ++ l2 ->
       eval_exprs prev inp sta (Cons (e, sp) es) l3 irr2 b
 end
