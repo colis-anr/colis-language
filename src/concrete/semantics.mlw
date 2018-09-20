@@ -162,7 +162,7 @@ module Semantics
 
    | eval_assign: forall inp sta irr' sta'' v e s b out.
      eval_expr inp sta e s irr' b ->
-     sta'' = { irr = irr'; env = sta.env[v <- s] } ->
+     sta'' = {irr = irr'; env = sta.env[v <- s]} ->
      out = {stdout = empty; behaviour = behaviour_of_bool_opt (strict inp) b} ->
      eval_stmt inp sta (SAssignment v e) sta'' out
 
@@ -186,19 +186,20 @@ module Semantics
 
    | eval_if_true: forall inp sta sta1 sta2 s1 s2 s3 out1 out2 out3.
      eval_stmt {inp with under_condition = True} sta s1 sta1 {out1 with behaviour = BNormal True} ->
-     eval_stmt inp sta1 s2 sta2 out2 ->
+     eval_stmt {inp with previous = True} sta1 s2 sta2 out2 ->
      out3 = seq_outputs out1 out2 ->
      eval_stmt inp sta (SIf s1 s2 s3) sta2 out3
 
    | eval_if_false: forall inp sta sta1 sta2 s1 s2 s3 out1 out2 out3.
      eval_stmt {inp with under_condition = True} sta s1 sta1 {out1 with behaviour = BNormal False} ->
-     eval_stmt inp sta1 s3 sta2 out2 ->
+     eval_stmt {inp with previous = False} sta1 s3 sta2 out2 ->
      out3 = seq_outputs out1 out2 ->
      eval_stmt inp sta (SIf s1 s2 s3) sta2 out3
 
    | eval_if_transmit: forall inp sta sta1 s1 s2 s3 b1 out1.
      match b1 with BExit _ -> true | BNormal _ -> false end ->
      eval_stmt {inp with under_condition = True} sta s1 sta1 {out1 with behaviour = b1} ->
+     (* Set inp.previous=False? *)
      eval_stmt inp sta (SIf s1 s2 s3) sta1 out1
 
    | eval_nooutput: forall inp sta sta' st out out'.
@@ -212,15 +213,15 @@ module Semantics
      eval_stmt inp sta (SPipe s1 s2) sta2 out2
 
    | eval_call: forall inp sta sta' s es ss irr1 irr2 b1 b2 stdout1 out.
-     eval_exprs inp sta es ss irr1 b1 -> (* b1 is ignored *)
-     (stdout1, b2, irr2) = interp_builtin inp sta.irr s ss ->
+     eval_exprs True inp sta es ss irr1 b1 -> (* b1 is ignored *)
+     (stdout1, b2, irr2) = interp_builtin inp irr1 s ss ->
      out = {stdout = stdout1; behaviour = behaviour_of_bool (strict inp) b2} ->
      sta' = {irr = irr2; env = sta.env} ->
      eval_stmt inp sta (SCall s es) sta' out
 
+   (* TODO SWhile, SForeach *)
    (* TODO SNot/SNotTrue/SFalse, decide syntax first *)
    (* TODO SExit, decide argument type first *)
-   (* TODO SWhile, SForeach *)
 
   (** Evaluation of an expression to a string *)
   with eval_expr input state expression string irreversable (option bool)  =
@@ -245,19 +246,23 @@ module Semantics
       `True`
 
       BB: Indeed, even shell is using something like input.previous for this - the
-      following line print "A/123-B/0" !
+      following line prints "A/123-B/0" !
 
       bash --posix -c 'x=$(exit 123)$(echo A/$?)-$(echo B/$?); echo $x'
+
+      BB: Not really, the following line prints "A/1/0"
+
+      bash --posix -c 'false; x=A/$?; echo $x/$?'
   *)
-  with eval_exprs input state expressions (list string) irreversable bool =
+  with eval_exprs bool input state expressions (list string) irreversable bool =
 
-    | eval_exprs_nil: forall inp sta.
-      eval_exprs inp sta Nil Nil sta.irr inp.previous
+    | eval_exprs_nil: forall prev inp sta.
+      eval_exprs prev inp sta Nil Nil sta.irr prev
 
-    | eval_exprs_cons: forall inp sta e sp es s irr1 irr2 bo b l1 l2 l3.
+    | eval_exprs_cons: forall prev inp sta e sp es s irr1 irr2 bo b l1 l2 l3.
       eval_expr inp sta e s irr1 bo ->
       l1 = (if sp then split s else Cons s Nil) ->
-      eval_exprs {inp with previous = get_option bo inp.previous} {sta with irr=irr1} es l2 irr2 b ->
+      eval_exprs (get_option bo inp.previous) inp {sta with irr=irr1} es l2 irr2 b ->
       l3 = l1 ++ l2 ->
-      eval_exprs inp sta (Cons (e, sp) es) l3 irr2 b
+      eval_exprs prev inp sta (Cons (e, sp) es) l3 irr2 b
 end
