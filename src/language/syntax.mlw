@@ -1,8 +1,6 @@
 
 module Variable
-
   type variable
-
 end
 
 module Syntax
@@ -12,22 +10,25 @@ module Syntax
 
   use Variable
 
-  type split = bool
+  type split = Split | NoSplit
   
   type expression =
     | ELiteral string
     | EVariable variable
-    | EArg int | EArgs | EPrevious (* @NJ TODO `$<n>`, `$@`, `$?` better explicit than as
-      normal variable? Can be differentiated while parsing, right? *)
     | ESubshell statement
     | EConcat expression expression
 
+  (* TODO `$<n>`, `$@`, `$?` better explicit (`EArg int | EArgs | EPrevious`) than
+     as normal variable? Can be differentiated while parsing, right? `$?` is boolean,
+     however. How to separate? *)
+
   (* TODO Or concat as flat list of expressions in a separate type instead? Like this
 
-     type component = Literal _ | Variable _ | Arg | Args | Previous | Subshell _
-     type expression = Concat (list component)
+     type scomp = Literal string | Variable var | Subshell stmt (* evaluates to string *)
+     type sexpr = Concat (list component) (* evaluates to string *)
+     type sexprs = list (sexpr, split) (* evaluates to string list *)
 
-     Only possible without quotes within expression.
+     This would result in a more canonical representation.
   *)
 
   with expressions =
@@ -51,6 +52,6 @@ module Syntax
     | SForeach variable expressions statement
     | SCall string expressions
     | SExit return_code
-      (* CM: but `exit $ret` not representable? `SExit expression`instead with `$?` as
-         expression? *)
+    (* CM: but `exit $ret` not representable? Add `CVar var` to `return_code`? `SExit
+        sexpr` instead with `$?` as expression? Stuck when sexpr not numerical/boolean? *)
 end
