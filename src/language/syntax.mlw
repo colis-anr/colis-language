@@ -8,7 +8,7 @@ module Syntax
   use mystring.String
   use list.List
 
-  use Variable
+  use export Variable
 
   type split = Split | NoSplit
   
@@ -39,7 +39,7 @@ module Syntax
     | CFailure
     | CPrevious
 
-  (* TODO add utilities `true`, `false` to UNIX specification *)
+  (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
   with statement =
     | SAssignment variable expression
     | SSequence statement statement
@@ -52,6 +52,6 @@ module Syntax
     | SForeach variable expressions statement
     | SCall string expressions
     | SExit return_code
-    (* CM: but `exit $ret` not representable? Add `CVar var` to `return_code`? `SExit
+    (** CM: TODO `exit $ret` not representable? Add `CVar var` to `return_code`? `SExit
         sexpr` instead with `$?` as expression? Stuck when sexpr not numerical/boolean? *)
 end
