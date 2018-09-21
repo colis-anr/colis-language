@@ -46,6 +46,7 @@ module Context
 
   use array.Array
   use map.Map
+  use map.Const
   use mystring.String
   use bool.Bool
 
@@ -58,6 +59,8 @@ module Context
 
   (* Better implement and use a buffer? *)
   type stdin = Stdin string 
+
+  let constant empty_stdin = Stdin String.empty
 
   type stdout = Stdout string 
 
@@ -74,6 +77,12 @@ module Context
     under_condition: bool; (* evaluation under condition - implying unstrict mode *)
   }
 
+  let constant empty_input = {
+    arguments = Array.make 0 String.empty;
+    previous = True;
+    under_condition = False;
+  }
+
   (** {3 Read/write context for the evaluation of a term} *)
 
   (** The state is unreversable, i.e. following a linear logic, each internal state should
@@ -83,10 +92,19 @@ module Context
     stdin: stdin; (* : @NJ How is this used in Debian scripts? Required interface for stdin? *)
   }
 
+  let constant empty_state = {
+    filesystem = empty_filesystem;
+    stdin = empty_stdin;
+  }
+
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
       subprocesses) *)
   type context = {
     env: map variable string
+  }
+
+  let constant empty_context = {
+    env = const String.empty;
   }
 
   (** {3 Write-only evaluation of a term} *)
@@ -234,25 +252,39 @@ module Semantics
     out = {stdout = sout; behaviour = behaviour_of_bool (strict inp) b'} ->
     eval_stmt inp ctx sta (SCall s es) sta' ctx out
   
+  (* TODO the behaviour of eval_exprs seems to be the `previous` for the for-body: the
+     script `for x in $(exit 2)a; do echo $x/$?; done` prints `a/2`. *)
   | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es stm ss b out.
-    eval_exprs True inp ctx sta es sta' ss b -> (* TODO also ignore b? never needed? *)
-    eval_foreach inp ctx sta' v ss stm sta'' ctx' out ->
+    eval_exprs True inp ctx sta es sta' ss b -> 
+    eval_foreach {inp with previous = b} ctx sta' v ss stm sta'' ctx' out ->
     eval_stmt inp ctx sta (SForeach v es stm) sta'' ctx' out
 
-  | eval_while_true: forall inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 s1 s2 out1 out2 out3.
-    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
-    eval_stmt inp ctx1 sta1 s2 sta2 ctx2 out2 ->
-    eval_stmt {inp with previous =  ctx2 sta2 (SWhile s1 s2) sta3 ctx3 out3 ->
-    eval_stmt inp ctx sta (SWhile s1 s2) sta3 ctx3 out3
-
-  | eval_while_false: forall inp ctx ctx1 sta sta1 s1 s2 out1.
+  (** while-condition is false *)
+  | eval_while_false: forall inp ctx ctx1 sta sta1 s1 s2 out1 out2.
     eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal False} ->
-    eval_stmt inp ctx sta (SWhile s1 s2) sta1 ctx1 out1
+    out2 = {out1 with behaviour = BNormal True} -> (** TODO correct? `false; while false; do false; done; echo X/$?` prints `X/0` *)
+    eval_stmt inp ctx sta (SWhile s1 s2) sta1 ctx1 out2
 
+  (** while-condition is not normal *)
   | eval_while_transmit: forall inp ctx ctx1 sta sta1 s1 s2 out1 b.
     match b with BExit _ -> true | BNormal _ -> false end ->
     eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = b} ->
     eval_stmt inp ctx sta (SWhile s1 s2) sta1 ctx1 out1
+
+  (** while-condition true but while-body not normal *)
+  | eval_while_true_transmit: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 out1 out2 b.
+    match b with BExit _ -> true | BNormal _ -> false end ->
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = b} ->
+    eval_stmt inp ctx1 sta1 s2 sta2 ctx2 {out2 with behaviour = b} ->
+    eval_stmt inp ctx sta (SWhile s1 s2) sta2 ctx2 out2
+
+  (** while-condition true, body normal, and loop again *)
+  | eval_while_true_loop: forall inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 s1 s2 out1 out2 out3 b.
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
+    eval_stmt inp ctx1 sta1 s2 sta2 ctx2 {out2 with behaviour = BNormal b} ->
+    (* c.f. below `function f() { return $1; }; for x in 0 1 2; do echo X/$x/$?; f $x; done; echo Y/$x/$?` *)
+    eval_stmt {inp with previous = b} ctx2 sta2 (SWhile s1 s2) sta3 ctx3 out3 ->
+    eval_stmt inp ctx sta (SWhile s1 s2) sta3 ctx3 out3
 
    (* TODO SNot/SNotTrue/SFalse, decide syntax first *)
    (* TODO SExit, decide argument type first *)

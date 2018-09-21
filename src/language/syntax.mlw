@@ -45,7 +45,8 @@ module Syntax
     | SSequence statement statement
     | SSubshell statement
     | SIf statement statement statement
-    | SNot statement
+    | SNot statement (* TODO Added to encode `&&` but see Claude's comments in
+      colis-git:reunions/2018/2018sep18.org *)
     | SPipe statement statement
     | SWhile statement statement
     | SNoOutput statement
