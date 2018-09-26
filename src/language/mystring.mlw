@@ -4,7 +4,11 @@ module String
 
   type string
 
+  (** "" *)
   val constant empty : string
+
+  (* Concatenate a list of string with spaces as separators (= `String.concat " "` in OCaml *)
+  val function concat (list string) : string
 
   val function (^) string string : string
 

@@ -10,13 +10,15 @@ module Syntax
 
   use export Variable
 
-  type split = Split | NoSplit
+  (* Indicates if a string in a list expression should be split (on spaces)? *)
+  type split = Split bool
   
-  type expression =
+  (** A `string_expression` evaluates to a `string` *)
+  type string_expression =
     | ELiteral string
     | EVariable variable
     | ESubshell statement
-    | EConcat expression expression
+    | EConcat string_expression string_expression
 
   (* TODO `$<n>`, `$@`, `$?` better explicit (`EArg int | EArgs | EPrevious`) than
      as normal variable? Can be differentiated while parsing, right? `$?` is boolean,
@@ -24,15 +26,22 @@ module Syntax
 
   (* TODO Or concat as flat list of expressions in a separate type instead? Like this
 
-     type scomp = Literal string | Variable var | Subshell stmt (* evaluates to string *)
-     type sexpr = Concat (list component) (* evaluates to string *)
-     type sexprs = list (sexpr, split) (* evaluates to string list *)
+     (* evaluates to string *)
+     type string_component = Literal string | Variable var | Subshell stmt 
 
-     This would result in a more canonical representation.
-  *)
+     (* evaluates to string *)
+     type string_expression = Concat (list string_component) 
 
-  with expressions =
-    list (expression, split)
+     (* evaluates to string list, only in the context of call/for-loop *)
+     type sexprs = list (string_expression, split) 
+
+     This would result in an equivalent but more canonical representation and no lemmas on
+     associativity and transitivity of EConcat. Decide when needed.
+   *)
+
+  (** A list_expression` evaluates to a `list string` *)
+  with list_expression =
+    list (string_expression, split)
 
   with return_code =
     | CSuccess
@@ -41,7 +50,7 @@ module Syntax
 
   (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
   with statement =
-    | SAssignment variable expression
+    | SAssignment variable string_expression
     | SSequence statement statement
     | SSubshell statement
     | SIf statement statement statement
@@ -50,9 +59,15 @@ module Syntax
     | SPipe statement statement
     | SWhile statement statement
     | SNoOutput statement
-    | SForeach variable expressions statement
-    | SCall string expressions
-    | SExit return_code
+    | SForeach variable list_expression statement
+    | SCall string list_expression
+    | SExit return_code (* NOTES:stmt_exit *)
     (** CM: TODO `exit $ret` not representable? Add `CVar var` to `return_code`? `SExit
-        sexpr` instead with `$?` as expression? Stuck when sexpr not numerical/boolean? *)
+        sexpr` instead with `$?` as expression? Stuck when sexpr not numerical/boolean?
+        NJ: exit $ret is rather rare, (33 times in `exit`, 17 in `return`)
+        NJ/BB: `SExit statement`? No `$?` neede, keep boolean values hidden, represent
+        `exit 0` as `SExit (SCall ["true"]`
+        CM: Do no implement `SExit statement` because this contradicts Shell syntax too much
+        Summary 2018/11/26: No clear best solution, keep `SExit (0|1|$?)` for now
+     *)
 end
