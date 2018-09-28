@@ -1,11 +1,23 @@
-.PHONY: why3-extraction
+.PHONY: build test clean extract-why3 clean-why3
 
-why3-extraction:
-	mkdir -p src/why3-extraction # Not sure where to extract to
+build: extract-why3
+	dune build @install
+
+test: build
+	dune test
+
+clean: clean-why3
+	dune clean
+
+extract-why3:
+	mkdir -p src/why3
 	why3 extract --modular --recursive \
 		-D ocaml64 \
 		-D src/language/driver.drv -D src/concrete/driver.drv \
 		-L src/language -L src/concrete \
-		-o src/why3-extraction/ \
+		-o src/why3 \
 		map.Const \
 		interpreter.Interpreter
+
+clean-why3:
+	rm -rf src/why3

@@ -1,0 +1,8 @@
+(include_subdirs unqualified)
+
+(library
+ (name symbolic)
+ (public_name symbolic)
+ (libraries zarith)
+ (flags :standard -w -27))
+ 
