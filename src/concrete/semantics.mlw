@@ -1,0 +1,389 @@
+module Strict
+  type strict = Strict bool
+end
+
+module Filesystem
+  type filesystem
+  val constant empty_filesystem: filesystem
+end
+
+module Behaviour
+
+  use option.Option
+
+  use Strict
+
+  (* No functions (see NOTES[Functions]), no return-behaviour *)
+  type behaviour =
+    | BNormal bool
+    | BExit bool
+
+  let function inject_behaviour (s:strict) (b:bool) : behaviour =
+    match s, b with
+    | Strict True, False -> BExit False
+    | _ -> BNormal b
+    end
+
+  let function opt_inject_behaviour (s:strict) (bo:option bool) : behaviour =
+    match bo with
+    | Some b -> inject_behaviour s b
+    | None -> BNormal True
+    end
+
+  let function bool_of_behaviour (b:behaviour) : bool =
+    match b with
+    | BNormal b'
+    | BExit b' -> b'
+    end
+
+  let function bool_opt_compose (bo1 bo2: option bool) : option bool =
+    match bo2 with
+    | Some _ -> bo2
+    | None -> bo1
+    end
+end
+
+module Buffers
+  use list.List
+  use list.Reverse
+  use mystring.String
+
+  (* stdin and stdout are comprised of a list of lines, cf. NOTES[Stdin/stdout] *)
+
+  (* The list contains the lines of the stdin, to be read in-order *)
+  type stdin = Stdin (list string) 
+
+  let constant empty_stdin = Stdin Nil
+
+  (* The list contains the lines of the stdout, with the most recent first *)
+  type stdout = { lines: list string }
+    invariant { lines <> Nil }
+
+  let constant empty_stdout = {lines = Cons String.empty Nil}
+
+  (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
+  let function stdout_to_stdin =
+    fun s ->
+    match s.lines with
+      | Cons _l ls -> Stdin (reverse ls)
+        (* TODO are there cases where `l` (i.e., "B" in the example above) should be kept
+          (if non-empty)? *)
+    end
+
+  let string_from_stdout s =
+    concat s.lines
+end
+
+(** {2 Contexts for the evaluation}
+
+    NOTES[Evaluation relation]
+ *)
+
+module Context
+
+  use array.Array
+  use map.Map
+  use map.Const
+  use bool.Bool
+  use list.List
+  use list.Reverse
+  use list.Append
+
+  use mystring.String
+  use syntax.Variable
+
+  use Strict
+  use Filesystem
+  use Behaviour
+  use Buffers
+
+  (** {3 Read-only context for the evaluation of a term} *)
+
+  type input = {
+    arguments: array string;
+    under_condition: bool; (* evaluation under condition - implying unstrict mode *)
+    previous: bool; (* result of last command, i.e. `$?`, default `True` *)
+  }
+
+  let constant empty_input = {
+    arguments = Array.make 0 String.empty;
+    previous = True;
+    under_condition = False;
+  }
+
+  (** {3 Read/write context for the evaluation of a term} *)
+
+  (** The state is unreversable ("following a linear logic") and each internal state should
+      be consumed exactly once *)
+  type state = {
+    filesystem: filesystem;
+    stdin: stdin;
+  }
+
+  let constant empty_state = {
+    filesystem = empty_filesystem;
+    stdin = empty_stdin;
+  }
+
+  (** The context of the interpretation, resulting contexts may be ignored (e.g., from
+      subprocesses)
+
+      Will contain also the function environment one functions are added to the language
+   *)
+  type context = {
+    env: map variable string
+  }
+
+  let constant empty_context = {
+    env = const String.empty;
+  }
+
+  (** {3 Write-only evaluation of a term} *)
+
+  type output = {
+    stdout: stdout; 
+    behaviour: behaviour;
+  }
+
+  (** {3 Auxiliaries} *)
+
+  (** Strict evaluation mode ("false is fatal") applies only outside of
+      conditions, see NOTES[Strict] *)
+  let function strict : input -> strict =
+    fun inp ->
+      Strict (notb (inp.under_condition))
+
+  (* Concatenate two stdouts, see NOTES[Stdin/stdout].
+
+     concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
+
+     and when final lines are not closed (using `echo -n`):
+
+     concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S4"; "S3; "S2"; "S1"]
+
+     Ah, here the complexity for specifying `read` that we avoided by using `list string`
+     re-emerges ! *)
+  let function concat_stdout sout1 sout2 =
+    let rec function aux l1 l2 variant { l2 } =
+      match l2 with
+      | Cons s2 Nil ->
+        match l1 with
+        | Cons s1 l1_rest ->
+          Cons (s1 ^ s2) l1_rest
+        | Nil -> absurd
+        end
+      | Cons s2 l2_rest ->
+        Cons s2 (aux l2_rest l1)
+      | Nil -> absurd
+      end
+    in {lines = aux sout1.lines sout2.lines}
+end
+
+(** {2 Semantics of the CoLiS language} *)
+
+module Semantics
+
+  use list.List
+  use list.Append
+  use option.Option
+  use map.Map
+  use bool.Bool
+
+  use mystring.String
+  use syntax.Syntax
+
+  use Behaviour
+  use Context
+  use Buffers
+
+  let function bool_of_return_code (c:return_code) (previous:bool) : bool =
+    match c with
+    | CSuccess -> True
+    | CFailure -> False
+    | CPrevious -> previous
+    end
+
+  (** Interprete a command defined in the document *Specification of UNIX Commands*.
+
+      It acts upon the input and irreversable state, and returns a stdout, a behaviour
+      (True/False), and another irreversable state, see also NOTES[Callees] *)
+  val function interp_builtin state string (list string) :
+    (state, stdout, bool)
+
+
+  (** Evaluation of a statement s with input I, context C and state S resulting in an
+      state S', context C', and output O:
+
+      \[ (I, C, S) s \Downarrow (S', C', O) \]
+   *)
+
+  inductive eval_stmt input context state statement state context output =
+
+  | eval_nop: forall inp ctx sta.
+    let out = {stdout = empty_stdout; behaviour = BNormal True} in
+    eval_stmt inp ctx sta SNop sta ctx out
+
+  | eval_exit: forall inp ctx sta c.
+    let b = bool_of_return_code c inp.previous in
+    let out = {stdout = empty_stdout; behaviour = BExit b} in
+    eval_stmt inp ctx sta (SExit c) sta ctx out
+
+  | eval_assign: forall inp ctx sta sta' v e s b.
+    eval_str_expr inp ctx sta e sta' s b ->
+    let ctx' = {ctx with env = ctx.env[v <- s]} in
+    let out = {stdout = empty_stdout; behaviour = opt_inject_behaviour (strict inp) b} in
+    eval_stmt inp ctx sta (SAssignment v e) sta' ctx' out
+  
+  | eval_sequence_normal: forall inp sta sta1 sta2 s1 s2 ctx ctx1 ctx2 out1 out2 b1.
+    eval_stmt inp ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal b1} ->
+    eval_stmt {inp with previous = b1} ctx1 sta1 s2 sta2 ctx2 out2 ->
+    let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
+    eval_stmt inp ctx sta (SSequence s1 s2) sta2 ctx out3
+  
+  | eval_sequence_abort: forall inp sta sta1 ctx ctx1 s1 s2 out1 b1.
+    match b1 with BExit _ -> true | BNormal _ -> false end ->
+    eval_stmt inp ctx sta s1 sta1 ctx1 {out1 with behaviour = b1} ->
+    eval_stmt inp ctx sta (SSequence s1 s2) sta1 ctx1 out1
+  
+  | eval_subshell: forall inp sta sta' ctx ctx' stm out.
+    eval_stmt inp ctx sta stm sta' ctx' out ->
+    (* `Normal false` turns to `Exit False` in strict mode - the line `set -e; (! true);
+       echo A/$?` prints nothing *)
+    let b = inject_behaviour (strict inp) (bool_of_behaviour out.behaviour) in
+    let out' = {out with behaviour = b} in
+    eval_stmt inp ctx sta (SSubshell stm) sta' ctx out'
+
+  | eval_not: forall inp ctx ctx' sta sta' s out.
+    eval_stmt {inp with under_condition = True} ctx sta s sta' ctx' out ->
+    let out' = {out with behaviour = BNormal (notb (bool_of_behaviour out.behaviour))} in
+    eval_stmt inp ctx sta (SNot s) sta' ctx' out'
+  
+  | eval_if_true: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 s3 out1 out2.
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
+    eval_stmt {inp with previous = True} ctx1 sta1 s2 sta2 ctx2 out2 ->
+    let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
+    eval_stmt inp ctx sta (SIf s1 s2 s3) sta2 ctx2 out3
+  
+  | eval_if_false: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 s3 out1 out2.
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal False} ->
+    eval_stmt {inp with previous = False} ctx1 sta1 s3 sta2 ctx2 out2 ->
+    let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
+    eval_stmt inp ctx sta (SIf s1 s2 s3) sta2 ctx2 out3
+  
+  | eval_if_transmit: forall inp ctx ctx1 sta sta1 s1 s2 s3 b1 out1.
+    match b1 with BExit _ -> true | BNormal _ -> false end ->
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = b1} ->
+    eval_stmt inp ctx sta (SIf s1 s2 s3) sta1 ctx1 out1
+  
+  | eval_nooutput: forall inp ctx ctx' sta sta' st out.
+    eval_stmt inp ctx sta st sta' ctx' out ->
+    let out' = {out with stdout = empty_stdout} in
+    eval_stmt inp ctx sta (SNoOutput st) sta' ctx' out'
+  
+  (** ignores changes in the context `ctx` *)
+  (** TODO does not set `$?` *)
+  | eval_pipe: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 out1 out2.
+    eval_stmt inp ctx sta s1 sta1 ctx1 out1 ->
+    eval_stmt inp ctx {sta1 with stdin = stdout_to_stdin out1.stdout} s2 sta2 ctx2 out2 ->
+    eval_stmt inp ctx sta (SPipe s1 s2) sta2 ctx out2
+  
+  | eval_call: forall inp ctx sta sta' sta'' s es ss sout b.
+    eval_list_expr inp ctx sta es sta' ss ->
+    (sta'', sout, b) = interp_builtin sta' s ss ->
+    let out = {stdout = sout; behaviour = inject_behaviour (strict inp) b} in
+    eval_stmt inp ctx sta (SCall s es) sta'' ctx out
+  
+  (* TODO the behaviour of eval_exprs seems to be the `previous` for the for-body: the
+     script `for x in $(exit 2)a; do echo $x/$?; done` prints `a/2`. *)
+  | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es stm ss b out.
+    eval_list_expr inp ctx sta es sta' ss -> 
+    eval_foreach {inp with previous = b} ctx sta' v ss stm sta'' ctx' out ->
+    eval_stmt inp ctx sta (SForeach v es stm) sta'' ctx' out
+
+  (** while-condition is false *)
+  | eval_while_false: forall inp ctx ctx1 sta sta1 s1 s2 out1.
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal False} ->
+    let out2 = {out1 with behaviour = BNormal True} in (** TODO correct? `false; while false; do false; done; echo X/$?` prints `X/0` *)
+    eval_stmt inp ctx sta (SWhile s1 s2) sta1 ctx1 out2
+
+  (** while-condition is not normal *)
+  | eval_while_transmit: forall inp ctx ctx1 sta sta1 s1 s2 out1 b.
+    match b with BExit _ -> true | BNormal _ -> false end ->
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = b} ->
+    eval_stmt inp ctx sta (SWhile s1 s2) sta1 ctx1 out1
+
+  (** while-condition true but while-body not normal *)
+  | eval_while_true_transmit: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 out1 out2 b.
+    match b with BExit _ -> true | BNormal _ -> false end ->
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = b} ->
+    eval_stmt inp ctx1 sta1 s2 sta2 ctx2 {out2 with behaviour = b} ->
+    eval_stmt inp ctx sta (SWhile s1 s2) sta2 ctx2 out2
+
+  (** while-condition true, body normal, and loop again *)
+  | eval_while_true_loop: forall inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 s1 s2 out1 out2 out3 b.
+    eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
+    eval_stmt inp ctx1 sta1 s2 sta2 ctx2 {out2 with behaviour = BNormal b} ->
+    (* c.f. below `function f() { return $1; }; for x in 0 1 2; do echo X/$x/$?; f $x; done; echo Y/$x/$?` *)
+    eval_stmt {inp with previous = b} ctx2 sta2 (SWhile s1 s2) sta3 ctx3 out3 ->
+    eval_stmt inp ctx sta (SWhile s1 s2) sta3 ctx3 out3
+
+  with eval_foreach input context state variable (list string) statement state context output =
+
+  | eval_foreach_nil: forall inp ctx sta x stm.
+    let out = {stdout = empty_stdout; behaviour = BNormal True} in
+    eval_foreach inp ctx sta x Nil stm sta ctx out
+
+  | eval_foreach_cons: forall inp ctx ctx1 ctx2 sta sta1 sta2 x s ss stm out1 out2.
+    eval_stmt inp {ctx with env = ctx.env[x <- s]} sta stm sta1 ctx1 out1 ->
+    eval_foreach inp ctx1 sta1 x ss stm sta2 ctx2 out2 ->
+    eval_foreach inp ctx sta x (Cons s ss) stm sta2 ctx2 out2
+
+  (** Evaluation of an expression with some input I, context C, and state S, resulting in
+      another state S, a string and an output comprised of a string result and an optional
+      boolean behaviour (only $(...) has a behaviour):
+
+      \[ (Input, Context, State) e \Downarrow (State, String, OptBool) \]
+   *)
+  with eval_str_expr input context state string_expression state string (option bool)  =
+
+  | eval_str_literal: forall inp ctx sta s. 
+    eval_str_expr inp ctx sta (ELiteral s) sta s None
+
+  | eval_str_variable: forall inp ctx sta v.
+    let s = ctx.env[v] in
+    eval_str_expr inp ctx sta (EVariable v) sta s None
+
+  | eval_str_subshell: forall inp ctx ctx' sta sta' stm out.
+    eval_stmt inp ctx sta stm sta' ctx' out ->
+    let b = Some (bool_of_behaviour out.behaviour) in
+    let s = concat out.stdout.lines in
+    eval_str_expr inp ctx sta (ESubshell stm) sta' s b
+
+  | eval_str_concat : forall inp ctx sta sta1 sta2 e1 e2 s1 s2 bo1 bo2.
+    eval_str_expr inp ctx sta e1 sta1 s1 bo1 ->
+    eval_str_expr inp ctx sta1 e2 sta2 s2 bo2 ->
+    let bo3 = bool_opt_compose bo1 bo2 in
+    eval_str_expr inp ctx sta (EConcat e1 e2) sta2 s2 bo3
+
+  (** Evaluation of expressions to a list of strings:
+
+      \[ (Bool, I, C, S) es \Downarrow (S, StringList, Bool) \]
+
+      CM: reuse `input.previous` instead of `option bool` or at least `bool` with default
+      `True`
+
+      BB/NJ: But unclear `$?` in expression lists (but `$?` not implemented for now)
+   *)
+  with eval_list_expr input context state list_expression state (list string) =
+
+    | eval_list_expr_nil: forall inp ctx sta.
+      eval_list_expr inp ctx sta Nil sta Nil
+
+    | eval_list_expr_cons: forall inp ctx sta sta' sta'' se sp es s bo l2.
+      eval_str_expr inp ctx sta se sta' s bo ->
+      let l1 = match sp with Split True -> split s | Split False -> Cons s Nil end in
+      eval_list_expr inp ctx sta' es sta'' l2 ->
+      let l3 = l1 ++ l2 in
+      eval_list_expr inp ctx sta (Cons (se, sp) es) sta' l3
+
+end

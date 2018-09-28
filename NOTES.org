@@ -1,0 +1,164 @@
+#+TITLE: Notes on the design of the CoLiS language
+#+OPTIONS: ^:nil
+* Syntax
+** Functions
+- not required without shift, leave out for now
+- no ~Return~ behaviour either
+** Exit
+- CM: TODO ~exit $ret~ not representable? Add ~CVar var~ to ~return_code~? ~SExit sexpr~
+  instead with ~$?~ as expression? Stuck when sexpr not numerical/boolean?
+- NJ: ~exit $var~ is rather rare (33 times), ~return $var~ as well (17 times)
+- NJ/BB: ~SExit statement~? No ~$?~ needed, keep boolean values hidden, represent ~exit 0~
+  as ~SExit (SCall ["true"]~
+- CM: Do no implement ~SExit statement~ because this contradicts Shell syntax too much
+- Summary 2018/11/26: No clear best solution, keep ~SExit (0|1|$?)~ for now
+** Previous result
+- Syntax in Shell: ~$?~
+- NJ: Yes, $? will be a small problem. Because it is an integer in Shell and will be a
+  boolean in CoLiS, which means that we have to be a bit careful when it is used.
+- not in strings, only as argument for ~SExit~
+** Arguments list
+Syntax in Shell: ~$@~
+- not required for now (no functions, no shift)
+- could be added by replacing Call name exprs with Call exprs and defining ~type exprs =
+  list (sexpr, split) | $@~ (pseudocode)
+- but the callable will not be statically known any more
+** Shell callees
+- special builtins :: operates on full environment
+- functions :: 
+  - naming ambiguity with special builtins is prohibited
+  - built using special builtins
+  - operates full environment
+- utitilies (builtins, on $PATH) ::
+  - reads: stdin, arguments
+  - writes: return code, stdout, stderr
+  - does not read environment variables for the moment, this would require ~export~ flag
+    on variables
+  - no general access to environment (e.g., no change of variables)
+  - no real difference between builtins and execs on $PATH, difference only for efficacy
+*** Shell callees in CoLiS
+- special builtins as syntactic constructs
+  - only ~exit~ for now
+  - ~set~: not for now
+  - ~cd~: should be syntactic construct, not builtin like in Shell, rarely used, not for
+    now
+  - ~export~: NJ, not used?
+  - ~source~: mostly absolute files in corpus, expand in AST while parsing
+- no functions
+- everything else interpreted as command
+- CoLiS stucks for unknown utilities, exception for interpreter
+** Break/continue
+- around 100 scripts in the Debian corpus
+- leave out for now, can be easily added
+** Stdin/stdout
+- stdin and stdout are string lists to simplify the specification of ~echo~ and ~read~
+- stdout has invariant ~stdout <> []~
+- empty stdout is singleton list
+- stdout: print by expanding the first line, newline conses an empty string
+- ~echo -n~ adds to last element, echo adds to last element, and appends ""
+#+begin_src ocaml
+  let echo (n: bool) (line: string) (stdout: string list) : string list =
+      match stdout with
+      | [] -> assert false
+      | h :: t ->
+          let stdout = (h ^ line) :: t in
+          if n then stdout else "" :: stdout
+#+end_src
+- the last line is lost when piping:
+#+begin_src sh
+(echo A; echo -n B) | while read x; do echo $x; done
+#+end_src
+
+#+RESULTS:
+: A
+
+** Statement ~exit~
+:PROPERTIES:
+:CUSTOM_ID: stmt_exit
+:END:
+*** CM: TODO ~exit $ret~ not representable? [2018-09-20 Thu]
+Add ~CVar var~ to ~return_code~?
+~SExit sexpr~ instead with ~$?~ as expression?
+Stuck when sexpr not numerical/boolean?
+*** NJ: exit $ret is rather rare [2018-09-25 Tue]
+- 33 times in ~exit~,
+- 17 in ~return~
+*** NJ/BB: ~SExit statement~? [2018-09-25 Tue]
+- No ~$?~ needed then
+- keep boolean values hidden
+- represent ~exit 0~ as ~SExit (SCall ["true"]~
+*** CM: Do no implement `SExit statement` [2018-09-26 Wed]
+- because this contradicts Shell syntax too much
+*** Summary [2018-09-26 Wed]
+- No clear best solution
+- keep ~SExit (0|1|$?)~ for now
+** Conditionals
+- dependencies (←) between commands:
+  - ~if~ and ~not~ ← ~&&~ and ~||~ ← ~case~
+  - with matching only literals and anything ~*~
+  - only ~if~ and ~not~ for now
+- for now: Only ~if~ / ~not~, other can be emulated, and added if need be
+** Redirections
+- simplify ~x >&2~ as statement ~IgnoreStdout x~
+** Strict
+- single flag indicating evaluation under condition for now
+- ~set -e/+e~ requires second flag
+#+begin_src sh
+dash -ec 'if set +e; then echo X; fi; false; echo A/$?'; echo --$?~
+#+end_src
+
+#+RESULTS:
+| X    |
+| A/1  |
+| --0~ |
+  
+- To implement ~set -e/+e~, a second field indicating the global strict mode
+  (~strict_mode~) has to be added in the state and added in this test as ~ctx.strict_mode
+  && negb ctx.under_condition~ to account for the following example:
+** Shift
+- used in only ~250 scripts, leave out for now, depends on functions
+** Strings
+- Shells disagree if subshells in a string set previous result ~$?~: dash does not have
+  the same behaviour as bash --posix in the following example. And the standard is not
+  really clear in that regard. It only says "$? expands to the decimal exit status of the
+  most recent pipeline (see Pipelines)."
+#+begin_src sh
+x=$(exit 123)$(echo A/$?)-$(echo B/$?)
+echo $x
+#+end_src
+*** Alternative AST for strings
+- Or concat as flat list of expressions in a separate type instead?
+- this would result in an equivalent but more canonical representation and no lemmas on
+  associativity and transitivity of EConcat.
+- Decide when needed.
+#+begin_src ocaml
+(* evaluates to string *)
+type string_component = Literal string | Variable var | Subshell stmt
+
+(* evaluates to string *)
+type string_expression = Concat (list string_component)
+
+(* evaluates to string list, only in the context of call/for-loop *)
+type sexprs = list (string_expression, split)
+#+end_src
+** String lists
+* Concrete semantics
+** Macros in specification
+required for specification in CLS
+- procedures (simple)
+- lists (~rev~)
+- functions on strings to lists (~but_last~, ~prefixes~)
+proposition: specification in well-defined "Pseudo-CoLiS", implementation in OCaml
+
+** TODO Evaluation relation
+TODO describe types input/context/state/output
+*** Evaluation env
+- currently only the variable environemnt
+- will contain function environment when we add functions
+** Buffers
+- stdout in separate module
+- NJ: we just have to be sure that the buffer has enough information for the proof
+  obligations to be easy. In particular, it could be nice to have an easy way to write
+  ~exists s. stdout = (old stdout) ^ s and ...~.
+  Maybe something like ~let s = cutprefix (old stdout) stdout~?
+

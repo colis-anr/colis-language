@@ -1,32 +1,48 @@
 
-module Syntax
+module Variable
   type variable
-  type split = bool
-  
-  type expression =
-    | ELiteral string
-    | EVariable variable
-    | ESubshell statement
-    | EConcat expression expression
+  val function variable_eq (v1 v2:variable): bool
+end
 
-  with expressions =
-    list (expression, split)
+module Syntax
 
+  use mystring.String
+  use list.List
+
+  use export Variable
+
+  (* Indicates if a string in a list expression should be split (on spaces)? *)
+  type split = Split bool
+
+  (** A `string_expression` evaluates to a `string` *)
+  type string_expression =
+    | ELiteral string                             (** 'string' *)
+    | EVariable variable                          (** ${variable} *)
+    | ESubshell statement                         (** $(statement) *)
+    | EConcat string_expression string_expression (** expression expression (without the space) *)
+    (* TODO Arguments $<n> *)
+
+  (** A list_expression` evaluates to a `list string` *)
+  with list_expression =
+    list (string_expression, split)
+
+  (* Allow $? only as return code, cf. NOTES[Exit] *)
   with return_code =
     | CSuccess
     | CFailure
     | CPrevious
 
   with statement =
-    | SAssignment variable expression
+    | SNop (* No operation *)
+    | SAssignment variable string_expression
     | SSequence statement statement
     | SSubshell statement
     | SIf statement statement statement
+    | SNot statement (* NOTES[Conditionals] *)
     | SPipe statement statement
     | SWhile statement statement
     | SNoOutput statement
-    | SForeach variable expressions statement
-    | SNot statement
-    | SCall string expressions
-    | SExit return_code
+    | SForeach variable list_expression statement
+    | SCall string list_expression
+    | SExit return_code (* NOTES[Exit] *)
 end

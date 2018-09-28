@@ -1,0 +1,111 @@
+
+module Result
+  use semantics.Buffers
+  use semantics.Context
+  use semantics.Behaviour
+  use semantics.Context
+
+  type result = { state: state; context: context; stdout: stdout; value: bool }
+
+  exception EExit result
+
+  (** Construct an output with normal behaviour *)
+  let function normal_output : result -> output =
+   fun res ->
+    { Context.stdout = res.stdout ;
+      behaviour = BNormal res.value }
+
+  (** Construct an output with exit behaviour *)
+  let function exit_output : result -> output =
+    fun res ->
+      { Context.stdout = res.stdout ;
+        behaviour = BExit res.value }
+end
+
+module Interpreter
+
+  use list.List
+  use list.Append
+  use ref.Ref
+  use option.Option
+  use map.Map
+
+  use mystring.String
+  use syntax.Syntax
+  use semantics.Strict
+  use semantics.Buffers
+  use semantics.Behaviour
+  use semantics.Context
+  use semantics.Semantics
+  use Result
+
+  let ([<-]) (m:variable -> 'a) (var:variable) (value:'a) : variable -> 'a
+  = fun var1 ->
+      if variable_eq var1 var
+      then value
+      else m var1
+
+  let result (strict:strict) (sta:state) (ctx:context) (out:stdout) (b:bool) : result
+    raises { EExit _ -> true }
+  = let res = {state=sta; context=ctx; Result.stdout=out; value=b} in
+    match strict, b with
+    | Strict True, False -> raise EExit res
+    | _ -> res
+    end
+
+  let result_opt (strict:strict) (sta:state) (ctx:context) (out:stdout) (bo:option bool) :result
+    raises { EExit _ -> true }
+  = match bo with
+    | Some b -> result strict sta ctx out b
+    | None -> {state=sta; context=ctx; Result.stdout=out; value=True}
+    end
+  
+  let rec interp_stmt (inp:input) (ctx:context) (sta:state) (stm:statement) : result
+    returns { res ->
+              eval_stmt inp ctx sta stm res.state res.context (normal_output res) }
+    raises { EExit res ->
+             eval_stmt inp ctx sta stm res.state res.context (exit_output res) }
+  = match stm with
+    | SAssignment var se ->
+      let sta', str, bo = interp_str_expr inp ctx sta se in
+      let ctx' = {ctx with env = ctx.env[var <- str]} in
+      result_opt (strict inp) sta' ctx' empty_stdout bo
+    | SSequence s1 s2 ->
+      let res = interp_stmt inp ctx sta s1 in
+      interp_stmt {inp with previous = res.value} res.context res.state s2
+    | SCall name le ->
+      let sta', args = interp_list_expr inp ctx sta le in
+      let sta'', out, b = interp_builtin sta' name args in
+      result (strict inp) sta'' ctx out b
+    | _ -> absurd
+    end
+
+  with interp_str_expr (inp:input) (ctx:context) (sta:state) (se:string_expression) : (state, string, option bool)
+  = match se with
+    | ELiteral s -> sta, s, None
+    | EVariable v -> sta, ctx.env[v], None
+    | ESubshell stm ->
+      let res =
+        try interp_stmt inp ctx sta stm
+        with EExit res -> res end
+      in
+      let str = string_from_stdout res.stdout in
+      res.state, str, Some res.value
+    | EConcat se1 se2 ->
+      let sta1, s1, bo1 = interp_str_expr inp ctx sta se1 in
+      let sta2, s2, bo2 = interp_str_expr inp ctx sta1 se2 in
+      let bo3 = bool_opt_compose bo1 bo2 in
+      sta2, s1^s2, bo3
+    end
+
+  with interp_list_expr (inp:input) (ctx:context) (sta:state) (le:list_expression) : (state, list string)
+  = match le with
+    | Nil -> sta, Nil
+    | Cons (se, sp) le_rest ->
+      let sta1, s, _ = interp_str_expr inp ctx sta se in
+      let l1 = match sp with Split True -> split s | Split False -> Cons s Nil end in
+      let sta2, l2 = interp_list_expr inp ctx sta1 le_rest in
+      let l3 = l1 ++ l2 in
+      sta2, l3
+    end
+end
