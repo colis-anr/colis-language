@@ -32,6 +32,7 @@ module Syntax
     | CFailure
     | CPrevious
 
+  (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
   with statement =
     | SNop (* No operation *)
     | SAssignment variable string_expression

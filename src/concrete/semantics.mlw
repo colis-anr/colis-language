@@ -83,7 +83,6 @@ module Context
 
   use array.Array
   use map.Map
-  use map.Const
   use bool.Bool
   use list.List
   use list.Reverse
@@ -135,7 +134,7 @@ module Context
   }
 
   let constant empty_context = {
-    env = const String.empty;
+    env = (fun _ -> String.empty); (* Cannot use map.Const because Map__Const is not extracted... *)
   }
 
   (** {3 Write-only evaluation of a term} *)
