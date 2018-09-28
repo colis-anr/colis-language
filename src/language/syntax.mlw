@@ -12,13 +12,13 @@ module Syntax
 
   (* Indicates if a string in a list expression should be split (on spaces)? *)
   type split = Split bool
-  
+
   (** A `string_expression` evaluates to a `string` *)
   type string_expression =
-    | ELiteral string
-    | EVariable variable
-    | ESubshell statement
-    | EConcat string_expression string_expression
+    | ELiteral string                             (** 'string' *)
+    | EVariable variable                          (** ${variable} *)
+    | ESubshell statement                         (** $(statement) *)
+    | EConcat string_expression string_expression (** expression expression (without the space) *)
 
   (* TODO `$<n>`, `$@`, `$?` better explicit (`EArg int | EArgs | EPrevious`) than
      as normal variable? Can be differentiated while parsing, right? `$?` is boolean,
@@ -27,13 +27,13 @@ module Syntax
   (* TODO Or concat as flat list of expressions in a separate type instead? Like this
 
      (* evaluates to string *)
-     type string_component = Literal string | Variable var | Subshell stmt 
+     type string_component = Literal string | Variable var | Subshell stmt
 
      (* evaluates to string *)
-     type string_expression = Concat (list string_component) 
+     type string_expression = Concat (list string_component)
 
      (* evaluates to string list, only in the context of call/for-loop *)
-     type sexprs = list (string_expression, split) 
+     type sexprs = list (string_expression, split)
 
      This would result in an equivalent but more canonical representation and no lemmas on
      associativity and transitivity of EConcat. Decide when needed.
