@@ -8,5 +8,5 @@ end
 
 module syntax.Variable
   syntax type variable "string"
-  syntax function variable_eq "String.equals %1 %2"
+  syntax function variable_eq "String.equal %1 %2"
 end

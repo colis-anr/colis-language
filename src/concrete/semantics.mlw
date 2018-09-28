@@ -98,7 +98,6 @@ module Context
 
   use array.Array
   use map.Map
-  use map.Const
   use bool.Bool
   use list.List
   use list.Reverse
@@ -150,7 +149,7 @@ module Context
   }
 
   let constant empty_context = {
-    env = const String.empty;
+    env = (fun _ -> String.empty); (* Cannot use map.Const because Map__Const is not extracted... *)
   }
 
   (** {3 Write-only evaluation of a term} *)
@@ -259,7 +258,7 @@ module Semantics
 
   | eval_nop: forall inp ctx sta.
     let out = {stdout = empty_stdout; behaviour = BNormal True} in
-    eval_stmt inp ctx sta Nop sta ctx out
+    eval_stmt inp ctx sta SNop sta ctx out
 
   | eval_assign: forall inp ctx sta sta' v e s b.
     eval_str_expr inp ctx sta e sta' s b ->

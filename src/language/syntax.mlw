@@ -1,6 +1,7 @@
 
 module Variable
   type variable
+  val function variable_eq variable variable : bool
 end
 
 module Syntax
@@ -48,8 +49,9 @@ module Syntax
     | CFailure
     | CPrevious
 
-  (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
+  (** TODO add utilities `true`, `false` to *Specification of UNIX statements*  *)
   with statement =
+    | SNop (* No operation *)
     | SAssignment variable string_expression
     | SSequence statement statement
     | SSubshell statement
