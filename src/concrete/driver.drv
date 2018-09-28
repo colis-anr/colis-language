@@ -1,0 +1,8 @@
+module semantics.Filesystem
+  syntax type filesystem "unit"
+  syntax function empty_filesystem "()"
+end
+
+module semantics.Semantics
+  syntax function interp_builtin "interp_builtin %1 %2 %3"
+end

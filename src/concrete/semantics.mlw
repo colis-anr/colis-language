@@ -1,5 +1,5 @@
-module Mode
-  type mode = Strict bool
+module Strict
+  type strict = Strict bool
 end
 
 module Filesystem
@@ -11,21 +11,21 @@ module Behaviour
 
   use option.Option
 
-  use Mode
+  use Strict
 
   (* No return-behaviour behaviour since we do not implement functions (for now) *)
   type behaviour =
     | BNormal bool
     | BExit bool
 
-  let function inject_behaviour : mode -> bool -> behaviour =
+  let function inject_behaviour : strict -> bool -> behaviour =
     fun strict b ->
       match strict, b with
       | Strict True, False -> BExit False
       | _ -> BNormal b
       end
 
-  let function opt_inject_behaviour : mode -> option bool -> behaviour =
+  let function opt_inject_behaviour : strict -> option bool -> behaviour =
     fun strict b ->
       match b with
       | Some b' -> inject_behaviour strict b'
@@ -46,24 +46,10 @@ module Behaviour
     end
 end
 
-(** {2 Contexts for the evaluation} *)
-
-module Context
-
-  use array.Array
-  use map.Map
-  use map.Const
-  use bool.Bool
+module Buffers
   use list.List
   use list.Reverse
-  use list.Append
-
   use mystring.String
-  use syntax.Variable
-
-  use Mode
-  use Filesystem
-  use Behaviour
 
   (* Better implement and use a buffer? *)
   type stdin = Stdin (list string) 
@@ -101,6 +87,30 @@ module Context
         (* TODO are there cases where `l` (i.e., "B" in the example above) should be kept
           (if non-empty)? *)
     end
+
+  let string_from_stdout s =
+    concat s.lines
+end
+
+(** {2 Contexts for the evaluation} *)
+
+module Context
+
+  use array.Array
+  use map.Map
+  use map.Const
+  use bool.Bool
+  use list.List
+  use list.Reverse
+  use list.Append
+
+  use mystring.String
+  use syntax.Variable
+
+  use Strict
+  use Filesystem
+  use Behaviour
+  use Buffers
 
   (** {3 Read-only context for the evaluation of a term} *)
 
@@ -160,7 +170,7 @@ module Context
       `ctx.strict_mode && negb ctx.under_condition` to account for the following example:
 
       bash --posix -e -c 'if set +e; then echo X; fi; false; echo A/$?'; echo --$?~ *)
-  let function strict : input -> mode =
+  let function strict : input -> strict =
     fun inp ->
       Strict (notb (inp.under_condition))
 
@@ -214,6 +224,7 @@ module Semantics
 
   use Behaviour
   use Context
+  use Buffers
 
   let function bool_of_return_code : return_code -> bool -> bool =
     fun c previous ->
@@ -245,6 +256,10 @@ module Semantics
    *)
 
   inductive eval_stmt input context state statement state context output =
+
+  | eval_nop: forall inp ctx sta.
+    let out = {stdout = empty_stdout; behaviour = BNormal True} in
+    eval_stmt inp ctx sta Nop sta ctx out
 
   | eval_assign: forall inp ctx sta sta' v e s b.
     eval_str_expr inp ctx sta e sta' s b ->
@@ -395,10 +410,11 @@ module Semantics
     | eval_list_expr_nil: forall inp ctx sta.
       eval_list_expr inp ctx sta Nil sta Nil
 
-    | eval_list_expr_cons: forall inp ctx sta sta' sta'' e sp es s bo l2.
-      eval_str_expr inp ctx sta e sta' s bo ->
+    | eval_list_expr_cons: forall inp ctx sta sta' sta'' se sp es s bo l2.
+      eval_str_expr inp ctx sta se sta' s bo ->
       let l1 = match sp with Split True -> split s | Split False -> Cons s Nil end in
       eval_list_expr inp ctx sta' es sta'' l2 ->
       let l3 = l1 ++ l2 in
-      eval_list_expr inp ctx sta (Cons (e, sp) es) sta' l3
+      eval_list_expr inp ctx sta (Cons (se, sp) es) sta' l3
+
 end

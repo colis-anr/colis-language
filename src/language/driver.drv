@@ -1,0 +1,12 @@
+module mystring.String
+  syntax type string "string"
+  syntax val empty "\"\""
+  syntax function concat "String.concat \" \" %1"
+  syntax function split "String.split_on_char ' ' %1"
+  syntax function (^) "%1 ^ %2"
+end
+
+module syntax.Variable
+  syntax type variable "string"
+  syntax function variable_eq "String.equals %1 %2"
+end
