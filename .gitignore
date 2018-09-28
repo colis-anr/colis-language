@@ -1,5 +1,11 @@
+## Emacs specific
 *~
 *#
 
+## Dune specific
 .merlin
-_build
+/_build
+/*.install
+
+## OPAM specific
+/_opam
