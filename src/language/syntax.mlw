@@ -1,6 +1,7 @@
 
 module Variable
   type variable
+  val function variable_eq (v1 v2:variable): bool
 end
 
 module Syntax
@@ -19,55 +20,29 @@ module Syntax
     | EVariable variable                          (** ${variable} *)
     | ESubshell statement                         (** $(statement) *)
     | EConcat string_expression string_expression (** expression expression (without the space) *)
-
-  (* TODO `$<n>`, `$@`, `$?` better explicit (`EArg int | EArgs | EPrevious`) than
-     as normal variable? Can be differentiated while parsing, right? `$?` is boolean,
-     however. How to separate? *)
-
-  (* TODO Or concat as flat list of expressions in a separate type instead? Like this
-
-     (* evaluates to string *)
-     type string_component = Literal string | Variable var | Subshell stmt
-
-     (* evaluates to string *)
-     type string_expression = Concat (list string_component)
-
-     (* evaluates to string list, only in the context of call/for-loop *)
-     type sexprs = list (string_expression, split)
-
-     This would result in an equivalent but more canonical representation and no lemmas on
-     associativity and transitivity of EConcat. Decide when needed.
-   *)
+    (* TODO Arguments $<n> *)
 
   (** A list_expression` evaluates to a `list string` *)
   with list_expression =
     list (string_expression, split)
 
+  (* Allow $? only as return code, cf. NOTES[Exit] *)
   with return_code =
     | CSuccess
     | CFailure
     | CPrevious
 
-  (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
   with statement =
+    | SNop (* No operation *)
     | SAssignment variable string_expression
     | SSequence statement statement
     | SSubshell statement
     | SIf statement statement statement
-    | SNot statement (* TODO Added to encode `&&` but see Claude's comments in
-      colis-git:reunions/2018/2018sep18.org *)
+    | SNot statement (* NOTES[Conditionals] *)
     | SPipe statement statement
     | SWhile statement statement
     | SNoOutput statement
     | SForeach variable list_expression statement
     | SCall string list_expression
-    | SExit return_code (* NOTES:stmt_exit *)
-    (** CM: TODO `exit $ret` not representable? Add `CVar var` to `return_code`? `SExit
-        sexpr` instead with `$?` as expression? Stuck when sexpr not numerical/boolean?
-        NJ: exit $ret is rather rare, (33 times in `exit`, 17 in `return`)
-        NJ/BB: `SExit statement`? No `$?` neede, keep boolean values hidden, represent
-        `exit 0` as `SExit (SCall ["true"]`
-        CM: Do no implement `SExit statement` because this contradicts Shell syntax too much
-        Summary 2018/11/26: No clear best solution, keep `SExit (0|1|$?)` for now
-     *)
+    | SExit return_code (* NOTES[Exit] *)
 end
