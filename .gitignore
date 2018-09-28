@@ -9,3 +9,6 @@
 
 ## OPAM specific
 /_opam
+
+## Project specific
+/src/why3
