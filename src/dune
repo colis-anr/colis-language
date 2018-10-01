@@ -1,7 +1,7 @@
 (include_subdirs unqualified)
 
-(library
- (name symbolic)
- (public_name symbolic)
+(executable
+ (name concrete_colis)
+ (public_name colis)
  (libraries why3.extract)
  (flags :standard -w -27))
