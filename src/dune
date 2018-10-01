@@ -1,5 +1,8 @@
 (include_subdirs unqualified)
 
+(ocamllex colisLexer)
+(menhir (modules colisParser))
+
 (executable
  (name concrete_colis)
  (public_name colis)
