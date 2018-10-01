@@ -11,6 +11,7 @@ clean: clean-why3
 
 extract-why3:
 	mkdir -p src/why3
+	rm -f src/why3/*
 	why3 extract --modular --recursive \
 		-D ocaml64 \
 		-D src/language/driver.drv -D src/concrete/driver.drv \

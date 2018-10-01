@@ -3,6 +3,5 @@
 (library
  (name symbolic)
  (public_name symbolic)
- (libraries zarith)
+ (libraries why3.extract)
  (flags :standard -w -27))
- 
