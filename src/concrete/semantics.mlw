@@ -72,6 +72,17 @@ module Buffers
 
   let string_from_stdout s =
     concat s.lines
+
+  let output (str:string) (out:stdout) =
+    match out.lines with
+      | Cons l ls ->
+        {lines = Cons (l^str) ls}
+    end
+
+  let newline out =
+    {lines = Cons String.empty out.lines}
+
+  let function diff (out1 out2:stdout) = empty_stdout (* FIXME *)
 end
 
 (** {2 Contexts for the evaluation}
@@ -129,12 +140,15 @@ module Context
 
       Will contain also the function environment one functions are added to the language
    *)
+
+  type senv = map variable string
+
   type context = {
-    env: map variable string
+    senv: senv
   }
 
   let constant empty_context = {
-    env = (fun _ -> String.empty); (* Cannot use map.Const because Map__Const is not extracted... *)
+    senv = (fun _ -> String.empty); (* Cannot use map.Const because Map__Const is not extracted... *)
   }
 
   (** {3 Write-only evaluation of a term} *)
@@ -229,7 +243,7 @@ module Semantics
 
   | eval_assign: forall inp ctx sta sta' v e s b.
     eval_str_expr inp ctx sta e sta' s b ->
-    let ctx' = {ctx with env = ctx.env[v <- s]} in
+    let ctx' = {ctx with senv = ctx.senv[v <- s]} in
     let out = {stdout = empty_stdout; behaviour = opt_inject_behaviour (strict inp) b} in
     eval_stmt inp ctx sta (SAssignment v e) sta' ctx' out
   
@@ -279,8 +293,7 @@ module Semantics
     let out' = {out with stdout = empty_stdout} in
     eval_stmt inp ctx sta (SNoOutput st) sta' ctx' out'
   
-  (** ignores changes in the context `ctx` *)
-  (** TODO does not set `$?` *)
+  (** See NOTES[Pipe semantics] *)
   | eval_pipe: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 out1 out2.
     eval_stmt inp ctx sta s1 sta1 ctx1 out1 ->
     eval_stmt inp ctx {sta1 with stdin = stdout_to_stdin out1.stdout} s2 sta2 ctx2 out2 ->
@@ -294,9 +307,9 @@ module Semantics
   
   (* TODO the behaviour of eval_exprs seems to be the `previous` for the for-body: the
      script `for x in $(exit 2)a; do echo $x/$?; done` prints `a/2`. *)
-  | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es stm ss b out.
+  | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es stm ss out.
     eval_list_expr inp ctx sta es sta' ss -> 
-    eval_foreach {inp with previous = b} ctx sta' v ss stm sta'' ctx' out ->
+    eval_foreach inp ctx sta' v ss stm sta'' ctx' out ->
     eval_stmt inp ctx sta (SForeach v es stm) sta'' ctx' out
 
   (** while-condition is false *)
@@ -333,7 +346,7 @@ module Semantics
     eval_foreach inp ctx sta x Nil stm sta ctx out
 
   | eval_foreach_cons: forall inp ctx ctx1 ctx2 sta sta1 sta2 x s ss stm out1 out2.
-    eval_stmt inp {ctx with env = ctx.env[x <- s]} sta stm sta1 ctx1 out1 ->
+    eval_stmt inp {ctx with senv = ctx.senv[x <- s]} sta stm sta1 ctx1 out1 ->
     eval_foreach inp ctx1 sta1 x ss stm sta2 ctx2 out2 ->
     eval_foreach inp ctx sta x (Cons s ss) stm sta2 ctx2 out2
 
@@ -349,7 +362,7 @@ module Semantics
     eval_str_expr inp ctx sta (ELiteral s) sta s None
 
   | eval_str_variable: forall inp ctx sta v.
-    let s = ctx.env[v] in
+    let s = ctx.senv[v] in
     eval_str_expr inp ctx sta (EVariable v) sta s None
 
   | eval_str_subshell: forall inp ctx ctx' sta sta' stm out.

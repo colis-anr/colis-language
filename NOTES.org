@@ -161,4 +161,7 @@ TODO describe types input/context/state/output
   obligations to be easy. In particular, it could be nice to have an easy way to write
   ~exists s. stdout = (old stdout) ^ s and ...~.
   Maybe something like ~let s = cutprefix (old stdout) stdout~?
-
+** Pipes semantics
+- ignores changes in the context ~ctx~
+- does not set ~$?~
+- ~false|x=X|cat; echo A/$?/$X|~ → ~A/0/~

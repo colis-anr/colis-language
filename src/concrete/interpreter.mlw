@@ -1,25 +1,14 @@
 
-module Result
+module Stdout
+  use ref.Ref
   use semantics.Buffers
-  use semantics.Context
-  use semantics.Behaviour
-  use semantics.Context
 
-  type result = { state: state; context: context; stdout: stdout; value: bool }
+  type stdout = ref Buffers.stdout
 
-  exception EExit result
+  let new () = ref Buffers.empty_stdout
 
-  (** Construct an output with normal behaviour *)
-  let function normal_output : result -> output =
-   fun res ->
-    { Context.stdout = res.stdout ;
-      behaviour = BNormal res.value }
-
-  (** Construct an output with exit behaviour *)
-  let function exit_output : result -> output =
-    fun res ->
-      { Context.stdout = res.stdout ;
-        behaviour = BExit res.value }
+  let append (out1:stdout) (out2:Buffers.stdout) =
+    () (* FIXME *)
 end
 
 module Interpreter
@@ -29,6 +18,7 @@ module Interpreter
   use ref.Ref
   use option.Option
   use map.Map
+  use bool.Bool
 
   use mystring.String
   use syntax.Syntax
@@ -37,7 +27,7 @@ module Interpreter
   use semantics.Behaviour
   use semantics.Context
   use semantics.Semantics
-  use Result
+  use Stdout
 
   let ([<-]) (m:variable -> 'a) (var:variable) (value:'a) : variable -> 'a
   = fun var1 ->
@@ -45,52 +35,112 @@ module Interpreter
       then value
       else m var1
 
-  let result (strict:strict) (sta:state) (ctx:context) (out:stdout) (b:bool) : result
+  let interp_builtin out sta name args =
+    let sta1, out1, b = Semantics.interp_builtin sta name args in
+    append out out1;
+    sta1, b
+
+  exception EExit (context, state, bool)
+  
+  let result_or_exit (strict:strict) (ctx:context) (sta:state) (b:bool) : (context, state, bool)
     raises { EExit _ -> true }
-  = let res = {state=sta; context=ctx; Result.stdout=out; value=b} in
-    match strict, b with
-    | Strict True, False -> raise EExit res
-    | _ -> res
+  = match strict, b with
+    | Strict True, False -> raise (EExit (ctx, sta, b))
+    | _ -> ctx, sta, b
     end
 
-  let result_opt (strict:strict) (sta:state) (ctx:context) (out:stdout) (bo:option bool) :result
+  let result_or_exit_opt (strict:strict) (ctx:context) (sta:state) (bo:option bool) : (context, state, bool)
     raises { EExit _ -> true }
   = match bo with
-    | Some b -> result strict sta ctx out b
-    | None -> {state=sta; context=ctx; Result.stdout=out; value=True}
+    | Some b -> result_or_exit strict ctx sta b
+    | None -> ctx, sta, True
     end
   
-  let rec interp_stmt (inp:input) (ctx:context) (sta:state) (stm:statement) : result
-    returns { res ->
-              eval_stmt inp ctx sta stm res.state res.context (normal_output res) }
-    raises { EExit res ->
-             eval_stmt inp ctx sta stm res.state res.context (exit_output res) }
+  (* Also ctx, sta mutable and return type only `bool` ? *)
+  let rec interp_stmt (inp:input) (out:stdout) (ctx:context) (sta:state) (stm:statement) : (context, state, bool)
+    returns { ctx', sta', b -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BNormal b} }
+    raises  { EExit (ctx', sta', b) -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BExit b} }
+    raises  { EExit _ -> not inp.under_condition }
   = match stm with
+
+    | SNop -> ctx, sta, True
+
+    | SExit code ->
+      raise EExit (ctx, sta, bool_of_return_code code inp.previous)
+
     | SAssignment var se ->
-      let sta', str, bo = interp_str_expr inp ctx sta se in
-      let ctx' = {ctx with env = ctx.env[var <- str]} in
-      result_opt (strict inp) sta' ctx' empty_stdout bo
-    | SSequence s1 s2 ->
-      let res = interp_stmt inp ctx sta s1 in
-      interp_stmt {inp with previous = res.value} res.context res.state s2
+      let sta1, str, bo = interp_str_expr inp ctx sta se in
+      let ctx1 = {ctx with senv = ctx.senv[var <- str]} in
+      result_or_exit_opt (strict inp) ctx1 sta1 bo
+
+    | SSequence stm1 stm2 ->
+      let ctx1, sta1, b = interp_stmt inp out ctx sta stm1 in
+      interp_stmt {inp with previous = b} out ctx1 sta1 stm2
+
+    | SSubshell stm ->
+      let ctx1, sta1, b = interp_stmt inp out ctx sta stm in
+      result_or_exit (strict inp) ctx1 sta1 b
+
+    | SNot stm ->
+      let ctx1, sta1, b = interp_stmt {inp with under_condition=True} out ctx sta stm in
+      ctx1, sta1, (notb b)
+
+    | SIf stm1 stm2 stm3 ->
+      let ctx1, sta1, b = interp_stmt {inp with under_condition=True} out ctx sta stm1 in
+      if b then
+        interp_stmt inp out ctx1 sta1 stm2
+      else
+        interp_stmt inp out ctx1 sta1 stm3
+
+    | SNoOutput stm ->
+      interp_stmt inp (Stdout.new ()) ctx sta stm
+
+    | SPipe stm1 stm2 ->
+      let ctx1, sta1, _ =
+        try interp_stmt inp out ctx sta stm1
+        with EExit r -> r end
+      in
+      interp_stmt inp out ctx1 sta1 stm2
+
     | SCall name le ->
-      let sta', args = interp_list_expr inp ctx sta le in
-      let sta'', out, b = interp_builtin sta' name args in
-      result (strict inp) sta'' ctx out b
-    | _ -> absurd
+      let sta1, args = interp_list_expr inp ctx sta le in
+      let sta2, b = interp_builtin out sta1 name args in
+      result_or_exit (strict inp) ctx sta2 b
+
+     | SForeach _ _ _ | SWhile _ _ -> absurd
+
+    (* | SForeach var le stm -> *)
+    (*   let ss = interp_list_expr inp ctx sta le in *)
+    (*   let rec aux ctx last = function *)
+    (*   | [] -> ctx, opt_get True last *)
+    (*   | s :: ss' -> *)
+    (*     let cxt', b = interp_stmt {inp with previous=b} ctx stdout stm in *)
+    (*     aux ctx' b ss' *)
+    (*   in aux ctx None ss *)
+
+    (*  | SWhile stm1 stm2 -> *)
+    (*    let previous = ref inp.previous in *)
+    (*    let ctx := ref ctx in *)
+    (*    while *)
+    (*     let ctx', b = interp_stmt {inp with under_condition=True} !ctx stdout stm1 in *)
+    (*     ctx := ctx'; previous := b *)
+    (*    do *)
+    (*      let ctx'', b =  *)
+    (*    done *)
     end
 
   with interp_str_expr (inp:input) (ctx:context) (sta:state) (se:string_expression) : (state, string, option bool)
   = match se with
     | ELiteral s -> sta, s, None
-    | EVariable v -> sta, ctx.env[v], None
+    | EVariable v -> sta, ctx.senv[v], None
     | ESubshell stm ->
-      let res =
-        try interp_stmt inp ctx sta stm
+      let out = Stdout.new () in
+      let _, sta1, b =
+        try interp_stmt inp out ctx sta stm
         with EExit res -> res end
       in
-      let str = string_from_stdout res.stdout in
-      res.state, str, Some res.value
+      let str = string_from_stdout !out in
+      sta1, str, Some b
     | EConcat se1 se2 ->
       let sta1, s1, bo1 = interp_str_expr inp ctx sta se1 in
       let sta2, s2, bo2 = interp_str_expr inp ctx sta1 se2 in
@@ -109,3 +159,38 @@ module Interpreter
       sta2, l3
     end
 end
+
+(* module Other *)
+
+(*   exception EExit bool *)
+  
+(*   let result_or_exit (strict:strict) (ctx:context) (b:bool) : bool *)
+(*     raises { EExit _ -> true } *)
+(*   = match strict, b with *)
+(*     | Strict True, False -> raise (EExit b) *)
+(*     | _ -> b *)
+(*     end *)
+
+(*   let result_or_exit_opt (strict:strict) (ctx:context) (bo:option bool) : bool *)
+(*     raises { EExit _ -> true } *)
+(*   = match bo with *)
+(*     | Some b -> result_or_exit strict ctx b *)
+(*     | None -> True *)
+(*     end *)
+
+(*   type state = { *)
+(*     stdin: ref stdin; *)
+(*     stdout: ref stdout; *)
+(*     senv: ref senv; *)
+(*   } *)
+  
+(*   val interp_stmt (inp:input) (sta:state) (stm:statement) : bool *)
+(*     returns { b -> exists fs fs'. *)
+(*                   let ctx' = {senv=old !sta.senv} in *)
+(*                   let ctx'' = {senv=!sta.senv} in *)
+(*                   let sta' = {filesystem=fs; stdin=old !sta.stdin} in *)
+(*                   let sta'' = {filesystem=fs'; stdin=!sta.stdin} in *)
+(*                   let out = {stdout=diff (old !state.stdout) !state.stdout; behaviour=BNormal b} in *)
+(*                   eval_stmt inp ctx' sta' stm sta'' ctx'' out } *)
+
+(* end *)
