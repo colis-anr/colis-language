@@ -5,7 +5,7 @@ module Stdout
 
   type stdout = ref Buffers.stdout
 
-  let new () = ref Buffers.empty_stdout
+  let stdout_new () = ref Buffers.empty_stdout
 
   let append (out1:stdout) (out2:Buffers.stdout) =
     () (* FIXME *)
@@ -17,7 +17,6 @@ module Interpreter
   use list.Append
   use ref.Ref
   use option.Option
-  use map.Map
   use bool.Bool
 
   use mystring.String
@@ -40,16 +39,18 @@ module Interpreter
     append out out1;
     sta1, b
 
-  exception EExit (context, state, bool)
+  type result = (context, state, bool)
+
+  exception EExit result
   
-  let result_or_exit (strict:strict) (ctx:context) (sta:state) (b:bool) : (context, state, bool)
+  let result_or_exit (strict:strict) (ctx:context) (sta:state) (b:bool) : result
     raises { EExit _ -> true }
   = match strict, b with
     | Strict True, False -> raise (EExit (ctx, sta, b))
     | _ -> ctx, sta, b
     end
 
-  let result_or_exit_opt (strict:strict) (ctx:context) (sta:state) (bo:option bool) : (context, state, bool)
+  let result_or_exit_opt (strict:strict) (ctx:context) (sta:state) (bo:option bool) : result
     raises { EExit _ -> true }
   = match bo with
     | Some b -> result_or_exit strict ctx sta b
@@ -57,7 +58,7 @@ module Interpreter
     end
   
   (* Also ctx, sta mutable and return type only `bool` ? *)
-  let rec interp_stmt (inp:input) (out:stdout) (ctx:context) (sta:state) (stm:statement) : (context, state, bool)
+  let rec interp_stmt (inp:input) (out:stdout) (ctx:context) (sta:state) (stm:statement) : result
     returns { ctx', sta', b -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BNormal b} }
     raises  { EExit (ctx', sta', b) -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BExit b} }
     raises  { EExit _ -> not inp.under_condition }
@@ -93,7 +94,7 @@ module Interpreter
         interp_stmt inp out ctx1 sta1 stm3
 
     | SNoOutput stm ->
-      interp_stmt inp (Stdout.new ()) ctx sta stm
+      interp_stmt inp (stdout_new ()) ctx sta stm
 
     | SPipe stm1 stm2 ->
       let ctx1, sta1, _ =
@@ -132,9 +133,9 @@ module Interpreter
   with interp_str_expr (inp:input) (ctx:context) (sta:state) (se:string_expression) : (state, string, option bool)
   = match se with
     | ELiteral s -> sta, s, None
-    | EVariable v -> sta, ctx.senv[v], None
+    | EVariable v -> sta, ctx.senv v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
     | ESubshell stm ->
-      let out = Stdout.new () in
+      let out = stdout_new () in
       let _, sta1, b =
         try interp_stmt inp out ctx sta stm
         with EExit res -> res end
