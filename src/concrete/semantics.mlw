@@ -82,6 +82,16 @@ module Buffers
   let newline out =
     {lines = Cons String.empty out.lines}
 
+  let append (out1 out2: stdout) : stdout =
+    let rec aux out1 ls2 =
+      match ls2 with
+      | Nil -> out1
+      | Cons l ls2' ->
+        output l (aux out1 ls2')
+      end
+    in
+    aux out1 out2.lines
+
   let function diff (out1 out2:stdout) = empty_stdout (* FIXME *)
 end
 

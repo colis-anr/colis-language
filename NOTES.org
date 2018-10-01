@@ -165,3 +165,17 @@ TODO describe types input/context/state/output
 - ignores changes in the context ~ctx~
 - does not set ~$?~
 - ~false|x=X|cat; echo A/$?/$X|~ → ~A/0/~
+** Previous in for-loop
+~dash~ and ~bash --posix~ disagree over the value of ~$?~ in the first iteration of a for-loop
+#+begin_src shell
+f() {
+  return $1
+}
+f 123
+for x in 456; do
+  echo X/$?/$x
+  f $x;
+done
+echo Y/$?
+#+end_src
+~dash~ prints ~X/0/456\nY/456~, and ~bash --posix~ prints ~X/123/456~Y/200~

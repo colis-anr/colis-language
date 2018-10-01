@@ -8,7 +8,7 @@ module Stdout
   let stdout_new () = ref Buffers.empty_stdout
 
   let append (out1:stdout) (out2:Buffers.stdout) =
-    () (* FIXME *)
+    out1 := Buffers.append !out1 out2
 end
 
 module Interpreter
@@ -108,26 +108,20 @@ module Interpreter
       let sta2, b = interp_builtin out sta1 name args in
       result_or_exit (strict inp) ctx sta2 b
 
-     | SForeach _ _ _ | SWhile _ _ -> absurd
+    | SForeach var le stm ->
+      let sta1, ss = interp_list_expr inp ctx sta le in
+      let rec aux ctx sta p ss =
+        match ss with
+        | Nil -> ctx, sta, p
+        | Cons s ss' ->
+          let ctx' = {ctx with senv = ctx.senv[var <- s] } in
+          let ctx'', sta', b = interp_stmt {inp with previous=p} out ctx' sta stm in
+          aux ctx'' sta' b ss'
+        end
+      (* See NOTES[Previous in for-loop] for p=True *)
+      in aux ctx sta1 True ss
 
-    (* | SForeach var le stm -> *)
-    (*   let ss = interp_list_expr inp ctx sta le in *)
-    (*   let rec aux ctx last = function *)
-    (*   | [] -> ctx, opt_get True last *)
-    (*   | s :: ss' -> *)
-    (*     let cxt', b = interp_stmt {inp with previous=b} ctx stdout stm in *)
-    (*     aux ctx' b ss' *)
-    (*   in aux ctx None ss *)
-
-    (*  | SWhile stm1 stm2 -> *)
-    (*    let previous = ref inp.previous in *)
-    (*    let ctx := ref ctx in *)
-    (*    while *)
-    (*     let ctx', b = interp_stmt {inp with under_condition=True} !ctx stdout stm1 in *)
-    (*     ctx := ctx'; previous := b *)
-    (*    do *)
-    (*      let ctx'', b =  *)
-    (*    done *)
+    | SWhile _ _ -> absurd
     end
 
   with interp_str_expr (inp:input) (ctx:context) (sta:state) (se:string_expression) : (state, string, option bool)

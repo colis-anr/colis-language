@@ -13,8 +13,8 @@ let rec concat = function
 
 
 %token SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN
-%token DO DONE WHILE BEGIN END CALL PROCESS PIPE INTO EPIP ASSTRING
-%token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG VAR NOP
+%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP ASSTRING
+%token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG NOP
 %token<string> LITERAL
 %token<string> VAR_NAME
 %start statement
@@ -29,10 +29,10 @@ statement:
   | FOR VAR_NAME IN lexpr DO statement DONE          { SForeach ($2, $4, $6) }
   | WHILE statement DO statement DONE                { SWhile ($2, $4) }
   | BEGIN seq END                                    { $2 }
-  | CALL VAR_NAME lexpr                              { SCall ($2, $3) }
   | PROCESS statement                                { SSubshell ($2) }
   | PIPE pipe EPIP                                   { $2 }
-  | VAR VAR_NAME ASSTRING sexpr                      { SAssignment ($2, $4) }
+  | VAR_NAME lexpr                                   { SCall ($1, $2) }
+  | VAR_NAME ASSTRING sexpr                          { SAssignment ($1, $3) }
   | LPAREN statement RPAREN                          { $2 }
 ;
 exit_code:
@@ -54,7 +54,7 @@ sfrag:
   | EMBED statement                                  { ESubshell($2) }
 ;
 sexpr:
-  | delimited (LACCOL, nonempty_list(sfrag), RACCOL) { concat $1 }
+  | delimited (LPAREN, nonempty_list(sfrag), RPAREN) { concat $1 }
 ;
 lfrag:
   | sexpr                                            { $1, Split false }
