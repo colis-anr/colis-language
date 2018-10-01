@@ -179,3 +179,34 @@ done
 echo Y/$?
 #+end_src
 ~dash~ prints ~X/0/456\nY/456~, and ~bash --posix~ prints ~X/123/456~Y/200~
+** Concrete interpreter type
+Different signatures of the concrete interpreter can be considered on a spectrum between a
+purely functional and an purely imperative design.
+
+The most functional design would directly correspond to the inductive definition of the
+semantics:
+
+#+begin_src why3
+val interp_stmt input context state statement : (state, context, output)
+#+end_src
+
+The most imperative design would use a mutable state object as argument together with the
+statement, and return or raise a boolean value according to the statement behaviour.
+
+#+begin_src why3
+  type Exit bool
+  type state = {
+     arguments : array string;
+     under_condition : ref bool;
+     stdin : ref stdin;
+     stdout : ref stdout;
+     senv : ref senv;
+     result : ref bool;
+  }
+  val interp_stmt state statement : unit raises { Exit _ -> true }
+#+end_src
+
+The proposed implementation ([2018-10-01 Mon]) lies on the middle ground by using
+exceptions to indicate the program behaviour, an imperative stdout, but an immutable state
+and context.
+
