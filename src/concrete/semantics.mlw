@@ -64,11 +64,7 @@ module Buffers
   (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
   let function stdout_to_stdin =
     fun s ->
-    match s.lines with
-      | Cons _l ls -> Stdin (reverse ls)
-        (* TODO are there cases where `l` (i.e., "B" in the example above) should be kept
-          (if non-empty)? *)
-    end
+    Stdin (reverse s.lines)
 
   let string_from_stdout s =
     concat s.lines

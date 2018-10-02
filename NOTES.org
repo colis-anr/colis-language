@@ -71,6 +71,22 @@ Syntax in Shell: ~$@~
 
 #+RESULTS:
 : A
+- NO! This is due to ~read~, the last line is kept by indirection and embedded
+#+begin_src sh
+  (echo A; echo -n B)|cat
+#+end_src
+
+#+RESULTS:
+| A |
+| B |
+
+#+begin_src sh
+  x=$(echo A; echo -n B)
+  echo $x
+#+end_src
+
+#+RESULTS:
+: A B
 
 ** Statement ~exit~
 :PROPERTIES:
@@ -197,11 +213,11 @@ statement, and return or raise a boolean value according to the statement behavi
   type Exit bool
   type state = {
      arguments : array string;
-     under_condition : ref bool;
-     stdin : ref stdin;
-     stdout : ref stdout;
-     senv : ref senv;
-     result : ref bool;
+     mutable under_condition : bool;
+     mutable stdin : stdin;
+     mutable stdout : stdout;
+     mutable senv : senv;
+     mutable result : bool;
   }
   val interp_stmt state statement : unit raises { Exit _ -> true }
 #+end_src
