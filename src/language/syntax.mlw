@@ -5,7 +5,6 @@ module Variable
 end
 
 module Syntax
-
   use mystring.String
   use list.List
 
