@@ -11,7 +11,7 @@ let parse filename : statement =
   lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p
                                 with Lexing.pos_fname = filename };
   try
-    ColisParser.statement ColisLexer.token lexbuf
+    ColisParser.program ColisLexer.token lexbuf
   with
   | ColisLexer.LexerError s ->
     printf "Lexing error: %s@." s;

@@ -238,10 +238,6 @@ module Semantics
 
   inductive eval_stmt input context state statement state context output =
 
-  | eval_nop: forall inp ctx sta.
-    let out = {stdout = empty_stdout; behaviour = BNormal True} in
-    eval_stmt inp ctx sta SNop sta ctx out
-
   | eval_exit: forall inp ctx sta c.
     let b = bool_of_return_code c inp.previous in
     let out = {stdout = empty_stdout; behaviour = BExit b} in

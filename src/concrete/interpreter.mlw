@@ -64,8 +64,6 @@ module Interpreter
     raises  { EExit _ -> not inp.under_condition }
   = match stm with
 
-    | SNop -> ctx, sta, True
-
     | SExit code ->
       raise EExit (ctx, sta, bool_of_return_code code inp.previous)
 

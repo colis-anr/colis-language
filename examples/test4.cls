@@ -1,4 +1,4 @@
 begin
-x := ('guga');
-echo [('X: 'x)]
+x := 'guga';
+echo ['X: ' x]
 end

@@ -8,4 +8,11 @@ let interp_builtin : state -> string -> string list -> (state * stdout * bool) =
       let str = String.concat " " args in
       let out = empty_stdout |> output str |> newline in
       sta, out, true
-    | _ -> failwith ("interp_builtin: " ^ name)
+    | "true" ->
+      sta, empty_stdout, true
+    | "false" ->
+      sta, empty_stdout, false
+    | _ ->
+      let str = name^": command not found" in
+      let out = empty_stdout |> output str |> newline in
+      sta, out, false

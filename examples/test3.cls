@@ -1,4 +1,6 @@
 begin
-echo [('hello colis')];
-exit failure
+echo ['hello colis'];
+echo ['hello' 'colis'];
+echo ['hello'; 'colis'];
+echo [{'hello'}; 'colis']
 end
