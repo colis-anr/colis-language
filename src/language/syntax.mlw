@@ -5,7 +5,6 @@ module Variable
 end
 
 module Syntax
-
   use mystring.String
   use list.List
 
@@ -18,7 +17,7 @@ module Syntax
   type string_expression =
     | ELiteral string                             (** 'string' *)
     | EVariable variable                          (** ${variable} *)
-    | ESubshell statement                         (** $(statement) *)
+    | ESubshell instruction                         (** $(instruction) *)
     | EConcat string_expression string_expression (** expression expression (without the space) *)
     (* TODO Arguments $<n> *)
 
@@ -33,16 +32,16 @@ module Syntax
     | CPrevious
 
   (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
-  with statement =
+  with instruction =
     | SAssignment variable string_expression
-    | SSequence statement statement
-    | SSubshell statement
-    | SIf statement statement statement
-    | SNot statement (* NOTES[Conditionals] *)
-    | SPipe statement statement
-    | SWhile statement statement
-    | SNoOutput statement
-    | SForeach variable list_expression statement
+    | SSequence instruction instruction
+    | SSubshell instruction
+    | SIf instruction instruction instruction
+    | SNot instruction (* NOTES[Conditionals] *)
+    | SPipe instruction instruction
+    | SWhile instruction instruction
+    | SNoOutput instruction
+    | SForeach variable list_expression instruction
     | SCall string list_expression
     | SExit return_code (* NOTES[Exit] *)
 end

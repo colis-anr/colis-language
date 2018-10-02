@@ -5,7 +5,7 @@ let print_position fmt p =
   fprintf fmt "File '%s', line %d, character %d"
     p.Lexing.pos_fname p.Lexing.pos_lnum (p.Lexing.pos_cnum - p.Lexing.pos_bol)
 
-let parse filename : statement =
+let parse filename : instruction =
   let ic = open_in filename in
   let lexbuf = Lexing.from_channel ic in
   lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p

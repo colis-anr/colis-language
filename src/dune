@@ -6,5 +6,5 @@
 (executable
  (name concrete_colis)
  (public_name colis)
- (libraries why3.extract)
+ (libraries why3.extract ppx_deriving_yojson.runtime morsmall)
  (flags :standard -w -27))
