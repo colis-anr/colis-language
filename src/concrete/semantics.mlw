@@ -45,6 +45,7 @@ end
 
 module Buffers
   use list.List
+  use list.Append
   use list.Reverse
   use mystring.String
 
@@ -82,8 +83,10 @@ module Buffers
     let rec aux out1 ls2 =
       match ls2 with
       | Nil -> out1
+      | Cons l Nil ->
+        output l out1
       | Cons l ls2' ->
-        output l (aux out1 ls2')
+        newline (output l (aux out1 ls2'))
       end
     in
     aux out1 out2.lines

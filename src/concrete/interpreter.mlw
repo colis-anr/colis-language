@@ -6,9 +6,6 @@ module Stdout
   type stdout = ref Buffers.stdout
 
   let stdout_new () = ref Buffers.empty_stdout
-
-  let append (out1:stdout) (out2:Buffers.stdout) =
-    out1 := Buffers.append !out1 out2
 end
 
 module Interpreter
@@ -36,7 +33,7 @@ module Interpreter
 
   let interp_builtin out sta name args =
     let sta1, out1, b = Semantics.interp_builtin sta name args in
-    append out out1;
+    out := append !out out1;
     sta1, b
 
   type result = (context, state, bool)

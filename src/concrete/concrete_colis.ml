@@ -1,6 +1,5 @@
 open Format
 open Semantics__Context
-open Semantics__Buffers
 open Interpreter__Stdout
 open Interpreter__Interpreter
 
@@ -24,6 +23,7 @@ let main () =
     with EExit res -> res, "exit"
   in
   printf "RESULT: %s %b@." mode b;
-  printf "STDOUT: %s@." (string_from_stdout !out)
+  printf "STDOUT: @.";
+  List.iter (printf "> %s@\n") (List.rev !out)
 
 let () = main ()
