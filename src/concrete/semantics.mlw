@@ -121,12 +121,12 @@ module Context
   type input = {
     arguments: array string;
     under_condition: bool; (* evaluation under condition - implying unstrict mode *)
-    previous: bool; (* result of last command, i.e. `$?`, default `True` *)
+    previous_result: bool; (* result of last command, i.e. `$?`, default `True` *)
   }
 
   let constant empty_input = {
     arguments = Array.make 0 String.empty;
-    previous = True;
+    previous_result = True;
     under_condition = False;
   }
 
@@ -152,12 +152,15 @@ module Context
 
   type senv = map variable string
 
+  let constant empty_senv =
+    fun _ -> String.empty (* Cannot use map.Const because Map__Const is not extracted... *)
+
   type context = {
     senv: senv
   }
 
   let constant empty_context = {
-    senv = (fun _ -> String.empty); (* Cannot use map.Const because Map__Const is not extracted... *)
+    senv = empty_senv; 
   }
 
   (** {3 Write-only evaluation of a term} *)
@@ -218,11 +221,11 @@ module Semantics
   use Context
   use Buffers
 
-  let function bool_of_return_code (c:return_code) (previous:bool) : bool =
+  let function bool_of_return_code (c:return_code) (previous_result:bool) : bool =
     match c with
     | CSuccess -> True
     | CFailure -> False
-    | CPrevious -> previous
+    | CPrevious -> previous_result
     end
 
   (** Interprete a command defined in the document *Specification of UNIX Commands*.
@@ -236,13 +239,13 @@ module Semantics
   (** Evaluation of a statement s with input I, context C and state S resulting in an
       state S', context C', and output O:
 
-      \[ (I, C, S) s \Downarrow (S', C', O) \]
+      $(I, C, S) s \Downarrow (S', C', O)$
    *)
 
   inductive eval_stmt input context state statement state context output =
 
   | eval_exit: forall inp ctx sta c.
-    let b = bool_of_return_code c inp.previous in
+    let b = bool_of_return_code c inp.previous_result in
     let out = {stdout = empty_stdout; behaviour = BExit b} in
     eval_stmt inp ctx sta (SExit c) sta ctx out
 
@@ -254,7 +257,7 @@ module Semantics
   
   | eval_sequence_normal: forall inp sta sta1 sta2 s1 s2 ctx ctx1 ctx2 out1 out2 b1.
     eval_stmt inp ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal b1} ->
-    eval_stmt {inp with previous = b1} ctx1 sta1 s2 sta2 ctx2 out2 ->
+    eval_stmt {inp with previous_result = b1} ctx1 sta1 s2 sta2 ctx2 out2 ->
     let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
     eval_stmt inp ctx sta (SSequence s1 s2) sta2 ctx out3
   
@@ -278,13 +281,13 @@ module Semantics
   
   | eval_if_true: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 s3 out1 out2.
     eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
-    eval_stmt {inp with previous = True} ctx1 sta1 s2 sta2 ctx2 out2 ->
+    eval_stmt {inp with previous_result = True} ctx1 sta1 s2 sta2 ctx2 out2 ->
     let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
     eval_stmt inp ctx sta (SIf s1 s2 s3) sta2 ctx2 out3
   
   | eval_if_false: forall inp ctx ctx1 ctx2 sta sta1 sta2 s1 s2 s3 out1 out2.
     eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal False} ->
-    eval_stmt {inp with previous = False} ctx1 sta1 s3 sta2 ctx2 out2 ->
+    eval_stmt {inp with previous_result = False} ctx1 sta1 s3 sta2 ctx2 out2 ->
     let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
     eval_stmt inp ctx sta (SIf s1 s2 s3) sta2 ctx2 out3
   
@@ -310,7 +313,7 @@ module Semantics
     let out = {stdout = sout; behaviour = inject_behaviour (strict inp) b} in
     eval_stmt inp ctx sta (SCall s es) sta'' ctx out
   
-  (* TODO the behaviour of eval_exprs seems to be the `previous` for the for-body: the
+  (* TODO the behaviour of eval_exprs seems to be the `previous_result` for the for-body: the
      script `for x in $(exit 2)a; do echo $x/$?; done` prints `a/2`. *)
   | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es stm ss out.
     eval_list_expr inp ctx sta es sta' ss -> 
@@ -341,7 +344,7 @@ module Semantics
     eval_stmt {inp with under_condition = True} ctx sta s1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
     eval_stmt inp ctx1 sta1 s2 sta2 ctx2 {out2 with behaviour = BNormal b} ->
     (* c.f. below `function f() { return $1; }; for x in 0 1 2; do echo X/$x/$?; f $x; done; echo Y/$x/$?` *)
-    eval_stmt {inp with previous = b} ctx2 sta2 (SWhile s1 s2) sta3 ctx3 out3 ->
+    eval_stmt {inp with previous_result = b} ctx2 sta2 (SWhile s1 s2) sta3 ctx3 out3 ->
     eval_stmt inp ctx sta (SWhile s1 s2) sta3 ctx3 out3
 
   with eval_foreach input context state variable (list string) statement state context output =
@@ -359,7 +362,7 @@ module Semantics
       another state S, a string and an output comprised of a string result and an optional
       boolean behaviour (only $(...) has a behaviour):
 
-      \[ (Input, Context, State) e \Downarrow (State, String, OptBool) \]
+      $(Input, Context, State) e \Downarrow (State, String, OptBool)$
    *)
   with eval_str_expr input context state string_expression state string (option bool)  =
 
@@ -384,12 +387,7 @@ module Semantics
 
   (** Evaluation of expressions to a list of strings:
 
-      \[ (Bool, I, C, S) es \Downarrow (S, StringList, Bool) \]
-
-      CM: reuse `input.previous` instead of `option bool` or at least `bool` with default
-      `True`
-
-      BB/NJ: But unclear `$?` in expression lists (but `$?` not implemented for now)
+      $(Bool, I, C, S) es \Downarrow (S, StringList)$
    *)
   with eval_list_expr input context state list_expression state (list string) =
 

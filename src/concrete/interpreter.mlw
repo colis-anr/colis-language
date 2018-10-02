@@ -1,13 +1,4 @@
 
-module Stdout
-  use ref.Ref
-  use semantics.Buffers
-
-  type stdout = ref Buffers.stdout
-
-  let stdout_new () = ref Buffers.empty_stdout
-end
-
 module Interpreter
 
   use list.List
@@ -19,11 +10,11 @@ module Interpreter
   use mystring.String
   use syntax.Syntax
   use semantics.Strict
+  use semantics.Filesystem
   use semantics.Buffers
   use semantics.Behaviour
   use semantics.Context
   use semantics.Semantics
-  use Stdout
 
   let ([<-]) (m:variable -> 'a) (var:variable) (value:'a) : variable -> 'a
   = fun var1 ->
@@ -31,121 +22,174 @@ module Interpreter
       then value
       else m var1
 
-  let interp_builtin out sta name args =
-    let sta1, out1, b = Semantics.interp_builtin sta name args in
-    out := append !out out1;
-    sta1, b
-
-  type result = (context, state, bool)
-
-  exception EExit result
+  exception EExit bool
   
-  let result_or_exit (strict:strict) (ctx:context) (sta:state) (b:bool) : result
+  let result_or_exit (strict:strict) (b:bool) : bool
     raises { EExit _ -> true }
   = match strict, b with
-    | Strict True, False -> raise (EExit (ctx, sta, b))
-    | _ -> ctx, sta, b
+    | Strict True, False -> raise (EExit b)
+    | _ -> b
     end
 
-  let result_or_exit_opt (strict:strict) (ctx:context) (sta:state) (bo:option bool) : result
+  let result_or_exit_opt (strict:strict) (bo:option bool) : bool
     raises { EExit _ -> true }
   = match bo with
-    | Some b -> result_or_exit strict ctx sta b
-    | None -> ctx, sta, True
+    | Some b -> result_or_exit strict b
+    | None -> True
     end
+
+  (* We use refs instead of mutable fields to be able to reuse `stdin` (and `stdout`) but
+     shadow `senv`. *)
+  type state = {
+    senv : ref senv;
+    stdin : ref stdin;
+    stdout : ref stdout;
+    filesystem : ref filesystem;
+  }
+
+  let empty_state () = {
+    senv = ref empty_senv;
+    stdin = ref empty_stdin;
+    stdout = ref empty_stdout;
+    filesystem = ref empty_filesystem;
+  }
+
+  let function context (sta:state) : Context.context = {
+    Context.senv = !(sta.senv)
+  }
+
+  let function state (sta:state) : Context.state = {
+    Context.filesystem = !(sta.filesystem);
+    Context.stdin = !(sta.stdin)
+  }
+
+  let function normal_output (old_sta sta:state) (b:bool) : Context.output = {
+    Context.behaviour = BNormal b;
+    Context.stdout = diff !(old_sta.stdout) !(sta.stdout)
+  }
+
+  let function exit_output (old_sta sta:state) (b:bool) : Context.output = {
+    Context.behaviour = BExit b;
+    Context.stdout = diff !(old_sta.stdout) !(sta.stdout)
+  }
+
+  let interp_builtin sta name args =
+    let sta', out, b = Semantics.interp_builtin (state sta) name args in
+    sta.filesystem := sta'.Context.filesystem;
+    sta.stdin := sta'.Context.stdin;
+    sta.stdout := append !(sta.stdout) out;
+    b
   
-  (* See NOTES[Concrete interpreter type] for discussion on arguments *)
-  let rec interp_stmt (inp:input) (out:stdout) (ctx:context) (sta:state) (stm:statement) : result
-    returns { ctx', sta', b -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BNormal b} }
-    raises  { EExit (ctx', sta', b) -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BExit b} }
+  (* See NOTES[Concrete interpreter type] for discussion on arguments.
+
+     TODO
+     - Can we make the fields of `state` global variables?
+     - Can we use s/`previous_result`/`result`/ instead of returning or raising a value?
+   *)
+  let rec interp_stmt (inp:input) (sta:state) (stm:statement) : bool
+    returns { b ->
+      eval_stmt inp (context (old sta)) (state (old sta))
+        stm (state sta) (context sta) (normal_output (old sta) (sta) b)
+    }
+    raises { EExit b ->
+      eval_stmt inp (context (old sta)) (state (old sta))
+        stm (state sta) (context sta) (exit_output (old sta) (sta) b)
+    }
     raises  { EExit _ -> not inp.under_condition }
   = match stm with
 
     | SExit code ->
-      raise EExit (ctx, sta, bool_of_return_code code inp.previous)
+      let b =
+        match code with
+        | CPrevious -> inp.previous_result
+        | CFailure -> False
+        | CSuccess -> True
+        end
+      in
+      raise (EExit b)
 
     | SAssignment var se ->
-      let sta1, str, bo = interp_str_expr inp ctx sta se in
-      let ctx1 = {ctx with senv = ctx.senv[var <- str]} in
-      result_or_exit_opt (strict inp) ctx1 sta1 bo
+      let str, bo = interp_str_expr inp sta se in
+      sta.senv := !(sta.senv)[var <- str];
+      result_or_exit_opt (strict inp) bo
 
     | SSequence stm1 stm2 ->
-      let ctx1, sta1, b = interp_stmt inp out ctx sta stm1 in
-      interp_stmt {inp with previous = b} out ctx1 sta1 stm2
+      let b = interp_stmt inp sta stm1 in
+      interp_stmt {inp with previous_result = b} sta stm2
 
     | SSubshell stm ->
-      let ctx1, sta1, b = interp_stmt inp out ctx sta stm in
-      result_or_exit (strict inp) ctx1 sta1 b
+      (* Don't override `sta.senv` in the subshell *)
+      let sta' = {sta with senv = ref !(sta.senv)} in
+      interp_stmt inp sta' stm
 
     | SNot stm ->
-      let ctx1, sta1, b = interp_stmt {inp with under_condition=True} out ctx sta stm in
-      ctx1, sta1, (notb b)
+      notb (interp_stmt {inp with under_condition=True} sta stm)
 
     | SIf stm1 stm2 stm3 ->
-      let ctx1, sta1, b = interp_stmt {inp with under_condition=True} out ctx sta stm1 in
-      if b then
-        interp_stmt inp out ctx1 sta1 stm2
+      if interp_stmt {inp with under_condition=True} sta stm1 then
+        interp_stmt inp sta stm2
       else
-        interp_stmt inp out ctx1 sta1 stm3
+        interp_stmt inp sta stm3
 
     | SNoOutput stm ->
-      interp_stmt inp (stdout_new ()) ctx sta stm
+      let sta' = {sta with stdout = ref empty_stdout} in
+      interp_stmt inp sta' stm
 
     | SPipe stm1 stm2 ->
-      let ctx1, sta1, _ =
-        try interp_stmt inp out ctx sta stm1
-        with EExit r -> r end
-      in
-      interp_stmt inp out ctx1 sta1 stm2
+      let sta' = {sta with stdout = ref empty_stdout} in
+      try let _ = interp_stmt inp sta' stm1 in ()
+      with EExit _ -> () end;
+      let sta'' = {sta with stdin = ref (stdout_to_stdin !(sta'.stdout))} in
+      interp_stmt inp sta'' stm2
 
     | SCall name le ->
-      let sta1, args = interp_list_expr inp ctx sta le in
-      let sta2, b = interp_builtin out sta1 name args in
-      result_or_exit (strict inp) ctx sta2 b
+      let args = interp_list_expr inp sta le in
+      let b = interp_builtin sta name args in
+      result_or_exit (strict inp) b
 
     | SForeach var le stm ->
-      let sta1, ss = interp_list_expr inp ctx sta le in
-      let rec aux ctx sta p ss =
+      let ss = interp_list_expr inp sta le in
+      let rec aux prev ss =
         match ss with
-        | Nil -> ctx, sta, p
+        | Nil -> prev
         | Cons s ss' ->
-          let ctx' = {ctx with senv = ctx.senv[var <- s] } in
-          let ctx'', sta', b = interp_stmt {inp with previous=p} out ctx' sta stm in
-          aux ctx'' sta' b ss'
+          sta.senv := !(sta.senv)[var <- s];
+          let b = interp_stmt {inp with previous_result=prev} sta stm in
+          aux b ss'
         end
       (* See NOTES[Previous in for-loop] for p=True *)
-      in aux ctx sta1 True ss
+      in aux True ss
 
     | SWhile _ _ -> absurd
     end
 
-  with interp_str_expr (inp:input) (ctx:context) (sta:state) (se:string_expression) : (state, string, option bool)
+  with interp_str_expr (inp:input) (sta:state) (se:string_expression) : (string, option bool)
   = match se with
-    | ELiteral s -> sta, s, None
-    | EVariable v -> sta, ctx.senv v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
+    | ELiteral s -> s, None
+    | EVariable v -> !(sta.senv) v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
     | ESubshell stm ->
-      let out = stdout_new () in
-      let _, sta1, b =
-        try interp_stmt inp out ctx sta stm
-        with EExit res -> res end
+      let sta' = {sta with stdout = ref empty_stdout} in
+      let b =
+        try interp_stmt inp sta' stm
+        with EExit b -> b end
       in
-      let str = string_from_stdout !out in
-      sta1, str, Some b
+      let str = string_from_stdout !(sta'.stdout) in
+      str, Some b
     | EConcat se1 se2 ->
-      let sta1, s1, bo1 = interp_str_expr inp ctx sta se1 in
-      let sta2, s2, bo2 = interp_str_expr inp ctx sta1 se2 in
+      let s1, bo1 = interp_str_expr inp sta se1 in
+      let s2, bo2 = interp_str_expr inp sta se2 in
       let bo3 = bool_opt_compose bo1 bo2 in
-      sta2, s1^s2, bo3
+      s1^s2, bo3
     end
 
-  with interp_list_expr (inp:input) (ctx:context) (sta:state) (le:list_expression) : (state, list string)
+  with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
   = match le with
-    | Nil -> sta, Nil
+    | Nil -> Nil
     | Cons (se, sp) le_rest ->
-      let sta1, s, _ = interp_str_expr inp ctx sta se in
+      let s, _ = interp_str_expr inp sta se in
       let l1 = match sp with Split True -> split s | Split False -> Cons s Nil end in
-      let sta2, l2 = interp_list_expr inp ctx sta1 le_rest in
+      let l2 = interp_list_expr inp sta le_rest in
       let l3 = l1 ++ l2 in
-      sta2, l3
+      l3
     end
 end

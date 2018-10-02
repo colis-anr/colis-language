@@ -1,10 +1,10 @@
 (include_subdirs unqualified)
 
 (ocamllex colisLexer)
-(menhir (modules colisParser))
+(menhir (flags --explain) (modules colisParser))
 
 (executable
  (name concrete_colis)
  (public_name colis)
- (libraries why3.extract)
+ (libraries zarith)
  (flags :standard -w -27))

@@ -1,6 +1,5 @@
 open Format
 open Semantics__Context
-open Interpreter__Stdout
 open Interpreter__Interpreter
 
 let get_parser = function
@@ -17,13 +16,13 @@ let main () =
   end;
   let filetype, filename = Sys.argv.(1), Sys.argv.(2) in
   let statement = get_parser filetype filename in
-  let out = stdout_new () in
-  let (ctx, sta, b), mode =
-    try interp_stmt empty_input out empty_context empty_state statement, "normal"
+  let sta = empty_state () in
+  let b, mode =
+    try interp_stmt empty_input sta statement, "normal"
     with EExit res -> res, "exit"
   in
   printf "RESULT: %s %b@." mode b;
   printf "STDOUT: @.";
-  List.iter (printf "> %s@\n") (List.rev !out)
+  List.iter (printf "> %s@\n") (List.rev !(sta.stdout))
 
 let () = main ()

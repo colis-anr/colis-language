@@ -222,7 +222,9 @@ statement, and return or raise a boolean value according to the statement behavi
   val interp_stmt state statement : unit raises { Exit _ -> true }
 #+end_src
 
-The proposed implementation ([2018-10-01 Mon]) lies on the middle ground by using
-exceptions to indicate the program behaviour, an imperative stdout, but an immutable state
-and context.
+The implementation as of [2018-10-01 Mon] follows the previous version of CoLiS by Nicolas
+and lies on the middle ground by using exceptions to indicate the program behaviour, an
+imperative stdout, but an immutable state and context.
+
+The implementation was changed to a fully imperative design as of [2018-10-02 Tue].
 
