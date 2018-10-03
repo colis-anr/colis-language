@@ -55,7 +55,7 @@ module Interpreter
     end
   
   (* See NOTES[Concrete interpreter type] for discussion on arguments *)
-  let rec interp_stmt (inp:input) (out:stdout) (ctx:context) (sta:state) (stm:instruction) : result
+  let rec interp_stmt (inp:input) (out:stdout) (ctx:context) (sta:state) (stm:statement) : result
     returns { ctx', sta', b -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BNormal b} }
     raises  { EExit (ctx', sta', b) -> eval_stmt inp ctx sta stm sta' ctx' {stdout=diff !out (old !out); behaviour=BExit b} }
     raises  { EExit _ -> not inp.under_condition }

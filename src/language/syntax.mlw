@@ -17,7 +17,7 @@ module Syntax
   type string_expression =
     | ELiteral string                             (** 'string' *)
     | EVariable variable                          (** ${variable} *)
-    | ESubshell instruction                         (** $(instruction) *)
+    | ESubshell statement                         (** $(statement) *)
     | EConcat string_expression string_expression (** expression expression (without the space) *)
     (* TODO Arguments $<n> *)
 
@@ -32,16 +32,16 @@ module Syntax
     | CPrevious
 
   (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
-  with instruction =
+  with statement =
     | SAssignment variable string_expression
-    | SSequence instruction instruction
-    | SSubshell instruction
-    | SIf instruction instruction instruction
-    | SNot instruction (* NOTES[Conditionals] *)
-    | SPipe instruction instruction
-    | SWhile instruction instruction
-    | SNoOutput instruction
-    | SForeach variable list_expression instruction
+    | SSequence statement statement
+    | SSubshell statement
+    | SIf statement statement statement
+    | SNot statement (* NOTES[Conditionals] *)
+    | SPipe statement statement
+    | SWhile statement statement
+    | SNoOutput statement
+    | SForeach variable list_expression statement
     | SCall string list_expression
     | SExit return_code (* NOTES[Exit] *)
 end

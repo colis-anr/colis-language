@@ -233,13 +233,13 @@ module Semantics
     (state, stdout, bool)
 
 
-  (** Evaluation of a instruction s with input I, context C and state S resulting in an
+  (** Evaluation of a statement s with input I, context C and state S resulting in an
       state S', context C', and output O:
 
       \[ (I, C, S) s \Downarrow (S', C', O) \]
    *)
 
-  inductive eval_stmt input context state instruction state context output =
+  inductive eval_stmt input context state statement state context output =
 
   | eval_exit: forall inp ctx sta c.
     let b = bool_of_return_code c inp.previous in
@@ -344,7 +344,7 @@ module Semantics
     eval_stmt {inp with previous = b} ctx2 sta2 (SWhile s1 s2) sta3 ctx3 out3 ->
     eval_stmt inp ctx sta (SWhile s1 s2) sta3 ctx3 out3
 
-  with eval_foreach input context state variable (list string) instruction state context output =
+  with eval_foreach input context state variable (list string) statement state context output =
 
   | eval_foreach_nil: forall inp ctx sta x stm.
     let out = {stdout = empty_stdout; behaviour = BNormal True} in
