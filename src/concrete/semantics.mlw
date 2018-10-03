@@ -1,5 +1,10 @@
 module Strict
+  use bool.Bool
+
   type strict = Strict bool
+
+  let function strict under_condition =
+    Strict (notb under_condition)
 end
 
 module Filesystem
@@ -176,7 +181,7 @@ module Context
       conditions, see NOTES[Strict] *)
   let function strict : input -> strict =
     fun inp ->
-      Strict (notb (inp.under_condition))
+      strict inp.under_condition
 
   (* Concatenate two stdouts, see NOTES[Stdin/stdout].
 
