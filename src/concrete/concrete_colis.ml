@@ -69,11 +69,9 @@ let outcome_from_state sta = {
 
 (** Print execution results *)
 let print_outcome outcome =
-  printf "VALUE: %b@." outcome.result;
-  if outcome.stdout <> [""]; then begin
-    printf "STDOUT:@.";
-    List.iter (printf "> %s@\n") (List.rev outcome.stdout)
-  end
+  printf "RESULT: %b@." outcome.result;
+  printf "STDOUT:@.";
+  List.iter (printf "> %s@\n") (List.rev outcome.stdout)
 
 let error fmt =
   kfprintf (fun fmt -> pp_print_flush std_formatter (); pp_print_flush err_formatter (); exit 3) err_formatter (fmt^^"@.")
@@ -85,14 +83,12 @@ let read_oracle filename : outcome =
     let result = ref None in
     let stdout = ref [] in
     bscanf ic "RESULT: %b\n" (fun b -> result := Some b);
+    bscanf ic "STDOUT:\n" ();
     (try
-       bscanf ic "STDOUT:\n" ();
-       (try
-          while true do
-            bscanf ic "> %s@\n" (fun s -> stdout := s :: !stdout)
-          done
-        with
-          End_of_file -> ())
+       while true do
+         (* TODO how to scan '> ' indicating empty output line *)
+         bscanf ic "> %s@\n" (fun s -> stdout := s :: !stdout)
+       done
      with End_of_file -> ());
     match !result, !stdout with
     | None, _ ->
@@ -109,13 +105,15 @@ let read_oracle filename : outcome =
 let compare outcome oracle =
   pp_print_flush err_formatter ();
   pp_print_flush std_formatter ();
-  let pp_sep fmt () = pp_print_string fmt "\\n" in
-  if outcome.result <> oracle.result then
-    error "ORACLE: Value did't match (%b)." oracle.result;
-  if outcome.stdout <> oracle.stdout then
-    error "ORACLE: Stdout did't match (oracle: \"%a\" (%d lines))."
-      (pp_print_list ~pp_sep pp_print_string) (List.rev oracle.stdout)
-      (List.length oracle.stdout);
+  if outcome.result <> oracle.result then begin
+    eprintf "ORACLE MISMATCH RESULT: %b@." oracle.result;
+    exit 3
+  end;
+  if outcome.stdout <> oracle.stdout then begin
+    eprintf "ORACLE MISMATCH STDOUT:@.";
+    List.iter (eprintf "> %s@.") (List.rev oracle.stdout);
+    exit 3
+  end;
   printf "ORACLE: Success."
 
 let main () =
@@ -130,9 +128,9 @@ let main () =
   in
   print_outcome outcome;
   match oracle with
-  | None -> ()
   | Some oracle ->
     let oracle = read_oracle oracle in
     compare outcome oracle
+  | None -> ()
 
 let () = main ()
