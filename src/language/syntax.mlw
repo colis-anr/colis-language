@@ -12,7 +12,7 @@ module Syntax
   use export Variable
 
   (* Indicates if a string in a list expression should be split (on spaces)? *)
-  type split = Split bool
+  type split = Split | DontSplit
 
   (** A `string_expression` evaluates to a `string` *)
   type string_expression =

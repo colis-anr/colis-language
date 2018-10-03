@@ -60,8 +60,8 @@ sexpr:
   | nonempty_list(sfrag)                             { concat $1 }
 ;
 lfrag:
-  | sexpr                                            { $1, Split false }
-  | delimited (LACCOL, sexpr, RACCOL)                { $1, Split true}
+  | sexpr                                            { $1, Split }
+  | delimited (LACCOL, sexpr, RACCOL)                { $1, DontSplit}
 ;
 lexpr:
   | delimited (LCROCH, separated_list(PTVIRG, lfrag), RCROCH) { $1 }
