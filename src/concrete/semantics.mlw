@@ -74,7 +74,7 @@ module Buffers
       | Cons l Nil ->
         output l out1
       | Cons l ls2' ->
-        newline (output l (aux out1 ls2'))
+        output l (newline (aux out1 ls2'))
       end
     in
     aux out1 out2.lines
@@ -164,9 +164,9 @@ module Context
 
      concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
 
-     and when final lines are not closed (using `echo -n`):
+     and when final lines are not closed (using `echo -n S3`):
 
-     concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S4"; "S3; "S2"; "S1"]
+     concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
 
      Ah, here the complexity for specifying `read` that we avoided by using `list string`
      re-emerges ! *)

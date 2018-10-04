@@ -6,5 +6,5 @@
 (executable
  (name concrete_colis)
  (public_name colis)
- (libraries zarith)
+ (libraries zarith str)
  (flags :standard -w -27))

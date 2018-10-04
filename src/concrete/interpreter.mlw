@@ -92,17 +92,18 @@ module Interpreter
 
   let maybe_exit (inp:input) (sta:state) : unit
     raises { EExit -> true }
-  = if andb (strict inp.under_condition).strict (notb !(sta.result))
+  = if andb (strict inp.under_condition) (notb !(sta.result))
     then raise EExit
 
   (** {3 Imperative wrapper around the functional interpretation of builtin} *)
 
-  let interp_builtin sta name args =
-    let sta', out, b = Semantics.interp_builtin (state sta) name args in
+  let interp_builtin inp sta name args raises { EExit -> true }
+  = let sta', out, b = Semantics.interp_builtin (state sta) name args in
     sta.filesystem := sta'.Context.filesystem;
     sta.stdin := sta'.Context.stdin;
     sta.stdout := append !(sta.stdout) out;
-    sta.result := b
+    sta.result := b;
+    maybe_exit inp sta
   
   (** {3 The interpretation of statements} *)
 
@@ -117,9 +118,6 @@ module Interpreter
     raises { EExit ->
       eval_stmt (input inp (old sta)) (context (old sta)) (state (old sta))
         stm (state sta) (context sta) (exit_output (old sta) sta)
-    }
-    raises { EExit ->
-      not inp.under_condition
     }
   = match stm with
 
@@ -145,13 +143,14 @@ module Interpreter
       interp_stmt inp sta stm2
 
     | SSubshell stm ->
-      (* Don't override `sta.senv` in the subshell *)
+      (* Don't change `sta.senv` in the subshell *)
       let sta' = {sta with senv = ref !(sta.senv)} in
       interp_stmt inp sta' stm
 
     | SNot stm ->
       interp_stmt {inp with under_condition=True} sta stm;
       sta.result := notb !(sta.result)
+      (* TODO Flip sta.result when interp_stmt raises Exit? *)
 
     | SIf stm1 stm2 stm3 ->
       interp_stmt {inp with under_condition=True} sta stm1;
@@ -173,8 +172,7 @@ module Interpreter
 
     | SCall name le ->
       let args = interp_list_expr inp sta le in
-      interp_builtin sta name args;
-      maybe_exit inp sta
+      interp_builtin inp sta name args
 
     | SForeach var le stm ->
       let ss = interp_list_expr inp sta le in
