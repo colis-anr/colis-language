@@ -5,7 +5,7 @@ build: extract-why3
 	ln -sf _build/default/src/concrete_colis.exe concrete_colis
 
 test: build
-	dune test
+	dune runtest
 
 clean: clean-why3
 	dune clean
