@@ -15,7 +15,7 @@ let parse_args () =
   let acccompanying = ref false in
   let speclist = [
     "-colis", Arg.Unit (fun () -> parse := Some FromColis.parse), "Use the colis parser";
-    "-shell", Arg.Unit (fun () -> parse := Some FromColis.parse), "Use the shell parser";
+    "-shell", Arg.Unit (fun () -> parse := Some FromShell.parse), "Use the shell parser";
     "-compare-with", Arg.String (fun s -> oracle := Some s), "Compare results with oracle (program exits with code 2 when the results do not correspond with the oracle)";
     "-compare", Arg.Set acccompanying, "Compare results with accompanying oracle (replacing or adding extension .oracle)";
   ] in

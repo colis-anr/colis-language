@@ -125,8 +125,8 @@ and word_list__to__list_expression word_list =
          (string_expression,
           match split_requirement with
           | Impossible -> raise (Unsupported "mixed words")
-          | DoesntCare | NoSplit -> C.Split false
-          | Split -> C.Split true))
+          | DoesntCare | NoSplit -> C.DontSplit
+          | Split -> C.Split))
 
 and word'_list__to__list_expression word'_list =
   List.map (fun word' -> word'.Morsmall.Location.value) word'_list
