@@ -161,6 +161,7 @@ module Interpreter
         interp_stmt inp sta stm3
 
     | SNoOutput stm ->
+      (* Don’t write to `sta.stdout` *)
       let sta' = {sta with stdout = ref empty_stdout} in
       interp_stmt inp sta' stm
 

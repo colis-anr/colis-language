@@ -28,6 +28,7 @@ rule token = parse
   | "in"                                { IN }
   | "into"                              { INTO }
   | "not"                               { NOT }
+  | "nooutput"                          { NOOUTPUT }
   | "pipe"                              { PIPE }
   | "previous"                          { PREVIOUS }
   | "process"                           { PROCESS }
