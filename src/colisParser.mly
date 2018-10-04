@@ -13,7 +13,7 @@ let rec concat = function
 
 
 %token SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN
-%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP ASSTRING
+%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING
 %token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF
 %token<string> LITERAL
 %token<string> VAR_NAME
@@ -33,6 +33,7 @@ statement:
   | BEGIN seq END                                    { $2 }
   | PROCESS statement                                { SSubshell ($2) }
   | PIPE pipe EPIP                                   { $2 }
+  | NOOUTPUT statement                               { SNoOutput ($2) }
   | VAR_NAME                                         { SCall ($1, []) }
   | VAR_NAME lexpr                                   { SCall ($1, $2) }
   | VAR_NAME ASSTRING sexpr                          { SAssignment ($1, $3) }
