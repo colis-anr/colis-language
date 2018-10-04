@@ -1,6 +1,3 @@
-module Strict
-  type strict = Strict bool
-end
 
 module Filesystem
   type filesystem
@@ -10,25 +7,17 @@ end
 module Behaviour
 
   use option.Option
+  use bool.Bool
 
-  use Strict
+  (** Strict evaluation mode ("false is fatal") applies only outside of
+      conditions, see NOTES[Strict] *)
+  let function strict under_condition =
+    notb under_condition
 
   (* No functions (see NOTES[Functions]), no return-behaviour *)
   type behaviour =
     | BNormal bool
     | BExit bool
-
-  let function inject_behaviour (s:strict) (b:bool) : behaviour =
-    match s, b with
-    | Strict True, False -> BExit False
-    | _ -> BNormal b
-    end
-
-  let function opt_inject_behaviour (s:strict) (bo:option bool) : behaviour =
-    match bo with
-    | Some b -> inject_behaviour s b
-    | None -> BNormal True
-    end
 
   let function bool_of_behaviour (b:behaviour) : bool =
     match b with
@@ -52,20 +41,19 @@ module Buffers
   (* stdin and stdout are comprised of a list of lines, cf. NOTES[Stdin/stdout] *)
 
   (* The list contains the lines of the stdin, to be read in-order *)
-  type stdin = Stdin (list string) 
+  type stdin = list string
 
-  let constant empty_stdin = Stdin Nil
+  let constant empty_stdin = Nil
 
   (* The list contains the lines of the stdout, with the most recent first *)
-  type stdout = { lines: list string }
+  type stdout = {lines: list string}
     invariant { lines <> Nil }
 
   let constant empty_stdout = {lines = Cons String.empty Nil}
 
   (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
-  let function stdout_to_stdin =
-    fun s ->
-    Stdin (reverse s.lines)
+  let function stdout_to_stdin stdout =
+    reverse stdout.lines
 
   let string_from_stdout s =
     concat s.lines
@@ -86,7 +74,7 @@ module Buffers
       | Cons l Nil ->
         output l out1
       | Cons l ls2' ->
-        newline (output l (aux out1 ls2'))
+        output l (newline (aux out1 ls2'))
       end
     in
     aux out1 out2.lines
@@ -111,7 +99,6 @@ module Context
   use mystring.String
   use syntax.Variable
 
-  use Strict
   use Filesystem
   use Behaviour
   use Buffers
@@ -172,19 +159,14 @@ module Context
 
   (** {3 Auxiliaries} *)
 
-  (** Strict evaluation mode ("false is fatal") applies only outside of
-      conditions, see NOTES[Strict] *)
-  let function strict : input -> strict =
-    fun inp ->
-      Strict (notb (inp.under_condition))
 
   (* Concatenate two stdouts, see NOTES[Stdin/stdout].
 
      concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
 
-     and when final lines are not closed (using `echo -n`):
+     and when final lines are not closed (using `echo -n S3`):
 
-     concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S4"; "S3; "S2"; "S1"]
+     concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
 
      Ah, here the complexity for specifying `read` that we avoided by using `list string`
      re-emerges ! *)
@@ -228,6 +210,17 @@ module Semantics
     | CPrevious -> previous_result
     end
 
+  let function inject_behaviour (inp:input) (ret:bool) : behaviour =
+    if andb (strict inp.under_condition) (notb ret)
+    then BExit False
+    else BNormal ret
+
+  let function opt_inject_behaviour (inp:input) (ret_opt:option bool) : behaviour =
+    match ret_opt with
+    | Some ret -> inject_behaviour inp ret
+    | None -> BNormal True
+    end
+
   (** Interprete a command defined in the document *Specification of UNIX Commands*.
 
       It acts upon the input and irreversable state, and returns a stdout, a behaviour
@@ -252,7 +245,7 @@ module Semantics
   | eval_assign: forall inp ctx sta sta' v e s b.
     eval_str_expr inp ctx sta e sta' s b ->
     let ctx' = {ctx with senv = ctx.senv[v <- s]} in
-    let out = {stdout = empty_stdout; behaviour = opt_inject_behaviour (strict inp) b} in
+    let out = {stdout = empty_stdout; behaviour = opt_inject_behaviour inp b} in
     eval_stmt inp ctx sta (SAssignment v e) sta' ctx' out
   
   | eval_sequence_normal: forall inp sta sta1 sta2 s1 s2 ctx ctx1 ctx2 out1 out2 b1.
@@ -270,7 +263,7 @@ module Semantics
     eval_stmt inp ctx sta stm sta' ctx' out ->
     (* `Normal false` turns to `Exit False` in strict mode - the line `set -e; (! true);
        echo A/$?` prints nothing *)
-    let b = inject_behaviour (strict inp) (bool_of_behaviour out.behaviour) in
+    let b = inject_behaviour inp (bool_of_behaviour out.behaviour) in
     let out' = {out with behaviour = b} in
     eval_stmt inp ctx sta (SSubshell stm) sta' ctx out'
 
@@ -310,7 +303,7 @@ module Semantics
   | eval_call: forall inp ctx sta sta' sta'' s es ss sout b.
     eval_list_expr inp ctx sta es sta' ss ->
     (sta'', sout, b) = interp_builtin sta' s ss ->
-    let out = {stdout = sout; behaviour = inject_behaviour (strict inp) b} in
+    let out = {stdout = sout; behaviour = inject_behaviour inp b} in
     eval_stmt inp ctx sta (SCall s es) sta'' ctx out
   
   (* TODO the behaviour of eval_exprs seems to be the `previous_result` for the for-body: the
@@ -396,7 +389,7 @@ module Semantics
 
     | eval_list_expr_cons: forall inp ctx sta sta' sta'' se sp es s bo l2.
       eval_str_expr inp ctx sta se sta' s bo ->
-      let l1 = match sp with Split True -> split s | Split False -> Cons s Nil end in
+      let l1 = match sp with Split -> String.split s | DontSplit -> Cons s Nil end in
       eval_list_expr inp ctx sta' es sta'' l2 ->
       let l3 = l1 ++ l2 in
       eval_list_expr inp ctx sta (Cons (se, sp) es) sta' l3

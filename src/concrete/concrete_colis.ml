@@ -1,12 +1,13 @@
 open Format
 open Scanf
-open Semantics__Context
-open Interpreter__Interpreter
+module Context = Semantics__Context
+module Buffers = Semantics__Buffers
+module Interpreter = Interpreter__Interpreter
 
 (** Parse program arguments.
 
     Replace with Cmdliner or so?
- *)
+*)
 let parse_args () =
   let parse = ref None in
   let filename = ref None in
@@ -56,65 +57,80 @@ let parse_args () =
   in
   parse, filename, oracle
 
+type outcome = {
+  result: bool;
+  stdout: Semantics__Buffers.stdout;
+}
+
+let outcome_from_state sta = {
+  result = !(sta.Interpreter.result);
+  stdout = !(sta.Interpreter.stdout);
+}
+
 (** Print execution results *)
-let print_result behaviour value stdout =
-  printf "BEHAVIOUR: %s@." behaviour;
-  printf "VALUE: %b@." value;
+let print_outcome outcome =
+  printf "RESULT: %b@." outcome.result;
   printf "STDOUT:@.";
-  List.iter (printf "%s@\n") (List.rev stdout)
+  List.iter (printf "> %s@\n") (List.rev outcome.stdout)
+
+let error fmt =
+  kfprintf (fun fmt -> pp_print_flush std_formatter (); pp_print_flush err_formatter (); exit 3) err_formatter (fmt^^"@.")
 
 (** Read an oracle file **)
-let read_oracle filename =
-  let ic = Scanning.open_in filename in
-  let behaviour = ref "" in
-  let value = ref true in
-  let stdout = ref [] in
-  bscanf ic "BEHAVIOUR: %s\n" (fun s -> behaviour := s);
-  bscanf ic "VALUE: %b\n" (fun b -> value := b);
-  bscanf ic "STDOUT:\n" ();
-  begin
-    try
-      while true do
-        bscanf ic "%s\n" (fun s -> stdout := s :: !stdout)
-      done
-    with
-      End_of_file -> ()
-  end;
-  !behaviour, !value, !stdout
+let read_oracle filename : outcome =
+  try
+    let ic = Scanning.open_in filename in (* TODO close*)
+    let result = ref None in
+    let stdout = ref [] in
+    bscanf ic "RESULT: %b\n" (fun b -> result := Some b);
+    bscanf ic "STDOUT:\n" ();
+    (try
+       while true do
+         (* TODO how to scan '> ' indicating empty output line *)
+         bscanf ic "> %s@\n" (fun s -> stdout := s :: !stdout)
+       done
+     with End_of_file -> ());
+    match !result, !stdout with
+    | None, _ ->
+      error "ORACLE: No result defined in file %s." filename
+    | Some result, stdout ->
+      {result; stdout}
+  with
+  | Sys_error msg ->
+    error "ORACLE: Could not read file %s: %s." filename msg
+  | Scan_failure msg ->
+    error "ORACLE: Error in file %s: %s." filename msg
 
 (** Compare execution results with oracle *)
-let compare beh value stdout beh' value' stdout' =
+let compare outcome oracle =
   pp_print_flush err_formatter ();
   pp_print_flush std_formatter ();
-  let error fmt =
-    kfprintf (fun fmt -> pp_print_flush fmt (); exit 3) err_formatter ("ORACLE: "^^fmt)
-  in
-  let pp_sep fmt () = pp_print_string fmt "\\n" in
-  if beh <> beh' then
-    error "Behaviour did't match (%s)" beh';
-  if value <> value' then
-    error "Value did't match (%b)" value';
-  if stdout <> stdout' then
-    error "Stdout did't match (oracle: \"%a\" (%d lines))"
-      (pp_print_list ~pp_sep pp_print_string) (List.rev stdout')
-      (List.length stdout');
+  if outcome.result <> oracle.result then begin
+    eprintf "ORACLE MISMATCH RESULT: %b@." oracle.result;
+    exit 3
+  end;
+  if outcome.stdout <> oracle.stdout then begin
+    eprintf "ORACLE MISMATCH STDOUT:@.";
+    List.iter (eprintf "> %s@.") (List.rev oracle.stdout);
+    exit 3
+  end;
   printf "ORACLE: Success."
 
 let main () =
   let parse, filename, oracle = parse_args () in
   let statement = parse filename in
-  let sta = empty_state () in
-  let beh, value =
-    try
-      "normal", interp_stmt empty_input sta statement
-    with EExit res ->
-      "exit", res
+  let outcome =
+    let open Interpreter in
+    let sta = empty_state () in
+    (try interp_stmt empty_input sta statement;
+     with EExit -> ());
+    outcome_from_state sta
   in
-  print_result beh value !(sta.stdout);
+  print_outcome outcome;
   match oracle with
-  | None -> ()
   | Some oracle ->
-    let beh1, value1, stdout = read_oracle oracle in
-    compare beh value !(sta.stdout) beh1 value1 stdout
+    let oracle = read_oracle oracle in
+    compare outcome oracle
+  | None -> ()
 
 let () = main ()
