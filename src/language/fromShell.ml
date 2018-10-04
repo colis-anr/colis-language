@@ -64,7 +64,7 @@ let unify_split_requirement_list =
    functions X'__to__Y take a located type in Morsmall.C. *)
 
 let rec word__to__name = function
-  | [Literal s] -> s
+  | [Literal s] | [Name s] -> s
   | _ -> raise (Unsupported "(word_to_name)")
 
 and word'__to__name word' =
@@ -80,7 +80,7 @@ and word'__to__name word' =
 and word_component__to__string_expression_split_requirement = function
   | Literal s when List.exists (String.contains s) ifs ->
      (C.ELiteral s, NoSplit)
-  | Literal s ->
+  | Literal s | Name s ->
      (C.ELiteral s, DoesntCare)
   | Variable (name, NoAttribute) ->
      (C.EVariable name, Split)
@@ -88,15 +88,18 @@ and word_component__to__string_expression_split_requirement = function
      (C.ESubshell (program__to__statement program), Split)
   | DoubleQuoted word ->
      word_DoubleQuoted__to__string_expression_split_requirement word
-  | _ -> assert false
+  | _ ->
+     raise (Unsupported "(word_component)")
 
 and word_component_DoubleQuoted__to__string_expression = function
-  | Literal s -> C.ELiteral s
+  | Literal s | Name s -> C.ELiteral s
   | Variable (name, NoAttribute) -> C.EVariable name
   | Subshell program -> C.ESubshell (program__to__statement program)
-  | _ -> assert false
+  | _ -> raise (Unsupported "(word_component_DoubleQuoted)")
 
 and word__to__string_expression_split_requirement word : (C.string_expression * split_requirement) =
+  (* Note: the type annotation here is required because otherwise,
+     OCaml gets lost in type unification. *)
   let string_expression_list, split_requirement_list =
     List.map word_component__to__string_expression_split_requirement word
     |> List.split
@@ -122,19 +125,19 @@ and word_list__to__list_expression word_list =
          (string_expression,
           match split_requirement with
           | Impossible -> raise (Unsupported "mixed words")
-          | DoesntCare | Split -> C.Split true
-          | NoSplit -> C.Split false))
+          | DoesntCare | NoSplit -> C.Split false
+          | Split -> C.Split true))
 
 and word'_list__to__list_expression word'_list =
   List.map (fun word' -> word'.Morsmall.Location.value) word'_list
   |> word_list__to__list_expression
-  
+
 and assignment__to__assign (name, word) =
   C.SAssignment (name, word__to__string_expression word)
 
 and assignment'__to__assign assignment' =
   on_located assignment__to__assign assignment'
-  
+
 (* ============================= [ Statements ] ============================= *)
 
 and command__to__statement = function
@@ -153,7 +156,8 @@ and command__to__statement = function
   | Simple (assignment'_list, word' :: word'_list) ->
      let name = word'__to__name word' in
      let args = word'_list__to__list_expression word'_list in
-     assert (assignment'_list = []);
+     if assignment'_list <> [] then
+       raise (Unsupported "assignment prefixing simple command");
      (
        match name, args with
 
@@ -168,6 +172,10 @@ and command__to__statement = function
           C.(SExit CSuccess)
        | "exit", [C.ELiteral n, _] when int_of_string_opt n <> None ->
           C.(SExit CFailure)
+
+       | "set", [C.ELiteral "-e", _] ->
+          (* FIXME *)
+          C.SCall ("true", [])
 
        (* All the other special builtins: unsupported *)
 
@@ -251,7 +259,7 @@ and command__to__statement = function
 
   | While (cond', body') ->
      C.SWhile (command'__to__statement cond',
-                command'__to__statement body')
+               command'__to__statement body')
 
   | Until (_cond, _body) ->
      raise (Unsupported "until")
@@ -322,4 +330,4 @@ let parse filename : C.statement =
      exit 2
   | Unsupported feat ->
      Format.printf "Unsupported feature: %s" feat;
-     exit 2
+     exit 3
