@@ -1,8 +1,6 @@
 #!/bin/sh
 set -e
 
-COLIS="./concrete_colis"
-
 allgood="yes"
 
 error() {
@@ -12,7 +10,7 @@ error() {
     allgood="no"
 }
 
-for file in tests/*.sh tests/*.cls; do
+for file in good/*.sh good/*.cls; do
     case "$file" in
         *.sh)
             filetype="shell"
@@ -30,7 +28,7 @@ for file in tests/*.sh tests/*.cls; do
     base=$(basename "$file" $extension)
 
     # Derive oracle file name
-    oracle="tests/$base.oracle"
+    oracle="good/$base.oracle"
     if ! [ -e "$oracle" ]; then
         error "$file" "Missing oracle $oracle"
         continue
@@ -39,7 +37,7 @@ for file in tests/*.sh tests/*.cls; do
     outbase=$(mktemp -u -t "$base-XXXXX")
 
     colisout="$outbase$extension"
-    "$COLIS" "-$filetype" "$file" > "$colisout" && true
+    colis "--$filetype" "$file" > "$colisout" && true
     colisret=$?
 
     oracleout="$outbase.oracle"

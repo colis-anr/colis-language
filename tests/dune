@@ -1,0 +1,6 @@
+(alias
+ (name runtest)
+ (action (run ./run_tests.sh))
+ (deps
+  (package colis-language)
+  (source_tree good)))
