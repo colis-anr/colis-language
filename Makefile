@@ -2,14 +2,14 @@
 
 build: extract-why3
 	dune build @install
-	ln -sf _build/default/src/concrete_colis.exe concrete_colis
+	ln -sf _build/install/default/bin .
 
 test: build
 	dune runtest
 
 clean: clean-why3
 	dune clean
-	rm -f concrete_colis
+	rm -f bin
 
 extract-why3:
 	mkdir -p src/why3

@@ -4,7 +4,7 @@
 (menhir (flags --explain) (modules colisParser))
 
 (executable
- (name concrete_colis)
+ (name colis)
  (public_name colis)
- (libraries zarith str ppx_deriving_yojson.runtime morsmall)
+ (libraries why3.extract str ppx_deriving_yojson.runtime morsmall)
  (flags :standard -w -27))
