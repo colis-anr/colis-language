@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 COLIS="./concrete_colis"
@@ -42,19 +42,12 @@ for file in tests/*.sh tests/*.cls; do
     "$COLIS" "-$filetype" "$file" > "$colisout" && true
     colisret=$?
 
-    case $colisret in
-        0) colisresult="true" ;;
-        1) colisresult="false" ;;
-        *) error "$file" "Other colis error ($colisret)"
-           continue ;;
-    esac
-
     oracleout="$outbase.oracle"
-    oracleresult=$(head -n1 "$oracle"|sed 's/^RESULT: //')
+    oracleret=$(head -n1 "$oracle"|sed 's/^RETURN: //')
     tail -n+3 "$oracle" | cut -c 3- > "$oracleout"
 
-    if [ "$colisresult" != "$oracleresult" ]; then
-        error "$file" "Result mismatch with oracle ($colisresult not $oracleresult)";
+    if [ "$colisret" -ne "$oracleret" ]; then
+        error "$file" "Return code mismatch with oracle ($colisret not $oracleret)";
         continue
     fi
 

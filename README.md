@@ -17,13 +17,13 @@ The tests are run using `make tests`. This executes every CoLiS file (with exten
 the execution, composed by the return code and the stdout, is compared with the behaviour
 given in an accompanying oracle file (`NAME.oracle` for `NAME.cls` or `NAME.sh`).
 
-The oracle file hase the following format (the stdout is prefixed by `> ` to clearly
-indicate empty lines):
+The oracle file hase the following format. The result is the return value `<N>` is an
+integer, and the stdout is prefixed by `> ` to clearly indicate empty lines.
 
 ```
 ORACLE FILE FORMAT
 
-RESULT: true|false
+RETURN: <N>
 STDOUT:
 > ...
 ```

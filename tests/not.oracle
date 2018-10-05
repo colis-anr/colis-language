@@ -1,4 +1,4 @@
-RESULT: true
+RETURN: 0
 STDOUT:
 > here
 >
