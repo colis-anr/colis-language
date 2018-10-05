@@ -55,9 +55,6 @@ module Buffers
   let function stdout_to_stdin stdout =
     reverse stdout.lines
 
-  let string_from_stdout s =
-    concat s.lines
-
   let output (str:string) (out:stdout) =
     match out.lines with
       | Cons l ls ->
@@ -67,19 +64,10 @@ module Buffers
   let newline out =
     {lines = Cons String.empty out.lines}
 
-  let append (out1 out2: stdout) : stdout =
-    let rec aux out1 ls2 =
-      match ls2 with
-      | Nil -> out1
-      | Cons l Nil ->
-        output l out1
-      | Cons l ls2' ->
-        output l (newline (aux out1 ls2'))
-      end
-    in
-    aux out1 out2.lines
+  let function stdout_to_string (out: stdout) : string =
+    concat out.lines
 
-  (* Concatenate two stdouts, see NOTES[Stdin/stdout].
+  (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
 
      concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
 
@@ -88,7 +76,8 @@ module Buffers
      concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
 
      Ah, here the complexity for specifying `read` that we avoided by using `list string`
-     re-emerges ! *)
+     re-emerges!
+   *)
   let function concat_stdout (sout1 sout2:stdout) : stdout =
     let rec function aux l1 l2 variant { l2 } =
       match l2 with
@@ -104,7 +93,8 @@ module Buffers
       end
     in {lines = aux sout1.lines sout2.lines}
 
-  let function diff (out1 out2:stdout) = empty_stdout (* FIXME *)
+  let function diff (out1 out2:stdout) =
+    empty_stdout (* FIXME *)
 end
 
 (** {2 Contexts for the evaluation}
@@ -149,11 +139,13 @@ module Context
   type state = {
     filesystem: filesystem;
     stdin: stdin;
+    stdout: stdout;
   }
 
   let constant empty_state = {
     filesystem = empty_filesystem;
     stdin = empty_stdin;
+    stdout = empty_stdout;
   }
 
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
@@ -173,13 +165,6 @@ module Context
 
   let constant empty_context = {
     senv = empty_senv; 
-  }
-
-  (** {3 Write-only evaluation of a term} *)
-
-  type output = {
-    stdout: stdout; 
-    behaviour: behaviour;
   }
 end
 
@@ -223,130 +208,129 @@ module Semantics
       It acts upon the input and irreversable state, and returns a stdout, a behaviour
       (True/False), and another irreversable state, see also NOTES[Callees] *)
   val function interp_builtin state string (list string) :
-    (state, stdout, bool)
+    (state, bool)
 
 
   (** Evaluation of a instruction i with input I, context C and state S resulting in an
-      state S', context C', and output O:
+      state S', context C', and behaviour b:
 
-      $(I, C, S) i \Downarrow (S', C', O)$
+      $(I, C, S) i \Downarrow (S', C', b)$
    *)
 
-  inductive eval_instruction input context state instruction state context output =
+  inductive eval_instruction input context state instruction state context behaviour =
 
   | eval_exit: forall inp ctx sta c.
     let b = bool_of_return_code c inp.previous_result in
-    let out = {stdout = empty_stdout; behaviour = BExit b} in
-    eval_instruction inp ctx sta (IExit c) sta ctx out
+    let bhv = BExit b in
+    eval_instruction inp ctx sta (IExit c) sta ctx bhv
 
   | eval_assign: forall inp ctx sta sta' v e s b.
     eval_str_expr inp ctx sta e sta' s b ->
     let ctx' = {ctx with senv = ctx.senv[v <- s]} in
-    let out = {stdout = empty_stdout; behaviour = opt_inject_behaviour inp b} in
-    eval_instruction inp ctx sta (IAssignment v e) sta' ctx' out
+    let bhv = opt_inject_behaviour inp b in
+    eval_instruction inp ctx sta (IAssignment v e) sta' ctx' bhv
   
-  | eval_sequence_normal: forall inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 out1 out2 b1.
-    eval_instruction inp ctx sta ins1 sta1 ctx1 {out1 with behaviour = BNormal b1} ->
-    eval_instruction {inp with previous_result = b1} ctx1 sta1 ins2 sta2 ctx2 out2 ->
-    let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
-    eval_instruction inp ctx sta (ISequence ins1 ins2) sta2 ctx out3
+  | eval_sequence_normal: forall inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 b1 bhv2.
+    eval_instruction inp ctx sta ins1 sta1 ctx1 (BNormal b1) ->
+    eval_instruction {inp with previous_result = b1} ctx1 sta1 ins2 sta2 ctx2 bhv2 ->
+    eval_instruction inp ctx sta (ISequence ins1 ins2) sta2 ctx2 bhv2
   
-  | eval_sequence_abort: forall inp sta sta1 ctx ctx1 ins1 ins2 out1 b1.
-    match b1 with BExit _ -> true | BNormal _ -> false end ->
-    eval_instruction inp ctx sta ins1 sta1 ctx1 {out1 with behaviour = b1} ->
-    eval_instruction inp ctx sta (ISequence ins1 ins2) sta1 ctx1 out1
+  | eval_sequence_abort: forall inp sta sta1 ctx ctx1 ins1 ins2 b.
+    let bhv = BExit b in
+    eval_instruction inp ctx sta ins1 sta1 ctx1 bhv ->
+    eval_instruction inp ctx sta (ISequence ins1 ins2) sta1 ctx1 bhv
   
-  | eval_subshell: forall inp sta sta' ctx ctx' ins out.
-    eval_instruction inp ctx sta ins sta' ctx' out ->
+  | eval_subshell: forall inp sta sta' ctx ctx' ins bhv.
+    eval_instruction inp ctx sta ins sta' ctx' bhv ->
     (* `Normal false` turns to `Exit False` in strict mode - the line `set -e; (! true);
        echo A/$?` prints nothing *)
-    let b = inject_behaviour inp (bool_of_behaviour out.behaviour) in
-    let out' = {out with behaviour = b} in
-    eval_instruction inp ctx sta (ISubshell ins) sta' ctx out'
+    let bhv' = inject_behaviour inp (bool_of_behaviour bhv) in
+    eval_instruction inp ctx sta (ISubshell ins) sta' ctx bhv'
 
-  | eval_not: forall inp ctx ctx' sta sta' ins out.
-    eval_instruction {inp with under_condition = True} ctx sta ins sta' ctx' out ->
-    let out' = {out with behaviour = BNormal (notb (bool_of_behaviour out.behaviour))} in
-    eval_instruction inp ctx sta (INot ins) sta' ctx' out'
+  | eval_not: forall inp ctx ctx' sta sta' ins bhv.
+    eval_instruction {inp with under_condition = True} ctx sta ins sta' ctx' bhv ->
+    let bhv' = BNormal (notb (bool_of_behaviour bhv)) in
+    eval_instruction inp ctx sta (INot ins) sta' ctx' bhv'
   
-  | eval_if_true: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 ins3 out1 out2.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
-    eval_instruction {inp with previous_result = True} ctx1 sta1 ins2 sta2 ctx2 out2 ->
-    let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
-    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta2 ctx2 out3
+  | eval_if_true: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 ins3 bhv2.
+    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
+    eval_instruction {inp with previous_result = True} ctx1 sta1 ins2 sta2 ctx2 bhv2 ->
+    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta2 ctx2 bhv2
   
-  | eval_if_false: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 ins3 out1 out2.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 {out1 with behaviour = BNormal False} ->
-    eval_instruction {inp with previous_result = False} ctx1 sta1 ins3 sta2 ctx2 out2 ->
-    let out3 = {behaviour = out2.behaviour; stdout = concat_stdout out1.stdout out2.stdout} in
-    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta2 ctx2 out3
+  | eval_if_false: forall inp ctx ctx1 ctx3 sta sta1 sta3 ins1 ins2 ins3 bhv3.
+    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal False) ->
+    eval_instruction {inp with previous_result = False} ctx1 sta1 ins3 sta3 ctx3 bhv3 ->
+    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta3 ctx3 bhv3
   
-  | eval_if_transmit: forall inp ctx ctx1 sta sta1 ins1 ins2 ins3 b1 out1.
-    match b1 with BExit _ -> true | BNormal _ -> false end ->
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 {out1 with behaviour = b1} ->
-    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta1 ctx1 out1
+  | eval_if_transmit: forall inp ctx ctx1 sta sta1 ins1 ins2 ins3 b.
+    let bhv1 = BExit b in
+    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 bhv1 ->
+    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta1 ctx1 bhv1
   
-  | eval_nooutput: forall inp ctx ctx' sta sta' ins out.
-    eval_instruction inp ctx sta ins sta' ctx' out ->
-    let out' = {out with stdout = empty_stdout} in
-    eval_instruction inp ctx sta (INoOutput ins) sta' ctx' out'
+  | eval_nooutput: forall inp ctx ctx' sta sta' ins bhv.
+    eval_instruction inp ctx sta ins sta' ctx' bhv ->
+    let sta'' = {sta' with stdout = sta.stdout} in
+    eval_instruction inp ctx sta (INoOutput ins) sta'' ctx' bhv
   
   (** See NOTES[Pipe semantics] *)
-  | eval_pipe: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 out1 out2.
-    eval_instruction inp ctx sta ins1 sta1 ctx1 out1 ->
-    eval_instruction inp ctx {sta1 with stdin = stdout_to_stdin out1.stdout} ins2 sta2 ctx2 out2 ->
-    eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx out2
+  | eval_pipe: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv1 bhv2.
+    let sta' = {sta with stdout = empty_stdout} in
+    eval_instruction inp ctx sta' ins1 sta1 ctx1 bhv1 ->
+    let sta1' = {sta1 with stdout = sta.stdout; stdin = stdout_to_stdin sta1.stdout} in
+    eval_instruction inp ctx sta1' ins2 sta2 ctx2 bhv2 ->
+    (* TODO Really ignore context changes from ins1 and ins2 in the context? *)
+    eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx bhv2
   
-  | eval_call: forall inp ctx sta sta' sta'' s es ss sout b.
+  | eval_call: forall inp ctx sta sta' sta'' s es ss b.
     eval_list_expr inp ctx sta es sta' ss ->
-    (sta'', sout, b) = interp_builtin sta' s ss ->
-    let out = {stdout = sout; behaviour = inject_behaviour inp b} in
-    eval_instruction inp ctx sta (ICall s es) sta'' ctx out
+    (sta'', b) = interp_builtin sta' s ss ->
+    let bhv = inject_behaviour inp b in
+    eval_instruction inp ctx sta (ICall s es) sta'' ctx bhv
   
   (* TODO the behaviour of eval_exprs seems to be the `previous_result` for the for-body: the
      script `for x in $(exit 2)a; do echo $x/$?; done` prints `a/2`. *)
-  | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es ins ss out.
+  | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es ins ss bhv.
     eval_list_expr inp ctx sta es sta' ss -> 
-    eval_foreach inp ctx sta' v ss ins sta'' ctx' out ->
-    eval_instruction inp ctx sta (IForeach v es ins) sta'' ctx' out
+    eval_foreach inp ctx sta' v ss ins sta'' ctx' bhv ->
+    eval_instruction inp ctx sta (IForeach v es ins) sta'' ctx' bhv
 
   (** while-condition is false *)
-  | eval_while_false: forall inp ctx ctx1 sta sta1 ins1 ins2 out1.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 {out1 with behaviour = BNormal False} ->
-    let out2 = {out1 with behaviour = BNormal True} in (** TODO correct? `false; while false; do false; done; echo X/$?` prints `X/0` *)
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta1 ctx1 out2
+  | eval_while_false: forall inp ctx ctx1 sta sta1 ins1 ins2.
+    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal False) ->
+    let bhv = BNormal True in
+    eval_instruction inp ctx sta (IWhile ins1 ins2) sta1 ctx1 bhv
 
   (** while-condition is not normal *)
-  | eval_while_transmit: forall inp ctx ctx1 sta sta1 ins1 ins2 out1 b.
-    match b with BExit _ -> true | BNormal _ -> false end ->
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 {out1 with behaviour = b} ->
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta1 ctx1 out1
+  | eval_while_transmit: forall inp ctx ctx1 sta sta1 ins1 ins2 b.
+    let bhv1 = BExit b in
+    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 bhv1 ->
+    eval_instruction inp ctx sta (IWhile ins1 ins2) sta1 ctx1 bhv1
 
   (** while-condition true but while-body not normal *)
-  | eval_while_true_transmit: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 out1 out2 b.
-    match b with BExit _ -> true | BNormal _ -> false end ->
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 {out1 with behaviour = b} ->
-    eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 {out2 with behaviour = b} ->
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta2 ctx2 out2
+  | eval_while_true_transmit: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 b.
+    let bhv2 = BExit b in
+    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
+    eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 bhv2 ->
+    eval_instruction inp ctx sta (IWhile ins1 ins2) sta2 ctx2 bhv2
 
   (** while-condition true, body normal, and loop again *)
-  | eval_while_true_loop: forall inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 out1 out2 out3 b.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 {out1 with behaviour = BNormal True} ->
-    eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 {out2 with behaviour = BNormal b} ->
+  | eval_while_true_loop: forall inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 b bhv3.
+    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
+    eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 (BNormal b) ->
     (* c.f. below `function f() { return $1; }; for x in 0 1 2; do echo X/$x/$?; f $x; done; echo Y/$x/$?` *)
-    eval_instruction {inp with previous_result = b} ctx2 sta2 (IWhile ins1 ins2) sta3 ctx3 out3 ->
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta3 ctx3 out3
+    eval_instruction {inp with previous_result = b} ctx2 sta2 (IWhile ins1 ins2) sta3 ctx3 bhv3 ->
+    eval_instruction inp ctx sta (IWhile ins1 ins2) sta3 ctx3 bhv3
 
-  with eval_foreach input context state variable (list string) instruction state context output =
+  with eval_foreach input context state variable (list string) instruction state context behaviour =
 
-  | eval_foreach_nil: forall inp ctx sta x stm.
-    let out = {stdout = empty_stdout; behaviour = BNormal True} in
-    eval_foreach inp ctx sta x Nil stm sta ctx out
+  | eval_foreach_nil: forall inp ctx sta x ins.
+    let bhv = BNormal True in
+    eval_foreach inp ctx sta x Nil ins sta ctx bhv
 
-  | eval_foreach_cons: forall inp ctx ctx1 ctx2 sta sta1 sta2 x s ss stm out1 out2.
-    eval_instruction inp {ctx with senv = ctx.senv[x <- s]} sta stm sta1 ctx1 out1 ->
-    eval_foreach inp ctx1 sta1 x ss stm sta2 ctx2 out2 ->
-    eval_foreach inp ctx sta x (Cons s ss) stm sta2 ctx2 out2
+  | eval_foreach_cons: forall inp ctx ctx1 ctx2 sta sta1 sta2 x s ss ins bhv1 bhv2.
+    eval_instruction inp {ctx with senv = ctx.senv[x <- s]} sta ins sta1 ctx1 bhv1 ->
+    eval_foreach inp ctx1 sta1 x ss ins sta2 ctx2 bhv2 ->
+    eval_foreach inp ctx sta x (Cons s ss) ins sta2 ctx2 bhv2
 
   (** Evaluation of an expression with some input I, context C, and state S, resulting in
       another state S, a string and an output comprised of a string result and an optional
@@ -363,17 +347,20 @@ module Semantics
     let s = ctx.senv[v] in
     eval_str_expr inp ctx sta (SVariable v) sta s None
 
-  | eval_str_subshell: forall inp ctx ctx' sta sta' stm out.
-    eval_instruction inp ctx sta stm sta' ctx' out ->
-    let b = Some (bool_of_behaviour out.behaviour) in
-    let s = concat out.stdout.lines in
-    eval_str_expr inp ctx sta (SSubshell stm) sta' s b
+  | eval_str_subshell: forall inp ctx ctx' sta sta2 stm bhv.
+    let sta1 = {sta with stdout = empty_stdout} in
+    eval_instruction inp ctx sta1 stm sta2 ctx' bhv ->
+    let sta3 = {sta2 with stdout = sta.stdout} in
+    let s = Buffers.stdout_to_string sta2.stdout in
+    let b = Some (bool_of_behaviour bhv) in
+    eval_str_expr inp ctx sta (SSubshell stm) sta3 s b
 
   | eval_str_concat : forall inp ctx sta sta1 sta2 e1 e2 s1 s2 bo1 bo2.
     eval_str_expr inp ctx sta e1 sta1 s1 bo1 ->
     eval_str_expr inp ctx sta1 e2 sta2 s2 bo2 ->
     let bo3 = bool_opt_compose bo1 bo2 in
-    eval_str_expr inp ctx sta (SConcat e1 e2) sta2 s2 bo3
+    let s3 = s1 ^ s2 in
+    eval_str_expr inp ctx sta (SConcat e1 e2) sta2 s3 bo3
 
   (** Evaluation of expressions to a list of strings:
 
@@ -392,9 +379,9 @@ module Semantics
       eval_list_expr inp ctx sta (Cons (se, sp) es) sta' l3
 
   (* Evaluation of a program. It outputs in a boolean value *)
-  inductive eval_program input context state instruction state context (bool, stdout) =
-    | eval_program_instruction: forall inp ctx ctx' sta sta' ins out.
-      eval_instruction inp ctx sta ins sta' ctx' out ->
-      let b = bool_of_behaviour out.behaviour in
-      eval_program inp ctx sta ins sta' ctx' (b, out.stdout)
+  inductive eval_program input context state instruction state context bool =
+    | eval_program_instruction: forall inp ctx ctx' sta sta' ins bhv.
+      eval_instruction inp ctx sta ins sta' ctx' bhv ->
+      let b = bool_of_behaviour bhv in
+      eval_program inp ctx sta ins sta' ctx' b
 end

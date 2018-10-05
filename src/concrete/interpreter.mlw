@@ -55,18 +55,11 @@ module Interpreter
 
   let function state (sta:state) : Context.state = {
     Context.filesystem = !(sta.filesystem);
-    Context.stdin = !(sta.stdin)
+    Context.stdin = !(sta.stdin);
+    Context.stdout = !(sta.stdout)
   }
 
-  function normal_output (old_sta sta:state) : Context.output = {
-    Context.behaviour = BNormal !(sta.result);
-    Context.stdout = diff !(old_sta.stdout) !(sta.stdout)
-  }
 
-  function exit_output (old_sta sta:state) : Context.output = {
-    Context.behaviour = BExit !(sta.result);
-    Context.stdout = diff !(old_sta.stdout) !(sta.stdout)
-  }
 
   (** {3 The input type} *)
 
@@ -98,10 +91,10 @@ module Interpreter
   (** {3 Imperative wrapper around the functional interpretation of builtin} *)
 
   let interp_builtin inp sta name args raises { EExit -> true }
-  = let sta', out, b = Semantics.interp_builtin (state sta) name args in
+  = let sta', b = Semantics.interp_builtin (state sta) name args in
     sta.filesystem := sta'.Context.filesystem;
     sta.stdin := sta'.Context.stdin;
-    sta.stdout := append !(sta.stdout) out;
+    sta.stdout := sta'.Context.stdout;
     sta.result := b;
     maybe_exit inp sta
   
@@ -113,11 +106,11 @@ module Interpreter
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     returns { () ->
       eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
-        ins (state sta) (context sta) (normal_output (old sta) sta)
+        ins (state sta) (context sta) (BNormal !(sta.result))
     }
     raises { EExit ->
       eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
-        ins (state sta) (context sta) (exit_output (old sta) sta)
+        ins (state sta) (context sta) (BExit !(sta.result))
     }
   = match ins with
 
@@ -200,7 +193,7 @@ module Interpreter
       (* TODO `result = ref True`: differences between shells *)
       let sta' = {sta with stdout = ref empty_stdout; result = ref True} in
       try interp_instruction inp sta' stm with EExit -> () end;
-      string_from_stdout !(sta'.stdout), Some !(sta'.result)
+      stdout_to_string !(sta'.stdout), Some !(sta'.result)
     | SConcat se1 se2 ->
       let s1, bo1 = interp_str_expr inp sta se1 in
       let s2, bo2 = interp_str_expr inp sta se2 in

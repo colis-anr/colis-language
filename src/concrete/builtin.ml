@@ -1,46 +1,46 @@
 open Semantics__Buffers
 open Semantics__Context
 
-let interp_builtin : state -> string -> string list -> (state * stdout * bool) =
+let interp_builtin : state -> string -> string list -> (state * bool) =
   fun sta name args ->
     match name with
     | "echo" ->
-      let out =
+      let stdout =
         match args with
         | "-n" :: args ->
           let str = String.concat " " args in
-          empty_stdout |> output str
+          sta.stdout |> output str
         | _ ->
           let str = String.concat " " args in
-          empty_stdout |> output str |> newline
+          sta.stdout |> output str |> newline
       in
-      sta, out, true
+      {sta with stdout}, true
     | "true" ->
-      sta, empty_stdout, true
+      sta, true
     | "false" ->
-      sta, empty_stdout, false
+      sta, false
     | "grep" -> (* Just for testing stdin/stdout handling *)
       begin match args with
         | [word] ->
-          let stdout =
+          let stdout, result =
             let re = Str.regexp_string word in
-            let f stdout line =
+            let f (stdout, res) line =
               try
                 ignore (Str.search_forward re line 0);
-                stdout |> output line |> newline
+                stdout |> output line |> newline, true
               with Not_found ->
-                stdout
+                stdout, res
             in
-            List.fold_left f empty_stdout sta.stdin
+            List.fold_left f (sta.stdout, false) sta.stdin
           in
-          let sta' = {sta with stdin=empty_stdin} in
-          sta', stdout, stdout <> empty_stdout
+          let sta' = {sta with stdout; stdin=empty_stdin} in
+          sta', result
         | _ ->
           let str = "grep: not exactly one argument" in
-          let out = empty_stdout |> output str |> newline in
-          sta, out, false
+          let stdout = sta.stdout |> output str |> newline in
+          {sta with stdout}, false
       end
     | _ ->
-      let str = name^": command not found" in
-      let out = empty_stdout |> output str |> newline in
-      sta, out, false
+      let str = name ^ ": command not found" in
+      let stdout = sta.stdout |> output str |> newline in
+      {sta with stdout}, false
