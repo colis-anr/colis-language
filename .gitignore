@@ -1,5 +1,3 @@
-/concrete_colis
-
 ## Emacs specific
 *~
 *#
@@ -14,3 +12,4 @@
 
 ## Project specific
 /src/why3
+/bin
