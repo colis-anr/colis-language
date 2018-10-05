@@ -6,6 +6,7 @@ build: extract-why3
 
 test: build
 	dune runtest
+	./run_tests.sh
 
 clean: clean-why3
 	dune clean
