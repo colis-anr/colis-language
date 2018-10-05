@@ -18,7 +18,7 @@ RUN [ -z "$switch" ] || opam switch create "$switch"
 ## independant way) first the non-opam dependencies that are required
 ## and then the OPAM packages.
 
-RUN opam depext -i morbig why3
+RUN opam depext -i morbig zarith why3
 
 ## [FIXME] Install Morsmall
 
