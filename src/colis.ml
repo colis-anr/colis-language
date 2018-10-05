@@ -27,16 +27,18 @@ let get_source, set_source =
     | None -> source := Some new_source
     | Some _ -> raise (Arg.Bad "only one source among --colis and --shell can be specified"))
 
-let get_file, set_file =
+let get_file, get_arguments, set_file_or_argument =
   let file = ref None in
+  let args = ref [] in
   (fun () ->
     match !file with
     | None -> raise (Arg.Bad "you must provide an input file")
     | Some file -> file),
-  (fun new_file ->
+  (fun () -> List.rev !args |> Array.of_list),
+  (fun new_file_or_arg ->
     match !file with
-    | None -> file := Some new_file
-    | Some _ -> raise (Arg.Bad "only one input file can be provided"))
+    | None -> file := Some new_file_or_arg
+    | Some _ -> args := new_file_or_arg :: !args)
 
 let speclist =
   [ "--run",          Arg.Unit (set_action Run),         " Concrete execution (default)";
@@ -54,7 +56,7 @@ let usage =
     Sys.argv.(0)
 
 let main () =
-  Arg.parse speclist set_file usage;
+  Arg.parse speclist set_file_or_argument usage;
   let program =
     get_file ()
     |> match get_source () with
@@ -67,7 +69,8 @@ let main () =
        let open Interpreter in
        (* FIXME: realworld *)
        let state = empty_state () in
-       interp_program empty_input state program;
+       let input = { empty_input with arguments = get_arguments () } in
+       interp_program input state program;
        print_string (!(state.stdout) |> List.rev |> String.concat "\n");
        exit (if !(state.result) then 0 else 1)
      )
