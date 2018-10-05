@@ -15,10 +15,10 @@ module Syntax
 
   (** A `string_expression` evaluates to a `string` *)
   type string_expression =
-    | ELiteral string                             (** 'string' *)
-    | EVariable variable                          (** ${variable} *)
-    | ESubshell statement                         (** $(statement) *)
-    | EConcat string_expression string_expression (** expression expression (without the space) *)
+    | SLiteral string                             (** 'string' *)
+    | SVariable variable                          (** ${variable} *)
+    | SSubshell instruction                         (** $(instruction) *)
+    | SConcat string_expression string_expression (** expression expression (without the space) *)
     (* TODO Arguments $<n> *)
 
   (** A list_expression` evaluates to a `list string` *)
@@ -27,21 +27,23 @@ module Syntax
 
   (* Allow $? only as return code, cf. NOTES[Exit] *)
   with return_code =
-    | CSuccess
-    | CFailure
-    | CPrevious
+    | RSuccess
+    | RFailure
+    | RPrevious
 
   (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
-  with statement =
-    | SAssignment variable string_expression
-    | SSequence statement statement
-    | SSubshell statement
-    | SIf statement statement statement
-    | SNot statement (* NOTES[Conditionals] *)
-    | SPipe statement statement
-    | SWhile statement statement
-    | SNoOutput statement
-    | SForeach variable list_expression statement
-    | SCall string list_expression
-    | SExit return_code (* NOTES[Exit] *)
+  with instruction =
+    | IAssignment variable string_expression
+    | ISequence instruction instruction
+    | ISubshell instruction
+    | IIf instruction instruction instruction
+    | INot instruction (* NOTES[Conditionals] *)
+    | IPipe instruction instruction
+    | IWhile instruction instruction
+    | INoOutput instruction
+    | IForeach variable list_expression instruction
+    | ICall string list_expression
+    | IExit return_code (* NOTES[Exit] *)
+
+  type program = instruction
 end

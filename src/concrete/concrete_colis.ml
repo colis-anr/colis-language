@@ -118,12 +118,11 @@ let compare outcome oracle =
 
 let main () =
   let parse, filename, oracle = parse_args () in
-  let statement = parse filename in
+  let program = parse filename in
   let outcome =
     let open Interpreter in
     let sta = empty_state () in
-    (try interp_stmt empty_input sta statement;
-     with EExit -> ());
+    interp_program empty_input sta program;
     outcome_from_state sta
   in
   print_outcome outcome;
