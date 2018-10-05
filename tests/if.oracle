@@ -1,4 +1,4 @@
-RESULT: false
+RETURN: 1
 STDOUT:
 > A
 > C
