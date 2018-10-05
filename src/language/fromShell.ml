@@ -12,7 +12,7 @@ module C = struct
 
   let econcat_l = function
     | [] -> failwith "econcat_l"
-    | h :: t -> List.fold_left (fun se se' -> EConcat (se, se')) h t
+    | h :: t -> List.fold_left (fun se se' -> SConcat (se, se')) h t
 end
 
 (* Define constants coming from Shell or hypothesis we make on input
@@ -79,22 +79,22 @@ and word'__to__name word' =
 
 and word_component__to__string_expression_split_requirement = function
   | Literal s when List.exists (String.contains s) ifs ->
-     (C.ELiteral s, NoSplit)
+     (C.SLiteral s, NoSplit)
   | Literal s | Name s ->
-     (C.ELiteral s, DoesntCare)
+     (C.SLiteral s, DoesntCare)
   | Variable (name, NoAttribute) ->
-     (C.EVariable name, Split)
+     (C.SVariable name, Split)
   | Subshell program ->
-     (C.ESubshell (program__to__statement program), Split)
+     (C.SSubshell (program__to__program program), Split)
   | DoubleQuoted word ->
      word_DoubleQuoted__to__string_expression_split_requirement word
   | _ ->
      raise (Unsupported "(word_component)")
 
 and word_component_DoubleQuoted__to__string_expression = function
-  | Literal s | Name s -> C.ELiteral s
-  | Variable (name, NoAttribute) -> C.EVariable name
-  | Subshell program -> C.ESubshell (program__to__statement program)
+  | Literal s | Name s -> C.SLiteral s
+  | Variable (name, NoAttribute) -> C.SVariable name
+  | Subshell program -> C.SSubshell (program__to__program program)
   | _ -> raise (Unsupported "(word_component_DoubleQuoted)")
 
 and word__to__string_expression_split_requirement word : (C.string_expression * split_requirement) =
@@ -133,7 +133,7 @@ and word'_list__to__list_expression word'_list =
   |> word_list__to__list_expression
 
 and assignment__to__assign (name, word) =
-  C.SAssignment (name, word__to__string_expression word)
+  C.IAssignment (name, word__to__string_expression word)
 
 and assignment'__to__assign assignment' =
   on_located assignment__to__assign assignment'
@@ -149,7 +149,7 @@ and command__to__statement = function
      List.fold_left
        (fun statement assignment' ->
          let assign = assignment'__to__assign assignment' in
-         C.SSequence (statement, assign))
+         C.ISequence (statement, assign))
        (assignment'__to__assign assignment')
        assignment'_list
 
@@ -163,19 +163,19 @@ and command__to__statement = function
 
        (* Special builtins *)
 
-       | ".", [C.ELiteral s, _] when s.[0] = '/' ->
+       | ".", [C.SLiteral s, _] when s.[0] = '/' ->
           raise (Unsupported "absolute source")
 
-       | "exit", [] | "exit", [C.EVariable "?", _] ->
-          C.(SExit CPrevious)
-       | "exit", [C.ELiteral n, _] when int_of_string_opt n = Some 0 ->
-          C.(SExit CSuccess)
-       | "exit", [C.ELiteral n, _] when int_of_string_opt n <> None ->
-          C.(SExit CFailure)
+       | "exit", [] | "exit", [C.SVariable "?", _] ->
+          C.(IExit RPrevious)
+       | "exit", [C.SLiteral n, _] when int_of_string_opt n = Some 0 ->
+          C.(IExit RSuccess)
+       | "exit", [C.SLiteral n, _] when int_of_string_opt n <> None ->
+          C.(IExit RFailure)
 
-       | "set", [C.ELiteral "-e", _] ->
+       | "set", [C.SLiteral "-e", _] ->
           (* FIXME *)
-          C.SCall ("true", [])
+          C.ICall ("true", [])
 
        (* All the other special builtins: unsupported *)
 
@@ -198,11 +198,11 @@ and command__to__statement = function
               (fun assignment' statement ->
                 let assign = assignment'__to__assign assignment' in
                 (* FIXME: export *)
-                C.SSequence (assign, statement))
+                C.ISequence (assign, statement))
               assignment'_list
-              (C.SCall (name, args))
+              (C.ICall (name, args))
           in
-          C.SSubshell command
+          C.ISubshell command
      )
 
   | Async _ ->
@@ -211,37 +211,37 @@ and command__to__statement = function
   | Seq (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.SSequence (first, second)
+     C.ISequence (first, second)
 
   | And (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.SIf (first, second, C.SNot (C.SCall ("false", [])))
+     C.IIf (first, second, C.INot (C.ICall ("false", [])))
 
   | Or (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.SIf (first, C.SCall ("true", []), second)
+     C.IIf (first, C.ICall ("true", []), second)
 
   | Not command' ->
      let statement = command'__to__statement command' in
-     C.SNot statement
+     C.INot statement
 
   | Pipe (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.SPipe (first, second)
+     C.IPipe (first, second)
 
   | Subshell command' ->
      let statement = command'__to__statement command' in
-     C.SSubshell statement
+     C.ISubshell statement
 
   | For (_, None, _) ->
      raise (Unsupported "for with no list")
 
   | For (name, Some word_list, command') ->
      let statement = command'__to__statement command' in
-     C.SForeach (name, word_list__to__list_expression word_list, statement)
+     C.IForeach (name, word_list__to__list_expression word_list, statement)
 
   | Case _ ->
      raise (Unsupported "case")
@@ -249,16 +249,16 @@ and command__to__statement = function
   | If (test', body', None) ->
      let test = command'__to__statement test' in
      let body = command'__to__statement body' in
-     C.SIf (test, body, C.SCall ("true", []))
+     C.IIf (test, body, C.ICall ("true", []))
 
   | If (test', body', Some rest') ->
      let test = command'__to__statement test' in
      let body = command'__to__statement body' in
      let rest = command'__to__statement rest' in
-     C.SIf (test, body, rest)
+     C.IIf (test, body, rest)
 
   | While (cond', body') ->
-     C.SWhile (command'__to__statement cond',
+     C.IWhile (command'__to__statement cond',
                command'__to__statement body')
 
   | Until (_cond, _body) ->
@@ -287,7 +287,7 @@ and redirection__to__statement = function
      an impact on the semantics again ==> ignore *)
   | Redirection (command', 1, OutputDuplicate, [Literal i])
        when (try int_of_string i >= 2 with Failure _ ->  false) ->
-     C.SNoOutput (command'__to__statement command')
+     C.INoOutput (command'__to__statement command')
 
   (* 1 redirected to /dev/null. This means that the output will never
      have an impact on the semantics again ==> Ignore. In fact, we can
@@ -303,27 +303,27 @@ and redirection__to__statement = function
        and flush_redirections'_to_1 redirection' =
          on_located flush_redirections_to_1 redirection'
        in
-       C.SNoOutput (command__to__statement (flush_redirections'_to_1 command'))
+       C.INoOutput (command__to__statement (flush_redirections'_to_1 command'))
      )
 
   | _ -> raise (Unsupported ("other redirections"))
 
-and program__to__statement = function
+and program__to__program = function
   | [] -> raise (Unsupported "empty program")
   | first' :: rest' ->
      List.fold_left
        (fun statement command' ->
          let statement' = command'__to__statement command' in
-         C.SSequence (statement, statement'))
+         C.ISequence (statement, statement'))
        (command'__to__statement first')
        rest'
 
 (* ============================ [ Entry point ] ============================= *)
 
-let parse filename : C.statement =
+let parse filename : C.program =
   try
     Morsmall.parse_file filename
-    |> program__to__statement
+    |> program__to__program
   with
   | Morsmall.SyntaxError _pos ->
      Format.printf "Syntax error";
