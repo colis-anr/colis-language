@@ -1,0 +1,4 @@
+RESULT: false
+STDOUT:
+> foo: command not found
+> 
