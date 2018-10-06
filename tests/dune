@@ -1,6 +1,12 @@
 (alias
  (name runtest)
- (action (run ./run_tests.sh))
+ (action (run ./run_tests.exe))
  (deps
   (package colis-language)
-  (source_tree good)))
+  (source_tree .)))
+
+(executable
+ (name run_tests)
+ (libraries unix ppx_deriving_yojson.runtime)
+ (preprocess (pps ppx_deriving_yojson))
+ (flags (:standard -w -39)))
