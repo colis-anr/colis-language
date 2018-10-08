@@ -116,14 +116,11 @@ module Interpreter
   = match ins with
 
     | IExit code ->
-      let b =
-        match code with
-        | RPrevious -> !(sta.result)
-        | RFailure -> False
-        | RSuccess -> True
-        end
-      in
-      sta.result := b;
+      match code with
+      | RPrevious -> ()
+      | RSuccess -> sta.result := True
+      | RFailure -> sta.result := False
+      end;
       raise EExit
 
     | IAssignment var se ->
