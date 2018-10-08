@@ -4,7 +4,7 @@ services:
   - docker
 
 ## We build on as many OCaml version as we can support. These versions
-## are infact tags for the ocaml/opam2 Docker image that we pull.
+## are in fact tags for the ocaml/opam2 Docker image that we pull.
 
 env:
   - TAG=4.05

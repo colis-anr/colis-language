@@ -57,6 +57,9 @@ let usage =
 
 let main () =
   Arg.parse speclist set_file_or_argument usage;
+  if !realworld && get_action () <> Run then
+    raise (Arg.Bad "--realworld can only be specified with --run");
+  
   let program =
     get_file ()
     |> match get_source () with
