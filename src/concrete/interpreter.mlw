@@ -104,6 +104,7 @@ module Interpreter
     match opt with Some x -> x | None -> default end
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
+    diverges
     returns { () ->
       eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
         ins (state sta) (context sta) (BNormal !(sta.result))
@@ -195,6 +196,7 @@ module Interpreter
     end
 
   with interp_str_expr (inp:input) (sta:state) (se:string_expression) : (string, option bool)
+    diverges
   = match se with
     | SLiteral s -> s, None
     | SVariable v -> !(sta.senv) v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
@@ -211,6 +213,7 @@ module Interpreter
     end
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
+    diverges
   = match le with
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
@@ -220,7 +223,7 @@ module Interpreter
       l1 ++ l2
     end
 
-  let interp_program inp sta pro =
+  let interp_program inp sta pro diverges =
     try interp_instruction inp sta pro
     with EExit -> () end
 end
