@@ -131,50 +131,50 @@ module Interpreter
       sta.result := option_get True bo;
       maybe_exit inp sta
 
-    | ISequence stm1 stm2 ->
-      interp_instruction inp sta stm1;
-      interp_instruction inp sta stm2
+    | ISequence ins1 ins2 ->
+      interp_instruction inp sta ins1;
+      interp_instruction inp sta ins2
 
-    | ISubshell stm ->
+    | ISubshell ins ->
       (* Don't change `sta.senv` in the subshell *)
       let sta' = {sta with senv = ref !(sta.senv)} in
-      interp_instruction inp sta' stm
+      interp_instruction inp sta' ins
 
-    | INot stm ->
-      interp_instruction {inp with under_condition=True} sta stm;
+    | INot ins ->
+      interp_instruction {inp with under_condition=True} sta ins;
       sta.result := notb !(sta.result)
       (* TODO Flip sta.result when interp_instruction raises Exit? *)
 
-    | IIf stm1 stm2 stm3 ->
-      interp_instruction {inp with under_condition=True} sta stm1;
+    | IIf ins1 ins2 ins3 ->
+      interp_instruction {inp with under_condition=True} sta ins1;
       if !(sta.result) then
-        interp_instruction inp sta stm2
+        interp_instruction inp sta ins2
       else
-        interp_instruction inp sta stm3
+        interp_instruction inp sta ins3
 
-    | INoOutput stm ->
+    | INoOutput ins ->
       (* Don’t write to `sta.stdout` *)
       let sta' = {sta with stdout = ref empty_stdout} in
-      interp_instruction inp sta' stm
+      interp_instruction inp sta' ins
 
-    | IPipe stm1 stm2 ->
+    | IPipe ins1 ins2 ->
       let sta' = {sta with stdout = ref empty_stdout; senv = ref !(sta.senv)} in
-      try interp_instruction inp sta' stm1 with EExit _ -> () end;
+      try interp_instruction inp sta' ins1 with EExit _ -> () end;
       let sta'' = {sta' with stdout = sta.stdout; stdin = ref (stdout_to_stdin !(sta'.stdout))} in
-      interp_instruction inp sta'' stm2
+      interp_instruction inp sta'' ins2
 
     | ICall name le ->
       let args = interp_list_expr inp sta le in
       interp_builtin inp sta name args
 
-    | IForeach var le stm ->
+    | IForeach var le ins ->
       let ss = interp_list_expr inp sta le in
       let rec aux ss =
         match ss with
         | Nil -> ()
         | Cons s ss' ->
           sta.senv := !(sta.senv)[var <- s];
-          interp_instruction inp sta stm;
+          interp_instruction inp sta ins;
           aux ss'
         end
       in
@@ -189,10 +189,10 @@ module Interpreter
   = match se with
     | SLiteral s -> s, None
     | SVariable v -> !(sta.senv) v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
-    | SSubshell stm ->
+    | SSubshell ins ->
       (* TODO `result = ref True`: differences between shells *)
       let sta' = {sta with stdout = ref empty_stdout; result = ref True} in
-      try interp_instruction inp sta' stm with EExit -> () end;
+      try interp_instruction inp sta' ins with EExit -> () end;
       stdout_to_string !(sta'.stdout), Some !(sta'.result)
     | SConcat se1 se2 ->
       let s1, bo1 = interp_str_expr inp sta se1 in
