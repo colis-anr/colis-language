@@ -169,20 +169,29 @@ module Interpreter
 
     | IForeach var le ins ->
       let ss = interp_list_expr inp sta le in
-      let rec aux ss =
+      let last_result = ref True in
+      let rec foreach ss =
         match ss with
         | Nil -> ()
         | Cons s ss' ->
           sta.senv := !(sta.senv)[var <- s];
           interp_instruction inp sta ins;
-          aux ss'
+          last_result := !(sta.result);
+          foreach ss'
         end
-      in
-      (* See NOTES[Previous in for-loop] for p=True *)
-      sta.result := True;
-      aux ss
+      in foreach ss;
+      sta.result := !last_result (* See NOTES[Previous in for-loop] for p=True *)
 
-    | IWhile _ _ -> absurd
+    | IWhile ins1 ins2 ->
+      let last_result = ref True in
+      while (
+        interp_instruction {inp with under_condition=True} sta ins1;
+        !(sta.result)
+      ) do
+        interp_instruction inp sta ins2;
+        last_result := !(sta.result);
+      done;
+      sta.result := !last_result
     end
 
   with interp_str_expr (inp:input) (sta:state) (se:string_expression) : (string, option bool)

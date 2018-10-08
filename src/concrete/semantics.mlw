@@ -287,50 +287,55 @@ module Semantics
     let bhv = inject_behaviour inp b in
     eval_instruction inp ctx sta (ICall s es) sta'' ctx bhv
   
-  (* TODO the behaviour of eval_exprs seems to be the `previous_result` for the for-body: the
-     script `for x in $(exit 2)a; do echo $x/$?; done` prints `a/2`. *)
   | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es ins ss bhv.
     eval_list_expr inp ctx sta es sta' ss -> 
-    eval_foreach inp ctx sta' v ss ins sta'' ctx' bhv ->
+    (* The behaviour of empty for-loops is `BNormal True` *)
+    eval_foreach (BNormal True) inp ctx sta' v ss ins sta'' ctx' bhv ->
     eval_instruction inp ctx sta (IForeach v es ins) sta'' ctx' bhv
 
+  | eval_while: forall inp ctx ctx' sta sta' ins1 ins2 bhv.
+    (* The behaviour of empty while-loops is `BNormal True` *)
+    eval_while (BNormal True) inp ctx sta ins1 ins2 sta' ctx' bhv ->
+    eval_instruction inp ctx sta (IWhile ins1 ins2) sta' ctx' bhv
+
+  (* The first parameter is the previous behaviour, or the behaviour of the empty loop initially *)
+  with eval_while behaviour input context state instruction instruction state context behaviour =
+
   (** while-condition is false *)
-  | eval_while_false: forall inp ctx ctx1 sta sta1 ins1 ins2.
+  | eval_while_false: forall bhv inp ctx ctx1 sta sta1 ins1 ins2.
     eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal False) ->
-    let bhv = BNormal True in
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta1 ctx1 bhv
+    eval_while bhv inp ctx sta ins1 ins2 sta1 ctx1 bhv
 
   (** while-condition is not normal *)
-  | eval_while_transmit: forall inp ctx ctx1 sta sta1 ins1 ins2 b.
+  | eval_while_transmit: forall bhv inp ctx ctx1 sta sta1 ins1 ins2 b.
     let bhv1 = BExit b in
     eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 bhv1 ->
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta1 ctx1 bhv1
+    eval_while bhv inp ctx sta ins1 ins2 sta1 ctx1 bhv1
 
   (** while-condition true but while-body not normal *)
-  | eval_while_true_transmit: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 b.
-    let bhv2 = BExit b in
+  | eval_while_true_transmit: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 b.
     eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
+    let bhv2 = BExit b in
     eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 bhv2 ->
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta2 ctx2 bhv2
+    eval_while bhv inp ctx sta ins1 ins2 sta2 ctx2 bhv2
 
   (** while-condition true, body normal, and loop again *)
-  | eval_while_true_loop: forall inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 b bhv3.
+  | eval_while_true_loop: forall bhv inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 b bhv3.
     eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
     eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 (BNormal b) ->
-    (* c.f. below `function f() { return $1; }; for x in 0 1 2; do echo X/$x/$?; f $x; done; echo Y/$x/$?` *)
-    eval_instruction {inp with previous_result = b} ctx2 sta2 (IWhile ins1 ins2) sta3 ctx3 bhv3 ->
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta3 ctx3 bhv3
+    eval_while (BNormal b) {inp with previous_result = b} ctx2 sta2 ins1 ins2 sta3 ctx3 bhv3 ->
+    eval_while bhv inp ctx sta ins1 ins2 sta3 ctx3 bhv3
 
-  with eval_foreach input context state variable (list string) instruction state context behaviour =
+  (* The first parameter is the previous behaviour, or the behaviour of the empty loop initially *)
+  with eval_foreach behaviour input context state variable (list string) instruction state context behaviour =
 
-  | eval_foreach_nil: forall inp ctx sta x ins.
-    let bhv = BNormal True in
-    eval_foreach inp ctx sta x Nil ins sta ctx bhv
+  | eval_foreach_nil: forall bhv inp ctx sta x ins.
+    eval_foreach bhv inp ctx sta x Nil ins sta ctx bhv
 
-  | eval_foreach_cons: forall inp ctx ctx1 ctx2 sta sta1 sta2 x s ss ins bhv1 bhv2.
+  | eval_foreach_cons: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 x s ss ins bhv1 bhv2.
     eval_instruction inp {ctx with senv = ctx.senv[x <- s]} sta ins sta1 ctx1 bhv1 ->
-    eval_foreach inp ctx1 sta1 x ss ins sta2 ctx2 bhv2 ->
-    eval_foreach inp ctx sta x (Cons s ss) ins sta2 ctx2 bhv2
+    eval_foreach bhv1 inp ctx1 sta1 x ss ins sta2 ctx2 bhv2 ->
+    eval_foreach bhv inp ctx sta x (Cons s ss) ins sta2 ctx2 bhv2
 
   (** Evaluation of an expression with some input I, context C, and state S, resulting in
       another state S, a string and an output comprised of a string result and an optional
