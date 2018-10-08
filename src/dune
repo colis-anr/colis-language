@@ -6,5 +6,5 @@
 (executable
  (name colis)
  (public_name colis)
- (libraries why3.extract str ppx_deriving_yojson.runtime morsmall)
+ (libraries zarith str ppx_deriving_yojson.runtime morsmall)
  (flags :standard -w -27))
