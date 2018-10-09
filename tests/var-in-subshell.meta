@@ -1,1 +1,4 @@
-{ "output": "A\n" }
+arguments: []
+
+output: "A\n"
+return_code: 0

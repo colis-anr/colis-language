@@ -1,15 +1,12 @@
+let yaml_of_string = Yaml.of_string_exn
+open Protocol_conv_yaml
+
 let (||>) f g x = f x |> g
 
 let (>>=) r f =
   match r with
   | Ok x -> f x
   | Error msg -> Error msg
-
-type meta =
-  { arguments : string list [@default []] ;
-    output : string [@default ""];
-    return_code : int [@default 0] }
-[@@deriving yojson]
 
 let escape_shell_argument =
   String.split_on_char '\''
@@ -30,19 +27,43 @@ let in_channel_to_string ic =
   aux ();
   Buffer.contents all
 
+type meta =
+  { arguments : string list ;
+    output : string ;
+    return_code : int }
+[@@deriving protocol ~driver:(module Yaml)]
+
+let rec promote_strings_to_ints = function
+  | `Null -> `Null
+  | `Bool b -> `Bool b
+  | `Float f -> `Float f
+  | `String s ->
+     (try `Float (float_of_string s)
+      with _ -> `String s)
+  | `A vl -> `A (List.map promote_strings_to_ints vl)
+  | `O svl -> `O (List.map (fun (s, v) -> (s, promote_strings_to_ints v)) svl)
+  
 let get_meta filename =
   try
-    Yojson.Safe.from_file ((Filename.remove_extension filename) ^ ".meta")
-    |> meta_of_yojson
-    |> function
-      | Ok json -> Ok json
-      | Error msg -> Error ("meta_of_yojson: " ^ msg)
+    let ichan =
+      (Filename.remove_extension filename) ^ ".meta"
+      |> open_in
+    in
+    let yaml =
+      in_channel_to_string ichan
+      |> yaml_of_string
+      |> promote_strings_to_ints
+      |> meta_of_yaml
+    in
+    close_in ichan;
+    yaml
   with
-  | Sys_error msg -> Error ("Sys error: " ^ msg)
-  | Yojson.Json_error msg -> Error ("Json error: " ^ msg)
-
+  | Not_found -> failwith "one required key could not be found"
+  | e -> failwith (Printexc.to_string e)
+     
 let run_test filename : (unit, string) Result.result =
-  get_meta filename
+  (try Ok (get_meta filename)
+   with Failure msg -> Error ("get_meta: " ^ msg))
   >>= fun meta ->
   let cmdline =
     [ "colis" ;
