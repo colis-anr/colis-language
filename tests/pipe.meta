@@ -1,4 +1,9 @@
 arguments: []
 
-output: "hello\nbonjour\nbonheur\nbon\nbonsoir\n"
+output: |
+  hello
+  bonjour
+  bonheur
+  bon
+  bonsoir
 return_code: 0

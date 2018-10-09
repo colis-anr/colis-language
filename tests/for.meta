@@ -1,6 +1,8 @@
-output: "a\nb\nc\nc\n"
+arguments: []
+
+output: |
+  a
+  b
+  c
+  c
 return_code: 0
-arguments:
-  - bla
-  - blo
-  - bli

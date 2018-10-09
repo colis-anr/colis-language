@@ -1,4 +1,8 @@
 arguments: []
 
-output: "A\nB\nCD\nEF\n"
+output: |
+  A
+  B
+  CD
+  EF
 return_code: 0

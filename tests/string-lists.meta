@@ -1,4 +1,8 @@
 arguments: []
 
-output: "a b cd e\nf g\nh\ni\n"
+output: |
+  a b cd e
+  f g
+  h
+  i
 return_code: 0

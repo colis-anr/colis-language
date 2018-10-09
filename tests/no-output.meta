@@ -1,4 +1,5 @@
 arguments: []
 
-output: "B\n"
+output: |
+  B
 return_code: 0

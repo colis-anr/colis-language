@@ -1,4 +1,5 @@
 arguments: []
 
-output: "hello world\n"
+output: |
+  hello world
 return_code: 0
