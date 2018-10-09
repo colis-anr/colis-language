@@ -1,9 +1,13 @@
-arguments: []
+input:
+  stdin: ""
+  arguments: []
 
-output: |
-  hello
-  bonjour
-  bonheur
-  bon
-  bonsoir
-return_code: 0
+output:
+  stdout: |
+    hello
+    bonjour
+    bonheur
+    bon
+    bonsoir
+  stderr: ""
+  return_code: 0

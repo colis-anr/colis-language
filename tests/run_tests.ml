@@ -1,6 +1,3 @@
-let yaml_of_string = Yaml.of_string_exn
-open Protocol_conv_yaml
-
 let (||>) f g x = f x |> g
 
 let (>>=) r f =
@@ -27,42 +24,54 @@ let in_channel_to_string ic =
   aux ();
   Buffer.contents all
 
-type meta =
-  { arguments : string list ;
-    output : string ;
-    return_code : int }
-[@@deriving protocol ~driver:(module Yaml)]
+module Meta =
+  struct
+    let yaml_of_string = Yaml.of_string_exn
+    open Protocol_conv_yaml
 
-let rec promote_strings_to_ints = function
-  | `Null -> `Null
-  | `Bool b -> `Bool b
-  | `Float f -> `Float f
-  | `String s ->
-     (try `Float (float_of_string s)
-      with _ -> `String s)
-  | `A vl -> `A (List.map promote_strings_to_ints vl)
-  | `O svl -> `O (List.map (fun (s, v) -> (s, promote_strings_to_ints v)) svl)
-  
-let get_meta filename =
-  try
-    let ichan =
-      (Filename.remove_extension filename) ^ ".meta"
-      |> open_in
-    in
-    let yaml =
-      in_channel_to_string ichan
-      |> yaml_of_string
-      |> promote_strings_to_ints
-      |> meta_of_yaml
-    in
-    close_in ichan;
-    yaml
-  with
-  | Not_found -> failwith "one required key could not be found"
-  | e -> failwith (Printexc.to_string e)
-     
+    type input =
+      { arguments : string list ;
+        stdin : string }
+        [@@deriving protocol ~driver:(module Yaml)]
+
+    type output =
+      { stdout : string ;
+        stderr : string ;
+        return_code : int }
+        [@@deriving protocol ~driver:(module Yaml)]
+
+    type t =
+      { input : input ;
+        output : output }
+        [@@deriving protocol ~driver:(module Yaml)]
+
+    let rec promote_strings_to_ints = function
+      | `Null -> `Null
+      | `Bool b -> `Bool b
+      | `Float f -> `Float f
+      | `String s ->
+         (try `Float (float_of_string s)
+          with _ -> `String s)
+      | `A vl -> `A (List.map promote_strings_to_ints vl)
+      | `O svl -> `O (List.map (fun (s, v) -> (s, promote_strings_to_ints v)) svl)
+
+    let load_from_file filename =
+      try
+        let ichan = open_in filename in
+        let yaml =
+          in_channel_to_string ichan
+          |> yaml_of_string
+          |> promote_strings_to_ints
+          |> of_yaml
+        in
+        close_in ichan;
+        yaml
+      with
+        Not_found -> failwith "one required key could not be found"
+  end
+
 let run_test filename : (unit, string) Result.result =
-  (try Ok (get_meta filename)
+  (try Ok (Meta.load_from_file ((Filename.remove_extension filename) ^ ".meta"))
    with Failure msg -> Error ("get_meta: " ^ msg))
   >>= fun meta ->
   let cmdline =
@@ -70,14 +79,14 @@ let run_test filename : (unit, string) Result.result =
       "--" ^ (Filename.extension filename |> function ".cls" -> "colis" | ".sh" -> "shell" | _ -> assert false) ;
       "--run" ;
       filename ]
-    @ meta.arguments
+    @ meta.input.arguments
     |> List.map escape_shell_argument
     |> String.concat " "
   in
   let stdout = Unix.open_process_in cmdline in
   let output = in_channel_to_string stdout in
   let status = Unix.close_process_in stdout in
-  (if output = meta.output then
+  (if output = meta.output.stdout then
      Ok ()
    else
      Error
@@ -86,18 +95,18 @@ let run_test filename : (unit, string) Result.result =
           ||> String.concat "\n  > "
         in
         Format.sprintf
-          "wrong output\n  expected:\n  > %s\n  got:\n  > %s"
-          (indent meta.output)
+          "wrong stdout\n  expected:\n  > %s\n  got:\n  > %s"
+          (indent meta.output.stdout)
           (indent output)))
   >>= fun () ->
   (match status with
    | Unix.WEXITED return_code ->
-      if return_code = meta.return_code then
+      if return_code = meta.output.return_code then
         Ok ()
       else
         Error (Format.sprintf
                  "wrong return code (expected %d, got %d)"
-                 meta.return_code return_code)
+                 meta.output.return_code return_code)
    | _ ->
       Error "execution stopped unexpectedly")
 

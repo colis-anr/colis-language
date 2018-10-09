@@ -1,5 +1,9 @@
-arguments: []
+input:
+  stdin: ""
+  arguments: []
 
-output: |
-  A
-return_code: 0
+output:
+  stdout: |
+    A
+  stderr: ""
+  return_code: 0
