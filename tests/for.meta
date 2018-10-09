@@ -1,1 +1,6 @@
-{ "output": "a\nb\nc\nc\n" }
+output: "a\nb\nc\nc\n"
+return_code: 0
+arguments:
+  - bla
+  - blo
+  - bli

@@ -1,1 +1,3 @@
-{ "return_code": 1 }
+return_code: 1
+output: ""
+arguments: []

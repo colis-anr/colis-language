@@ -1,1 +1,4 @@
-{ "output": "x=\nx=A\nx=B\n" }
+arguments: []
+
+output: "x=\nx=A\nx=B\n"
+return_code: 0

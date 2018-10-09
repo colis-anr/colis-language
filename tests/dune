@@ -7,6 +7,6 @@
 
 (executable
  (name run_tests)
- (libraries unix ppx_deriving_yojson.runtime)
- (preprocess (pps ppx_deriving_yojson))
+ (libraries unix yaml ppx_protocol_conv_yaml)
+ (preprocess (pps ppx_protocol_conv))
  (flags (:standard -w -39)))

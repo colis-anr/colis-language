@@ -1,1 +1,4 @@
-{ "output": "a b cd e\nf g\nh\ni\n" }
+arguments: []
+
+output: "a b cd e\nf g\nh\ni\n"
+return_code: 0

@@ -1,1 +1,4 @@
-{ "output": "hello world\n" }
+arguments: []
+
+output: "hello world\n"
+return_code: 0

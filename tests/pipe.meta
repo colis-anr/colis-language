@@ -1,1 +1,4 @@
-{ "output": "hello\nbonjour\nbonheur\nbon\nbonsoir\n" }
+arguments: []
+
+output: "hello\nbonjour\nbonheur\nbon\nbonsoir\n"
+return_code: 0

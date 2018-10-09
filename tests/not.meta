@@ -1,1 +1,4 @@
-{ "output": "here\n" }
+arguments: []
+
+output: "here\n"
+return_code: 0
