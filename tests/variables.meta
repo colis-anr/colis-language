@@ -1,7 +1,11 @@
-arguments: []
+input:
+  stdin: ""
+  arguments: []
 
-output: |
-  x=
-  x=A
-  x=B
-return_code: 0
+output:
+  stdout: |
+    x=
+    x=A
+    x=B
+  stderr: ""
+  return_code: 0

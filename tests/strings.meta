@@ -1,8 +1,12 @@
-arguments: []
+input:
+  stdin: ""
+  arguments: []
 
-output: |
-  hello colis
-  hellocolis
-  hello colis
-  hello colis
-return_code: 0
+output:
+  stdout: |
+    hello colis
+    hellocolis
+    hello colis
+    hello colis
+  stderr: ""
+  return_code: 0

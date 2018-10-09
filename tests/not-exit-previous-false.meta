@@ -1,4 +1,8 @@
-arguments: []
+input:
+  stdin: ""
+  arguments: []
 
-output: ""
-return_code: 1
+output:
+  stdout: ""
+  stderr: ""
+  return_code: 1

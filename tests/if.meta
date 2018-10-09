@@ -1,7 +1,11 @@
-arguments: []
+input:
+  stdin: ""
+  arguments: []
 
-output: |
-  A
-  C
-  F
-return_code: 1
+output:
+  stdout: |
+    A
+    C
+    F
+  stderr: ""
+  return_code: 1
