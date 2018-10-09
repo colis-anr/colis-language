@@ -2,6 +2,9 @@ input:
   arguments: []
   stdin: ""
 output:
-  stdout: ""
+  stdout: |
+    X1: A
+    X2: A
+    
   stderr: ""
-  return_code: 1
+  return_code: 0

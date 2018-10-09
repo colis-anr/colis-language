@@ -1,4 +1,4 @@
-for x in ''; do
+for x in 'x'; do
     ! true
 done
 exit $?

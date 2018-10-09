@@ -2,8 +2,9 @@ begin
 x := 'A';
 pipe
   x := x 'B'
-into
+into begin
+  echo ['X1: ' x];
   x := x 'C'
-epip;
-echo ['X: 'X x]
+end epip;
+echo ['X2: ' x]
 end
