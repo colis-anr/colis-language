@@ -1,7 +1,7 @@
 
 module Variable
   type variable
-  val function variable_eq (v1 v2:variable): bool
+  val function variable_eq (v1 v2:variable) : bool ensures { result <-> v1 = v2 }
 end
 
 module Syntax

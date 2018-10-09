@@ -1,4 +1,3 @@
-
 (** {1 An imperative interpreter of the CoLiS Language}
 
     See NOTES[Concrete interpreter type] for discussion on arguments.
@@ -12,27 +11,23 @@ module Interpreter
   use option.Option
   use bool.Bool
   use array.Array
+  use map.MapExt
 
   use mystring.String
   use syntax.Syntax
   use semantics.Filesystem
   use semantics.Buffers
   use semantics.Behaviour
+  use semantics.Environment
   use semantics.Context as C
   use semantics.Semantics
-
-  let ([<-]) (m:variable -> 'a) (var:variable) (value:'a) : variable -> 'a
-  = fun var1 ->
-      if variable_eq var1 var
-      then value
-      else m var1
 
   (** {3 A purely imparative state} *)
 
   (* We use refs instead of mutable fields to be able to reuse `stdin` (and `stdout`) but
      shadow `senv`. *)
   type state = {
-    senv : ref C.senv;
+    senv : ref (env string);
     stdin : ref stdin;
     stdout : ref stdout;
     filesystem : ref filesystem;
@@ -40,7 +35,7 @@ module Interpreter
   }
 
   let empty_state () = {
-    senv = ref C.empty_senv;
+    senv = ref empty_env;
     stdin = ref empty_stdin;
     stdout = ref empty_stdout;
     filesystem = ref empty_filesystem;
@@ -53,13 +48,15 @@ module Interpreter
     Context.senv = !(sta.senv)
   }
 
+  lemma context_same: forall sta1 sta2.
+    !(sta1.senv) == !(sta2.senv) ->
+    context sta1 = context sta2
+
   let function state (sta:state) : Context.state = {
     Context.filesystem = !(sta.filesystem);
     Context.stdin = !(sta.stdin);
     Context.stdout = !(sta.stdout)
   }
-
-
 
   (** {3 The input type} *)
 
@@ -79,14 +76,25 @@ module Interpreter
     Context.previous_result = !(sta.result);
   }
 
+  lemma input_same : forall inp inp' sta sta'.
+    inp.arguments = inp'.arguments ->
+    inp.under_condition = inp'.under_condition ->
+    !(sta.result) = !(sta'.result) ->
+    input inp sta = input inp' sta'
+
   (** {3 The exit exception} *)
 
   exception EExit
 
   let maybe_exit (inp:input) (sta:state) : unit
-    raises { EExit -> true }
-  = if andb (strict inp.under_condition) (notb !(sta.result))
-    then raise EExit
+    returns { () ->
+      inject_behaviour (input inp sta) !(sta.result) = BNormal !(sta.result)
+    }
+    raises { EExit ->
+      inject_behaviour (input inp sta) !(sta.result) = BExit !(sta.result)
+    }
+  = if andb (strict inp.under_condition) (notb !(sta.result)) then
+      raise EExit
 
   (** {3 Imperative wrapper around the functional interpretation of builtin} *)
 
@@ -100,9 +108,6 @@ module Interpreter
   
   (** {3 The interpretation of statements} *)
 
-  let option_get default opt =
-    match opt with Some x -> x | None -> default end
-
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
     returns { () ->
@@ -113,7 +118,7 @@ module Interpreter
       eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
         ins (state sta) (context sta) (BExit !(sta.result))
     }
-  = match ins with
+  = label L in match ins with
 
     | IExit code ->
       match code with
@@ -121,6 +126,7 @@ module Interpreter
       | RSuccess -> sta.result := True
       | RFailure -> sta.result := False
       end;
+      assert { !(sta.result) = bool_of_return_code code !(sta.result at L) };
       raise EExit
 
     | IAssignment var se ->
@@ -136,7 +142,8 @@ module Interpreter
     | ISubshell ins ->
       (* Don't change `sta.senv` in the subshell *)
       let sta' = {sta with senv = ref !(sta.senv)} in
-      interp_instruction inp sta' ins
+      try interp_instruction inp sta' ins with EExit -> () end;
+      maybe_exit inp sta
 
     | INot ins ->
       interp_instruction {inp with under_condition=True} sta ins;
@@ -194,23 +201,41 @@ module Interpreter
 
   with interp_str_expr (inp:input) (sta:state) (se:string_expression) : (string, option bool)
     diverges
+    ensures { context sta = context (old sta) }
+    returns { s, bo ->
+      eval_str_expr (input inp (old sta)) (context (old sta)) (state (old sta))
+        se (state sta) s bo
+    }
   = match se with
-    | SLiteral s -> s, None
-    | SVariable v -> !(sta.senv) v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
+
+    | SLiteral s ->
+      s, None
+
+    | SVariable v ->
+      !(sta.senv) v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
+
     | SSubshell ins ->
       (* TODO `result = ref True`: differences between shells *)
-      let sta' = {sta with stdout = ref empty_stdout; result = ref True} in
+      let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); senv = ref !(sta.senv)} in
       try interp_instruction inp sta' ins with EExit -> () end;
       stdout_to_string !(sta'.stdout), Some !(sta'.result)
+
     | SConcat se1 se2 ->
-      let s1, bo1 = interp_str_expr inp sta se1 in
-      let s2, bo2 = interp_str_expr inp sta se2 in
+      label L1 in let s1, bo1 = interp_str_expr inp sta se1 in
+      assert { eval_str_expr (input inp (sta at L1)) (context (sta at L1)) (state (sta at L1)) se1 (state sta) s1 bo1 };
+      label L2 in let s2, bo2 = interp_str_expr inp sta se2 in
+      assert { eval_str_expr (input inp (sta at L1)) (context (sta at L2)) (state (sta at L2)) se2 (state sta) s2 bo2 };
       let bo3 = bool_opt_compose bo1 bo2 in
       s1^s2, bo3
     end
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
     diverges
+    ensures { context sta = context (old sta) }
+    returns { ss ->
+      eval_list_expr (input inp (old sta)) (context (old sta)) (state (old sta))
+        le (state sta) ss
+    }
   = match le with
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
@@ -220,7 +245,12 @@ module Interpreter
       l1 ++ l2
     end
 
-  let interp_program inp sta pro diverges =
-    try interp_instruction inp sta pro
+  let interp_program inp sta pro
+    diverges
+    returns { () ->
+      eval_program (input inp (old sta)) (context (old sta)) (state (old sta))
+        pro (state sta) (context sta) !(sta.result)
+    }
+  = try interp_instruction inp sta pro
     with EExit -> () end
 end

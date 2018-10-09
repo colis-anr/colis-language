@@ -4,6 +4,25 @@ module Filesystem
   val constant empty_filesystem: filesystem
 end
 
+module Environment
+  use map.Map
+  use syntax.Variable
+  use mystring.String
+  
+  type env 'a = map variable 'a
+
+  let constant empty_env =
+    fun _ -> String.empty (* Cannot use map.Const because Map__Const is not extracted... *)
+
+  let function ([<-]) (e:env 'a) (var:variable) (value:'a) : variable -> 'a
+    ensures { result[var] = value }
+    ensures { forall var'. var' <> var -> result[var'] = e[var'] }
+  = fun var' ->
+      if variable_eq var' var
+      then value
+      else e var'
+end
+
 module Behaviour
 
   use option.Option
@@ -43,13 +62,15 @@ module Buffers
   (* The list contains the lines of the stdin, to be read in-order *)
   type stdin = list string
 
-  let constant empty_stdin = Nil
+  let constant empty_stdin : stdin = Nil
 
   (* The list contains the lines of the stdout, with the most recent first *)
-  type stdout = {lines: list string}
+  type stdout = { lines: list string }
     invariant { lines <> Nil }
+    by { lines = Cons String.empty Nil }
 
-  let constant empty_stdout = {lines = Cons String.empty Nil}
+  let constant empty_stdout =
+    { lines = Cons String.empty Nil }
 
   (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
   let function stdout_to_stdin stdout =
@@ -62,7 +83,7 @@ module Buffers
     end
 
   let newline out =
-    {lines = Cons String.empty out.lines}
+    { lines = Cons String.empty out.lines }
 
   let function stdout_to_string (out: stdout) : string =
     concat out.lines
@@ -79,8 +100,11 @@ module Buffers
      re-emerges!
    *)
   let function concat_stdout (sout1 sout2:stdout) : stdout =
-    let rec function aux l1 l2 variant { l2 } =
-      match l2 with
+    let rec function aux l1 l2
+      requires { l1 <> Nil }
+      requires { l2 <> Nil }
+      variant { l2 }
+    = match l2 with
       | Cons s2 Nil ->
         match l1 with
         | Cons s1 l1_rest ->
@@ -88,7 +112,7 @@ module Buffers
         | Nil -> absurd
         end
       | Cons s2 l2_rest ->
-        Cons s2 (aux l2_rest l1)
+        Cons s2 (aux l1 l2_rest)
       | Nil -> absurd
       end
     in {lines = aux sout1.lines sout2.lines}
@@ -117,6 +141,7 @@ module Context
   use Filesystem
   use Behaviour
   use Buffers
+  use Environment
 
   (** {3 Read-only context for the evaluation of a term} *)
 
@@ -154,17 +179,12 @@ module Context
       Will contain also the function environment one functions are added to the language
    *)
 
-  type senv = map variable string
-
-  let constant empty_senv =
-    fun _ -> String.empty (* Cannot use map.Const because Map__Const is not extracted... *)
-
   type context = {
-    senv: senv
+    senv: env string;
   }
 
   let constant empty_context = {
-    senv = empty_senv; 
+    senv = empty_env; 
   }
 end
 
@@ -203,6 +223,9 @@ module Semantics
     | None -> BNormal True
     end
 
+  let function option_get default opt =
+    match opt with Some x -> x | None -> default end
+
   (** Interprete a command defined in the document *Specification of UNIX Commands*.
 
       It acts upon the input and irreversable state, and returns a stdout, a behaviour
@@ -224,10 +247,10 @@ module Semantics
     let bhv = BExit b in
     eval_instruction inp ctx sta (IExit c) sta ctx bhv
 
-  | eval_assign: forall inp ctx sta sta' v e s b.
-    eval_str_expr inp ctx sta e sta' s b ->
+  | eval_assign: forall inp ctx sta sta' v e s bo.
+    eval_str_expr inp ctx sta e sta' s bo ->
     let ctx' = {ctx with senv = ctx.senv[v <- s]} in
-    let bhv = opt_inject_behaviour inp b in
+    let bhv = inject_behaviour inp (option_get True bo) in
     eval_instruction inp ctx sta (IAssignment v e) sta' ctx' bhv
   
   | eval_sequence_normal: forall inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 b1 bhv2.
@@ -247,10 +270,15 @@ module Semantics
     let bhv' = inject_behaviour inp (bool_of_behaviour bhv) in
     eval_instruction inp ctx sta (ISubshell ins) sta' ctx bhv'
 
-  | eval_not: forall inp ctx ctx' sta sta' ins bhv.
-    eval_instruction {inp with under_condition = True} ctx sta ins sta' ctx' bhv ->
-    let bhv' = BNormal (notb (bool_of_behaviour bhv)) in
+  | eval_not: forall inp ctx ctx' sta sta' ins b.
+    eval_instruction {inp with under_condition = True} ctx sta ins sta' ctx' (BNormal b) ->
+    let bhv' = BNormal (notb b) in
     eval_instruction inp ctx sta (INot ins) sta' ctx' bhv'
+
+  | eval_not_transmit: forall inp ctx ctx' sta sta' ins b.
+    let bhv = BExit b in
+    eval_instruction {inp with under_condition = True} ctx sta ins sta' ctx' bhv ->
+    eval_instruction inp ctx sta (INot ins) sta' ctx' bhv
   
   | eval_if_true: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 ins3 bhv2.
     eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
@@ -357,8 +385,8 @@ module Semantics
     eval_instruction inp ctx sta1 stm sta2 ctx' bhv ->
     let sta3 = {sta2 with stdout = sta.stdout} in
     let s = Buffers.stdout_to_string sta2.stdout in
-    let b = Some (bool_of_behaviour bhv) in
-    eval_str_expr inp ctx sta (SSubshell stm) sta3 s b
+    let bo = Some (bool_of_behaviour bhv) in
+    eval_str_expr inp ctx sta (SSubshell stm) sta3 s bo
 
   | eval_str_concat : forall inp ctx sta sta1 sta2 e1 e2 s1 s2 bo1 bo2.
     eval_str_expr inp ctx sta e1 sta1 s1 bo1 ->
@@ -376,17 +404,17 @@ module Semantics
     | eval_list_expr_nil: forall inp ctx sta.
       eval_list_expr inp ctx sta Nil sta Nil
 
-    | eval_list_expr_cons: forall inp ctx sta sta' sta'' se sp es s bo l2.
-      eval_str_expr inp ctx sta se sta' s bo ->
+    | eval_list_expr_cons: forall inp ctx sta sta1 sta2 se sp es s bo l2.
+      eval_str_expr inp ctx sta se sta1 s bo ->
       let l1 = match sp with Split -> String.split s | DontSplit -> Cons s Nil end in
-      eval_list_expr inp ctx sta' es sta'' l2 ->
+      eval_list_expr inp ctx sta1 es sta2 l2 ->
       let l3 = l1 ++ l2 in
-      eval_list_expr inp ctx sta (Cons (se, sp) es) sta' l3
+      eval_list_expr inp ctx sta (Cons (se, sp) es) sta2 l3
 
   (* Evaluation of a program. It outputs in a boolean value *)
-  inductive eval_program input context state instruction state context bool =
-    | eval_program_instruction: forall inp ctx ctx' sta sta' ins bhv.
-      eval_instruction inp ctx sta ins sta' ctx' bhv ->
+  inductive eval_program input context state program state context bool =
+    | eval_program_instruction: forall inp ctx ctx' sta sta' pro bhv.
+      eval_instruction inp ctx sta pro sta' ctx' bhv ->
       let b = bool_of_behaviour bhv in
-      eval_program inp ctx sta ins sta' ctx' b
+      eval_program inp ctx sta pro sta' ctx' b
 end
