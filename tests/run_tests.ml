@@ -67,7 +67,7 @@ module Meta =
         close_in ichan;
         yaml
       with
-        Not_found -> failwith "one required key could not be found"
+        Not_found -> failwith ("one required key could not be found: "^filename)
   end
 
 let indent s =

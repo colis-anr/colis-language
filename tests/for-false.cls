@@ -1,4 +1,6 @@
 begin
-for x in [''] do not true done;
-exit previous
+  for x in ['x'] do
+    not true
+  done;
+  exit previous
 end

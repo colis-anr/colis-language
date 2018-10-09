@@ -2,6 +2,8 @@ input:
   arguments: []
   stdin: ""
 output:
-  stdout: ""
+  stdout: |
+    foo: command not found
+    
   stderr: ""
   return_code: 1
