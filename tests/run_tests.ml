@@ -70,10 +70,20 @@ module Meta =
         Not_found -> failwith "one required key could not be found"
   end
 
+let indent s =
+  "  > " ^ String.(concat "\n  > " (split_on_char '\n' s))
+
 let run_test filename : (unit, string) Result.result =
-  (try Ok (Meta.load_from_file ((Filename.remove_extension filename) ^ ".meta"))
-   with Failure msg -> Error ("get_meta: " ^ msg))
-  >>= fun meta ->
+
+  (* Load .meta file *)
+
+  let meta =
+    Meta.load_from_file
+      ((Filename.remove_extension filename) ^ ".meta")
+  in
+
+  (* Build command line *)
+
   let cmdline =
     [ "colis" ;
       "--" ^ (Filename.extension filename |> function ".cls" -> "colis" | ".sh" -> "shell" | _ -> assert false) ;
@@ -83,21 +93,40 @@ let run_test filename : (unit, string) Result.result =
     |> List.map escape_shell_argument
     |> String.concat " "
   in
-  let stdout = Unix.open_process_in cmdline in
-  let output = in_channel_to_string stdout in
-  let status = Unix.close_process_in stdout in
-  (if output = meta.output.stdout then
+
+  (* Execute process *)
+
+  let (stdout, stdin, stderr) = Unix.open_process_full cmdline (Unix.environment ()) in
+  output_string stdin meta.input.stdin;
+  let stdout_content = in_channel_to_string stdout in
+  let stderr_content = in_channel_to_string stderr in
+  let status = Unix.close_process_full (stdout, stdin, stderr) in
+
+  (* Check stdout *)
+
+  (if stdout_content = meta.output.stdout then
      Ok ()
    else
      Error
-       (let indent =
-          String.split_on_char '\n'
-          ||> String.concat "\n  > "
-        in
-        Format.sprintf
-          "wrong stdout\n  expected:\n  > %s\n  got:\n  > %s"
+       (Format.sprintf
+          "wrong stdout\n  expected:\n%s\n  got:\n%s"
           (indent meta.output.stdout)
-          (indent output)))
+          (indent stdout_content)))
+
+  (* Check stderr *)
+
+  >>= fun () ->
+  (if stderr_content = meta.output.stderr then
+     Ok ()
+   else
+     Error
+       (Format.sprintf
+          "wrong stderr\n  expected:\n%s\n  got:\n%s"
+          (indent meta.output.stderr)
+          (indent stderr_content)))
+
+  (* Check return_code *)
+
   >>= fun () ->
   (match status with
    | Unix.WEXITED return_code ->
