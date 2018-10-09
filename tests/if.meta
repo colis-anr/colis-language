@@ -1,4 +1,7 @@
 arguments: []
 
-output: "A\nC\nF\n"
+output: |
+  A
+  C
+  F
 return_code: 1

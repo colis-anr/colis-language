@@ -1,4 +1,7 @@
 arguments: []
 
-output: "x=\nx=A\nx=B\n"
+output: |
+  x=
+  x=A
+  x=B
 return_code: 0
