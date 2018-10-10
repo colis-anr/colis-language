@@ -1,0 +1,14 @@
+input:
+  arguments: []
+  stdin: ""
+output:
+  stdout: |
+    X a bX
+    X
+    
+    a
+    
+
+    bX
+  stderr: ""
+  return_code: 0
