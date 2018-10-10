@@ -240,7 +240,7 @@ module Interpreter
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
       let s, _ = interp_str_expr inp sta se in
-      let l1 = match sp with Split -> String.split s | DontSplit -> Cons s Nil end in
+      let l1 = match sp with Split -> String.split_on_default_ifs s | DontSplit -> Cons s Nil end in
       let l2 = interp_list_expr inp sta le_rest in
       l1 ++ l2
     end

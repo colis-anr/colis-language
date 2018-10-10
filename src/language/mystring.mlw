@@ -7,10 +7,12 @@ module String
   (** "" *)
   val constant empty : string
 
+  val predicate equal string string
+
   (* Concatenate a list of string with spaces as separators (= `String.concat " "` in OCaml *)
   val function concat (list string) : string
 
   val function (^) string string : string
 
-  val function split string : list string
+  val function split_on_default_ifs string : list string
 end
