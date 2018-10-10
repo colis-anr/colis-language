@@ -4,7 +4,7 @@
 <why3session shape_version="5">
 <prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="1" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
-<file name="../semantics.mlw" proved="true">
+<file name="../semantics.mlw">
 <theory name="Environment" proved="true">
  <goal name="VC mixfix [&lt;-]" expl="VC for mixfix [&lt;-]" proved="true">
  <proof prover="1"><result status="valid" time="0.03"/></proof>
@@ -23,6 +23,9 @@
  <goal name="VC newline" expl="VC for newline" proved="true">
  <proof prover="1"><result status="valid" time="0.02"/></proof>
  </goal>
+ <goal name="VC stdout_to_string" expl="VC for stdout_to_string" proved="true">
+ <proof prover="1"><result status="valid" time="0.04"/></proof>
+ </goal>
  <goal name="VC concat_stdout" expl="VC for concat_stdout" proved="true">
  <proof prover="0"><result status="valid" time="0.01" steps="152"/></proof>
  </goal>
@@ -32,8 +35,10 @@
  <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
 </theory>
-</file>
-<file name="../../language/syntax.mlw" proved="true">
+<theory name="Semantics">
+ <goal name="eval_instruction_extends_stdout">
+ </goal>
+</theory>
 </file>
 <file name="../interpreter.mlw">
 <theory name="Interpreter">
@@ -143,57 +148,62 @@
   <goal name="VC interp_instruction.21" expl="exceptional postcondition" proved="true">
   <proof prover="1"><result status="valid" time="0.12"/></proof>
   </goal>
-  <goal name="VC interp_instruction.22" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <goal name="VC interp_instruction.22" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.08" steps="141"/></proof>
   </goal>
-  <goal name="VC interp_instruction.23" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <goal name="VC interp_instruction.23" expl="exceptional postcondition" proved="true">
+  <proof prover="0" timelimit="20"><result status="valid" time="0.09" steps="142"/></proof>
   <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.24" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
+  <transf name="split_all_full" >
+   <goal name="VC interp_instruction.24.0" expl="postcondition">
+   <proof prover="0" timelimit="10" memlimit="4000"><result status="timeout" time="10.00"/></proof>
+   <proof prover="1"><result status="timeout" time="10.00"/></proof>
+   </goal>
+  </transf>
   </goal>
   <goal name="VC interp_instruction.25" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.26" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.27" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.28" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.29" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.30" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.31" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.32" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.33" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.34" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
   </goal>
  </transf>
  </goal>
@@ -214,5 +224,7 @@
  </transf>
  </goal>
 </theory>
+</file>
+<file name="../../language/syntax.mlw" proved="true">
 </file>
 </why3session>
