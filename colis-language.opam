@@ -1,5 +1,28 @@
 opam-version: "2.0"
-              
+
+name: "CoLiS-language"
+version: "0.1"
+
+synopsis: "Syntax, parsers and interpreters for the CoLiS language"
+description: """
+Syntax, parsers and interpreters for the CoLiS language
+"""                
+
+homepage: "https://github.com/colis-anr/colis-language"
+bug-reports: "https://github.com/colis-anr/colis-language/issues"
+
+authors: [
+  "Benedikt Becker <bbecker@inria.fr"
+  "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
+]
+maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
+         
 depends: [
-  "ppx_protocol_conv_yaml" {test}
+  "morsmall"
+  "zarith"
+  
+  "ocaml"  {build & >= "4.05"}
+  "why3"   {build}
+  
+  "ppx_protocol_conv_yaml"  {test}
 ]
