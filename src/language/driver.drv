@@ -2,7 +2,7 @@ module mystring.String
   syntax type string "string"
   syntax val empty "\"\""
   syntax val equal "String.equal %1 %2"
-  syntax function concat "String.concat \" \" %1"
+  syntax function concat_lines "String.concat \"\n\" %1"
   syntax function split_on_default_ifs "Str.(split (regexp \"[ \t\n]+\") %1)"
   syntax function (^) "%1 ^ %2"
 end
