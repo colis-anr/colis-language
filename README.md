@@ -12,18 +12,21 @@ referenced in the source code to clarify the implentation using the format
 
 ## Tests
 
-The tests are run using `make tests`. This executes every CoLiS file (with extension
-`.cls`) and every Shell file (extension `.sh`) in the directory `tests/`. The behaviour of
-the execution, composed by the return code and the stdout, is compared with the behaviour
-given in an accompanying oracle file (`NAME.oracle` for `NAME.cls` or `NAME.sh`).
+The tests are run using `make test`. This executes every CoLiS file
+(with extension `.cls`) and every Shell file (extension `.sh`) in the
+directory `tests/`. The behaviour of the execution, composed by the
+return code and the stdout, is compared with the behaviour given in an
+accompanying oracle file (`NAME.meta` for `NAME.cls` or `NAME.sh`).
 
-The oracle file hase the following format. The result is the return value `<N>` is an
-integer, and the stdout is prefixed by `> ` to clearly indicate empty lines.
+The oracle file is a Yaml-serialised file of the following format:
 
-```
-ORACLE FILE FORMAT
-
-RETURN: <N>
-STDOUT:
-> ...
+```yaml
+input:
+  stdin: <a string>
+  arguments: <a list of arguments>
+  
+output:
+  stdout: <a string>
+  stderr: <a string>
+  return_code: <an integer>
 ```
