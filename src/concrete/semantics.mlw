@@ -96,7 +96,7 @@ module Buffers
         else lines
       end
     in
-    concat (reverse (remove_trailing_newlines out.lines))
+    concat_lines (reverse (remove_trailing_newlines out.lines))
 
   (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
 
