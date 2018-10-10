@@ -85,8 +85,18 @@ module Buffers
   let newline out =
     { lines = Cons String.empty out.lines }
 
+  (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
   let function stdout_to_string (out: stdout) : string =
-    concat out.lines
+    let rec remove_trailing_newlines lines variant { lines } =
+      match lines with
+      | Nil -> Nil
+      | Cons l lines' ->
+        if String.(equal l empty)
+        then remove_trailing_newlines lines'
+        else lines
+      end
+    in
+    concat (reverse (remove_trailing_newlines out.lines))
 
   (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
 
@@ -406,7 +416,7 @@ module Semantics
 
     | eval_list_expr_cons: forall inp ctx sta sta1 sta2 se sp es s bo l2.
       eval_str_expr inp ctx sta se sta1 s bo ->
-      let l1 = match sp with Split -> String.split s | DontSplit -> Cons s Nil end in
+      let l1 = match sp with Split -> String.split_on_default_ifs s | DontSplit -> Cons s Nil end in
       eval_list_expr inp ctx sta1 es sta2 l2 ->
       let l3 = l1 ++ l2 in
       eval_list_expr inp ctx sta (Cons (se, sp) es) sta2 l3
