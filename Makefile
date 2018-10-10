@@ -24,3 +24,9 @@ extract-why3:
 
 clean-why3:
 	rm -rf src/why3
+
+install:
+	dune install
+
+uninstall:
+	dune uninstall
