@@ -202,7 +202,8 @@ and command__to__statement = function
               assignment'_list
               (C.ICall (name, args))
           in
-          C.ISubshell command
+          (* FIXME: subshell if assignment'_list <> [] *)
+          command
      )
 
   | Async _ ->
