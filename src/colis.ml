@@ -59,7 +59,7 @@ let main () =
   Arg.parse speclist set_file_or_argument usage;
   if !realworld && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
-  
+
   let program =
     get_file ()
     |> match get_source () with
@@ -84,8 +84,7 @@ let main () =
      )
   | PrintColis ->
      (
-       Format.eprintf "Printing CoLiS is not supported yet.@.";
-       exit 3
+       Format.printf "%a@." ToColis.program program
      )
   | PrintShell ->
      (
