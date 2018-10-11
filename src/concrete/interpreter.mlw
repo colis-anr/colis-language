@@ -18,7 +18,7 @@ module Interpreter
   use semantics.Filesystem
   use semantics.Buffers
   use semantics.Behaviour
-  use semantics.Environment
+  use semantics.Env
   use semantics.Context as C
   use semantics.Semantics
 
@@ -27,7 +27,7 @@ module Interpreter
   (* We use refs instead of mutable fields to be able to reuse `stdin` (and `stdout`) but
      shadow `senv`. *)
   type state = {
-    senv : ref (env string);
+    senv : ref (Env.t string);
     stdin : ref stdin;
     stdout : ref stdout;
     filesystem : ref filesystem;
@@ -35,10 +35,10 @@ module Interpreter
   }
 
   let empty_state () = {
-    senv = ref empty_env;
-    stdin = ref empty_stdin;
-    stdout = ref empty_stdout;
-    filesystem = ref empty_filesystem;
+    senv = ref Env.empty;
+    stdin = ref Stdin.empty;
+    stdout = ref Stdout.empty;
+    filesystem = ref Filesystem.empty;
     result = ref True;
   }
 
@@ -159,13 +159,13 @@ module Interpreter
 
     | INoOutput ins ->
       (* Don’t write to `sta.stdout` *)
-      let sta' = {sta with stdout = ref empty_stdout} in
+      let sta' = {sta with stdout = ref Stdout.empty} in
       interp_instruction inp sta' ins
 
     | IPipe ins1 ins2 ->
-      let sta' = {sta with stdout = ref empty_stdout; senv = ref !(sta.senv)} in
+      let sta' = {sta with stdout = ref Stdout.empty; senv = ref !(sta.senv)} in
       try interp_instruction inp sta' ins1 with EExit _ -> () end;
-      let sta'' = {sta' with stdout = sta.stdout; stdin = ref (stdout_to_stdin !(sta'.stdout)); senv = ref !(sta.senv)} in
+      let sta'' = {sta' with stdout = sta.stdout; stdin = ref (Stdout.to_stdin !(sta'.stdout)); senv = ref !(sta.senv)} in
       interp_instruction inp sta'' ins2
 
     | ICall name le ->
@@ -216,9 +216,9 @@ module Interpreter
 
     | SSubshell ins ->
       (* TODO `result = ref True`: differences between shells *)
-      let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); senv = ref !(sta.senv)} in
+      let sta' = {sta with stdout = ref Stdout.empty; result = ref !(sta.result); senv = ref !(sta.senv)} in
       try interp_instruction inp sta' ins with EExit -> () end;
-      stdout_to_string !(sta'.stdout), Some !(sta'.result)
+      Stdout.to_string !(sta'.stdout), Some !(sta'.result)
 
     | SConcat se1 se2 ->
       label L1 in let s1, bo1 = interp_str_expr inp sta se1 in

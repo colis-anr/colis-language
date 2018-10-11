@@ -1,6 +1,6 @@
 module semantics.Filesystem
   syntax type filesystem "unit"
-  syntax function empty_filesystem "()"
+  syntax function empty "()"
 end
 
 module semantics.Semantics

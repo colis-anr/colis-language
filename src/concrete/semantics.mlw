@@ -1,20 +1,20 @@
 
 module Filesystem
   type filesystem
-  val constant empty_filesystem: filesystem
+  val constant empty: filesystem
 end
 
-module Environment
+module Env
   use map.Map
   use syntax.Variable
   use mystring.String
   
-  type env 'a = map variable 'a
+  type t 'a = map variable 'a
 
-  let constant empty_env =
+  let constant empty =
     fun _ -> String.empty (* Cannot use map.Const because Map__Const is not extracted... *)
 
-  let function ([<-]) (e:env 'a) (var:variable) (value:'a) : variable -> 'a
+  let function ([<-]) (e:t 'a) (var:variable) (value:'a) : variable -> 'a
     ensures { result[var] = value }
     ensures { forall var'. var' <> var -> result[var'] = e[var'] }
   = fun var' ->
@@ -59,76 +59,82 @@ module Buffers
 
   (* stdin and stdout are comprised of a list of lines, cf. NOTES[Stdin/stdout] *)
 
-  (* The list contains the lines of the stdin, to be read in-order *)
-  type stdin = list string
+  scope Stdin
+    (* The list contains the lines of the stdin, to be read in-order *)
+    type t = list string
 
-  let constant empty_stdin : stdin = Nil
+    let constant empty : t = Nil
+  end
 
-  (* The list contains the lines of the stdout, with the most recent first *)
-  type stdout = { lines: list string }
-    invariant { lines <> Nil }
-    by { lines = Cons String.empty Nil }
+  type stdin = Stdin.t
 
-  let constant empty_stdout =
-    { lines = Cons String.empty Nil }
+  scope Stdout
 
-  (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
-  let function stdout_to_stdin stdout =
-    reverse stdout.lines
+    (* The list contains the lines of the stdout, with the most recent first *)
+    type t = { lines: list string }
+      invariant { lines <> Nil }
+      by { lines = Cons String.empty Nil }
 
-  let output (str:string) (out:stdout) =
-    match out.lines with
-      | Cons l ls ->
-        {lines = Cons (l^str) ls}
-    end
+    let constant empty =
+      { lines = Cons String.empty Nil }
 
-  let newline out =
-    { lines = Cons String.empty out.lines }
+    (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
+    let function to_stdin out =
+      reverse out.lines
 
-  (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
-  let function stdout_to_string (out: stdout) : string =
-    let rec remove_trailing_newlines lines variant { lines } =
-      match lines with
-      | Nil -> Nil
-      | Cons l lines' ->
-        if String.(equal l empty)
-        then remove_trailing_newlines lines'
-        else lines
+    let output str out =
+      match out.lines with
+        | Cons l ls ->
+          {lines = Cons (l^str) ls}
       end
-    in
-    concat_lines (reverse (remove_trailing_newlines out.lines))
 
-  (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
+    let newline out =
+      { lines = Cons String.empty out.lines }
 
-     concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
+    (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
+    let function to_string out : string =
+      let rec remove_trailing_newlines lines variant { lines } =
+        match lines with
+        | Nil -> Nil
+        | Cons l lines' ->
+          if String.(equal l empty)
+          then remove_trailing_newlines lines'
+          else lines
+        end
+      in
+      concat_lines (reverse (remove_trailing_newlines out.lines))
 
-     and when final lines are not closed (using `echo -n S3`):
+    (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
 
-     concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
+      concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
 
-     Ah, here the complexity for specifying `read` that we avoided by using `list string`
-     re-emerges!
-   *)
-  let function concat_stdout (sout1 sout2:stdout) : stdout =
-    let rec function aux l1 l2
-      requires { l1 <> Nil }
-      requires { l2 <> Nil }
-      variant { l2 }
-    = match l2 with
-      | Cons s2 Nil ->
-        match l1 with
-        | Cons s1 l1_rest ->
-          Cons (s1 ^ s2) l1_rest
+      and when final lines are not closed (using `echo -n S3`):
+
+      concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
+
+      Ah, here the complexity for specifying `read` that we avoided by using `list string`
+      re-emerges!
+    *)
+    let function concat (out1 out2:t) : t =
+      let rec function aux l1 l2
+        requires { l1 <> Nil }
+        requires { l2 <> Nil }
+        variant { l2 }
+      = match l2 with
+        | Cons s2 Nil ->
+          match l1 with
+          | Cons s1 l1_rest ->
+            Cons (s1 ^ s2) l1_rest
+          | Nil -> absurd
+          end
+        | Cons s2 l2_rest ->
+          Cons s2 (aux l1 l2_rest)
         | Nil -> absurd
         end
-      | Cons s2 l2_rest ->
-        Cons s2 (aux l1 l2_rest)
-      | Nil -> absurd
-      end
-    in {lines = aux sout1.lines sout2.lines}
+      in {lines = aux out1.lines out2.lines}
+  end
 
-  let function diff (out1 out2:stdout) =
-    empty_stdout (* FIXME *)
+  type stdout = Stdout.t
 end
 
 (** {2 Contexts for the evaluation}
@@ -151,7 +157,7 @@ module Context
   use Filesystem
   use Behaviour
   use Buffers
-  use Environment
+  use Env
 
   (** {3 Read-only context for the evaluation of a term} *)
 
@@ -178,9 +184,9 @@ module Context
   }
 
   let constant empty_state = {
-    filesystem = empty_filesystem;
-    stdin = empty_stdin;
-    stdout = empty_stdout;
+    filesystem = Filesystem.empty;
+    stdin = Stdin.empty;
+    stdout = Stdout.empty;
   }
 
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
@@ -190,11 +196,11 @@ module Context
    *)
 
   type context = {
-    senv: env string;
+    senv: Env.t string;
   }
 
   let constant empty_context = {
-    senv = empty_env; 
+    senv = Env.empty; 
   }
 end
 
@@ -312,9 +318,9 @@ module Semantics
   
   (** See NOTES[Pipe semantics] *)
   | eval_pipe: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv1 bhv2.
-    let sta' = {sta with stdout = empty_stdout} in
+    let sta' = {sta with stdout = Stdout.empty} in
     eval_instruction inp ctx sta' ins1 sta1 ctx1 bhv1 ->
-    let sta1' = {sta1 with stdout = sta.stdout; stdin = stdout_to_stdin sta1.stdout} in
+    let sta1' = {sta1 with stdout = sta.stdout; stdin = Stdout.to_stdin sta1.stdout} in
     eval_instruction inp ctx sta1' ins2 sta2 ctx2 bhv2 ->
     (* TODO Really ignore context changes from ins1 and ins2 in the context? *)
     eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx bhv2
@@ -391,10 +397,10 @@ module Semantics
     eval_str_expr inp ctx sta (SVariable v) sta s None
 
   | eval_str_subshell: forall inp ctx ctx' sta sta2 stm bhv.
-    let sta1 = {sta with stdout = empty_stdout} in
+    let sta1 = {sta with stdout = Stdout.empty} in
     eval_instruction inp ctx sta1 stm sta2 ctx' bhv ->
     let sta3 = {sta2 with stdout = sta.stdout} in
-    let s = Buffers.stdout_to_string sta2.stdout in
+    let s = Stdout.to_string sta2.stdout in
     let bo = Some (bool_of_behaviour bhv) in
     eval_str_expr inp ctx sta (SSubshell stm) sta3 s bo
 
