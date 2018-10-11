@@ -1,8 +1,10 @@
-.PHONY: build test clean extract-why3 clean-why3
+.PHONY: build sure test clean extract-why3 clean-why3
 
 build: extract-why3
 	dune build @install
 	ln -sf _build/install/default/bin .
+
+really-sure: test prove
 
 test: build
 	dune runtest
@@ -10,6 +12,19 @@ test: build
 clean: clean-why3
 	dune clean
 	rm -f bin
+
+install:
+	dune install
+
+uninstall:
+	dune uninstall
+
+prove: prove-concrete-semantics prove-concrete-interpreter
+
+prove-concrete-%: src/concrete/%.mlw src/concrete/%/why3session.xml
+	why3 replay --use-steps \
+		-L src/language -L src/concrete \
+		src/concrete/$*
 
 extract-why3:
 	mkdir -p src/why3
@@ -24,9 +39,3 @@ extract-why3:
 
 clean-why3:
 	rm -rf src/why3
-
-install:
-	dune install
-
-uninstall:
-	dune uninstall
