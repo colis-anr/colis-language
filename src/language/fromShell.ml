@@ -309,7 +309,8 @@ and redirection__to__statement = function
   | _ -> raise (Unsupported ("other redirections"))
 
 and program__to__program = function
-  | [] -> raise (Unsupported "empty program")
+  | [] ->
+     C.ICall ("true", [])
   | first' :: rest' ->
      List.fold_left
        (fun statement command' ->
