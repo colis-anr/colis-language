@@ -246,9 +246,11 @@ module Semantics
 
       It acts upon the input and irreversable state, and returns a stdout, a behaviour
       (True/False), and another irreversable state, see also NOTES[Callees] *)
-  val function interp_builtin state string (list string) :
-    (state, bool)
+  val function interp_builtin state string (list string) : (state, bool)
 
+  axiom interp_builtin_extends_output : forall sta sta' name args b.
+    interp_builtin {sta with stdout=Stdout.empty} name args = (sta', b) ->
+    interp_builtin sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
   (** Evaluation of a instruction i with input I, context C and state S resulting in an
       state S', context C', and behaviour b:
@@ -263,7 +265,7 @@ module Semantics
     let bhv = BExit b in
     eval_instruction inp ctx sta (IExit c) sta ctx bhv
 
-  | eval_assign: forall inp ctx sta sta' v e s bo.
+  | eval_assignment: forall inp ctx sta sta' v e s bo.
     eval_str_expr inp ctx sta e sta' s bo ->
     let ctx' = {ctx with senv = ctx.senv[v <- s]} in
     let bhv = inject_behaviour inp (option_get True bo) in
@@ -322,7 +324,6 @@ module Semantics
     eval_instruction inp ctx sta' ins1 sta1 ctx1 bhv1 ->
     let sta1' = {sta1 with stdout = sta.stdout; stdin = Stdout.to_stdin sta1.stdout} in
     eval_instruction inp ctx sta1' ins2 sta2 ctx2 bhv2 ->
-    (* TODO Really ignore context changes from ins1 and ins2 in the context? *)
     eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx bhv2
   
   | eval_call: forall inp ctx sta sta' sta'' s es ss b.
@@ -427,9 +428,57 @@ module Semantics
       let l3 = l1 ++ l2 in
       eval_list_expr inp ctx sta (Cons (se, sp) es) sta2 l3
 
-  lemma eval_instruction_extends_stdout : forall inp ctx ctx' sta sta' ins bhv.
-    eval_instruction inp ctx {sta with stdout=empty_stdout} ins sta' ctx' bhv ->
-    eval_instruction inp ctx sta ins {sta' with stdout=concat_stdout sta.stdout sta'.stdout} ctx' bhv
+  let rec lemma eval_str_expr_keeps_stdout se
+    ensures { forall inp ctx sta sta' s bo.
+      eval_str_expr inp ctx sta se sta' s bo ->
+      sta.stdout = sta'.stdout
+    }
+  = match se with
+    | SLiteral _ | SVariable _ | SSubshell _ -> ()
+    | SConcat se1 se2 ->
+      eval_str_expr_keeps_stdout se1;
+      eval_str_expr_keeps_stdout se2
+    end
+
+  let rec lemma eval_list_expr_keeps_stdout (le:list_expression)
+    ensures { forall inp ctx sta sta' ss.
+      eval_list_expr inp ctx sta le sta' ss ->
+      sta.stdout = sta'.stdout
+    } = match le with
+    | Nil -> ()
+    | Cons _ le' -> eval_list_expr_keeps_stdout le'
+    end
+
+  (* lemma eval_instruction_equal_stdout_extends: forall inp ctx ctx' sta sta' ins bhv. *)
+  (*   eval_instruction inp ctx {sta with stdout=Stdout.empty} ins {sta' with stdout=Stdout.empty} ctx' bhv -> *)
+  (*   eval_instruction inp ctx sta ins {sta' with stdout=Stdout.(concat sta.stdout empty)} ctx' bhv *)
+
+  let rec lemma eval_instruction_extends_stdout ins
+    ensures { forall inp ctx ctx' sta sta' bhv.
+      eval_instruction inp ctx {sta with stdout=Stdout.empty} ins sta' ctx' bhv ->
+      eval_instruction inp ctx sta ins {sta' with stdout=Stdout.concat sta.stdout sta'.stdout} ctx' bhv
+    }
+    variant { ins }
+  = match ins with
+    | IAssignment _ _ -> ()
+    | ICall _ _ -> ()
+    | IExit _ -> ()
+    | INot ins
+    | ISubshell ins
+    | INoOutput ins
+    | IForeach _ _ ins ->
+      eval_instruction_extends_stdout ins
+    | ISequence ins1 ins2
+    | IPipe ins1 ins2
+    | IWhile ins1 ins2 ->
+      eval_instruction_extends_stdout ins1;
+      eval_instruction_extends_stdout ins2;
+    | IIf ins1 ins2 ins3 ->
+      eval_instruction_extends_stdout ins1;
+      eval_instruction_extends_stdout ins2;
+      eval_instruction_extends_stdout ins3
+    end
+
 
   (* Evaluation of a program. It outputs in a boolean value *)
   inductive eval_program input context state program state context bool =

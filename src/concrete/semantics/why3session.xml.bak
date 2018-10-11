@@ -4,26 +4,29 @@
 <why3session shape_version="5">
 <prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="1" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
-<file name="../semantics.mlw" proved="true">
-<theory name="Environment" proved="true">
+<file name="../semantics.mlw">
+<theory name="Env" proved="true">
  <goal name="VC mixfix [&lt;-]" expl="VC for mixfix [&lt;-]" proved="true">
- <proof prover="1"><result status="valid" time="0.03"/></proof>
+ <proof prover="1"><result status="valid" time="0.02"/></proof>
  </goal>
 </theory>
 <theory name="Buffers" proved="true">
- <goal name="VC stdout" expl="VC for stdout" proved="true">
- <proof prover="1"><result status="valid" time="0.02"/></proof>
+ <goal name="Stdout.VC t" expl="VC for t" proved="true">
+ <proof prover="1"><result status="valid" time="0.04"/></proof>
  </goal>
- <goal name="VC empty_stdout" expl="VC for empty_stdout" proved="true">
+ <goal name="Stdout.VC empty" expl="VC for empty" proved="true">
  <proof prover="1"><result status="valid" time="0.01"/></proof>
  </goal>
- <goal name="VC output" expl="VC for output" proved="true">
+ <goal name="Stdout.VC output" expl="VC for output" proved="true">
  <proof prover="1"><result status="valid" time="0.02"/></proof>
  </goal>
- <goal name="VC newline" expl="VC for newline" proved="true">
+ <goal name="Stdout.VC newline" expl="VC for newline" proved="true">
  <proof prover="1"><result status="valid" time="0.02"/></proof>
  </goal>
- <goal name="VC concat_stdout" expl="VC for concat_stdout" proved="true">
+ <goal name="Stdout.VC to_string" expl="VC for to_string" proved="true">
+ <proof prover="1"><result status="valid" time="0.02"/></proof>
+ </goal>
+ <goal name="Stdout.VC concat" expl="VC for concat" proved="true">
  <proof prover="0"><result status="valid" time="0.01" steps="152"/></proof>
  </goal>
 </theory>
@@ -32,8 +35,85 @@
  <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
 </theory>
-</file>
-<file name="../../language/syntax.mlw" proved="true">
+<theory name="Semantics">
+ <goal name="VC eval_str_expr_keeps_stdout" expl="VC for eval_str_expr_keeps_stdout" proved="true">
+ <proof prover="1"><result status="valid" time="0.11"/></proof>
+ </goal>
+ <goal name="VC eval_list_expr_keeps_stdout" expl="VC for eval_list_expr_keeps_stdout" proved="true">
+ <proof prover="1"><result status="valid" time="0.15"/></proof>
+ </goal>
+ <goal name="VC eval_instruction_extends_stdout" expl="VC for eval_instruction_extends_stdout">
+ <transf name="split_vc" >
+  <goal name="VC eval_instruction_extends_stdout.0" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.05"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.1" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.04"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.2" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.05"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.3" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.07"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.4" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.05"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.5" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.03"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.6" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.05"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.7" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.07"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.8" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.06"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.9" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.04"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.10" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.04"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.11" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.04"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.12" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.04"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.13" expl="postcondition">
+  <transf name="split_vc" >
+   <goal name="VC eval_instruction_extends_stdout.13.0" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.1" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.2" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.3" expl="postcondition" proved="true">
+   <proof prover="0"><result status="valid" time="0.75" steps="2281"/></proof>
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.4" expl="postcondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.27"/></proof>
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.5" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.6" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.7" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.8" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.9" expl="postcondition">
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.13.10" expl="postcondition">
+   </goal>
+  </transf>
+  </goal>
+ </transf>
+ </goal>
+</theory>
 </file>
 <file name="../interpreter.mlw">
 <theory name="Interpreter">
@@ -73,28 +153,28 @@
   <proof prover="1"><result status="valid" time="0.11"/></proof>
   </goal>
   <goal name="VC interp_instruction.6" expl="postcondition" proved="true">
-  <transf name="apply" proved="true" arg1="eval_assign" arg2="with" arg3="str,bo">
+  <transf name="apply" proved="true" arg1="eval_assignment" arg2="with" arg3="str,bo">
    <goal name="VC interp_instruction.6.0" expl="apply premises" proved="true">
    <proof prover="1"><result status="valid" time="0.11"/></proof>
    </goal>
    <goal name="VC interp_instruction.6.1" expl="apply premises" proved="true">
-   <proof prover="1"><result status="valid" time="0.16"/></proof>
+   <proof prover="1"><result status="valid" time="0.15"/></proof>
    </goal>
    <goal name="VC interp_instruction.6.2" expl="apply premises" proved="true">
-   <proof prover="1"><result status="valid" time="0.10"/></proof>
+   <proof prover="1"><result status="valid" time="0.11"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instruction.7" expl="exceptional postcondition" proved="true">
-  <transf name="apply" proved="true" arg1="eval_assign" arg2="with" arg3="str,bo">
+  <transf name="apply" proved="true" arg1="eval_assignment" arg2="with" arg3="str,bo">
    <goal name="VC interp_instruction.7.0" expl="apply premises" proved="true">
-   <proof prover="1"><result status="valid" time="0.11"/></proof>
+   <proof prover="1"><result status="valid" time="0.12"/></proof>
    </goal>
    <goal name="VC interp_instruction.7.1" expl="apply premises" proved="true">
    <proof prover="1"><result status="valid" time="0.16"/></proof>
    </goal>
    <goal name="VC interp_instruction.7.2" expl="apply premises" proved="true">
-   <proof prover="1"><result status="valid" time="0.10"/></proof>
+   <proof prover="1"><result status="valid" time="0.11"/></proof>
    </goal>
   </transf>
   </goal>
@@ -114,18 +194,15 @@
   <proof prover="1"><result status="valid" time="0.11"/></proof>
   </goal>
   <goal name="VC interp_instruction.13" expl="postcondition" proved="true">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="1"><result status="valid" time="0.12"/></proof>
   </goal>
   <goal name="VC interp_instruction.14" expl="exceptional postcondition" proved="true">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1"><result status="valid" time="0.12"/></proof>
+  <proof prover="1"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_instruction.15" expl="postcondition" proved="true">
   <proof prover="1"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_instruction.16" expl="exceptional postcondition" proved="true">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="1"><result status="valid" time="0.11"/></proof>
   </goal>
   <goal name="VC interp_instruction.17" expl="postcondition" proved="true">
@@ -143,57 +220,33 @@
   <goal name="VC interp_instruction.21" expl="exceptional postcondition" proved="true">
   <proof prover="1"><result status="valid" time="0.12"/></proof>
   </goal>
-  <goal name="VC interp_instruction.22" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <goal name="VC interp_instruction.22" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.08" steps="141"/></proof>
   </goal>
-  <goal name="VC interp_instruction.23" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <goal name="VC interp_instruction.23" expl="exceptional postcondition" proved="true">
+  <proof prover="0" timelimit="20"><result status="valid" time="0.09" steps="142"/></proof>
   </goal>
   <goal name="VC interp_instruction.24" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.25" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.26" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.27" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.28" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.29" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.30" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.31" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.32" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.33" expl="postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instruction.34" expl="exceptional postcondition">
-  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
  </transf>
  </goal>
