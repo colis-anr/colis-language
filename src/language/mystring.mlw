@@ -7,12 +7,21 @@ module String
   (** "" *)
   val constant empty : string
 
-  val predicate equal string string
+  val predicate equal (s1 s2:string) ensures { result <-> s1 = s2 }
+
+  val function (^) string string : string
+
+  axiom string_left_empty: forall s.
+    empty ^ s = s
+
+  axiom string_right_empty: forall s.
+    s ^ empty = s
+
+  axiom string_concat_assoc: forall s1 s2 s3.
+    s1 ^ (s2 ^ s3) = (s1 ^ s2) ^ s3
 
   (* Concatenate lines using '\n' as separator *)
   val function concat_lines (list string) : string
-
-  val function (^) string string : string
 
   val function split_on_default_ifs string : list string
 end

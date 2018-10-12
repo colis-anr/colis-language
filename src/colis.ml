@@ -1,4 +1,5 @@
 module Interpreter = Interpreter__Interpreter
+open Semantics__Buffers
 
 type source = Colis | Shell
 type action = Run | RunSymbolic | PrintColis | PrintShell
@@ -74,7 +75,7 @@ let main () =
        let state = empty_state () in
        let input = { empty_input with arguments = get_arguments () } in
        interp_program input state program;
-       print_string (!(state.stdout) |> List.rev |> String.concat "\n");
+       print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
        exit (if !(state.result) then 0 else 1)
      )
   | RunSymbolic ->

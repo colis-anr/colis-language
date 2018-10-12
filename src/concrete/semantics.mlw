@@ -70,26 +70,28 @@ module Buffers
 
   scope Stdout
 
-    (* The list contains the lines of the stdout, with the most recent first *)
-    type t = { lines: list string }
-      invariant { lines <> Nil }
-      by { lines = Cons String.empty Nil }
+    (** The current line and the previous lines, with the most recent line first.
+
+        Keeping the current line and the previous lines explicitely separated (instead of
+        a single list with is non-empty by invariant) simplifies stating the below lemmas
+     *)
+    type t = {line: string; lines: list string}
+
+    let function all_lines out =
+      Cons out.line out.lines
 
     let constant empty =
-      { lines = Cons String.empty Nil }
+      { line = String.empty; lines = Nil }
 
     (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
     let function to_stdin out =
-      reverse out.lines
+      reverse (all_lines out)
 
     let output str out =
-      match out.lines with
-        | Cons l ls ->
-          {lines = Cons (l^str) ls}
-      end
+      { out with line = out.line^str }
 
     let newline out =
-      { lines = Cons String.empty out.lines }
+      { line = String.empty; lines = Cons out.line out.lines }
 
     (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
     let function to_string out : string =
@@ -106,32 +108,73 @@ module Buffers
 
     (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
 
-      concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
+         concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
 
-      and when final lines are not closed (using `echo -n S3`):
+       and when final lines are not closed (using `echo -n S3`):
 
-      concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
+         concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
 
-      Ah, here the complexity for specifying `read` that we avoided by using `list string`
-      re-emerges!
+       Ah, here the complexity for specifying `read` that we avoided by using `list string`
+       re-emerges!
     *)
-    let function concat (out1 out2:t) : t =
-      let rec function aux l1 l2
-        requires { l1 <> Nil }
-        requires { l2 <> Nil }
-        variant { l2 }
-      = match l2 with
-        | Cons s2 Nil ->
-          match l1 with
-          | Cons s1 l1_rest ->
-            Cons (s1 ^ s2) l1_rest
-          | Nil -> absurd
-          end
-        | Cons s2 l2_rest ->
-          Cons s2 (aux l1 l2_rest)
-        | Nil -> absurd
-        end
-      in {lines = aux out1.lines out2.lines}
+    let rec function concat out1 out2
+      variant { out2.lines }
+      (* ensures { concat_rel out1 out2 result } *)
+    = match out2.lines with
+      | Nil -> {line=out1.line^out2.line; lines= out1.lines}
+      | Cons line2 lines2 ->
+        let out3 = concat out1 {line=line2; lines=lines2} in
+        {line=out2.line; lines=all_lines out3}
+      end
+
+    let rec lemma concat_empty_left (out:t)
+      variant { out.lines }
+      ensures {
+        concat empty out = out
+      }
+    = match out.lines with
+      | Nil -> ()
+      | Cons l ls -> concat_empty_left {line=l; lines=ls}
+      end
+
+
+    let rec lemma concat_empty_right (out:t)
+      variant { out.lines }
+      ensures {
+        concat out empty = out
+      }
+    = match out.lines with
+      | Nil -> ()
+      | Cons l ls -> concat_empty_right {line=l; lines=ls}
+      end
+
+    let rec lemma concat_aux (out2:t)
+      variant { out2.lines }
+      ensures { forall out1 line3.
+        let out12 = concat out1 out2 in
+        concat out1 { line = out2.line^line3; lines = out2.lines }  = 
+          { line = out12.line^line3; lines = out12.lines }
+      }
+    = match out2.lines with
+      | Nil -> ()
+      | Cons line2 lines2 -> concat_aux { line = line2; lines = lines2 }
+      end
+
+    let rec lemma concat_assoc out3
+      variant { out3.lines }
+      ensures { forall out1 out2.
+        concat out1 (concat out2 out3) =
+          concat (concat out1 out2) out3
+      }
+    = match out3.lines with
+      | Nil ->
+        assert { forall out2.
+          concat out2 out3 =
+            { line = out2.line^out3.line; lines = out2.lines }
+        }
+      | Cons line3 lines3 ->
+        concat_assoc {line = line3; lines = lines3}
+      end
   end
 
   type stdout = Stdout.t
