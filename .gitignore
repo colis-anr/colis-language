@@ -13,3 +13,7 @@
 ## Project specific
 /src/why3
 /bin
+
+## Why3
+why3session.xml.bak
+why3shapes.gz.bak
