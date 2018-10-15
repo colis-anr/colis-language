@@ -6,18 +6,18 @@ open Protocol_conv_yaml
 type input =
   { arguments : string list ;
     stdin : string }
-    [@@deriving protocol ~driver:(module Yaml)]
+[@@deriving protocol ~driver:(module Yaml)]
 
 type output =
   { stdout : string ;
     stderr : string ;
     return_code : int }
-    [@@deriving protocol ~driver:(module Yaml)]
+[@@deriving protocol ~driver:(module Yaml)]
 
 type t =
   { input : input ;
     output : output }
-    [@@deriving protocol ~driver:(module Yaml)]
+[@@deriving protocol ~driver:(module Yaml)]
 
 let rec promote_strings_to_ints = function
   | `Null -> `Null

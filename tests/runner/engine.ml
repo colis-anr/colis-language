@@ -3,23 +3,21 @@ open Misc
 let indent s =
   "  > " ^ String.(concat "\n  > " (split_on_char '\n' s))
 
-
 let run_test filename : (unit, string) Result.result =
 
   (* Load .meta file *)
 
   let meta =
     Meta.load_from_file
-      ((Filename.remove_extension filename) ^ ".meta")
+      (Filename.concat !Options.directory ((Filename.remove_extension filename) ^ ".meta"))
   in
 
   (* Build command line *)
 
   let cmdline =
-    [ !Options.utility ;
-      "--" ^ (Filename.extension filename |> function ".cls" -> "colis" | ".sh" -> "shell" | _ -> assert false) ;
-      "--run" ;
-      filename ]
+    [ !Options.utility ]
+    @ (if Filename.extension filename = ".cls" then ["--colis"] else [])
+    @ [ Filename.concat !Options.directory filename ]
     @ meta.input.arguments
     |> List.map escape_shell_argument
     |> String.concat " "
@@ -77,6 +75,8 @@ let run_tests () =
     |> Array.to_list
     (* take all the .cls and .sh files *)
     |> List.filter (fun name -> Filename.check_suffix name ".cls" || Filename.check_suffix name ".sh")
+    (* take only .sh files if --sh-only *)
+    |> List.filter (fun name -> not (!Options.sh_only) || Filename.check_suffix name ".sh")
     (* run tests on them *)
     |> List.map (fun name -> (name, run_test name))
   in
