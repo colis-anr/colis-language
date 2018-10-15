@@ -226,6 +226,13 @@ module Context
     stdout: stdout;
   }
 
+  let function mk_state fs in_ out
+    (* ensures { result = mk state fs in_ out } *)
+    ensures { result.filesystem = fs }
+    ensures { result.stdin = in_ }
+    ensures { result.stdout = out }
+  = { filesystem = fs; stdin = in_; stdout = out }
+
   let constant empty_state = {
     filesystem = Filesystem.empty;
     stdin = Stdin.empty;
@@ -369,11 +376,11 @@ module Semantics
     eval_instruction inp ctx sta1' ins2 sta2 ctx2 bhv2 ->
     eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx bhv2
   
-  | eval_call: forall inp ctx sta sta' sta'' s es ss b.
-    eval_list_expr inp ctx sta es sta' ss ->
+  | eval_call: forall inp ctx sta sta' sta'' s le ss b.
+    eval_list_expr inp ctx sta le sta' ss ->
     (sta'', b) = interp_builtin sta' s ss ->
     let bhv = inject_behaviour inp b in
-    eval_instruction inp ctx sta (ICall s es) sta'' ctx bhv
+    eval_instruction inp ctx sta (ICall s le) sta'' ctx bhv
   
   | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es ins ss bhv.
     eval_list_expr inp ctx sta es sta' ss -> 
@@ -417,13 +424,14 @@ module Semantics
   (* The first parameter is the previous behaviour, or the behaviour of the empty loop initially *)
   with eval_foreach behaviour input context state variable (list string) instruction state context behaviour =
 
-  | eval_foreach_nil: forall bhv inp ctx sta x ins.
-    eval_foreach bhv inp ctx sta x Nil ins sta ctx bhv
+  | eval_foreach_done: forall bhv inp ctx sta var ins.
+    eval_foreach bhv inp ctx sta var Nil ins sta ctx bhv
 
-  | eval_foreach_cons: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 x s ss ins bhv1 bhv2.
-    eval_instruction inp {ctx with senv = ctx.senv[x <- s]} sta ins sta1 ctx1 bhv1 ->
-    eval_foreach bhv1 inp ctx1 sta1 x ss ins sta2 ctx2 bhv2 ->
-    eval_foreach bhv inp ctx sta x (Cons s ss) ins sta2 ctx2 bhv2
+  | eval_foreach_step: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 var s ss' ins bhv1 bhv2.
+    let ss = Cons s ss' in
+    eval_instruction inp {ctx with senv = ctx.senv[var <- s]} sta ins sta1 ctx1 bhv1 ->
+    eval_foreach bhv1 inp ctx1 sta1 var ss' ins sta2 ctx2 bhv2 ->
+    eval_foreach bhv inp ctx sta var ss ins sta2 ctx2 bhv2
 
   (** Evaluation of an expression with some input I, context C, and state S, resulting in
       another state S, a string and an output comprised of a string result and an optional
@@ -471,62 +479,66 @@ module Semantics
       let l3 = l1 ++ l2 in
       eval_list_expr inp ctx sta (Cons (se, sp) es) sta2 l3
 
-  let rec lemma eval_str_expr_keeps_stdout se
-    ensures { forall inp ctx sta sta' s bo.
-      eval_str_expr inp ctx sta se sta' s bo ->
-      sta.stdout = sta'.stdout
-    }
-  = match se with
-    | SLiteral _ | SVariable _ | SSubshell _ -> ()
-    | SConcat se1 se2 ->
-      eval_str_expr_keeps_stdout se1;
-      eval_str_expr_keeps_stdout se2
-    end
 
-  let rec lemma eval_list_expr_keeps_stdout (le:list_expression)
-    ensures { forall inp ctx sta sta' ss.
-      eval_list_expr inp ctx sta le sta' ss ->
-      sta.stdout = sta'.stdout
-    } = match le with
-    | Nil -> ()
-    | Cons _ le' -> eval_list_expr_keeps_stdout le'
-    end
-
-  (* lemma eval_instruction_equal_stdout_extends: forall inp ctx ctx' sta sta' ins bhv. *)
-  (*   eval_instruction inp ctx {sta with stdout=Stdout.empty} ins {sta' with stdout=Stdout.empty} ctx' bhv -> *)
-  (*   eval_instruction inp ctx sta ins {sta' with stdout=Stdout.(concat sta.stdout empty)} ctx' bhv *)
-
-  let rec lemma eval_instruction_extends_stdout ins
-    ensures { forall inp ctx ctx' sta sta' bhv.
-      eval_instruction inp ctx {sta with stdout=Stdout.empty} ins sta' ctx' bhv ->
-      eval_instruction inp ctx sta ins {sta' with stdout=Stdout.concat sta.stdout sta'.stdout} ctx' bhv
-    }
-    variant { ins }
-  = match ins with
-    | IAssignment _ _ -> ()
-    | ICall _ _ -> ()
-    | IExit _ -> ()
-    | INot ins
-    | ISubshell ins
-    | INoOutput ins
-    | IForeach _ _ ins ->
-      eval_instruction_extends_stdout ins
-    | ISequence ins1 ins2
-    | IPipe ins1 ins2
-    | IWhile ins1 ins2 ->
-      eval_instruction_extends_stdout ins1;
-      eval_instruction_extends_stdout ins2;
-    | IIf ins1 ins2 ins3 ->
-      eval_instruction_extends_stdout ins1;
-      eval_instruction_extends_stdout ins2;
-      eval_instruction_extends_stdout ins3
-    end
-
-
-  (* Evaluation of a program. It outputs in a boolean value *)
+  (** Evaluation of a program. It outputs in a boolean value *)
   inductive eval_program input context state program state context bool =
     | eval_program_instruction: forall inp ctx ctx' sta sta' pro bhv.
       eval_instruction inp ctx sta pro sta' ctx' bhv ->
       let b = bool_of_behaviour bhv in
       eval_program inp ctx sta pro sta' ctx' b
+
+  lemma eval_instruction_functional: forall ins[@induction] inp (*out1 out2*) ctx ctx1 ctx2 sta sta1 sta2 bhv1 bhv2.
+    eval_instruction inp ctx sta (* { sta with stdout = out1 } *) ins sta1 ctx1 bhv1 ->
+    eval_instruction inp ctx sta (* { sta with stdout = out2 } *) ins sta2 ctx2 bhv2 ->
+    sta1 = sta2 /\ ctx1 = ctx2 /\ bhv1 = bhv2
+
+  (** The evaluation of a string expression does not change the stdout *)
+  lemma eval_str_expr_keeps_stdout: forall se[@induction] inp ctx sta sta' out s bo.
+    eval_str_expr inp ctx { sta with stdout = out } se sta' s bo ->
+    sta'.stdout = out
+
+  lemma eval_str_expr_extends_stdout: forall se[@induction] inp ctx sta sta' s bo.
+      eval_str_expr inp ctx { sta with stdout = Stdout.empty } se sta' s bo ->
+      eval_str_expr inp ctx sta se { sta' with stdout = Stdout.concat sta.stdout sta'.stdout } s bo
+
+  (** The evaluation of a list expression does not change the stdout *)
+  lemma eval_list_expr_keeps_stdout: forall le[@induction] inp ctx sta sta' ss out.
+    eval_list_expr inp ctx { sta with stdout = out } le sta' ss ->
+    sta'.stdout = out
+
+  lemma eval_list_expr_expands_stdout: forall le[@induction] inp ctx sta sta' ss.
+    eval_list_expr inp ctx { sta with stdout = Stdout.empty } le sta' ss ->
+    eval_list_expr inp ctx sta le { sta' with stdout = Stdout.concat sta.stdout sta'.stdout } ss
+
+  (** Foreach loops expand stdout, if the loop body expands also *)
+  lemma eval_foreach_expands_stdout: forall ss[@induction] bhv bhv' inp ctx ctx' sta sta' var ins.
+    (forall inp ctx ctx' sta sta' bhv.
+      eval_instruction inp ctx { sta with stdout = Stdout.empty } ins sta' ctx' bhv ->
+      eval_instruction inp ctx sta ins { sta' with stdout = Stdout.concat sta.stdout sta'.stdout } ctx' bhv) ->
+    eval_foreach bhv inp ctx { sta with stdout = Stdout.empty } var ss ins sta' ctx' bhv' ->
+    eval_foreach bhv inp ctx sta var ss ins { sta' with stdout = Stdout.concat sta.stdout sta'.stdout } ctx' bhv'
+
+  lemma eval_call_expands_stdout: forall inp ctx sta sta' sta'' s le ss b.
+    eval_list_expr inp ctx { sta with stdout = Stdout.empty } le sta' ss ->
+    (sta'', b) = interp_builtin { sta' with stdout = Stdout.empty } s ss ->
+    let bhv = inject_behaviour inp b in
+    let out = Stdout.(concat sta.stdout (concat sta'.stdout sta''.stdout)) in
+    eval_instruction inp ctx sta (ICall s le) { sta'' with stdout = out } ctx bhv
+
+  lemma eval_sequence_expands_stdout: forall ins1 ins2[@induction].
+    (forall inp ctx ctx' sta sta' bhv.
+      eval_instruction inp ctx { sta with stdout = Stdout.empty } ins1 sta' ctx' bhv ->
+      eval_instruction inp ctx sta ins1 { sta' with stdout = Stdout.concat sta.stdout sta'.stdout } ctx' bhv) ->
+    (forall inp ctx ctx' sta sta' bhv.
+      eval_instruction inp ctx { sta with stdout = Stdout.empty } ins2 sta' ctx' bhv ->
+      eval_instruction inp ctx sta ins2 { sta' with stdout = Stdout.concat sta.stdout sta'.stdout } ctx' bhv) ->
+    forall inp ctx ctx1 ctx2 sta sta1 sta2 b1 bhv2.
+    eval_instruction inp ctx { sta with stdout = Stdout.empty } ins1 sta1 ctx1 (BNormal b1) ->
+    eval_instruction inp ctx1 { sta1 with stdout = Stdout.empty } ins2 sta2 ctx2 bhv2 ->
+    let out = Stdout.(concat sta.stdout (concat sta1.stdout sta2.stdout)) in
+    eval_instruction inp ctx sta (ISequence ins1 ins2) { sta2 with stdout = out } ctx2 bhv2
+
+  lemma eval_instruction_extends_stdout: forall ins[@induction] inp ctx ctx' sta sta' bhv.
+      eval_instruction inp ctx {sta with stdout=Stdout.empty} ins sta' ctx' bhv ->
+      eval_instruction inp ctx sta ins {sta' with stdout=Stdout.concat sta.stdout sta'.stdout} ctx' bhv
 end
