@@ -78,16 +78,16 @@ let main () =
        eprintf "Conversion error: %s@." msg;
        exit 3
   in
+  let arguments = get_arguments () in
   match get_action () with
   | Run ->
      (
-       Colis.run ~arguments:(get_arguments ()) program
+      Colis.run ~arguments program
      )
   | RunSymbolic ->
      (
-       eprintf "Symbolic execution is not supported yet.@.";
-       exit 3
      )
+        Colis.run_symbexec ~arguments program
   | PrintColis ->
      (
        Colis.print_colis program;

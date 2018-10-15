@@ -85,3 +85,16 @@ let run ?(arguments=[]) colis =
   interp_program input state colis;
   print_string (!(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
+let run_symbexec ?(arguments=[]) colis =
+  let open Format in
+  let open Semantics__Context in
+  let open Symbexec__Definitions in
+  let open Symbexec__Interpreter in
+  let open Symbexec_printers in
+  let input = { empty_input with arguments=Array.of_list arguments } in
+  let state = empty_state "root" in
+  let res = interp_program input state program in
+  printf "** Exit states@\n";
+  List.iter (printf "@\n- @[%a@]@\n" print_state) (BatSet.to_list res.exit);
+  printf "@\n** Normal states@\n";
+  List.iter (printf "@\n- @[%a@]@\n" print_state) (BatSet.to_list res.normal)

@@ -1,0 +1,209 @@
+module Constraints
+  type clause
+  val constant empty_clause : clause
+  type variable
+  val constant default_root : variable
+  type feature
+end
+
+module Definitions
+
+  use list.List
+  use bool.Bool
+  use ref.Ref
+  use mystring.String
+  use semantics.Buffers
+  use semantics.Environment
+
+  use Constraints
+
+  (** A symbolic filesystem *)
+  type filesystem = {
+    root : variable;
+    constraints : clause;
+    cwd : list feature;
+  }
+
+  let constant empty_filesystem = {
+    root = default_root;
+    constraints = empty_clause;
+    cwd = Nil;
+  }
+    
+  (** The symbolic state combines a symbolic filesystem, input/output, and interpreter
+      internal state *)
+  type state = {
+    senv: env string;
+    stdin : stdin;
+    stdout : stdout;
+    filesystem : filesystem;
+    result : bool;
+  }
+
+  let constant empty_state = {
+    stdin = empty_stdin;
+    stdout = empty_stdout;
+    filesystem = empty_filesystem;
+    senv = empty_env;
+    result = True;
+  }
+
+  use list.Append
+
+  let function bool_eq (b1 b2: bool) : bool ensures { result <-> b1 = b2 } =
+    notb (xorb b1 b2)
+
+  type states = list state
+  let constant empty_states = Nil
+  let function singleton_state sta = Cons sta Nil
+  let states_union stas1 stas2 = stas1 ++ stas2
+  let rec states_by_result res stas variant { stas } =
+    match stas with
+    | Nil -> Nil
+    | Cons sta stas' ->
+      if bool_eq sta.result res
+      then Cons sta (states_by_result res stas')
+      else states_by_result res stas'
+    end
+
+  (** The symbolic interpretation of a program results describes multiple possible results *)
+  type results = {
+    normal: states;
+    exit: states;
+  }
+
+  let constant empty_results = {
+    normal = empty_states;
+    exit = empty_states;
+  }
+
+  let function results_union res1 res2 = {
+    normal = states_union res1.normal res2.normal;
+    exit = states_union res1.exit res2.exit;
+  }
+    
+end
+
+module Interpreter
+
+  use list.List
+  use bool.Bool
+  use mystring.String
+  use syntax.Syntax
+  use semantics.Environment
+  use semantics.Behaviour
+  use semantics.Context
+  use Definitions
+
+  val function interp_builtin string state : list (bool, state)
+
+  let maybe_exit inp sta =
+    if andb (strict inp.under_condition) (notb sta.result) then
+      { empty_results with exit = singleton_state sta }
+    else
+      { empty_results with normal = singleton_state sta }
+
+  let rec interp_instruction inp sta ins : results diverges =
+    match ins with
+
+    | IExit code ->
+      let sta' =
+        match code with
+        | RPrevious -> sta
+        | RSuccess -> { sta with result = True }
+        | RFailure -> { sta with result = False }
+        end
+      in
+      { empty_results with exit = singleton_state sta' }
+
+    | IAssignment var se ->
+      let str = interp_str_expr inp sta se in
+      let sta' = {
+        sta with
+        Definitions.senv = sta.senv[var <- str];
+        result = True;
+      } in
+      maybe_exit inp sta'
+
+    | ISequence ins1 ins2 ->
+      let res1 = interp_instruction inp sta ins1 in
+      let res2 = interp_instruction' inp res1.normal ins2 in
+      { exit = states_union res1.exit res2.exit;
+        normal = res2.normal }
+
+    | IIf ins1 ins2 ins3 ->
+      let res1 = interp_instruction { inp with under_condition = True } sta ins1 in
+      let res2 =
+        results_union
+          (interp_instruction' inp (states_by_result True res1.normal) ins2)
+          (interp_instruction' inp (states_by_result False res1.normal) ins3)
+      in
+      { exit = states_union res1.exit res2.exit;
+        normal = res2.normal }
+
+    | INot ins ->
+      let rec aux stas variant { stas } =
+        match stas with
+        | Nil -> Nil
+        | Cons sta' stas' ->
+          Cons { sta' with result = notb sta'.result } (aux stas')
+        end
+      in
+      let res = interp_instruction { inp with under_condition = True } sta ins in
+      { res with normal = aux res.normal }
+       
+    | _ -> absurd
+  end
+
+  with interp_instruction' inp stas ins =
+    match stas with
+    | Nil -> empty_results
+    | Cons sta stas' ->
+      results_union
+        (interp_instruction inp sta ins)
+        (interp_instruction' inp stas' ins)
+    end
+
+  with interp_str_expr inp sta se =
+    match se with
+    | SLiteral str -> str
+    | SVariable var -> sta.senv var
+    | SConcat se1 se2 ->
+      let str1 = interp_str_expr inp sta se1 in
+      let str2 = interp_str_expr inp sta se2 in
+      str1^str2
+    | SSubshell _ -> absurd
+    end
+
+end
+
+    (* let (&) a b = fun c -> *)
+    (*   a c |> List.map b |> List.flatten *)
+
+    (* (\* (&) for conjunction of (t -> disj) *\) *)
+
+    (* let (+) a b = fun c -> *)
+    (*   a c @ b c *)
+
+    (* (\* (+) for disjunction of (t -> disj) *\) *)
+
+    (* let exists f c = *)
+    (*   let v = Variable.fresh () in *)
+    (*   f v c *)
+    (*   |> List.map (Iclause.quantify_over v) *)
+    (*   |> List.flatten *)
+
+    (* (\* exists : (Variable.t -> t -> disj) -> t -> disj *\) *)
+
+    (* let example = *)
+    (*   let r = Variable.fresh () in *)
+    (*   let f = "f" in *)
+    (*   let g = "g" in *)
+
+    (*   let open Iclause in *)
+      
+    (*   exists @@ fun x -> *)
+    (*   exists @@ fun y -> *)
+    (*   feature r f x *)
+    (*   & feature x g z *)
+    (*   & absence r g *)
