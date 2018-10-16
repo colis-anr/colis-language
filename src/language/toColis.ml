@@ -1,4 +1,3 @@
-
 open Format
 
 let rec print_list_pre sep print fmt = function
@@ -85,7 +84,5 @@ and pipe (fmt:formatter) (i:instruction) : unit =
   | IPipe(i1,i2) ->
      fprintf fmt "@[<v 0>%a into@ %a@]" instruction i1 pipe i2
   | _ -> instruction fmt i
-
-
 
 let program fmt p = instruction fmt p
