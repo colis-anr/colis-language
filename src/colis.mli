@@ -14,9 +14,19 @@ type shell = Morsmall.AST.program
 (** {2 Parsing} *)
 
 val colis_from_channel : ?filename:string -> in_channel -> colis
+(** Reads Colis syntax from a channel and returns the corresponding AST.
+
+    @raises {!ColisLexer.LexerError}
+    @raises {!ColisParser.Error} *)
 
 val colis_from_file : string -> colis
-(** Reads a Colis file and returns the corresponding AST.
+(** Reads Colis syntax from a file and returns the corresponding AST.
+
+    @raises {!ColisLexer.LexerError}
+    @raises {!ColisParser.Error} *)
+
+val colis_from_string : string -> colis
+(** Reads Colis syntax from a string and returns the corresponding AST.
 
     @raises {!ColisLexer.LexerError}
     @raises {!ColisParser.Error} *)
