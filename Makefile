@@ -1,4 +1,4 @@
-.PHONY: build test clean extract-why3 clean-why3
+.PHONY: build test doc clean extract-why3 clean-why3 install uninstall
 
 build: extract-why3
 	dune build @install
