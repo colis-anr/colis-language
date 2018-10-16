@@ -10,7 +10,9 @@ let print_list sep print fmt = function
   | [x] -> print fmt x
   | x :: r -> print fmt x; print_list_pre sep print fmt r
 
-let comma fmt () = fprintf fmt ",@ "
+(* let comma fmt () = fprintf fmt ",@ " *)
+
+let semi fmt () = fprintf fmt ";@ "
 
 open Syntax__Syntax
 
@@ -30,32 +32,59 @@ and expr_split (fmt:formatter) (e,s) : unit =
   | Split -> fprintf fmt "split %a" string_expression e
   | DontSplit -> fprintf fmt "%a" string_expression e
 
+and lexpr (fmt:formatter) (l: (string_expression * split) list) =
+  fprintf fmt "@[[ %a ]@]" (print_list semi expr_split) l
+
 and instruction (fmt:formatter) (i:instruction) : unit =
   match i with
   | IAssignment(s,e) ->
      fprintf fmt "@[<hv 2>%s :=@ %a@]" s string_expression e
   | ISequence(i1,i2) ->
-     fprintf fmt "@[<v 0>%a ;@ %a@]" instruction i1 instruction i2
+     fprintf fmt "@[<v 2>begin@ %a ;@ %a@ end@]" instruction i1 sequence i2
   | ISubshell i ->
-     fprintf fmt "@[process {@ %a }@]" instruction i
+     fprintf fmt "@[process@ %a@]" instruction i
+  | IIf(c,i1,ICall("true", [])) ->
+     fprintf fmt "@[<hv 2>if %a@ then %a@ fi@]"
+             instruction c instruction i1
   | IIf(c,i1,i2) ->
-     fprintf fmt "@[<hv 2>if %a@ then %a@ else %a fi@]"
+     fprintf fmt "@[<hv 2>if %a@ then %a@ else %a@ fi@]"
              instruction c instruction i1 instruction i2
-  | INot _ ->
-     failwith "Not implemented: ToColis.statement INot"
-  | IPipe _ ->
-     failwith "Not implemented: ToColis.statement IPipe"
-  | IWhile _ ->
-     failwith "Not implemented: ToColis.statement IWhile"
-  | INoOutput _ ->
-     failwith "Not implemented: ToColis.statement INoOutput"
-  | IForeach _ ->
-     failwith "Not implemented: ToColis.statement IForeach"
+  | INot i1 ->
+     fprintf fmt "@[<hv 2>not %a@]" instruction i1
+  | IPipe(i1,i2) ->
+     fprintf fmt "@[<v 0>pipe@ %a@ into %a@ epip@]" instruction i1 pipe i2
+  | IWhile(i1,i2) ->
+     fprintf fmt "@[<hv 2>while %a@ do %a@ done@]"
+             instruction i1 instruction i2
+  | INoOutput i1 ->
+     fprintf fmt "@[<hv 2>nooutput %a@]" instruction i1
+  | IForeach(id,le,i1) ->
+     fprintf fmt "@[<hv 2>for %s@ in %a@ do %a@ done@]"
+             id lexpr le instruction i1
+  | ICall(s,[]) ->
+     fprintf fmt "%s" s
   | ICall(s,args) ->
-     fprintf fmt "@[%s@ [@ %a ]@]" s (print_list comma expr_split) args
+     fprintf fmt "@[%s@ %a@]" s lexpr args
+  | IExit c ->
+     fprintf fmt "@[exit@ %a@]" exitcode c
 
-  | IExit _ ->
-     failwith "Not implemented: ToColis.statement IExit"
+and exitcode (fmt:formatter) (c:return_code) =
+  match c with
+  | RSuccess -> fprintf fmt "success"
+  | RFailure -> fprintf fmt "failure"
+  | RPrevious -> fprintf fmt "previous"
+
+and sequence (fmt:formatter) (i:instruction) : unit =
+  match i with
+  | ISequence(i1,i2) ->
+     fprintf fmt "@[<v 0>%a ;@ %a@]" instruction i1 sequence i2
+  | _ -> instruction fmt i
+
+and pipe (fmt:formatter) (i:instruction) : unit =
+  match i with
+  | IPipe(i1,i2) ->
+     fprintf fmt "@[<v 0>%a into@ %a@]" instruction i1 pipe i2
+  | _ -> instruction fmt i
 
 
 
