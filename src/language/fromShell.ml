@@ -1,4 +1,3 @@
-
 (* Open Morsmall AST. Import the 'on_located' function. *)
 
 open Morsmall.AST
@@ -319,17 +318,3 @@ and program__to__program = function
          C.ISequence (statement, statement'))
        (command'__to__statement first')
        rest'
-
-(* ============================ [ Entry point ] ============================= *)
-
-let parse filename : C.program =
-  try
-    Morsmall.parse_file filename
-    |> program__to__program
-  with
-  | Morsmall.SyntaxError _pos ->
-     Format.printf "Syntax error";
-     exit 2
-  | Unsupported feat ->
-     Format.printf "Unsupported feature: %s" feat;
-     exit 3

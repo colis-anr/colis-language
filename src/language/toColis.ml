@@ -1,4 +1,3 @@
-
 open Format
 
 let rec print_list_pre sep print fmt = function
@@ -56,7 +55,5 @@ and instruction (fmt:formatter) (i:instruction) : unit =
 
   | IExit _ ->
      failwith "Not implemented: ToColis.statement IExit"
-
-
 
 let program fmt p = instruction fmt p
