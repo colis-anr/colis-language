@@ -9,7 +9,7 @@ module FromShell = FromShell
 
 type colis = AST.program
 
-let parse_colis filename =
+let colis_from_file filename =
   let ic = open_in filename in (* TODO close when exception *)
   let lexbuf = Lexing.from_channel ic in
   lexbuf.Lexing.lex_curr_p <-
@@ -40,7 +40,7 @@ let colis_to_file filename colis =
 
 type shell = Morsmall.AST.program
 
-let parse_shell = Morsmall.parse_file
+let shell_from_file = Morsmall.parse_file
 
 let shell_to_colis = FromShell.program__to__program
 

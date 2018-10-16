@@ -13,13 +13,13 @@ type shell = Morsmall.AST.program
 
 (** {2 Parsing} *)
 
-val parse_colis : string -> colis
+val colis_from_file : string -> colis
 (** Reads a Colis file and returns the corresponding AST.
 
     @raises {!ColisLexer.LexerError}
     @raises {!ColisParser.Error} *)
 
-val parse_shell : string -> shell
+val shell_from_file : string -> shell
 (** Reads a Shell file and returns the corresponding AST. This is a
     wrapper around Morsmall.parse_file.
 
