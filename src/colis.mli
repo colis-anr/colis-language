@@ -13,6 +13,8 @@ type shell = Morsmall.AST.program
 
 (** {2 Parsing} *)
 
+val colis_from_channel : ?filename:string -> in_channel -> colis
+
 val colis_from_file : string -> colis
 (** Reads a Colis file and returns the corresponding AST.
 
