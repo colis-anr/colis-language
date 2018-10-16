@@ -1,3 +1,5 @@
+open Format
+
 type source = Colis | Shell
 type action = Run | RunSymbolic | PrintColis | PrintShell
 
@@ -51,7 +53,7 @@ let speclist =
   |> Arg.align
 
 let usage =
-  Format.sprintf
+  sprintf
     "Usage: %s [--run [--realworld] | --run-symbolic | --print-colis | --print-shell] [--shell | --colis] FILE"
     Sys.argv.(0)
 
@@ -61,10 +63,26 @@ let main () =
     raise (Arg.Bad "--realworld can only be specified with --run");
 
   let program =
-    get_file ()
-    |> match get_source () with
-       | Colis -> Colis.parse_colis
-       | Shell -> Colis.(parse_shell ||> shell_to_colis)
+    try
+      (
+        get_file ()
+        |> match get_source () with
+           | Colis -> Colis.parse_colis
+           | Shell -> Colis.(parse_shell ||> shell_to_colis)
+      )
+    with
+    | Colis.ColisLexer.LexerError s ->
+       eprintf "Lexing error: %s@." s;
+       exit 2
+    | Colis.ColisParser.Error ->
+       eprintf "Parsing error@.";
+       exit 2
+    | Morsmall.SyntaxError _pos ->
+       eprintf "Syntax error@.";
+       exit 2
+    | Colis.FromShell.Unsupported feat ->
+       eprintf "Unsupported feature: %s@." feat;
+       exit 3
   in
   match get_action () with
   | Run ->
@@ -73,7 +91,7 @@ let main () =
      )
   | RunSymbolic ->
      (
-       Format.eprintf "Symbolic execution is not supported yet.@.";
+       eprintf "Symbolic execution is not supported yet.@.";
        exit 3
      )
   | PrintColis ->
@@ -82,7 +100,7 @@ let main () =
      )
   | PrintShell ->
      (
-       Format.eprintf "Printing Shell is not supported yet.@.";
+       eprintf "Printing Shell is not supported yet.@.";
        exit 3
      )
 
@@ -91,6 +109,6 @@ let () =
     main ()
   with
     Arg.Bad msg ->
-    Format.eprintf "Error: %s@." msg;
+    eprintf "Error: %s@." msg;
     Arg.usage speclist usage;
     exit 3
