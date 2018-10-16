@@ -67,8 +67,8 @@ let main () =
       (
         get_file ()
         |> match get_source () with
-           | Colis -> Colis.parse_colis
-           | Shell -> Colis.(parse_shell ||> shell_to_colis)
+           | Colis -> Colis.colis_from_file
+           | Shell -> Colis.(shell_from_file ||> shell_to_colis)
       )
     with
     | Colis.ColisLexer.LexerError s ->
@@ -96,7 +96,8 @@ let main () =
      )
   | PrintColis ->
      (
-       Colis.print_colis program
+       Colis.print_colis program;
+       exit 0
      )
   | PrintShell ->
      (
