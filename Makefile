@@ -7,9 +7,13 @@ build: extract-why3
 test: build
 	dune runtest
 
+doc: build
+	dune build @doc
+	[ -e doc ] || ln -s _build/default/_doc/_html doc
+
 clean: clean-why3
 	dune clean
-	rm -f bin
+	rm -f bin doc
 
 extract-why3:
 	mkdir -p src/why3
