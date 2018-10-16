@@ -9,12 +9,15 @@ module FromShell = FromShell
 
 type colis = AST.program
 
-let colis_from_channel ?(filename="-") channel =
-  let lexbuf = Lexing.from_channel channel in
+let colis_from_lexbuf ?(filename="-") lexbuf =
   lexbuf.Lexing.lex_curr_p <-
     { lexbuf.Lexing.lex_curr_p
     with Lexing.pos_fname = filename };
   ColisParser.program ColisLexer.token lexbuf
+
+let colis_from_channel ?(filename="-") channel =
+  let lexbuf = Lexing.from_channel channel in
+  colis_from_lexbuf ~filename lexbuf
 
 let colis_from_file filename =
   let ic = open_in filename in
@@ -24,6 +27,10 @@ let colis_from_file filename =
     colis
   with
     exn -> close_in ic; raise exn
+
+let colis_from_string string =
+  let lexbuf = Lexing.from_string string in
+  colis_from_lexbuf lexbuf
 
 let pp_print_colis = ToColis.program
 
