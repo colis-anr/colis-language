@@ -13,29 +13,28 @@ type shell = Morsmall.AST.program
 
 (** {2 Parsing} *)
 
+exception ParseError of string (* FIXME: and position *)
+
 val colis_from_channel : ?filename:string -> in_channel -> colis
 (** Reads Colis syntax from a channel and returns the corresponding AST.
 
-    @raises {!ColisLexer.LexerError}
-    @raises {!ColisParser.Error} *)
+    @raises {!ParseError} *)
 
 val colis_from_file : string -> colis
 (** Reads Colis syntax from a file and returns the corresponding AST.
 
-    @raises {!ColisLexer.LexerError}
-    @raises {!ColisParser.Error} *)
+    @raises {!ParseError} *)
 
 val colis_from_string : string -> colis
 (** Reads Colis syntax from a string and returns the corresponding AST.
 
-    @raises {!ColisLexer.LexerError}
-    @raises {!ColisParser.Error} *)
+    @raises {!ParseError} *)
 
 val shell_from_file : string -> shell
 (** Reads a Shell file and returns the corresponding AST. This is a
     wrapper around Morsmall.parse_file.
 
-    @raises Morsmall.SyntaxError *)
+    @raises {!ParseError} *)
 
 (** {2 Printing} *)
 
@@ -53,10 +52,12 @@ val pp_print_colis : Format.formatter -> colis -> unit
 
 (** {2 Converting} *)
 
+exception ConversionError of string
+
 val shell_to_colis : shell -> colis
 (** Converts a Shell program to a Colis program.
 
-    @raises {!FromShell.Unsupported} *)
+    @raises {!ConversionError} *)
 
 (** {2 Interpreting} *)
 
