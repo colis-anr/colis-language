@@ -4,60 +4,57 @@ open SymbolicInterpreter__Definitions
 
 let (>>=) disj f = List.(map f disj |> flatten)
 
-let exists_d : ?hint:string -> (Variable.t -> (bool * Clause.t) list) -> (bool * Clause.t) list =
-  fun ?hint k ->
-    let v = Variable.fresh ?hint () in
-    k v >>= fun (b, d) ->
-    [b, Clause.exists [v] d]
-
-let as_success c = [true, c]
-let as_failure c = [false, c]
-
-let with_filesystem_clauses sta f =
-  f sta.filesystem >>= fun (b, clause) ->
-  let filesystem = {sta.filesystem with clause} in
-  [{sta with filesystem; result = b}]
-
 let dir : Variable.t -> Clause.t -> Clause.disj = assert false
 let reg : Variable.t -> Clause.t -> Clause.disj = assert false
 
-(** [resolve st p] resolves path [p] (as string) in state [st], corresponding to
-    {%resolve(\Sigma,x,np,p)%} in the document {em Specification of UNIX commands} **)
-let resolve path k fs =
-  let rec aux disj x xs path errs k =
-    match path with
-    | [] -> (* done *)
-      k x disj (xs, errs)
-    | "." :: path'
-    | "" :: path'-> (* ignore dots in path *)
-      aux disj x xs path' errs k
-    | ".." :: path' ->
-      let x, xs =
-        match xs with
-        | x :: xs -> x, xs
-        | [] -> x, xs
-      in
-      aux disj x xs path' errs k
-    | s :: path' -> (* down *)
-      exists_d ~hint:s @@ fun y ->
-      let f = Feature.of_string s in
-      let disj' =
-        disj >>= dir x >>= Clause.feat x f y
-      in
-      let errs' =
-        (disj >>= reg x) @
-        (disj >>= dir x >>= Clause.abs x f)
-      in
-      aux disj' y (x::xs) path' (errs' @ errs : Clause.t list) k
-  in
-  match String.split_on_char '/' path with
-  | "" :: path -> (* absolute path *)
-    aux [fs.clause] fs.root [] path [] k
-  | path -> (* relative path *)
-    let cwd = List.map Feature.to_string fs.cwd in
-    aux [fs.clause] fs.root [] cwd [] @@ fun x disj (xs, errs) ->
-    aux disj x xs path [] @@ fun y disj (ys,  errs') ->
-    k y disj (ys, errs' @ errs)
+let exists : ?hint:string -> (Variable.t -> Clause.disj) -> Clause.disj =
+  fun ?hint k ->
+    let v = Variable.fresh ?hint () in
+    k v |> List.map (Clause.exists [v])
+
+let rec resolve' disj x xs path k =
+  match path with
+  | [] -> k disj x xs
+  | s :: path' ->
+    let f = Feature.of_string s in
+    exists ~hint:s @@ fun y ->
+    let disj' = disj >>= dir x >>= Clause.feat x f y in
+    resolve' disj' y (x::xs) path' k
+
+let resolve : filesystem -> string -> (Clause.disj -> Variable.t -> Clause.disj) -> Clause.disj =
+  fun fs path k ->
+    match String.split_on_char '/' path with
+    | "" :: path ->
+      (* an absolute path *)
+      resolve' [fs.clause] fs.root [] path (fun disj x _ -> k disj x)
+    | path ->
+      (* a relative path *)
+      let cwd = List.map Feature.to_string fs.cwd in
+      resolve' [fs.clause] fs.root [] cwd @@ fun disj x xs ->
+      resolve' disj x xs path @@ fun disj y _ ->
+      k disj y
+
+let rec noresolve' disj x xs path =
+  match path with
+  | [] -> []
+  | s :: path' ->
+    let f = Feature.of_string s in
+    (disj >>= reg x) @
+    (disj >>= dir x >>= Clause.abs x f) @
+    exists ~hint:s @@ fun y ->
+    noresolve' (disj >>= Clause.feat x f y) y (x::xs) path'
+
+let noresolve : filesystem -> string -> Clause.disj =
+  fun fs path ->
+    match String.split_on_char '/' path with
+    | "" :: path ->
+      (* an absolute path *)
+      noresolve' [fs.clause] fs.root [] path
+    | path ->
+      (* a relative path *)
+      let cwd = List.map Feature.to_string fs.cwd in
+      resolve' [fs.clause] fs.root [] cwd @@ fun disj x xs ->
+      noresolve' disj x xs path
 
 let print_line str sta =
   let stdout = output str sta.stdout |> newline in
@@ -73,6 +70,10 @@ let interp_echo sta args =
   let str = String.concat " " args in
   [print_line str {sta with result = true}]
 
+let with_clause sta clause =
+  let filesystem = {sta.filesystem with clause} in
+  [{sta with filesystem}]
+
 let last_path_component path =
   match List.rev (String.split_on_char '/' path) with
   | f :: p -> Some (String.join "/" (List.rev p), f)
@@ -84,28 +85,32 @@ let interp_touch sta args =
   | [path] -> begin
       match last_path_component path with
       | Some (p, s) -> (* [path = p/f] *)
-        let f = Feature.of_string s in
-        with_filesystem_clauses sta @@
-        resolve p @@ fun x disj (_, (errs : Clause.t list)) ->
-        let st1_ok : (bool * Clause.t) list = (* p/f exists, nop *)
-          disj >>=
-          Clause.nabs x f >>=
-          as_success
+        let oks =
+          let f = Feature.of_string s in
+          let for_x disj x =
+            let st1_ok = (* p/f exists, nop *)
+              disj >>=
+              Clause.nabs x f
+            in
+            let st2_ok = (* p exists, p/f doesn't *)
+              exists @@ fun x' ->
+              exists @@ fun y' ->
+              disj >>=
+              dir x >>=
+              Clause.abs x f >>=
+              Clause.sim x (Feature.Set.singleton f) x' >>=
+              Clause.feat x' f y'
+            in
+            st1_ok @ st2_ok
+          in
+          resolve sta.filesystem p for_x >>=
+          with_clause {sta with result = true}
         in
-        let st2_ok : (bool * Clause.t) list = (* p exists, p/f doesn't *)
-          exists_d @@ fun x' ->
-          exists_d @@ fun y ->
-          disj >>=
-          dir x >>= Clause.abs x f >>=
-          Clause.sim x (Feature.Set.singleton f) x' >>= fun cls ->
-          Clause.feat x' f y cls >>=
-          as_success
+        let errs =
+          noresolve sta.filesystem p >>=
+          with_clause {sta with result = false}
         in
-        let sts_err : (bool * Clause.t) list =
-          (* p does not exist *)
-          errs >>= fun cls -> [false, cls]
-        in
-        st1_ok @ st2_ok @ sts_err
+        oks @ errs
       | None ->
         [print_err "touch: empty path" {sta with result = false}]
     end
@@ -115,11 +120,15 @@ let interp_touch sta args =
 let interp_test_e sta args =
   match args with
   | [path] ->
-    with_filesystem_clauses sta @@
-    resolve path @@ fun x disj (_, errs) ->
-    let sts_ok = disj >>= as_success in
-    let sts_err = errs >>= as_failure in
-    sts_ok @ sts_err
+    let oks =
+      resolve sta.filesystem path (fun d _ -> d) >>=
+      with_clause {sta with result = true}
+    in
+    let fails =
+      noresolve sta.filesystem path >>=
+      with_clause {sta with result = true}
+    in
+    oks @ fails
   | _ -> [print_err "test-e: Not exactly one argument" {sta with result = false}]
 
 let interp (sta: state) (cmd: string) (args:string list) : state list =
