@@ -1,366 +1,129 @@
 open Batteries
-open Format
+open Semantics__Buffers
 open SymbolicInterpreter__Definitions
-open Symbexec_printers
 
-let (&) = Set.add
+let (>>=) disj f = List.(map f disj |> flatten)
 
-(** Collect the set of variables in a constraint *)
-let constraint_vars = function
-  | Tru | Fals -> Set.empty
-  | Eq (x, y)
-  | Feature (x, _, y)
-  | Similar (x, _, y) -> x & Set.singleton y
-  | Present (x, _) | Absent (x, _)
-  | Dir x | Reg x | Fence (x, _) ->
-    Set.singleton x
+let exists_d : ?hint:string -> (Variable.t -> (bool * Clause.t) list) -> (bool * Clause.t) list =
+  fun ?hint k ->
+    let v = Variable.fresh ?hint () in
+    k v >>= fun (b, d) ->
+    [b, Clause.exists [v] d]
 
-(** Collect the set of variables in a constraint set *)
-let constraints_vars cs : var Set.t =
-  Set.(fold union (map constraint_vars cs) empty)
+let as_success c = [true, c]
+let as_failure c = [false, c]
 
-(** Collect the set of variables in a symbolic state *)
-let state_vars st : var Set.t =
-  constraints_vars st.filesystem.constraints
+let with_filesystem_clauses sta f =
+  f sta.filesystem >>= fun (b, clause) ->
+  let filesystem = {sta.filesystem with clause} in
+  [{sta with filesystem; result = b}]
 
-let rec fresh_var prefix n vars =
-  let v =
-    let name = Printf.sprintf "%s-%d" prefix n in
-    V name
-  in
-  if Set.mem v vars
-  then fresh_var prefix (succ n) vars
-  else v
-
-let fresh_var_prefix prefix vars =
-  fresh_var prefix 0 vars
-
-(** Create a fresh variable with given [prefix] that is not in [vars] **)
-let fresh_var_feature (F prefix) vars =
-  fresh_var prefix 0 vars
-
-(** Create a fresh variant of a variable *)
-let fresh_var_like (V var) vars =
-  let prefix, n =
-    try
-      let prefix, n_str = String.split var "-" in
-      prefix, int_of_string n_str
-    with Not_found ->
-      var, 0
-  in
-  fresh_var prefix n vars
-
-(** Reverse a path.
-
-    If [p] goes from the target to root, then the result goes from root
-    to the traget, and vice verse.*)
-let reverse_path p =
-  List.map (fun (vf, fv) -> fv, vf) (List.rev p)
-
-let print_down_path fmt p =
-  let print_pair fmt (f, v) =
-    fprintf fmt "[%a]%a" print_feature f print_var v
-  in
-  pp_print_list ~pp_sep:(pp_sep "") print_pair fmt p
+let dir : Variable.t -> Clause.t -> Clause.disj = assert false
+let reg : Variable.t -> Clause.t -> Clause.disj = assert false
 
 (** [resolve st p] resolves path [p] (as string) in state [st], corresponding to
     {%resolve(\Sigma,x,np,p)%} in the document {em Specification of UNIX commands} **)
-let resolve fs p : (constraints * path) * (path * constraints) list =
-  (* [np] goes from current node to root *)
-  let rec aux cs root np p =
-    match p with
+let resolve path k fs =
+  let rec aux disj x xs path errs k =
+    match path with
     | [] -> (* done *)
-      (cs, np), []
-    | "." :: p' (* ignore dots in path *)
-    | "" :: p' -> (* ignore empty path components that result from double slashes *)
-      aux cs root np p'
-    | ".." :: p' -> (* up *)
-      begin match np with
-        | [] -> (* at root, don't move *)
-          aux cs root np p'
-        | _ :: np' ->
-          aux cs root np' p'
-      end
-    | f :: p' -> (* down *)
-      let f = F f in
-      let x = path_target np root in
-      let y = fresh_var_feature f (constraints_vars cs) in
-      let np' = (y, f) :: np in
-      let st_ok, st_fails' =
-        let cs'' =
-          (* [Dir x] implied by feature constraint  *)
-          Feature (x, f, y) &
-          cs
-        in
-        aux cs'' root np' p'
+      k x disj (xs, errs)
+    | "." :: path'
+    | "" :: path'-> (* ignore dots in path *)
+      aux disj x xs path' errs k
+    | ".." :: path' ->
+      let x, xs =
+        match xs with
+        | x :: xs -> x, xs
+        | [] -> x, xs
       in
-      let st_fails = [
-        np, Reg x & cs;
-        np, Dir x & Absent (x, f) & cs;
-      ] @ st_fails' in
-      st_ok, st_fails
+      aux disj x xs path' errs k
+    | s :: path' -> (* down *)
+      exists_d ~hint:s @@ fun y ->
+      let f = Feature.of_string s in
+      let disj' =
+        disj >>= dir x >>= Clause.feat x f y
+      in
+      let errs' =
+        (disj >>= reg x) @
+        (disj >>= dir x >>= Clause.abs x f)
+      in
+      aux disj' y (x::xs) path' (errs' @ errs : Clause.t list) k
   in
-  match String.split_on_char '/' p with
-  | "" :: p' -> (* absolute path *)
-    aux fs.constraints fs.root [] p'
-  | p' -> (* relative path *)
-    aux fs.constraints fs.root fs.cwd p'
+  match String.split_on_char '/' path with
+  | "" :: path -> (* absolute path *)
+    aux [fs.clause] fs.root [] path [] k
+  | path -> (* relative path *)
+    let cwd = List.map Feature.to_string fs.cwd in
+    aux [fs.clause] fs.root [] cwd [] @@ fun x disj (xs, errs) ->
+    aux disj x xs path [] @@ fun y disj (ys,  errs') ->
+    k y disj (ys, errs' @ errs)
 
-(** Feature constraint lifted to normal paths.
+let print_line str sta =
+  let stdout = output str sta.stdout |> newline in
+  {sta with stdout}
 
-    TODO Is this required or should we always use [resolve]? *)
-let rec feature_path vars x p y =
-  match p with
-  | [] -> [Eq (x, y)]
-  | f :: p' ->
-    let z = fresh_var_feature f vars in
-    Feature (x, f, z) :: feature_path (z & vars) z p' y
+let print_err str sta =
+  print_line ("[ERR] "^str) sta
 
-(** [present_path st p] implements the macro {% cwd[p]\downarrow %} from document
-   `Specification of UNIX Commands`.*)
-let rec present_path cs x p =
-  match p with
-  | [] -> cs
-  | f :: p' ->
-    let y = fresh_var_feature f (constraints_vars cs) in
-    let cs' = Feature (x, f, y) & cs in
-    present_path cs' y p'
+let print_dbg str sta =
+  print_line ("[DBG] "^str) sta
 
-(** [absent_path st p] implements the macro {% cwd[p]\uparrow %} from document
-   `Specification of UNIX Commands`.
-
-    Tentative implementation using [resolve] -- requires discussion first **)
-let rec absent_path fs p =
-  let _, cs_err = resolve fs p in
-  cs_err
-
-let print_line str st =
-  let stdout = st.stdout ^ str ^ "\n" in
-  {st with stdout}
-
-let print_err str st =
-  print_line ("[ERR] "^str) st
-
-let print_dbg str st =
-  print_line ("[DBG] "^str) st
-
-let interp_echo st =
-  let str = String.concat " " st.args in
-  [true, print_line str st]
-
-let interp_test_e st =
-  match st.args with
-  | [path] ->
-    let (cs, _), cs_errs = resolve st.filesystem path in
-    let st_ok =
-      let filesystem = {st.filesystem with constraints=cs} in
-      true, print_dbg "test-e ok" {st with filesystem}
-    in
-    let sts_err =
-      let aux (np, cs) =
-        let filesystem = {st.filesystem with constraints=cs} in
-        let info = asprintf "test-e no resolve (child of %a)" print_path (np, st.filesystem.root) in
-        false, print_dbg info {st with filesystem}
-      in
-      List.map aux cs_errs
-    in
-    st_ok :: sts_err
-  | _ -> [false, print_err "test-e: Not exactly one argument" st]
-
-let interp_cd st =
-  match st.args with
-  | [path] ->
-    let (constraints, np), cs_err = resolve st.filesystem path in
-    let x = path_target np st.filesystem.root in
-    let st_ok =
-      let constraints = Dir x & constraints in
-      let filesystem = {st.filesystem with constraints; cwd=np} in
-      true, {st with filesystem}
-    in
-    let sts_err =
-      let st_err_reg =
-        let filesystem =
-          let constraints = Reg x & constraints in
-          {st.filesystem with constraints}
-        in
-        false, print_err "cd: Not a directory" {st with filesystem}
-      in
-      let sts_err =
-        let aux (_, constraints) =
-          let filesystem = {st.filesystem with constraints} in
-          false, print_err "No such file or directory" {st with filesystem}
-        in
-        List.map aux cs_err
-      in
-      st_err_reg :: sts_err
-    in
-    st_ok :: sts_err
-  | _ -> [false, print_err "cd: Not exactly one argument" st]
-
-(** When [np] is a path starting at [r], [similar cs r np r'] creates similarity constraints along from [r] along [np] starting at [r'] *)
-let similar_path cs r np f r' : constraints * path =
-  let rec aux cs x np y np' =
-    match np with
-    | [] ->
-      let y' = fresh_var_feature f (constraints_vars cs) in
-      let cs' =
-        Similar (x, Set.singleton f, y) &
-        Feature (y, f, y') &
-        cs
-      in
-      cs', ((y', f) :: np')
-    | (f, x') :: np'' ->
-      let y' = fresh_var_like x' (constraints_vars cs) in
-      let cs' =
-        Similar (x, Set.singleton f, y) &
-        (* Feature (x, f, x') is already implied by `np` as the result of `resolve` *)
-        Feature (y, f, y') &
-        cs
-      in
-      aux cs' x' np'' y' ((y', f) :: np')
-  in
-  aux cs r (reverse_path np) r' []
-
-(** This corresponds to section {e Similarity constraint lifted to normal paths} in the
-    {e Specification of UNIX commands}.
-
-    Contrary to the previous implementations, it does not reuse the nodes from resolving the path [p], though.  *)
-let rec similar_path' cs x p y =
-  match p with
-  | [] -> failwith "similar_path''"
-  | [f] -> Similar (x, Set.singleton (F f), y) & cs
-  | f :: p' ->
-    let f = F f in
-    let vars = constraints_vars cs in
-    let x' = fresh_var_feature f vars in
-    let y' = fresh_var_feature f (x' & vars) in
-    let cs' =
-      Similar (x, Set.singleton f, y) &
-      Feature (x, f, x') &
-      Feature (y, f, y') &
-      cs
-    in
-    similar_path' cs' x' p' y'
-
-(** Align the cwd path with a similar path *)
-let path_align_similar root np root' np' =
-  let rec aux x p x' p' =
-    match p, p' with
-    | (f, y) :: p_rest, (g, y') :: p'_rest ->
-      if f = g
-      then (g, y') :: aux y p_rest y' p'_rest
-      else (* paths diverge, keep [p] *) p
-    | [], _ -> []
-    | _, [] -> p
-  in
-  reverse_path @@
-  aux root (reverse_path np)
-    root' (reverse_path np')
+let interp_echo sta args =
+  let str = String.concat " " args in
+  [print_line str {sta with result = true}]
 
 let last_path_component path =
   match List.rev (String.split_on_char '/' path) with
   | f :: p -> Some (String.join "/" (List.rev p), f)
   | _ -> None
 
-let create_node fs np f =
-  let root = fresh_var_like fs.root (constraints_vars fs.constraints) in
-  let constraints, np' = similar_path fs.constraints fs.root np f root in
-  let cwd = path_align_similar fs.root fs.cwd root np' in
-  let y' = path_target np' root in
-  y', {root; constraints; cwd}
-
-(** Symbolic interpretation of command touch *)
-let interp_touch st =
-  match st.args with
-  | [path] ->
-    begin match last_path_component path with
-      | Some (p, f) -> (* [path = p/f] *)
-        let f = F f in
-        let (cs, np), cs_err = resolve st.filesystem p in
-        (* [p] resolves to [x] in the original state *)
-        let x = path_target np st.filesystem.root in
-        let st1_ok = (* p/f exists, nop *)
-          let constraints =
-            Present (x, f) &
-            cs
-          in
-          let filesystem = {st.filesystem with constraints} in
-          true, print_dbg "touch: present" {st with filesystem}
+(* Symbolic interpretation of command touch *)
+let interp_touch sta args =
+  match args with
+  | [path] -> begin
+      match last_path_component path with
+      | Some (p, s) -> (* [path = p/f] *)
+        let f = Feature.of_string s in
+        with_filesystem_clauses sta @@
+        resolve p @@ fun x disj (_, (errs : Clause.t list)) ->
+        let st1_ok : (bool * Clause.t) list = (* p/f exists, nop *)
+          disj >>=
+          Clause.nabs x f >>=
+          as_success
         in
-        let st2_ok = (* p exists, p/f doesn't *)
-          let y', fs = create_node {st.filesystem with constraints=cs} np f in
-          let constraints =
-            Absent (x, f) &
-            Reg y' &
-            fs.constraints
-          in
-          let filesystem = {fs with constraints} in
-          true, print_dbg "touch: absent" {st with filesystem}
+        let st2_ok : (bool * Clause.t) list = (* p exists, p/f doesn't *)
+          exists_d @@ fun x' ->
+          exists_d @@ fun y ->
+          disj >>=
+          dir x >>= Clause.abs x f >>=
+          Clause.sim x (Feature.Set.singleton f) x' >>= fun cls ->
+          Clause.feat x' f y cls >>=
+          as_success
         in
-        let sts_err =
+        let sts_err : (bool * Clause.t) list =
           (* p does not exist *)
-          let aux (_, constraints) =
-            let filesystem = {st.filesystem with constraints} in
-            false, print_dbg "touch: no resolve" {st with filesystem}
-          in
-          List.map aux cs_err
+          errs >>= fun cls -> [false, cls]
         in
-        st1_ok :: st2_ok :: sts_err
-      | None -> [false, print_err "touch: empty path" st]
-    end
-  | _ -> [false, print_err "touch: not exactly one argument" st]
-
-(* Interprete mkdir *)
-let interp_mkdir st =
-  match st.args with
-  | [path] ->
-    begin match last_path_component path with
-      | Some (p, f) -> (* [path = p/f] *)
-        let f = F f in
-        let (cs, np), errs = resolve st.filesystem p in
-        (* [p] targets [x] in [st] *)
-        let x = path_target np st.filesystem.root in
-        let st_nor = (* p exists, p/f does not exist *)
-          let y', fs = create_node {st.filesystem with constraints=cs} np f in
-          let filesystem =
-            let constraints =
-              Absent (x, f) &
-              Dir y' & (* implied by Fence? *)
-              Fence (y', Set.empty) & (* TODO That’s true for the moment but how to invalidate in subsequent commands that fill [y']? *)
-              fs.constraints
-            in
-            {fs with constraints}
-          in
-          true, print_dbg "mkdir: created" {st with filesystem}
-        in
-        let st_err = (* p/f already exists *)
-          let filesystem =
-            let constraints =
-              Present (x, f) &
-              cs
-            in
-            {st.filesystem with constraints}
-          in
-          false, print_err "mkdir: File exists" {st with filesystem}
-        in
-        let sts_err =
-          let aux (_, constraints) =
-            let filesystem = {st.filesystem with constraints} in
-            false, print_err "mkdir: No such file or directory" {st with filesystem}
-          in
-          List.map aux errs
-        in
-        st_nor :: st_err :: sts_err
+        st1_ok @ st2_ok @ sts_err
       | None ->
-        [false, print_err "mkdir: empty path" st]
+        [print_err "touch: empty path" {sta with result = false}]
     end
-  | _ -> [false, print_err "mkdir: not exactly one argument" st]
+  | _ -> [print_err "touch: not exactly one argument" {sta with result = false}]
 
-let interp (cmd: string) (st: state) : (bool * state) list =
+
+let interp_test_e sta args =
+  match args with
+  | [path] ->
+    with_filesystem_clauses sta @@
+    resolve path @@ fun x disj (_, errs) ->
+    let sts_ok = disj >>= as_success in
+    let sts_err = errs >>= as_failure in
+    sts_ok @ sts_err
+  | _ -> [print_err "test-e: Not exactly one argument" {sta with result = false}]
+
+let interp (sta: state) (cmd: string) (args:string list) : state list =
   match cmd with
-  | "echo" -> interp_echo st
-  | "test-e" -> interp_test_e st
-  | "cd" -> interp_cd st
-  | "touch" -> interp_touch st
-  | "mkdir" -> interp_mkdir st
-  | _ -> [false, print_err ("Unknown builtin: "^cmd) st]
+  | "echo" -> interp_echo sta args
+  | "test-e" -> interp_test_e sta args
+  | _ -> [print_err ("Unknown builtin: "^cmd) {sta with result = false}]

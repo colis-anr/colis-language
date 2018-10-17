@@ -24,7 +24,8 @@ extract-why3:
 		-L src/language -L src/concrete -L src/symbolic \
 		-o src/why3 \
 		interpreter.Interpreter \
-		symbexec.Interpreter
+		symbexec.Interpreter \
+    symbolicInterpreter.Interpreter
 
 clean-why3:
 	rm -rf src/why3

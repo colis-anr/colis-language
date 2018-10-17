@@ -1,3 +1,17 @@
+module symbolicInterpreter.Constraints
+  syntax type clause "Clause.t"
+  syntax type disj "Clause.disj"
+  syntax type variable "Variable.t"
+  syntax type feature "Feature.t"
+  syntax val empty_clause "Clause.empty"
+  syntax val sat "Clause.sat %1"
+  syntax val default_root "Variable.fresh ~hint:\"root\" ()"
+end
+
+module symbolicInterpreter.Interpreter
+  syntax val interp_builtin "SymbolicBuiltin.interp %1 %2 %3"
+end
+
 module symbexec.Interpreter
   syntax val propagate "Symbexec_propagate.propagate %1"
   syntax val interp_builtin "Symbexec_builtin.interp %1 %2 %3"
