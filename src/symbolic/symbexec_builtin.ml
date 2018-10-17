@@ -331,7 +331,7 @@ let interp_mkdir sta args =
             let constraints =
               Absent (x, f) &
               Dir y' & (* implied by Fence? *)
-              Fence (y', Set.empty) & (* TODO That’s true for the moment but how to invalidate in subsequent commands that fill [y']? *)
+              Fence (y', Set.empty) & 
               fs.constraints
             in
             {fs with constraints}
