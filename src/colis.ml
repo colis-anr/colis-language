@@ -7,13 +7,22 @@ module FromShell = FromShell
 
 (* CoLiS *)
 
+exception ParseError of string
+exception ConversionError of string
+
 type colis = AST.program
 
 let colis_from_lexbuf ?(filename="-") lexbuf =
   lexbuf.Lexing.lex_curr_p <-
     { lexbuf.Lexing.lex_curr_p
     with Lexing.pos_fname = filename };
-  ColisParser.program ColisLexer.token lexbuf
+  try
+    ColisParser.program ColisLexer.token lexbuf
+  with
+  | ColisLexer.LexerError s ->
+     raise (ParseError s)
+  | ColisParser.Error ->
+     raise (ParseError "")
 
 let colis_from_channel ?(filename="-") channel =
   let lexbuf = Lexing.from_channel channel in
@@ -53,9 +62,19 @@ let colis_to_file filename colis =
 
 type shell = Morsmall.AST.program
 
-let shell_from_file = Morsmall.parse_file
+let shell_from_file file =
+  try
+    Morsmall.parse_file file
+  with
+    Morsmall.SyntaxError _pos ->
+    raise (ParseError "")
 
-let shell_to_colis = FromShell.program__to__program
+let shell_to_colis shell =
+  try
+    FromShell.program__to__program shell
+  with
+    FromShell.Unsupported feat ->
+    raise (ConversionError ("unsupported feature: " ^ feat))
 
 (* Interpret *)
 

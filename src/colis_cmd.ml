@@ -71,17 +71,11 @@ let main () =
            | Shell -> Colis.(shell_from_file ||> shell_to_colis)
       )
     with
-    | Colis.ColisLexer.LexerError s ->
-       eprintf "Lexing error: %s@." s;
+    | Colis.ParseError msg ->
+       eprintf "Parse error: %s@." msg;
        exit 2
-    | Colis.ColisParser.Error ->
-       eprintf "Parsing error@.";
-       exit 2
-    | Morsmall.SyntaxError _pos ->
-       eprintf "Syntax error@.";
-       exit 2
-    | Colis.FromShell.Unsupported feat ->
-       eprintf "Unsupported feature: %s@." feat;
+    | Colis.ConversionError msg ->
+       eprintf "Conversion error: %s@." msg;
        exit 3
   in
   match get_action () with
