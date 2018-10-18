@@ -24,7 +24,7 @@ depends: [
   "ocaml"  {build & >= "4.05"}
   "why3"   {build}
 
-  "odoc"   {doc}
+  "odoc"   {with-doc}
 
-  "ppx_protocol_conv_yaml"  {test}
+  "ppx_protocol_conv_yaml"  {with-test}
 ]
