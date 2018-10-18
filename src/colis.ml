@@ -1,102 +1,87 @@
-module Interpreter = Interpreter__Interpreter
+open Format
 
-type source = Colis | Shell
-type action = Run | RunSymbolic | PrintColis | PrintShell
+module AST = Syntax__Syntax
+module ColisParser = ColisParser
+module ColisLexer = ColisLexer
+module FromShell = FromShell
 
-let get_action, set_action =
-  let action = ref None in
-  (fun () ->
-    match !action with
-    | None -> Run
-    | Some action -> action),
-  (fun new_action () ->
-    match !action with
-    | None -> action := Some new_action
-    | Some _ -> raise (Arg.Bad "only one action among --run, --run-symbolic, --print-colis and --print-shell can be specified"))
+(* CoLiS *)
 
-let realworld = ref false
+exception ParseError of string
+exception ConversionError of string
 
-let get_source, set_source =
-  let source = ref None in
-  (fun () ->
-    match !source with
-    | None -> Shell
-    | Some source -> source),
-  (fun new_source () ->
-    match !source with
-    | None -> source := Some new_source
-    | Some _ -> raise (Arg.Bad "only one source among --colis and --shell can be specified"))
+type colis = AST.program
 
-let get_file, get_arguments, set_file_or_argument =
-  let file = ref None in
-  let args = ref [] in
-  (fun () ->
-    match !file with
-    | None -> raise (Arg.Bad "you must provide an input file")
-    | Some file -> file),
-  (fun () -> List.rev !args |> Array.of_list),
-  (fun new_file_or_arg ->
-    match !file with
-    | None -> file := Some new_file_or_arg
-    | Some _ -> args := new_file_or_arg :: !args)
-
-let speclist =
-  [ "--run",          Arg.Unit (set_action Run),         " Concrete execution (default)";
-    "--run-symbolic", Arg.Unit (set_action RunSymbolic), " Symbolic execution";
-    "--print-colis",  Arg.Unit (set_action PrintColis),  " Print the CoLiS script";
-    "--print-shell",  Arg.Unit (set_action PrintShell),  " Print the Shell script";
-    "--realworld",    Arg.Set realworld,                 " Use system utilities in concrete execution";
-    "--shell",        Arg.Unit (set_source Shell),       " Use the shell parser (default)";
-    "--colis",        Arg.Unit (set_source Colis),       " Use the colis parser" ]
-  |> Arg.align
-
-let usage =
-  Format.sprintf
-    "Usage: %s [--run [--realworld] | --run-symbolic | --print-colis | --print-shell] [--shell | --colis] FILE"
-    Sys.argv.(0)
-
-let main () =
-  Arg.parse speclist set_file_or_argument usage;
-  if !realworld && get_action () <> Run then
-    raise (Arg.Bad "--realworld can only be specified with --run");
-
-  let program =
-    get_file ()
-    |> match get_source () with
-       | Colis -> FromColis.parse
-       | Shell -> FromShell.parse
-  in
-  match get_action () with
-  | Run ->
-     (
-       let open Interpreter in
-       (* FIXME: realworld *)
-       let state = empty_state () in
-       let input = { empty_input with arguments = get_arguments () } in
-       interp_program input state program;
-       print_string (!(state.stdout) |> List.rev |> String.concat "\n");
-       exit (if !(state.result) then 0 else 1)
-     )
-  | RunSymbolic ->
-     (
-       Format.eprintf "Symbolic execution is not supported yet.@.";
-       exit 3
-     )
-  | PrintColis ->
-     (
-       Format.printf "%a@." ToColis.program program
-     )
-  | PrintShell ->
-     (
-       Format.eprintf "Printing Shell is not supported yet.@.";
-       exit 3
-     )
-
-let () =
+let colis_from_lexbuf ?(filename="-") lexbuf =
+  lexbuf.Lexing.lex_curr_p <-
+    { lexbuf.Lexing.lex_curr_p
+    with Lexing.pos_fname = filename };
   try
-    main ()
+    ColisParser.program ColisLexer.token lexbuf
   with
-    Arg.Bad msg ->
-    Format.eprintf "Error: %s@." msg;
-    Arg.usage speclist usage;
-    exit 3
+  | ColisLexer.LexerError s ->
+     raise (ParseError s)
+  | ColisParser.Error ->
+     raise (ParseError "")
+
+let colis_from_channel ?(filename="-") channel =
+  let lexbuf = Lexing.from_channel channel in
+  colis_from_lexbuf ~filename lexbuf
+
+let colis_from_file filename =
+  let ic = open_in filename in
+  try
+    let colis = colis_from_channel ~filename ic in
+    close_in ic;
+    colis
+  with
+    exn -> close_in ic; raise exn
+
+let colis_from_string string =
+  let lexbuf = Lexing.from_string string in
+  colis_from_lexbuf lexbuf
+
+let pp_print_colis = ToColis.program
+
+let print_colis =
+  pp_print_colis (Format.formatter_of_out_channel stdout)
+
+let colis_to_string colis =
+  let buf = Buffer.create 8 in
+  let fmt = Format.formatter_of_buffer buf in
+  pp_print_colis fmt colis;
+  Buffer.contents buf
+
+let colis_to_file filename colis =
+  let ochan = open_out filename in
+  let fmt = Format.formatter_of_out_channel ochan in
+  pp_print_colis fmt colis;
+  close_out ochan
+
+(* Shell *)
+
+type shell = Morsmall.AST.program
+
+let shell_from_file file =
+  try
+    Morsmall.parse_file file
+  with
+    Morsmall.SyntaxError _pos ->
+    raise (ParseError "")
+
+let shell_to_colis shell =
+  try
+    FromShell.program__to__program shell
+  with
+    FromShell.Unsupported feat ->
+    raise (ConversionError ("unsupported feature: " ^ feat))
+
+(* Interpret *)
+
+let run ?(arguments=[]) colis =
+  let open Interpreter__Interpreter in
+  let state = empty_state () in
+  let input = { empty_input with arguments = Array.of_list arguments } in
+  interp_program input state colis;
+  print_string (!(state.stdout) |> List.rev |> String.concat "\n");
+  exit (if !(state.result) then 0 else 1)

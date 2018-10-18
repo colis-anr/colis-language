@@ -32,6 +32,7 @@ rule token = parse
   | "pipe"                              { PIPE }
   | "previous"                          { PREVIOUS }
   | "process"                           { PROCESS }
+  | "split"                             { SPLIT }
   | "success"                           { SUCCESS }
   | "then"                              { THEN }
   | "while"                             { WHILE }

@@ -12,7 +12,7 @@ let rec concat = function
 %}
 
 
-%token SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN
+%token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN
 %token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING
 %token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF
 %token<string> LITERAL
@@ -61,8 +61,8 @@ sexpr:
   | nonempty_list(sfrag)                                      { concat $1 }
 ;
 lfrag:
-  | sexpr                                                     { $1, Split }
-  | delimited (LACCOL, sexpr, RACCOL)                         { $1, DontSplit}
+  | SPLIT sexpr                                               { $2, Split }
+  | sexpr                                                     { $1, DontSplit}
 ;
 lexpr:
   | delimited (LCROCH, separated_list(PTVIRG, lfrag), RCROCH) { $1 }
