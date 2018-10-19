@@ -6,57 +6,78 @@ val ctrue : conj
 val dtrue : disj
 val dfalse : disj
 
-module Monad :
-sig
-  type t = conj -> disj
+val exists : (Var.t -> conj -> disj) -> conj -> disj
 
-  val (>>=) : disj -> (conj -> disj) -> disj
+val fold : ('a -> conj -> 'a) -> 'a -> disj -> 'a
+val map_to_list : (conj -> 'a) -> disj -> 'a list
+(* FIXME: this is exactly (when you reverse the arguments) the monadic
+   bind. But I don't dare writing it that way. *)
 
-  val (>=>) : t -> t -> t
-end
+(** {2 Monadic functions} *)
 
-module LowLevel :
-sig
-  val feat : Var.t -> Feat.t -> Var.t -> conj -> disj
-  val nfeat : Var.t -> Feat.t -> Var.t -> conj -> disj
+val pure : conj -> disj
 
-  val abs : Var.t -> Feat.t -> conj -> disj
-  val nabs : Var.t -> Feat.t -> conj -> disj
+val (>>=) : disj -> (conj -> disj) -> disj
 
-  val reg : Var.t -> conj -> disj
-  val nreg : Var.t -> conj -> disj
+val (>=>) : (conj -> disj) -> (conj -> disj) -> (conj -> disj)
 
-  val dir : Var.t -> conj -> disj
-  val ndir : Var.t -> conj -> disj
+(** {2 High-level functions working on terms} *)
 
-  val fen : Var.t -> Feat.Set.t -> conj -> disj
-  val nfen : Var.t -> Feat.Set.t -> conj -> disj
+type term = Var.t * Path.t
 
-  val sim : Var.t -> Feat.Set.t -> Var.t -> conj -> disj
-  val nsim : Var.t -> Feat.Set.t -> Var.t -> conj -> disj
+val eq : term -> term -> conj -> disj
+(** [eq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in [x] and
+   [y] resp. and what's there on both sides is equal." *)
 
-  val empty : Var.t -> conj -> disj
-  val nempty : Var.t -> conj -> disj
+val neq : term -> term -> conj -> disj
+(** [eq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in [x] and
+   [y] resp. and what's there on both sides is different." *)
 
-  val sim1 : Var.t -> Feat.t -> conj -> disj
-end
+val abs : term -> Feat.t -> conj -> disj
+(** [abs x\[p\] f] means "the path [p] exists in [x] and what's there
+   does not have the feature [f]." *)
 
-module WithPath :
-sig
-  val abs : (Var.t * Path.t) -> Feat.t -> conj -> disj
-  val nabs : (Var.t * Path.t) -> Feat.t -> conj -> disj
+val nabs : term -> Feat.t -> conj -> disj
+(** [abs x\[p\] f] means "the path [p] exists in [x] and
+   what's there does have the feature [f]." *)
 
-  val reg : (Var.t * Path.t) -> conj -> disj
-  val nreg : (Var.t * Path.t) -> conj -> disj
+val reg : term -> conj -> disj
+(** [reg x\[p\]] means "the path [p] exists in [x] and what's there is
+   a regular file." *)
 
-  val dir : (Var.t * Path.t) -> conj -> disj
-  val ndir : (Var.t * Path.t) -> conj -> disj
+val nreg : term -> conj -> disj
+(** [reg x\[p\]] means "the path [p] exists in [x] and what's there
+   isn't a regular file." *)
 
-  val fen : (Var.t * Path.t) -> Feat.Set.t -> conj -> disj
-  val nfen : (Var.t * Path.t) -> Feat.Set.t -> conj -> disj
+val dir : term -> conj -> disj
+(** [dir x\[p\]] means "the path [p] exists in [x] and what's there
+   is a directory." *)
 
-  val empty : (Var.t * Path.t) -> conj -> disj
-  val nempty : (Var.t * Path.t) -> conj -> disj
+val ndir : term -> conj -> disj
+(** [reg x\[p\]] means "the path [p] exists in [x] and what's there
+   isn't a directory." *)
 
-  val sim1 : (Var.t * Path.t) -> conj -> disj
-end
+(* FIXME: We need a notation for "either [t] doesn't exist or it is
+   not a directory". This is the subtle difference between (¬dir) t
+   and ¬(dir t). Maybe things like "ex_and_dir", "ex_and_ndir",
+   "nex_or_ndir"? *)
+
+val fen : term -> Feat.Set.t -> conj -> disj
+(** [fen x\[p\] fs] means "the path [p] exists in [x] and what's there
+   does not have features that are not in [fs]." *)
+
+val nfen : term -> Feat.Set.t -> conj -> disj
+(** [fen x\[p\] fs] means "the path [p] exists in [x] and what's there
+   does have a feature that is not in [fs]." *)
+
+val empty : term -> conj -> disj
+(** [empty x\[p\]] means "the path [p] exists in [x] and what's there
+   does not have any feature." *)
+
+val nempty : term -> conj -> disj
+(** [nempty x\[p\]] means "the path [p] exists in [x] and what's there
+   has a feature." *)
+
+val sim1 : Var.t -> Path.t -> Var.t -> conj -> disj
+(** [sim1 x p y] means, with [p = q/f] "the path [q] exists in both
+   [x] and [y] and [x] and [y] may only differ in the name [p]." *)

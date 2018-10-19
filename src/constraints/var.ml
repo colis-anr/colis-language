@@ -4,11 +4,12 @@ type t =
 
 let fresh =
   let free = ref 0 in
-  fun ?hint ?hintf () ->
+  fun ?hint ?hintf ?hintv () ->
   let hint =
-    match hint, hintf with
-    | Some hint, _ -> Some hint
-    | _, Some hintf -> Some (Feat.to_string hintf)
+    match hint, hintf, hintv with
+    | Some hint, _, _ -> Some hint
+    | _, Some hintf, _ -> Some (Feat.to_string hintf)
+    | _, _, Some hintv -> hintv.hint
     | _ -> None
   in
   incr free;

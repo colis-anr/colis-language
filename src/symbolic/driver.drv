@@ -1,11 +1,11 @@
 module symbolicInterpreter.Constraints
-  syntax type clause "Clause.t"
-  syntax type disj "Clause.disj"
-  syntax type variable "Variable.t"
-  syntax type feature "Feature.t"
-  syntax val empty_clause "Clause.empty"
-  syntax val sat "Clause.sat %1"
-  syntax val default_root "Variable.fresh ~hint:\"root\" ()"
+  syntax type clause "Constraints.Clause.conj"
+  syntax type disj "Constraints.Clause.disj"
+  syntax type variable "Constraints.Var.t"
+  syntax type feature "Constraints.Feat.t"
+  syntax val empty_clause "Constraints.Clause.ctrue"
+  syntax val sat "Constraints.Clause.sat %1"
+  syntax val default_root "Constraints.Var.fresh ~hint:\"root\" ()"
 end
 
 module symbolicInterpreter.Interpreter
