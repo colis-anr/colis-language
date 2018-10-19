@@ -1,1 +1,3 @@
-call f
+begin
+  call f
+end

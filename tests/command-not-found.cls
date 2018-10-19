@@ -1,1 +1,3 @@
-foo
+begin
+  foo
+end

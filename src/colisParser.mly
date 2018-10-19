@@ -23,10 +23,10 @@ let rec concat = function
 %%
 program:
   list(function_definition)
-  instruction EOF                                             { {function_definitions=$1; instruction=$2} }
+  BEGIN seq END EOF                                           { {function_definitions=$1; instruction=$3} }
 ;
 function_definition:
-  FUNCTION IDENTIFIER instruction PTVIRG                      { $2, $3 }
+  FUNCTION IDENTIFIER BEGIN seq END                           { $2, $4 }
 ;
 instruction:
   | EXIT exit_code                                            { IExit($2) }
