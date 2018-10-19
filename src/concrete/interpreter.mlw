@@ -129,9 +129,9 @@ module Interpreter
       assert { !(sta.result) = bool_of_return_code code !(sta.result at L) };
       raise EExit
 
-    | IAssignment var se ->
+    | IAssignment id se ->
       let str, bo = interp_str_expr inp sta se in
-      sta.senv := !(sta.senv)[var <- str];
+      sta.senv := !(sta.senv)[id <- str];
       sta.result := option_get True bo;
       maybe_exit inp sta
 
@@ -172,14 +172,14 @@ module Interpreter
       let args = interp_list_expr inp sta le in
       interp_builtin inp sta name args
 
-    | IForeach var le ins ->
+    | IForeach id le ins ->
       let ss = interp_list_expr inp sta le in
       let last_result = ref True in
       let rec foreach ss =
         match ss with
         | Nil -> ()
         | Cons s ss' ->
-          sta.senv := !(sta.senv)[var <- s];
+          sta.senv := !(sta.senv)[id <- s];
           interp_instruction inp sta ins;
           last_result := !(sta.result);
           foreach ss'
@@ -211,8 +211,8 @@ module Interpreter
     | SLiteral s ->
       s, None
 
-    | SVariable v ->
-      !(sta.senv) v, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[v] *)
+    | SVariable id ->
+      !(sta.senv) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
 
     | SSubshell ins ->
       (* TODO `result = ref True`: differences between shells *)

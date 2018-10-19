@@ -6,21 +6,21 @@ end
 
 module Environment
   use map.Map
-  use syntax.Variable
+  use syntax.Identifier
   use mystring.String
   
-  type env 'a = map variable 'a
+  type env 'a = map identifier 'a
 
   let constant empty_env =
     fun _ -> String.empty (* Cannot use map.Const because Map__Const is not extracted... *)
 
-  let function ([<-]) (e:env 'a) (var:variable) (value:'a) : variable -> 'a
-    ensures { result[var] = value }
-    ensures { forall var'. var' <> var -> result[var'] = e[var'] }
-  = fun var' ->
-      if variable_eq var' var
+  let function ([<-]) (e:env 'a) (id:identifier) (value:'a) : identifier -> 'a
+    ensures { result[id] = value }
+    ensures { forall id'. id' <> id -> result[id'] = e[id'] }
+  = fun id' ->
+      if identifier_eq id' id
       then value
-      else e var'
+      else e id'
 end
 
 module Behaviour
@@ -146,7 +146,7 @@ module Context
   use list.Append
 
   use mystring.String
-  use syntax.Variable
+  use syntax.Identifier
 
   use Filesystem
   use Behaviour
@@ -257,11 +257,11 @@ module Semantics
     let bhv = BExit b in
     eval_instruction inp ctx sta (IExit c) sta ctx bhv
 
-  | eval_assign: forall inp ctx sta sta' v e s bo.
+  | eval_assign: forall inp ctx sta sta' id e s bo.
     eval_str_expr inp ctx sta e sta' s bo ->
-    let ctx' = {ctx with senv = ctx.senv[v <- s]} in
+    let ctx' = {ctx with senv = ctx.senv[id <- s]} in
     let bhv = inject_behaviour inp (option_get True bo) in
-    eval_instruction inp ctx sta (IAssignment v e) sta' ctx' bhv
+    eval_instruction inp ctx sta (IAssignment id e) sta' ctx' bhv
   
   | eval_sequence_normal: forall inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 b1 bhv2.
     eval_instruction inp ctx sta ins1 sta1 ctx1 (BNormal b1) ->
@@ -325,11 +325,11 @@ module Semantics
     let bhv = inject_behaviour inp b in
     eval_instruction inp ctx sta (ICall s es) sta'' ctx bhv
   
-  | eval_foreach: forall inp ctx ctx' sta sta' sta'' v es ins ss bhv.
+  | eval_foreach: forall inp ctx ctx' sta sta' sta'' id es ins ss bhv.
     eval_list_expr inp ctx sta es sta' ss -> 
     (* The behaviour of empty for-loops is `BNormal True` *)
-    eval_foreach (BNormal True) inp ctx sta' v ss ins sta'' ctx' bhv ->
-    eval_instruction inp ctx sta (IForeach v es ins) sta'' ctx' bhv
+    eval_foreach (BNormal True) inp ctx sta' id ss ins sta'' ctx' bhv ->
+    eval_instruction inp ctx sta (IForeach id es ins) sta'' ctx' bhv
 
   | eval_while: forall inp ctx ctx' sta sta' ins1 ins2 bhv.
     (* The behaviour of empty while-loops is `BNormal True` *)
@@ -365,15 +365,15 @@ module Semantics
     eval_while bhv inp ctx sta ins1 ins2 sta3 ctx3 bhv3
 
   (* The first parameter is the previous behaviour, or the behaviour of the empty loop initially *)
-  with eval_foreach behaviour input context state variable (list string) instruction state context behaviour =
+  with eval_foreach behaviour input context state identifier (list string) instruction state context behaviour =
 
-  | eval_foreach_nil: forall bhv inp ctx sta x ins.
-    eval_foreach bhv inp ctx sta x Nil ins sta ctx bhv
+  | eval_foreach_nil: forall bhv inp ctx sta id ins.
+    eval_foreach bhv inp ctx sta id Nil ins sta ctx bhv
 
-  | eval_foreach_cons: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 x s ss ins bhv1 bhv2.
-    eval_instruction inp {ctx with senv = ctx.senv[x <- s]} sta ins sta1 ctx1 bhv1 ->
-    eval_foreach bhv1 inp ctx1 sta1 x ss ins sta2 ctx2 bhv2 ->
-    eval_foreach bhv inp ctx sta x (Cons s ss) ins sta2 ctx2 bhv2
+  | eval_foreach_cons: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 id s ss ins bhv1 bhv2.
+    eval_instruction inp {ctx with senv = ctx.senv[id <- s]} sta ins sta1 ctx1 bhv1 ->
+    eval_foreach bhv1 inp ctx1 sta1 id ss ins sta2 ctx2 bhv2 ->
+    eval_foreach bhv inp ctx sta id (Cons s ss) ins sta2 ctx2 bhv2
 
   (** Evaluation of an expression with some input I, context C, and state S, resulting in
       another state S, a string and an output comprised of a string result and an optional
@@ -386,17 +386,17 @@ module Semantics
   | eval_str_literal: forall inp ctx sta s. 
     eval_str_expr inp ctx sta (SLiteral s) sta s None
 
-  | eval_str_variable: forall inp ctx sta v.
-    let s = ctx.senv[v] in
-    eval_str_expr inp ctx sta (SVariable v) sta s None
+  | eval_str_variable: forall inp ctx sta id.
+    let s = ctx.senv[id] in
+    eval_str_expr inp ctx sta (SVariable id) sta s None
 
-  | eval_str_subshell: forall inp ctx ctx' sta sta2 stm bhv.
+  | eval_str_subshell: forall inp ctx ctx' sta sta2 ins bhv.
     let sta1 = {sta with stdout = empty_stdout} in
-    eval_instruction inp ctx sta1 stm sta2 ctx' bhv ->
+    eval_instruction inp ctx sta1 ins sta2 ctx' bhv ->
     let sta3 = {sta2 with stdout = sta.stdout} in
     let s = Buffers.stdout_to_string sta2.stdout in
     let bo = Some (bool_of_behaviour bhv) in
-    eval_str_expr inp ctx sta (SSubshell stm) sta3 s bo
+    eval_str_expr inp ctx sta (SSubshell ins) sta3 s bo
 
   | eval_str_concat : forall inp ctx sta sta1 sta2 e1 e2 s1 s2 bo1 bo2.
     eval_str_expr inp ctx sta e1 sta1 s1 bo1 ->

@@ -16,27 +16,33 @@ let rec concat = function
 %token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING
 %token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF
 %token<string> LITERAL
-%token<string> VAR_NAME
+%token<string> IDENTIFIER
 %start program
 %type <Syntax__Syntax.instruction> program
 %%
 program:
-  instruction EOF                                             { $1 }
+  list(function_definition)
+  instruction EOF                                             { {function_definitions=$1; instruction=$2} }
+;
+function_definition:
+  FUNCTION IDENTIFIER instruction END                         { $2, $3 }
 ;
 instruction:
   | EXIT exit_code                                            { IExit($2) }
   | IF instruction THEN instruction ELSE instruction FI       { IIf ($2, $4, $6) }
-  | IF instruction THEN instruction FI                        { IIf ($2, $4, ICall("true", [])) }
+  | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallBuiltin("true", [])) }
   | NOT instruction                                           { INot ($2) }
-  | FOR VAR_NAME IN lexpr DO instruction DONE                 { IForeach ($2, $4, $6) }
+  | FOR IDENTIFIER IN lexpr DO instruction DONE               { IForeach ($2, $4, $6) }
   | WHILE instruction DO instruction DONE                     { IWhile ($2, $4) }
   | BEGIN seq END                                             { $2 }
   | PROCESS instruction                                       { ISubshell ($2) }
   | PIPE pipe EPIP                                            { $2 }
   | NOOUTPUT instruction                                      { INoOutput ($2) }
-  | VAR_NAME                                                  { ICall ($1, []) }
-  | VAR_NAME lexpr                                            { ICall ($1, $2) }
-  | VAR_NAME ASSTRING sexpr                                   { IAssignment ($1, $3) }
+  | IDENTIFIER                                                { ICallBuiltin ($1, []) }
+  | IDENTIFIER lexpr                                          { ICallBuiltin ($1, $2) }
+  | CALL IDENTIFIER                                           { ICallFunction ($2, []) }
+  | CALL IDENTIFIER lexpr                                     { ICallFunction ($2, $3) }
+  | IDENTIFIER ASSTRING sexpr                                 { IAssignment ($1, $3) }
   | LPAREN instruction RPAREN                                 { $2 }
 ;
 exit_code:
@@ -54,7 +60,7 @@ seq:
 ;
 sfrag:
   | LITERAL                                                   { SLiteral($1) }
-  | VAR_NAME                                                  { SVariable($1) }
+  | IDENTIFIER                                                { SVariable($1) }
   | EMBED delimited(LACCOL, instruction, RACCOL)              { SSubshell($2) }
 ;
 sexpr:

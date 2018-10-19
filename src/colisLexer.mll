@@ -45,7 +45,7 @@ rule token = parse
   | ']'                                 { RCROCH }
   | '\''                                { let b = Buffer.create 10 in string b lexbuf }
   | '\n'                                { Lexing.new_line lexbuf; token lexbuf }
-  | (alpha (alpha | digit | '_')* as v) { VAR_NAME (v) }
+  | (alpha (alpha | digit | '_')* as v) { IDENTIFIER (v) }
   | ['\t' ' ']                          { token lexbuf }     (* skip tab and blank*)
   | _ as c                              { raise (LexerError ("unknown character '" ^ String.make 1 c ^ "'")) }
 

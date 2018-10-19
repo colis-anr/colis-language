@@ -1,49 +1,48 @@
 
-module Variable
-  type variable
-  val function variable_eq (v1 v2:variable) : bool ensures { result <-> v1 = v2 }
+module Identifier
+  type identifier
+  val function identifier_eq (v1 v2:identifier) : bool
+    ensures { result <-> v1 = v2 }
 end
 
 module Syntax
   use mystring.String
   use list.List
 
-  use export Variable
+  use export Identifier
 
   (* Indicates if a string in a list expression should be split (on spaces)? *)
   type split = Split | DontSplit
 
   (** A `string_expression` evaluates to a `string` *)
-  type string_expression =
-    | SLiteral string                             (** 'string' *)
-    | SVariable variable                          (** ${variable} *)
-    | SSubshell instruction                         (** $(instruction) *)
-    | SConcat string_expression string_expression (** expression expression (without the space) *)
-    (* TODO Arguments $<n> *)
+  type string_expression =                        (** CoLiS       | Shell                                 *)
+    | SLiteral string                             (** 'literal'   | 'string'                              *)
+    | SVariable identifier                        (** id          | ${id}                                 *)
+    | SSubshell instruction                       (** embed instr | $(instruction)                        *)
+    | SConcat string_expression string_expression (** expr expr   | expression expression (without space) *)
 
   (** A list_expression` evaluates to a `list string` *)
-  with list_expression =
+  with list_expression =                          (* [split? expr, ...] | "expr" OR expr *)
     list (string_expression, split)
 
   (* Allow $? only as return code, cf. NOTES[Exit] *)
-  with return_code =
-    | RSuccess
-    | RFailure
-    | RPrevious
+  with return_code = (** CoLiS    | Shell *)
+    | RSuccess       (** success  | 0     *) 
+    | RFailure       (** failure  | 1-255 *)
+    | RPrevious      (** previous | $?    *)
 
   (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
-  with instruction =
-    | IAssignment variable string_expression
-    | ISequence instruction instruction
-    | ISubshell instruction
-    | IIf instruction instruction instruction
-    | INot instruction (* NOTES[Conditionals] *)
-    | IPipe instruction instruction
-    | IWhile instruction instruction
-    | INoOutput instruction
-    | IForeach variable list_expression instruction
     | ICall string list_expression
-    | IExit return_code (* NOTES[Exit] *)
 
-  type program = instruction
+  with instruction =                                   (* ColLiS                         | Shell                            *)
+    | IAssignment identifier string_expression         (* id := sexpr                    | id=sexpr                         *)
+    | ISequence instruction instruction                (* instr; instr                   | instr; instr                     *)
+    | ISubshell instruction                            (* process instr                  | ( instr )                        *)
+    | IIf instruction instruction instruction          (* if instr then instr else instr | if instr; then instr; else instr *)
+    | INot instruction                                 (* not instr                      | ! instr | NOTES[Conditionals]    *)
+    | IPipe instruction instruction                    (* pipe instr into instr epip     | instr | instr                    *)
+    | IWhile instruction instruction                   (* while instr do instr done      | while instr; do instr; done      *)
+    | INoOutput instruction                            (* nooutput instr                 | instr > /dev/null                *)
+    | IForeach identifier list_expression instruction  (* for x in lexpr do instr done   | for x in words; do instr; done   *)
+    | IExit return_code                                (* exit r                         | exit r | NOTES[Exit]             *)
 end
