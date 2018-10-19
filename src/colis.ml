@@ -81,7 +81,7 @@ let shell_to_colis shell =
 let run ?(arguments=[]) colis =
   let open Interpreter__Interpreter in
   let state = empty_state () in
-  let input = { empty_input with arguments = Array.of_list arguments } in
+  let input = { empty_input with arguments = arguments } in
   interp_program input state colis;
   print_string (!(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)

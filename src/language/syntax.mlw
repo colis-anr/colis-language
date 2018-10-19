@@ -20,6 +20,7 @@ module Syntax
     | SVariable identifier                        (** id          | ${id}                                 *)
     | SSubshell instruction                       (** embed instr | $(instruction)                        *)
     | SConcat string_expression string_expression (** expr expr   | expression expression (without space) *)
+    | SArgument int                               (** N           | $N                                    *)
 
   (** A list_expression` evaluates to a `list string` *)
   with list_expression =                          (* [split? expr, ...] | "expr" OR expr *)

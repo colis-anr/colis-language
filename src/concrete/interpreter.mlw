@@ -61,12 +61,12 @@ module Interpreter
   (** {3 The input type} *)
 
   type input = {
-    arguments: array string;
+    arguments: list string;
     under_condition: bool;
   }
 
   let constant empty_input = {
-    arguments = Array.make 0 String.empty;
+    arguments = Nil;
     under_condition = False;
   }
 
@@ -216,6 +216,9 @@ module Interpreter
 
     | SVariable id ->
       !(sta.senv) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
+
+    | SArgument n ->
+      nth_argument inp.arguments n, None
 
     | SSubshell ins ->
       let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); senv = ref !(sta.senv)} in

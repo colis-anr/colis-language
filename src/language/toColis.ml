@@ -23,6 +23,8 @@ let rec string_expression (fmt:formatter) (e:string_expression) : unit =
      fprintf fmt "%s" s
   | SSubshell i ->
      fprintf fmt "@[embed {@ %a }@]" instruction i
+  | SArgument n ->
+     fprintf fmt "arg %a" Z.pp_print n
   | SConcat(e1,e2) ->
      fprintf fmt "@[%a@ %a@]" string_expression e1 string_expression e2
 
