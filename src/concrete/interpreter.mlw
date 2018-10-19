@@ -28,6 +28,7 @@ module Interpreter
      shadow `senv`. *)
   type state = {
     senv : ref (env string);
+    fenv : env (option instruction);
     stdin : ref stdin;
     stdout : ref stdout;
     filesystem : ref filesystem;
@@ -35,7 +36,8 @@ module Interpreter
   }
 
   let empty_state () = {
-    senv = ref empty_env;
+    senv = ref (empty_env String.empty);
+    fenv = empty_env None;
     stdin = ref empty_stdin;
     stdout = ref empty_stdout;
     filesystem = ref empty_filesystem;
@@ -45,7 +47,8 @@ module Interpreter
   (** {4 Conversion to `semantics.Context`} *)
 
   function context (sta:state) : Context.context = {
-    Context.senv = !(sta.senv)
+    Context.senv = !(sta.senv);
+    Context.fenv = sta.fenv;
   }
 
   lemma context_same: forall sta1 sta2.
@@ -85,6 +88,7 @@ module Interpreter
   (** {3 The exit exception} *)
 
   exception EExit
+  exception EReturn
 
   let maybe_exit (inp:input) (sta:state) : unit
     returns { () ->
@@ -114,6 +118,10 @@ module Interpreter
       eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
         ins (state sta) (context sta) (BNormal !(sta.result))
     }
+    raises { EReturn ->
+      eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
+        ins (state sta) (context sta) (BReturn !(sta.result))
+    }
     raises { EExit ->
       eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
         ins (state sta) (context sta) (BExit !(sta.result))
@@ -129,6 +137,15 @@ module Interpreter
       assert { !(sta.result) = bool_of_return_code code !(sta.result at L) };
       raise EExit
 
+    | IReturn code ->
+      match code with
+      | RPrevious -> ()
+      | RSuccess -> sta.result := True
+      | RFailure -> sta.result := False
+      end;
+      assert { !(sta.result) = bool_of_return_code code !(sta.result at L) };
+      raise EReturn
+
     | IAssignment id se ->
       let str, bo = interp_str_expr inp sta se in
       sta.senv := !(sta.senv)[id <- str];
@@ -141,14 +158,24 @@ module Interpreter
 
     | ISubshell ins ->
       (* Don't change `sta.senv` in the subshell *)
-      let sta' = {sta with senv = ref !(sta.senv)} in
-      try interp_instruction inp sta' ins with EExit -> () end;
+      let sta' = {sta with senv = ref !(sta.senv) } in
+      try
+        interp_instruction inp sta' ins
+      with
+        | EExit -> ()
+        | EReturn -> ()
+      end;
       maybe_exit inp sta
 
     | INot ins ->
-      interp_instruction {inp with under_condition=True} sta ins;
+      try
+        interp_instruction {inp with under_condition=True} sta ins;
+      with
+        | EReturn ->
+          sta.result := notb !(sta.result);
+          raise EReturn
+      end;
       sta.result := notb !(sta.result)
-      (* TODO Flip sta.result when interp_instruction raises Exit? *)
 
     | IIf ins1 ins2 ins3 ->
       interp_instruction {inp with under_condition=True} sta ins1;
@@ -163,17 +190,42 @@ module Interpreter
       interp_instruction inp sta' ins
 
     | IPipe ins1 ins2 ->
-      let sta' = {sta with stdout = ref empty_stdout; senv = ref !(sta.senv)} in
-      try interp_instruction inp sta' ins1 with EExit _ -> () end;
-      let sta'' = {sta' with stdout = sta.stdout; stdin = ref (stdout_to_stdin !(sta'.stdout)); senv = ref !(sta.senv)} in
+      let sta' = {
+        sta with
+        senv = ref !(sta.senv);
+        stdout = ref empty_stdout
+      } in
+      try
+        interp_instruction inp sta' ins1
+      with
+        | EExit _ -> ()
+        | EReturn _ -> ()
+      end;
+      let sta'' = {
+        sta' with
+        senv = ref !(sta.senv);
+        stdout = sta.stdout;
+        stdin = ref (stdout_to_stdin !(sta'.stdout))
+      } in
       interp_instruction inp sta'' ins2
 
     | ICallBuiltin name le ->
       let args = interp_list_expr inp sta le in
       interp_builtin inp sta name args
 
-    | ICallFunction _name _le ->
-      absurd (* TODO *)
+    | ICallFunction id le ->
+      let args = interp_list_expr inp sta le in
+      match sta.fenv id with
+      | None ->
+        sta.result := False;
+        maybe_exit inp sta
+      | Some ins ->
+        try
+          interp_instruction {inp with arguments = args} { sta with senv = ref !(sta.senv) } ins
+        with
+          EReturn -> ()
+        end
+      end
 
     | IForeach id le ins ->
       let ss = interp_list_expr inp sta le in
@@ -225,7 +277,8 @@ module Interpreter
       try
         interp_instruction inp sta' ins
       with
-        EExit -> ()
+        | EExit -> ()
+        | EReturn -> ()
       end;
       stdout_to_string !(sta'.stdout), Some !(sta'.result)
 
@@ -254,6 +307,8 @@ module Interpreter
       l1 ++ l2
     end
 
+  use list.FoldLeft
+
   let interp_program inp sta pro
     diverges
     returns { () ->
@@ -261,9 +316,17 @@ module Interpreter
         pro (state sta) (context sta) !(sta.result)
     }
   = try
-      (* TODO interp pro.function_definitions *)
-      interp_instruction inp sta pro.instruction
+      let rec aux e defs =
+        match defs with
+        | Nil -> e
+        | Cons (id, instr) defs' ->
+          aux e[id <- Some instr]  defs'
+        end
+      in
+      let e = aux sta.fenv pro.function_definitions in
+      interp_instruction inp { sta with fenv = e } pro.instruction
     with
-      EExit -> ()
+      | EExit -> ()
+      | EReturn -> ()
     end
 end

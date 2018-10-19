@@ -15,6 +15,7 @@ rule token = parse
   | ":="                                { ASSTRING }
   | "arg"                               { ARG }
   | "begin"                             { BEGIN }
+  | "call"                              { CALL }
   | "do"                                { DO }
   | "done"                              { DONE }
   | "else"                              { ELSE }
@@ -34,6 +35,7 @@ rule token = parse
   | "pipe"                              { PIPE }
   | "previous"                          { PREVIOUS }
   | "process"                           { PROCESS }
+  | "return"                            { RETURN }
   | "split"                             { SPLIT }
   | "success"                           { SUCCESS }
   | "then"                              { THEN }

@@ -1,0 +1,10 @@
+input:
+  arguments: []
+  stdin: ""
+output:
+  stdout: |
+    Hello colis!
+    Hello world!
+
+  stderr: ""
+  return_code: 0

@@ -14,7 +14,7 @@ let rec concat = function
 
 %token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN FUNCTION CALL
 %token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING ARG
-%token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF
+%token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF RETURN
 %token<string> LITERAL
 %token<string> IDENTIFIER
 %token<Z.t> INT
@@ -26,10 +26,11 @@ program:
   instruction EOF                                             { {function_definitions=$1; instruction=$2} }
 ;
 function_definition:
-  FUNCTION IDENTIFIER instruction END                         { $2, $3 }
+  FUNCTION IDENTIFIER instruction PTVIRG                      { $2, $3 }
 ;
 instruction:
   | EXIT exit_code                                            { IExit($2) }
+  | RETURN exit_code                                          { IReturn($2) }
   | IF instruction THEN instruction ELSE instruction FI       { IIf ($2, $4, $6) }
   | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallBuiltin("true", [])) }
   | NOT instruction                                           { INot ($2) }

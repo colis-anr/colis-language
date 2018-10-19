@@ -72,6 +72,8 @@ and instruction (fmt:formatter) (i:instruction) : unit =
      fprintf fmt "@[call %s@ %a@]" s lexpr args
   | IExit c ->
      fprintf fmt "@[exit@ %a@]" exitcode c
+  | IReturn c ->
+     fprintf fmt "@[return@ %a@]" exitcode c
 
 and exitcode (fmt:formatter) (c:return_code) =
   match c with

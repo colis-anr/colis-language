@@ -38,16 +38,17 @@ module Syntax
     | ISequence instruction instruction                (* instr; instr                   | instr; instr                     *)
     | ISubshell instruction                            (* process instr                  | ( instr )                        *)
     | IIf instruction instruction instruction          (* if instr then instr else instr | if instr; then instr; else instr *)
-    | INot instruction                                 (* not instr                      | ! instr | NOTES[Conditionals]    *)
+    | INot instruction                                 (* not instr                      | ! instr (see NOTES[Conditionals])*)
     | IPipe instruction instruction                    (* pipe instr into instr epip     | instr | instr                    *)
     | IWhile instruction instruction                   (* while instr do instr done      | while instr; do instr; done      *)
     | INoOutput instruction                            (* nooutput instr                 | instr > /dev/null                *)
     | IForeach identifier list_expression instruction  (* for x in lexpr do instr done   | for x in words; do instr; done   *)
-    | ICallBuiltin string list_expression              (* id lexpr?                      | words                            *)
-    | ICallFunction string list_expression             (* call id lexpr?                 | words                            *)
-    | IExit return_code                                (* exit r                         | exit r | NOTES[Exit]             *)
+    | ICallBuiltin identifier list_expression          (* id lexpr?                      | words                            *)
+    | ICallFunction identifier list_expression         (* call id lexpr?                 | words                            *)
+    | IReturn return_code                              (* return r                       | return r                         *)
+    | IExit return_code                                (* exit r                         | exit r (see NOTES[Exit])         *)
 
-  with function_definition = (identifier, instruction) (* function id instr end | function id instr *)
+  with function_definition = (identifier, instruction) (* function id instr; | function id instr *)
 
   with program = {
     function_definitions: list function_definition;
