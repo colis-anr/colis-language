@@ -229,6 +229,7 @@ module Semantics
 
   let rec function nth_argument (args: list string) (n: int) : string
     requires { n >= 0 }
+    variant { args }
   = match args with
     | Cons arg args' ->
       if n = 0

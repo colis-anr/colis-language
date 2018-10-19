@@ -316,7 +316,7 @@ module Interpreter
         pro (state sta) (context sta) !(sta.result)
     }
   = try
-      let rec aux e defs =
+      let rec aux e defs variant { defs } =
         match defs with
         | Nil -> e
         | Cons (id, instr) defs' ->
