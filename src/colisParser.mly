@@ -12,13 +12,13 @@ let rec concat = function
 %}
 
 
-%token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN
+%token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN FUNCTION CALL
 %token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING
 %token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF
 %token<string> LITERAL
 %token<string> IDENTIFIER
 %start program
-%type <Syntax__Syntax.instruction> program
+%type <Syntax__Syntax.program> program
 %%
 program:
   list(function_definition)
@@ -61,7 +61,7 @@ seq:
 sfrag:
   | LITERAL                                                   { SLiteral($1) }
   | IDENTIFIER                                                { SVariable($1) }
-  | EMBED delimited(LACCOL, instruction, RACCOL)              { SSubshell($2) }
+  | EMBED delimited(LACCOL, instruction, RACCOL)                  { SSubshell($2) }
 ;
 sexpr:
   | nonempty_list(sfrag)                                      { concat $1 }

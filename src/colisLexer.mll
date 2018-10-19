@@ -22,6 +22,7 @@ rule token = parse
   | "epip"                              { EPIP }
   | "exit"                              { EXIT }
   | "failure"                           { FAILURE }
+  | "function"                          { FUNCTION }
   | "fi"                                { FI }
   | "for"                               { FOR }
   | "if"                                { IF }

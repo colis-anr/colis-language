@@ -42,7 +42,7 @@ and instruction (fmt:formatter) (i:instruction) : unit =
      fprintf fmt "@[<v 2>begin@ %a ;@ %a@ end@]" instruction i1 sequence i2
   | ISubshell i ->
      fprintf fmt "@[process@ %a@]" instruction i
-  | IIf(c,i1,ICall("true", [])) ->
+  | IIf(c,i1,ICallBuiltin("true", [])) ->
      fprintf fmt "@[<hv 2>if %a@ then %a@ fi@]"
              instruction c instruction i1
   | IIf(c,i1,i2) ->
@@ -60,10 +60,14 @@ and instruction (fmt:formatter) (i:instruction) : unit =
   | IForeach(id,le,i1) ->
      fprintf fmt "@[<hv 2>for %s@ in %a@ do %a@ done@]"
              id lexpr le instruction i1
-  | ICall(s,[]) ->
+  | ICallBuiltin(s,[]) ->
      fprintf fmt "%s" s
-  | ICall(s,args) ->
+  | ICallBuiltin(s,args) ->
      fprintf fmt "@[%s@ %a@]" s lexpr args
+  | ICallFunction(s,[]) ->
+     fprintf fmt "call %s" s
+  | ICallFunction(s,args) ->
+     fprintf fmt "@[call %s@ %a@]" s lexpr args
   | IExit c ->
      fprintf fmt "@[exit@ %a@]" exitcode c
 
@@ -85,4 +89,9 @@ and pipe (fmt:formatter) (i:instruction) : unit =
      fprintf fmt "@[<v 0>%a into@ %a@]" instruction i1 pipe i2
   | _ -> instruction fmt i
 
-let program fmt p = instruction fmt p
+and function_definition fmt (n, i) =
+  fprintf fmt "@[function %s %a@]@\n" n instruction i
+
+and program fmt p =
+  List.iter (function_definition fmt) p.function_definitions;
+  instruction fmt p.instruction

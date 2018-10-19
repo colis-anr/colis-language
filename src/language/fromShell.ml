@@ -84,7 +84,11 @@ and word_component__to__string_expression_split_requirement = function
   | Variable (name, NoAttribute) ->
      (C.SVariable name, Split)
   | Subshell program ->
-     (C.SSubshell (program__to__program program), Split)
+     let prog = program__to__program program in
+     if prog.function_definitions = [] then
+       (C.SSubshell prog.C.instruction, Split)
+     else
+       raise (Unsupported "function definition in string subshell")
   | DoubleQuoted word ->
      word_DoubleQuoted__to__string_expression_split_requirement word
   | _ ->
@@ -93,7 +97,12 @@ and word_component__to__string_expression_split_requirement = function
 and word_component_DoubleQuoted__to__string_expression = function
   | Literal s | Name s -> C.SLiteral s
   | Variable (name, NoAttribute) -> C.SVariable name
-  | Subshell program -> C.SSubshell (program__to__program program)
+  | Subshell program ->
+    let prog = program__to__program program in
+    if prog.function_definitions = [] then
+      C.SSubshell (program__to__program program).C.instruction
+    else
+      raise (Unsupported "function definition in string subshell")
   | _ -> raise (Unsupported "(word_component_DoubleQuoted)")
 
 and word__to__string_expression_split_requirement word : (C.string_expression * split_requirement) =
@@ -174,7 +183,7 @@ and command__to__statement = function
 
        | "set", [C.SLiteral "-e", _] ->
           (* FIXME *)
-          C.ICall ("true", [])
+          C.ICallBuiltin ("true", [])
 
        (* All the other special builtins: unsupported *)
 
@@ -199,7 +208,7 @@ and command__to__statement = function
                 (* FIXME: export *)
                 C.ISequence (assign, statement))
               assignment'_list
-              (C.ICall (name, args))
+              (C.ICallBuiltin (name, args))
           in
           (* FIXME: subshell if assignment'_list <> [] *)
           command
@@ -216,12 +225,12 @@ and command__to__statement = function
   | And (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.IIf (first, second, C.INot (C.ICall ("false", [])))
+     C.IIf (first, second, C.INot (C.ICallBuiltin ("false", [])))
 
   | Or (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.IIf (first, C.ICall ("true", []), second)
+     C.IIf (first, C.ICallBuiltin ("true", []), second)
 
   | Not command' ->
      let statement = command'__to__statement command' in
@@ -249,7 +258,7 @@ and command__to__statement = function
   | If (test', body', None) ->
      let test = command'__to__statement test' in
      let body = command'__to__statement body' in
-     C.IIf (test, body, C.ICall ("true", []))
+     C.IIf (test, body, C.ICallBuiltin ("true", []))
 
   | If (test', body', Some rest') ->
      let test = command'__to__statement test' in
@@ -308,13 +317,17 @@ and redirection__to__statement = function
 
   | _ -> raise (Unsupported ("other redirections"))
 
-and program__to__program = function
+and program__to__program : program -> C.program = function
   | [] ->
-     C.ICall ("true", [])
+     let instruction = C.ICallBuiltin ("true", []) in
+     { C.function_definitions = []; instruction }
   | first' :: rest' ->
-     List.fold_left
+    let instruction =
+      List.fold_left
        (fun statement command' ->
          let statement' = command'__to__statement command' in
          C.ISequence (statement, statement'))
        (command'__to__statement first')
        rest'
+    in
+    { C.function_definitions = []; instruction }

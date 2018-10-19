@@ -168,9 +168,12 @@ module Interpreter
       let sta'' = {sta' with stdout = sta.stdout; stdin = ref (stdout_to_stdin !(sta'.stdout)); senv = ref !(sta.senv)} in
       interp_instruction inp sta'' ins2
 
-    | ICall name le ->
+    | ICallBuiltin name le ->
       let args = interp_list_expr inp sta le in
       interp_builtin inp sta name args
+
+    | ICallFunction _name _le ->
+      absurd (* TODO *)
 
     | IForeach id le ins ->
       let ss = interp_list_expr inp sta le in
@@ -215,9 +218,12 @@ module Interpreter
       !(sta.senv) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
 
     | SSubshell ins ->
-      (* TODO `result = ref True`: differences between shells *)
       let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); senv = ref !(sta.senv)} in
-      try interp_instruction inp sta' ins with EExit -> () end;
+      try
+        interp_instruction inp sta' ins
+      with
+        EExit -> ()
+      end;
       stdout_to_string !(sta'.stdout), Some !(sta'.result)
 
     | SConcat se1 se2 ->
@@ -251,6 +257,10 @@ module Interpreter
       eval_program (input inp (old sta)) (context (old sta)) (state (old sta))
         pro (state sta) (context sta) !(sta.result)
     }
-  = try interp_instruction inp sta pro
-    with EExit -> () end
+  = try
+      (* TODO interp pro.function_definitions *)
+      interp_instruction inp sta pro.instruction
+    with
+      EExit -> ()
+    end
 end

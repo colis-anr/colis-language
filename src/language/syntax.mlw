@@ -32,8 +32,6 @@ module Syntax
     | RPrevious      (** previous | $?    *)
 
   (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
-    | ICall string list_expression
-
   with instruction =                                   (* ColLiS                         | Shell                            *)
     | IAssignment identifier string_expression         (* id := sexpr                    | id=sexpr                         *)
     | ISequence instruction instruction                (* instr; instr                   | instr; instr                     *)
@@ -44,5 +42,14 @@ module Syntax
     | IWhile instruction instruction                   (* while instr do instr done      | while instr; do instr; done      *)
     | INoOutput instruction                            (* nooutput instr                 | instr > /dev/null                *)
     | IForeach identifier list_expression instruction  (* for x in lexpr do instr done   | for x in words; do instr; done   *)
+    | ICallBuiltin string list_expression              (* id lexpr?                      | words                            *)
+    | ICallFunction string list_expression             (* call id lexpr?                 | words                            *)
     | IExit return_code                                (* exit r                         | exit r | NOTES[Exit]             *)
+
+  with function_definition = (identifier, instruction) (* function id instr end | function id instr *)
+
+  with program = {
+    function_definitions: list function_definition;
+    instruction: instruction
+  }
 end

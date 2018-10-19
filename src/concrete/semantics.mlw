@@ -323,7 +323,7 @@ module Semantics
     eval_list_expr inp ctx sta es sta' ss ->
     (sta'', b) = interp_builtin sta' s ss ->
     let bhv = inject_behaviour inp b in
-    eval_instruction inp ctx sta (ICall s es) sta'' ctx bhv
+    eval_instruction inp ctx sta (ICallBuiltin s es) sta'' ctx bhv
   
   | eval_foreach: forall inp ctx ctx' sta sta' sta'' id es ins ss bhv.
     eval_list_expr inp ctx sta es sta' ss -> 
@@ -428,7 +428,8 @@ module Semantics
   (* Evaluation of a program. It outputs in a boolean value *)
   inductive eval_program input context state program state context bool =
     | eval_program_instruction: forall inp ctx ctx' sta sta' pro bhv.
-      eval_instruction inp ctx sta pro sta' ctx' bhv ->
+      (* TODO eval pro.function_definitions *)
+      eval_instruction inp ctx sta pro.instruction sta' ctx' bhv ->
       let b = bool_of_behaviour bhv in
       eval_program inp ctx sta pro sta' ctx' b
 end
