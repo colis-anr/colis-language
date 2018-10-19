@@ -1,0 +1,6 @@
+(include_subdirs no)
+
+(library
+ (name constraints)
+ (public_name colis-language.constraints)
+ (modules_without_implementation clause))
