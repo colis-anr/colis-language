@@ -14,7 +14,7 @@ let rec concat = function
 
 %token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN FUNCTION CALL
 %token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING ARG
-%token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF RETURN
+%token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET EMBED SEMICOLON EOF RETURN
 %token<string> LITERAL
 %token<string> IDENTIFIER
 %token<Z.t> INT
@@ -57,13 +57,13 @@ pipe:
   | instruction                                               { $1 }
 ;
 seq:
-  | instruction PTVIRG seq                                    { ISequence($1,$3) }
+  | instruction SEMICOLON seq                                 { ISequence($1,$3) }
   | instruction                                               { $1 }
 ;
 sfrag:
   | LITERAL                                                   { SLiteral($1) }
   | IDENTIFIER                                                { SVariable($1) }
-  | EMBED delimited(LACCOL, instruction, RACCOL)              { SSubshell($2) }
+  | EMBED delimited(LBRACE, instruction, RBRACE)              { SSubshell($2) }
   | ARG INT                                                   { SArgument($2) }
 ;
 sexpr:
@@ -74,5 +74,5 @@ lfrag:
   | sexpr                                                     { $1, DontSplit}
 ;
 lexpr:
-  | delimited (LCROCH, separated_list(PTVIRG, lfrag), RCROCH) { $1 }
+  | delimited (LBRACKET, separated_list(SEMICOLON, lfrag), RBRACKET) { $1 }
 ;

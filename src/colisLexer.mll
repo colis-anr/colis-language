@@ -40,13 +40,13 @@ rule token = parse
   | "success"                           { SUCCESS }
   | "then"                              { THEN }
   | "while"                             { WHILE }
-  | '{'                                 { LACCOL }
-  | '}'                                 { RACCOL }
+  | '{'                                 { LBRACE }
+  | '}'                                 { RBRACE }
   | '('                                 { LPAREN }
   | ')'                                 { RPAREN }
-  | ';'                                 { PTVIRG }
-  | '['                                 { LCROCH }
-  | ']'                                 { RCROCH }
+  | ';'                                 { SEMICOLON }
+  | '['                                 { LBRACKET }
+  | ']'                                 { RBRACKET }
   | '\''                                { let b = Buffer.create 10 in string b lexbuf }
   | '\n'                                { Lexing.new_line lexbuf; token lexbuf }
   | (alpha (alpha | digit | '_')* as s) { IDENTIFIER (s) }
