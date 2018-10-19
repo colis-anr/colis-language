@@ -198,14 +198,20 @@ module Context
       Will contain also the function environment one functions are added to the language
    *)
 
+  (* A variable environment *)
+  type var_env = env string
+
+  (** A function environment *)
+  type func_env = env (option instruction)
+
   type context = {
-    senv: env string;
-    fenv: env (option instruction);
+    var_env: var_env;
+    func_env: func_env;
   }
 
   let constant empty_context = {
-    senv = empty_env String.empty; 
-    fenv = empty_env None;
+    var_env = empty_env String.empty; 
+    func_env = empty_env None;
   }
 end
 
@@ -287,7 +293,7 @@ module Semantics
 
   | eval_assign: forall inp ctx sta sta' id e s bo.
     eval_str_expr inp ctx sta e sta' s bo ->
-    let ctx' = {ctx with senv = ctx.senv[id <- s]} in
+    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
     let bhv = inject_behaviour inp (option_get True bo) in
     eval_instruction inp ctx sta (IAssignment id e) sta' ctx' bhv
   
@@ -354,14 +360,14 @@ module Semantics
 
   | eval_call_function: forall inp ctx ctx' sta sta' sta'' id es ss ins bhv.
     eval_list_expr inp ctx sta es sta' ss ->
-    ctx.fenv id = Some ins ->
+    ctx.func_env id = Some ins ->
     eval_instruction { inp with arguments = ss } ctx sta' ins sta'' ctx' bhv ->
     let bhv' = match bhv with BReturn b -> BNormal b | _ -> bhv end in
     eval_instruction inp ctx sta (ICallFunction id es) sta' ctx bhv'
 
   | eval_call_function_not_found: forall inp ctx sta sta' id es ss.
     eval_list_expr inp ctx sta es sta' ss ->
-    ctx.fenv id = None ->
+    ctx.func_env id = None ->
     let bhv = inject_behaviour inp False in
     eval_instruction inp ctx sta (ICallFunction id es) sta' ctx bhv
   
@@ -411,13 +417,13 @@ module Semantics
     eval_foreach bhv inp ctx sta id Nil ins sta ctx bhv
 
   | eval_foreach_step: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 id s ss ins b1 bhv2.
-    eval_instruction inp {ctx with senv = ctx.senv[id <- s]} sta ins sta1 ctx1 (BNormal b1) ->
+    eval_instruction inp {ctx with var_env = ctx.var_env[id <- s]} sta ins sta1 ctx1 (BNormal b1) ->
     eval_foreach (BNormal b1) inp ctx1 sta1 id ss ins sta2 ctx2 bhv2 ->
     eval_foreach bhv inp ctx sta id (Cons s ss) ins sta2 ctx2 bhv2
 
   | eval_foreach_abort: forall bhv inp ctx ctx1 sta sta1 id s ss ins bhv1.
     match bhv1 with BExit _ | BReturn _ -> true | BNormal _ -> false end ->
-    eval_instruction inp {ctx with senv = ctx.senv[id <- s]} sta ins sta1 ctx1 bhv1 ->
+    eval_instruction inp {ctx with var_env = ctx.var_env[id <- s]} sta ins sta1 ctx1 bhv1 ->
     eval_foreach bhv inp ctx sta id (Cons s ss) ins sta1 ctx1 bhv1
 
   (** Evaluation of an expression with some input I, context C, and state S, resulting in
@@ -432,11 +438,11 @@ module Semantics
     eval_str_expr inp ctx sta (SLiteral s) sta s None
 
   | eval_str_variable: forall inp ctx sta id.
-    let s = ctx.senv[id] in
+    let s = ctx.var_env[id] in
     eval_str_expr inp ctx sta (SVariable id) sta s None
 
-  | eval_arg: forall inp ctx sta n s.
-    nth_argument inp.arguments n = s ->
+  | eval_arg: forall inp ctx sta n.
+    let s = nth_argument inp.arguments n in
     eval_str_expr inp ctx sta (SArgument n) sta s None
 
   | eval_str_subshell: forall inp ctx ctx' sta sta2 ins bhv.
@@ -474,19 +480,20 @@ module Semantics
     eval_instruction inp ctx {sta with stdout=empty_stdout} ins sta' ctx' bhv ->
     eval_instruction inp ctx sta ins {sta' with stdout=concat_stdout sta.stdout sta'.stdout} ctx' bhv
 
-  inductive eval_function_definitions context (list function_definition) context =
-    | eval_function_definitions_done: forall ctx.
-      eval_function_definitions ctx Nil ctx
-    | eval_function_definition: forall ctx ctx2 id ins, defs: list function_definition.
-      let ctx1 = { ctx with fenv = ctx.fenv[id <- Some ins] } in
-      eval_function_definitions ctx1 defs ctx2 ->
-      eval_function_definitions ctx (Cons (id, ins) defs) ctx2
+  inductive eval_function_definitions func_env (list function_definition) func_env =
 
-  (* Evaluation of a program. It outputs in a boolean value *)
+    | eval_function_definitions_done: forall fenv.
+      eval_function_definitions fenv Nil fenv
+
+    | eval_function_definition: forall e e' id ins defs.
+      eval_function_definitions e[id <- Some ins] defs e' ->
+      eval_function_definitions e (Cons (id, ins) defs) e'
+
   inductive eval_program input context state program state context bool =
-    | eval_program_instruction: forall inp ctx ctx' ctx'' sta sta' pro bhv.
-      eval_function_definitions ctx pro.function_definitions ctx' ->
-      eval_instruction inp ctx sta pro.instruction sta' ctx'' bhv ->
+
+    | eval_program_instruction: forall inp ctx e ctx' sta sta' pro bhv.
+      eval_function_definitions ctx.func_env pro.function_definitions e ->
+      eval_instruction inp { ctx with func_env = e } sta pro.instruction sta' ctx' bhv ->
       let b = bool_of_behaviour bhv in
-      eval_program inp ctx sta pro sta' ctx'' b
+      eval_program inp ctx sta pro sta' ctx' b
 end

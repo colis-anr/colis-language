@@ -27,8 +27,8 @@ module Interpreter
   (* We use refs instead of mutable fields to be able to reuse `stdin` (and `stdout`) but
      shadow `senv`. *)
   type state = {
-    senv : ref (env string);
-    fenv : env (option instruction);
+    var_env : ref C.var_env;
+    func_env : C.func_env;
     stdin : ref stdin;
     stdout : ref stdout;
     filesystem : ref filesystem;
@@ -36,8 +36,8 @@ module Interpreter
   }
 
   let empty_state () = {
-    senv = ref (empty_env String.empty);
-    fenv = empty_env None;
+    var_env = ref (empty_env String.empty);
+    func_env = empty_env None;
     stdin = ref empty_stdin;
     stdout = ref empty_stdout;
     filesystem = ref empty_filesystem;
@@ -46,19 +46,19 @@ module Interpreter
 
   (** {4 Conversion to `semantics.Context`} *)
 
-  function context (sta:state) : Context.context = {
-    Context.senv = !(sta.senv);
-    Context.fenv = sta.fenv;
+  function context (sta:state) : C.context = {
+    C.var_env = !(sta.var_env);
+    C.func_env = sta.func_env;
   }
 
   lemma context_same: forall sta1 sta2.
-    !(sta1.senv) == !(sta2.senv) ->
+    !(sta1.var_env) == !(sta2.var_env) ->
     context sta1 = context sta2
 
-  let function state (sta:state) : Context.state = {
-    Context.filesystem = !(sta.filesystem);
-    Context.stdin = !(sta.stdin);
-    Context.stdout = !(sta.stdout)
+  let function state (sta:state) : C.state = {
+    C.filesystem = !(sta.filesystem);
+    C.stdin = !(sta.stdin);
+    C.stdout = !(sta.stdout)
   }
 
   (** {3 The input type} *)
@@ -73,10 +73,10 @@ module Interpreter
     under_condition = False;
   }
 
-  let function input (inp:input) (sta:state) : Context.input = {
-    Context.arguments = inp.arguments;
-    Context.under_condition = inp.under_condition;
-    Context.previous_result = !(sta.result);
+  let function input (inp:input) (sta:state) : C.input = {
+    C.arguments = inp.arguments;
+    C.under_condition = inp.under_condition;
+    C.previous_result = !(sta.result);
   }
 
   lemma input_same : forall inp inp' sta sta'.
@@ -104,9 +104,9 @@ module Interpreter
 
   let interp_builtin inp sta name args raises { EExit -> true }
   = let sta', b = Semantics.interp_builtin (state sta) name args in
-    sta.filesystem := sta'.Context.filesystem;
-    sta.stdin := sta'.Context.stdin;
-    sta.stdout := sta'.Context.stdout;
+    sta.filesystem := sta'.C.filesystem;
+    sta.stdin := sta'.C.stdin;
+    sta.stdout := sta'.C.stdout;
     sta.result := b;
     maybe_exit inp sta
   
@@ -148,7 +148,7 @@ module Interpreter
 
     | IAssignment id se ->
       let str, bo = interp_str_expr inp sta se in
-      sta.senv := !(sta.senv)[id <- str];
+      sta.var_env := !(sta.var_env)[id <- str];
       sta.result := option_get True bo;
       maybe_exit inp sta
 
@@ -158,7 +158,7 @@ module Interpreter
 
     | ISubshell ins ->
       (* Don't change `sta.senv` in the subshell *)
-      let sta' = {sta with senv = ref !(sta.senv) } in
+      let sta' = {sta with var_env = ref !(sta.var_env) } in
       try
         interp_instruction inp sta' ins
       with
@@ -192,7 +192,7 @@ module Interpreter
     | IPipe ins1 ins2 ->
       let sta' = {
         sta with
-        senv = ref !(sta.senv);
+        var_env = ref !(sta.var_env);
         stdout = ref empty_stdout
       } in
       try
@@ -203,7 +203,7 @@ module Interpreter
       end;
       let sta'' = {
         sta' with
-        senv = ref !(sta.senv);
+        var_env = ref !(sta.var_env);
         stdout = sta.stdout;
         stdin = ref (stdout_to_stdin !(sta'.stdout))
       } in
@@ -215,13 +215,13 @@ module Interpreter
 
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in
-      match sta.fenv id with
+      match sta.func_env id with
       | None ->
         sta.result := False;
         maybe_exit inp sta
       | Some ins ->
         try
-          interp_instruction {inp with arguments = args} { sta with senv = ref !(sta.senv) } ins
+          interp_instruction {inp with arguments = args} { sta with var_env = ref !(sta.var_env) } ins
         with
           EReturn -> ()
         end
@@ -234,7 +234,7 @@ module Interpreter
         match ss with
         | Nil -> ()
         | Cons s ss' ->
-          sta.senv := !(sta.senv)[id <- s];
+          sta.var_env := !(sta.var_env)[id <- s];
           interp_instruction inp sta ins;
           last_result := !(sta.result);
           foreach ss'
@@ -267,13 +267,13 @@ module Interpreter
       s, None
 
     | SVariable id ->
-      !(sta.senv) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
+      !(sta.var_env) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
 
     | SArgument n ->
       nth_argument inp.arguments n, None
 
     | SSubshell ins ->
-      let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); senv = ref !(sta.senv)} in
+      let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); var_env = ref !(sta.var_env)} in
       try
         interp_instruction inp sta' ins
       with
@@ -323,8 +323,8 @@ module Interpreter
           aux e[id <- Some instr]  defs'
         end
       in
-      let e = aux sta.fenv pro.function_definitions in
-      interp_instruction inp { sta with fenv = e } pro.instruction
+      let e = aux sta.func_env pro.function_definitions in
+      interp_instruction inp { sta with func_env = e } pro.instruction
     with
       | EExit -> ()
       | EReturn -> ()
