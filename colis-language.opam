@@ -12,7 +12,7 @@ homepage: "https://github.com/colis-anr/colis-language"
 bug-reports: "https://github.com/colis-anr/colis-language/issues"
 
 authors: [
-  "Benedikt Becker <bbecker@inria.fr"
+  "Benedikt Becker <benedikt.becker@inria.fr"
   "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 ]
 maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
