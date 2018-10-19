@@ -356,7 +356,7 @@ module Semantics
     eval_list_expr inp ctx sta es sta' ss ->
     ctx.fenv id = Some ins ->
     eval_instruction { inp with arguments = ss } ctx sta' ins sta'' ctx' bhv ->
-    let bhv' = match bhv with BNormal b | BReturn b -> BNormal b | BExit b -> BExit b end in
+    let bhv' = match bhv with BReturn b -> BNormal b | _ -> bhv end in
     eval_instruction inp ctx sta (ICallFunction id es) sta' ctx bhv'
 
   | eval_call_function_not_found: forall inp ctx sta sta' id es ss.
