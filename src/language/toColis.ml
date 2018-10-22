@@ -44,7 +44,7 @@ and instruction (fmt:formatter) (i:instruction) : unit =
      fprintf fmt "@[<v 2>begin@ %a ;@ %a@ end@]" instruction i1 sequence i2
   | ISubshell i ->
      fprintf fmt "@[process@ %a@]" instruction i
-  | IIf(c,i1,ICallBuiltin("true", [])) ->
+  | IIf(c,i1,ICallUtility("true", [])) ->
      fprintf fmt "@[<hv 2>if %a@ then %a@ fi@]"
              instruction c instruction i1
   | IIf(c,i1,i2) ->
@@ -62,9 +62,9 @@ and instruction (fmt:formatter) (i:instruction) : unit =
   | IForeach(id,le,i1) ->
      fprintf fmt "@[<hv 2>for %s@ in %a@ do %a@ done@]"
              id lexpr le instruction i1
-  | ICallBuiltin(s,[]) ->
+  | ICallUtility(s,[]) ->
      fprintf fmt "%s" s
-  | ICallBuiltin(s,args) ->
+  | ICallUtility(s,args) ->
      fprintf fmt "@[%s@ %a@]" s lexpr args
   | ICallFunction(s,[]) ->
      fprintf fmt "call %s" s

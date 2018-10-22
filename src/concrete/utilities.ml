@@ -1,7 +1,12 @@
+(** Concrete interpretation of selected shell builtins.
+
+    See subsections of http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap04.html#tag_20
+  *)
+
 open Semantics__Buffers
 open Semantics__Context
 
-let interp_builtin : state -> string -> string list -> (state * bool) =
+let interp_utility : state -> string -> string list -> (state * bool) =
   fun sta name args ->
     match name with
     | "echo" ->

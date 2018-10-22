@@ -183,7 +183,7 @@ and command__to__statement = function
 
        | "set", [C.SLiteral "-e", _] ->
           (* FIXME *)
-          C.ICallBuiltin ("true", [])
+          C.ICallUtility ("true", [])
 
        (* All the other special builtins: unsupported *)
 
@@ -208,7 +208,7 @@ and command__to__statement = function
                 (* FIXME: export *)
                 C.ISequence (assign, statement))
               assignment'_list
-              (C.ICallBuiltin (name, args))
+              (C.ICallUtility (name, args))
           in
           (* FIXME: subshell if assignment'_list <> [] *)
           command
@@ -225,12 +225,12 @@ and command__to__statement = function
   | And (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.IIf (first, second, C.INot (C.ICallBuiltin ("false", [])))
+     C.IIf (first, second, C.INot (C.ICallUtility ("false", [])))
 
   | Or (first', second') ->
      let first = command'__to__statement first' in
      let second = command'__to__statement second' in
-     C.IIf (first, C.ICallBuiltin ("true", []), second)
+     C.IIf (first, C.ICallUtility ("true", []), second)
 
   | Not command' ->
      let statement = command'__to__statement command' in
@@ -258,7 +258,7 @@ and command__to__statement = function
   | If (test', body', None) ->
      let test = command'__to__statement test' in
      let body = command'__to__statement body' in
-     C.IIf (test, body, C.ICallBuiltin ("true", []))
+     C.IIf (test, body, C.ICallUtility ("true", []))
 
   | If (test', body', Some rest') ->
      let test = command'__to__statement test' in
@@ -319,7 +319,7 @@ and redirection__to__statement = function
 
 and program__to__program : program -> C.program = function
   | [] ->
-     let instruction = C.ICallBuiltin ("true", []) in
+     let instruction = C.ICallUtility ("true", []) in
      { C.function_definitions = []; instruction }
   | first' :: rest' ->
     let instruction =

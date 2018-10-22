@@ -100,10 +100,10 @@ module Interpreter
   = if andb (strict inp.under_condition) (notb !(sta.result)) then
       raise EExit
 
-  (** {3 Imperative wrapper around the functional interpretation of builtin} *)
+  (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
-  let interp_builtin inp sta name args raises { EExit -> true }
-  = let sta', b = Semantics.interp_builtin (state sta) name args in
+  let interp_utility inp sta name args raises { EExit -> true }
+  = let sta', b = Semantics.interp_utility (state sta) name args in
     sta.filesystem := sta'.C.filesystem;
     sta.stdin := sta'.C.stdin;
     sta.stdout := sta'.C.stdout;
@@ -209,9 +209,9 @@ module Interpreter
       } in
       interp_instruction inp sta'' ins2
 
-    | ICallBuiltin name le ->
+    | ICallUtility name le ->
       let args = interp_list_expr inp sta le in
-      interp_builtin inp sta name args
+      interp_utility inp sta name args
 
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in

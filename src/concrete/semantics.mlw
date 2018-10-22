@@ -269,7 +269,7 @@ module Semantics
 
       It acts upon the input and irreversable state, and returns a stdout, a behaviour
       (True/False), and another irreversable state, see also NOTES[Callees] *)
-  val function interp_builtin state identifier (list string) :
+  val function interp_utility state identifier (list string) :
     (state, bool)
 
 
@@ -352,11 +352,11 @@ module Semantics
     (* TODO Really ignore context changes from ins1 and ins2 in the context? *)
     eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx bhv2
   
-  | eval_call_builtin: forall inp ctx sta sta' sta'', id:identifier, es ss b.
+  | eval_call_utility: forall inp ctx sta sta' sta'', id:identifier, es ss b.
     eval_list_expr inp ctx sta es sta' ss ->
-    (sta'', b) = interp_builtin sta' id ss ->
+    (sta'', b) = interp_utility sta' id ss ->
     let bhv = inject_behaviour inp b in
-    eval_instruction inp ctx sta (ICallBuiltin id es) sta'' ctx bhv
+    eval_instruction inp ctx sta (ICallUtility id es) sta'' ctx bhv
 
   | eval_call_function: forall inp ctx ctx' sta sta' sta'' id es ss ins bhv.
     eval_list_expr inp ctx sta es sta' ss ->

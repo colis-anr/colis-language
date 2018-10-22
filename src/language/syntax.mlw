@@ -43,7 +43,7 @@ module Syntax
     | IWhile instruction instruction                   (* while instr do instr done      | while instr; do instr; done      *)
     | INoOutput instruction                            (* nooutput instr                 | instr > /dev/null                *)
     | IForeach identifier list_expression instruction  (* for x in lexpr do instr done   | for x in words; do instr; done   *)
-    | ICallBuiltin identifier list_expression          (* id lexpr?                      | words                            *)
+    | ICallUtility identifier list_expression          (* id lexpr?                      | words                            *)
     | ICallFunction identifier list_expression         (* call id lexpr?                 | words                            *)
     | IReturn return_code                              (* return r                       | return r                         *)
     | IExit return_code                                (* exit r                         | exit r (see NOTES[Exit])         *)

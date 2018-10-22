@@ -32,7 +32,7 @@ instruction:
   | EXIT exit_code                                            { IExit($2) }
   | RETURN exit_code                                          { IReturn($2) }
   | IF instruction THEN instruction ELSE instruction FI       { IIf ($2, $4, $6) }
-  | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallBuiltin("true", [])) }
+  | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallUtility("true", [])) }
   | NOT instruction                                           { INot ($2) }
   | FOR IDENTIFIER IN lexpr DO instruction DONE               { IForeach ($2, $4, $6) }
   | WHILE instruction DO instruction DONE                     { IWhile ($2, $4) }
@@ -40,8 +40,8 @@ instruction:
   | PROCESS instruction                                       { ISubshell ($2) }
   | PIPE pipe EPIP                                            { $2 }
   | NOOUTPUT instruction                                      { INoOutput ($2) }
-  | IDENTIFIER                                                { ICallBuiltin ($1, []) }
-  | IDENTIFIER lexpr                                          { ICallBuiltin ($1, $2) }
+  | IDENTIFIER                                                { ICallUtility ($1, []) }
+  | IDENTIFIER lexpr                                          { ICallUtility ($1, $2) }
   | CALL IDENTIFIER                                           { ICallFunction ($2, []) }
   | CALL IDENTIFIER lexpr                                     { ICallFunction ($2, $3) }
   | IDENTIFIER ASSTRING sexpr                                 { IAssignment ($1, $3) }
