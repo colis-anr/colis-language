@@ -138,7 +138,7 @@ let interp_mkdir sta args =
         dir y' >>=
         Clause.fen y' Feature.Set.empty
       in
-      resolve sta.filesystem path for_x >>=
+      resolve sta.filesystem p for_x >>=
       with_clause {sta with result = true}
     in
     let errs1 = (* p/f exists *)
