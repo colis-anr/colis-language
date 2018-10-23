@@ -35,7 +35,7 @@ let get_file, get_arguments, set_file_or_argument =
     match !file with
     | None -> raise (Arg.Bad "you must provide an input file")
     | Some file -> file),
-  (fun () -> List.rev !args |> Array.of_list),
+  (fun () -> List.rev !args),
   (fun new_file_or_arg ->
     match !file with
     | None -> file := Some new_file_or_arg

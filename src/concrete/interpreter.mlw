@@ -10,7 +10,6 @@ module Interpreter
   use ref.Ref
   use option.Option
   use bool.Bool
-  use array.Array
   use map.MapExt
 
   use mystring.String
@@ -61,12 +60,12 @@ module Interpreter
   (** {3 The input type} *)
 
   type input = {
-    arguments: array string;
+    arguments: list string;
     under_condition: bool;
   }
 
   let constant empty_input = {
-    arguments = Array.make 0 String.empty;
+    arguments = Nil;
     under_condition = False;
   }
 

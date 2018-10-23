@@ -205,13 +205,13 @@ module Context
   (** {3 Read-only context for the evaluation of a term} *)
 
   type input = {
-    arguments: array string;
+    arguments: list string;
     under_condition: bool; (* evaluation under condition - implying unstrict mode *)
     previous_result: bool; (* result of last command, i.e. `$?`, default `True` *)
   }
 
   let constant empty_input = {
-    arguments = Array.make 0 String.empty;
+    arguments = Nil;
     previous_result = True;
     under_condition = False;
   }
