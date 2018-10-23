@@ -11,7 +11,7 @@ module Syntax
 
   use export Identifier
 
-  (* Indicates if a string in a list expression should be split (on spaces)? *)
+  (** Indicates if a string in a list expression should be split (on default IFS=`[ \t\n]`) *)
   type split = Split | DontSplit
 
   (** A `string_expression` evaluates to a `string` *)
@@ -20,7 +20,7 @@ module Syntax
     | SVariable identifier                        (** id          | ${id}                                 *)
     | SSubshell instruction                       (** embed instr | $(instruction)                        *)
     | SConcat string_expression string_expression (** expr expr   | expression expression (without space) *)
-    | SArgument int                               (** N           | $N                                    *)
+    | SArgument int                               (** arg N       | $N                                    *)
 
   (** A list_expression` evaluates to a `list string` *)
   with list_expression =                          (* [split? expr, ...] | "expr" OR expr *)
@@ -28,7 +28,7 @@ module Syntax
 
   (* Allow $? only as return code, cf. NOTES[Exit] *)
   with return_code = (** CoLiS    | Shell *)
-    | RSuccess       (** success  | 0     *) 
+    | RSuccess       (** success  | 0     *)
     | RFailure       (** failure  | 1-255 *)
     | RPrevious      (** previous | $?    *)
 
