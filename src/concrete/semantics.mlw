@@ -371,10 +371,12 @@ module Semantics
   (** See NOTES[Pipe semantics] *)
   | eval_pipe: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv1 bhv2.
     let sta' = {sta with stdout = Stdout.empty} in
+    (* bhv1 is ignored *)
     eval_instruction inp ctx sta' ins1 sta1 ctx1 bhv1 ->
     let sta1' = {sta1 with stdout = sta.stdout; stdin = Stdout.to_stdin sta1.stdout} in
     eval_instruction inp ctx sta1' ins2 sta2 ctx2 bhv2 ->
-    eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx bhv2
+    let ctx' = ctx in
+    eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx' bhv2
   
   | eval_call: forall inp ctx sta sta' sta'' s le ss b.
     eval_list_expr inp ctx sta le sta' ss ->

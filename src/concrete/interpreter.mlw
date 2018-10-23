@@ -162,9 +162,18 @@ module Interpreter
       interp_instruction inp sta' ins
 
     | IPipe ins1 ins2 ->
-      let sta' = {sta with stdout = ref Stdout.empty; senv = ref !(sta.senv)} in
+      let sta' = {
+        sta with
+        senv = ref !(sta.senv);
+        stdout = ref Stdout.empty;
+      } in
       try interp_instruction inp sta' ins1 with EExit _ -> () end;
-      let sta'' = {sta' with stdout = sta.stdout; stdin = ref (Stdout.to_stdin !(sta'.stdout)); senv = ref !(sta.senv)} in
+      let sta'' = {
+        sta' with
+        senv = ref !(sta.senv);
+        stdout = sta.stdout;
+        stdin = ref (Stdout.to_stdin !(sta'.stdout));
+      } in
       interp_instruction inp sta'' ins2
 
     | ICall name le ->
