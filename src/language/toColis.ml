@@ -74,6 +74,9 @@ and instruction (fmt:formatter) (i:instruction) : unit =
      fprintf fmt "@[exit@ %a@]" exitcode c
   | IReturn c ->
      fprintf fmt "@[return@ %a@]" exitcode c
+  | IShift bn ->
+     let n = match bn with None -> "" | Some n -> " "^Z.to_string n in
+     fprintf fmt "@[shift%s@]" n
 
 and exitcode (fmt:formatter) (c:return_code) =
   match c with

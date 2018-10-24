@@ -36,6 +36,7 @@ rule token = parse
   | "previous"                          { PREVIOUS }
   | "process"                           { PROCESS }
   | "return"                            { RETURN }
+  | "shift"                             { SHIFT }
   | "split"                             { SPLIT }
   | "success"                           { SUCCESS }
   | "then"                              { THEN }
@@ -50,7 +51,7 @@ rule token = parse
   | '\''                                { let b = Buffer.create 10 in string b lexbuf }
   | '\n'                                { Lexing.new_line lexbuf; token lexbuf }
   | (alpha (alpha | digit | '_')* as s) { IDENTIFIER (s) }
-  | (digit+ as s)                       { INT (Z.of_string s) }
+  | (digit+ as s)                       { NAT (Z.of_string s) }
   | ['\t' ' ']                          { token lexbuf }     (* skip tab and blank*)
   | _ as c                              { raise (LexerError ("unknown character '" ^ String.make 1 c ^ "'")) }
 

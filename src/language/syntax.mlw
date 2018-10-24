@@ -1,13 +1,21 @@
 
 module Identifier
+
+  use mystring.String
+
   type identifier
+
   val function identifier_eq (v1 v2:identifier) : bool
     ensures { result <-> v1 = v2 }
+
+  val function identifier_to_string identifier : string
 end
 
 module Syntax
-  use mystring.String
+
   use list.List
+  use option.Option
+  use mystring.String
 
   use export Identifier
 
@@ -47,6 +55,7 @@ module Syntax
     | ICallFunction identifier list_expression         (* call id lexpr?                 | words                            *)
     | IReturn return_code                              (* return r                       | return r                         *)
     | IExit return_code                                (* exit r                         | exit r (see NOTES[Exit])         *)
+    | IShift (option int)                              (* shift n?                       | shift n?                         *)
 
   with function_definition = (identifier, instruction) (* function id instr; | function id instr *)
 

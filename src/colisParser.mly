@@ -13,11 +13,11 @@ let rec concat = function
 
 
 %token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN FUNCTION CALL
-%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING ARG
+%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING ARG SHIFT
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET EMBED SEMICOLON EOF RETURN
 %token<string> LITERAL
 %token<string> IDENTIFIER
-%token<Z.t> INT
+%token<Z.t> NAT
 %start program
 %type <Syntax__Syntax.program> program
 %%
@@ -31,6 +31,7 @@ function_definition:
 instruction:
   | EXIT exit_code                                            { IExit($2) }
   | RETURN exit_code                                          { IReturn($2) }
+  | SHIFT option(NAT)                                         { IShift($2) }
   | IF instruction THEN instruction ELSE instruction FI       { IIf ($2, $4, $6) }
   | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallUtility("true", [])) }
   | NOT instruction                                           { INot ($2) }
@@ -64,7 +65,7 @@ sfrag:
   | LITERAL                                                   { SLiteral($1) }
   | IDENTIFIER                                                { SVariable($1) }
   | EMBED delimited(LBRACE, instruction, RBRACE)              { SSubshell($2) }
-  | ARG INT                                                   { SArgument($2) }
+  | ARG NAT                                                   { SArgument($2) }
 ;
 sexpr:
   | nonempty_list(sfrag)                                      { concat $1 }

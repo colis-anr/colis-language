@@ -10,4 +10,5 @@ end
 module syntax.Identifier
   syntax type identifier "string"
   syntax function identifier_eq "String.equal %1 %2"
+  syntax function identifier_to_string "%1"
 end

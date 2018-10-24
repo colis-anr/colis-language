@@ -54,7 +54,7 @@ let speclist =
 
 let usage =
   sprintf
-    "Usage: %s [--run [--realworld] | --run-symbolic | --print-colis | --print-shell] [--shell | --colis] FILE"
+    "Usage: %s [--run [--realworld] | --run-symbolic | --print-colis | --print-shell] [--shell | --colis] FILE [ARGS]"
     Sys.argv.(0)
 
 let main () =
@@ -62,14 +62,14 @@ let main () =
   if !realworld && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
 
+  let file = get_file () in
+  let from_file =
+    match get_source () with
+    | Colis -> Colis.colis_from_file
+    | Shell -> Colis.(shell_from_file ||> shell_to_colis)
+  in
   let program =
-    try
-      (
-        get_file ()
-        |> match get_source () with
-           | Colis -> Colis.colis_from_file
-           | Shell -> Colis.(shell_from_file ||> shell_to_colis)
-      )
+    try from_file file
     with
     | Colis.ParseError (msg, pos) ->
        let print_position fmt pos =
@@ -86,7 +86,7 @@ let main () =
   match get_action () with
   | Run ->
      (
-       Colis.run ~arguments:(get_arguments ()) program
+       Colis.run ~argument0:file ~arguments:(get_arguments ()) program
      )
   | RunSymbolic ->
      (

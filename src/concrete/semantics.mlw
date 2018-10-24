@@ -165,13 +165,13 @@ module Context
   (** {3 Read-only context for the evaluation of a term} *)
 
   type input = {
-    arguments: list string;
+    argument0: string;     (* $0 *)
     under_condition: bool; (* evaluation under condition - implying unstrict mode *)
     previous_result: bool; (* result of last command, i.e. `$?`, default `True` *)
   }
 
   let constant empty_input = {
-    arguments = Nil;
+    argument0 = String.empty;
     previous_result = True;
     under_condition = False;
   }
@@ -205,11 +205,13 @@ module Context
   type func_env = env (option instruction)
 
   type context = {
+    arguments: list string;
     var_env: var_env;
     func_env: func_env;
   }
 
   let constant empty_context = {
+    arguments = Nil;
     var_env = empty_env String.empty; 
     func_env = empty_env None;
   }
@@ -243,6 +245,17 @@ module Semantics
       else nth_argument args' (n-1)
     | Nil -> String.empty
     end
+
+  let rec function shift_arguments (args: list string) (n: int) : option (list string)
+    requires { n >= 0 }
+    variant { args }
+  = if n = 0 then
+      Some args
+    else
+      match args with
+      | Nil -> None
+      | Cons _ args' -> shift_arguments args' (n-1)
+      end
 
   let function bool_of_return_code (c:return_code) (previous_result:bool) : bool =
     match c with
@@ -290,6 +303,20 @@ module Semantics
     let b = bool_of_return_code c inp.previous_result in
     let bhv = BReturn b in
     eval_instruction inp ctx sta (IReturn c) sta ctx bhv
+
+  | eval_shift: forall inp ctx sta bn args.
+    Some args = shift_arguments ctx.arguments (option_get 1 bn) ->
+    let ctx' = { ctx with arguments = args } in
+    let sta' = sta in
+    let bhv = BNormal True in
+    eval_instruction inp ctx sta (IShift bn) sta' ctx' bhv
+
+  | eval_shift_failure: forall inp ctx sta bn.
+    None = shift_arguments ctx.arguments (option_get 1 bn) ->
+    let ctx' = ctx in
+    let sta' = sta in
+    let bhv = inject_behaviour inp False in
+    eval_instruction inp ctx sta (IShift bn) sta' ctx' bhv
 
   | eval_assign: forall inp ctx sta sta' id e s bo.
     eval_str_expr inp ctx sta e sta' s bo ->
@@ -361,7 +388,7 @@ module Semantics
   | eval_call_function: forall inp ctx ctx' sta sta' sta'' id es ss ins bhv.
     eval_list_expr inp ctx sta es sta' ss ->
     ctx.func_env id = Some ins ->
-    eval_instruction { inp with arguments = ss } ctx sta' ins sta'' ctx' bhv ->
+    eval_instruction { inp with argument0 = identifier_to_string id } { ctx with arguments = ss } sta' ins sta'' ctx' bhv ->
     let bhv' = match bhv with BReturn b -> BNormal b | _ -> bhv end in
     eval_instruction inp ctx sta (ICallFunction id es) sta' ctx bhv'
 
@@ -442,7 +469,7 @@ module Semantics
     eval_str_expr inp ctx sta (SVariable id) sta s None
 
   | eval_arg: forall inp ctx sta n.
-    let s = nth_argument inp.arguments n in
+    let s = nth_argument (Cons inp.argument0 ctx.arguments) n in
     eval_str_expr inp ctx sta (SArgument n) sta s None
 
   | eval_str_subshell: forall inp ctx ctx' sta sta2 ins bhv.

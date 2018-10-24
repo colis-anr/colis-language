@@ -27,26 +27,29 @@ module Interpreter
   (* We use refs instead of mutable fields to be able to reuse `stdin` (and `stdout`) but
      shadow `senv`. *)
   type state = {
+    filesystem : ref filesystem;
     var_env : ref C.var_env;
     func_env : C.func_env;
+    arguments: ref (list string);
     stdin : ref stdin;
     stdout : ref stdout;
-    filesystem : ref filesystem;
     result : ref bool;
   }
 
   let empty_state () = {
+    filesystem = ref empty_filesystem;
     var_env = ref (empty_env String.empty);
     func_env = empty_env None;
+    arguments = ref Nil;
     stdin = ref empty_stdin;
     stdout = ref empty_stdout;
-    filesystem = ref empty_filesystem;
     result = ref True;
   }
 
   (** {4 Conversion to `semantics.Context`} *)
 
   function context (sta:state) : C.context = {
+    C.arguments = !(sta.arguments);
     C.var_env = !(sta.var_env);
     C.func_env = sta.func_env;
   }
@@ -64,23 +67,22 @@ module Interpreter
   (** {3 The input type} *)
 
   type input = {
-    arguments: list string;
+    argument0: string;
     under_condition: bool;
   }
 
   let constant empty_input = {
-    arguments = Nil;
+    argument0 = String.empty;
     under_condition = False;
   }
 
   let function input (inp:input) (sta:state) : C.input = {
-    C.arguments = inp.arguments;
+    C.argument0 = inp.argument0;
     C.under_condition = inp.under_condition;
     C.previous_result = !(sta.result);
   }
 
   lemma input_same : forall inp inp' sta sta'.
-    inp.arguments = inp'.arguments ->
     inp.under_condition = inp'.under_condition ->
     !(sta.result) = !(sta'.result) ->
     input inp sta = input inp' sta'
@@ -109,6 +111,32 @@ module Interpreter
     sta.stdout := sta'.C.stdout;
     sta.result := b;
     maybe_exit inp sta
+
+  let shift_arguments sta n
+    ensures {
+      !(sta.result) = True ->
+      shift_arguments !((old sta).arguments) n = Some !(sta.arguments)
+    }
+    ensures {
+      !(sta.result) = False ->
+      shift_arguments !((old sta).arguments) n = None /\
+      !(sta.arguments) = !((old sta).arguments)
+    }
+  = try
+      let new_args = ref !(sta.arguments) in
+      for i = 1 to n do
+        match !new_args with
+        | Cons _ args' ->
+          new_args := args'
+        | Nil ->
+          raise EExit
+        end
+      done;
+      sta.arguments := !new_args;
+      sta.result := True
+    with EExit ->
+      sta.result := False
+    end
   
   (** {3 The interpretation of statements} *)
 
@@ -145,6 +173,10 @@ module Interpreter
       end;
       assert { !(sta.result) = bool_of_return_code code !(sta.result at L) };
       raise EReturn
+
+    | IShift bn ->
+      shift_arguments sta (option_get 1 bn);
+      maybe_exit inp sta
 
     | IAssignment id se ->
       let str, bo = interp_str_expr inp sta se in
@@ -221,7 +253,16 @@ module Interpreter
         maybe_exit inp sta
       | Some ins ->
         try
-          interp_instruction {inp with arguments = args} { sta with var_env = ref !(sta.var_env) } ins
+          let inp' = {
+            inp with
+            argument0 = identifier_to_string id
+          } in
+          let sta' = {
+            sta with
+            arguments = ref args;
+            var_env = ref !(sta.var_env)
+          } in
+          interp_instruction inp' sta' ins
         with
           EReturn -> ()
         end
@@ -270,7 +311,7 @@ module Interpreter
       !(sta.var_env) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
 
     | SArgument n ->
-      nth_argument inp.arguments n, None
+      nth_argument (Cons inp.argument0 !(sta.arguments)) n, None
 
     | SSubshell ins ->
       let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); var_env = ref !(sta.var_env)} in
