@@ -1,3 +1,3 @@
 begin
-  foo
+  call f
 end

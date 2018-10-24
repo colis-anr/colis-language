@@ -1,5 +1,7 @@
-pipe
-  true
-into
-  grep ['X']
-epip
+begin
+  pipe
+    true
+  into
+    grep ['X']
+  epip
+end

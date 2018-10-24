@@ -13,7 +13,9 @@ rule token = parse
   | "(*"                                { comment 1 lexbuf }
   | "*)"                                { raise (LexerError ("mismatched *)")) }
   | ":="                                { ASSTRING }
+  | "arg"                               { ARG }
   | "begin"                             { BEGIN }
+  | "call"                              { CALL }
   | "do"                                { DO }
   | "done"                              { DONE }
   | "else"                              { ELSE }
@@ -22,6 +24,7 @@ rule token = parse
   | "epip"                              { EPIP }
   | "exit"                              { EXIT }
   | "failure"                           { FAILURE }
+  | "function"                          { FUNCTION }
   | "fi"                                { FI }
   | "for"                               { FOR }
   | "if"                                { IF }
@@ -32,19 +35,23 @@ rule token = parse
   | "pipe"                              { PIPE }
   | "previous"                          { PREVIOUS }
   | "process"                           { PROCESS }
+  | "return"                            { RETURN }
+  | "shift"                             { SHIFT }
+  | "split"                             { SPLIT }
   | "success"                           { SUCCESS }
   | "then"                              { THEN }
   | "while"                             { WHILE }
-  | '{'                                 { LACCOL }
-  | '}'                                 { RACCOL }
+  | '{'                                 { LBRACE }
+  | '}'                                 { RBRACE }
   | '('                                 { LPAREN }
   | ')'                                 { RPAREN }
-  | ';'                                 { PTVIRG }
-  | '['                                 { LCROCH }
-  | ']'                                 { RCROCH }
+  | ';'                                 { SEMICOLON }
+  | '['                                 { LBRACKET }
+  | ']'                                 { RBRACKET }
   | '\''                                { let b = Buffer.create 10 in string b lexbuf }
   | '\n'                                { Lexing.new_line lexbuf; token lexbuf }
-  | (alpha (alpha | digit | '_')* as v) { VAR_NAME (v) }
+  | (alpha (alpha | digit | '_')* as s) { IDENTIFIER (s) }
+  | (digit+ as s)                       { NAT (Z.of_string s) }
   | ['\t' ' ']                          { token lexbuf }     (* skip tab and blank*)
   | _ as c                              { raise (LexerError ("unknown character '" ^ String.make 1 c ^ "'")) }
 

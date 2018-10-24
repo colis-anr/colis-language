@@ -16,4 +16,4 @@ env:
 
 script:
   - docker build --build-arg tag=$TAG --build-arg switch=$SWITCH --tag colisanr/colis-language:$TRAVIS_BRANCH .
-  - docker run --entrypoint /bin/sh colisanr/colis-language:$TRAVIS_BRANCH -c 'eval $(opam env) && cd /home/opam/colis-language && make really-sure && make install && make uninstall'
+  - docker run --entrypoint /bin/sh colisanr/colis-language:$TRAVIS_BRANCH -c 'eval $(opam env) && cd /home/opam/colis-language && make test && make prove && make install && make uninstall'

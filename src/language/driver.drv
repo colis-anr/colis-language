@@ -7,7 +7,8 @@ module mystring.String
   syntax function (^) "%1 ^ %2"
 end
 
-module syntax.Variable
-  syntax type variable "string"
-  syntax function variable_eq "String.equal %1 %2"
+module syntax.Identifier
+  syntax type identifier "string"
+  syntax function identifier_eq "String.equal %1 %2"
+  syntax function identifier_to_string "%1"
 end

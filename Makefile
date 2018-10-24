@@ -1,23 +1,25 @@
-.PHONY: build sure test clean extract-why3 clean-why3
+.PHONY: build test prove doc clean extract-why3 clean-why3 install uninstall
 
 build: extract-why3
 	dune build @install
 	ln -sf _build/install/default/bin .
 
-really-sure: test prove
-
-test: build
-	dune runtest
-
 clean: clean-why3
 	dune clean
-	rm -f bin
+	rm -f bin doc
 
 install:
 	dune install
 
 uninstall:
 	dune uninstall
+
+doc: build
+	dune build @doc
+	[ -e doc ] || ln -s _build/default/_doc/_html doc
+
+test: build
+	dune runtest
 
 prove: prove-concrete-semantics prove-concrete-interpreter
 

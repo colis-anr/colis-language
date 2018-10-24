@@ -1,12 +1,6 @@
 (alias
  (name runtest)
- (action (run ./run_tests.exe))
+ (action (run runner/run_tests.exe))
  (deps
   (package colis-language)
   (source_tree .)))
-
-(executable
- (name run_tests)
- (libraries unix yaml ppx_protocol_conv_yaml)
- (preprocess (pps ppx_protocol_conv))
- (flags (:standard -w -39)))

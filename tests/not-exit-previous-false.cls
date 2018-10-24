@@ -1,2 +1,3 @@
-not begin false; exit previous end
-
+begin
+  not begin false; exit previous end
+end

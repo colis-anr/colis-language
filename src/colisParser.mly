@@ -12,31 +12,40 @@ let rec concat = function
 %}
 
 
-%token SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN
-%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING
-%token LPAREN RPAREN LACCOL RACCOL LCROCH RCROCH EMBED PTVIRG EOF
+%token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN FUNCTION CALL
+%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING ARG SHIFT
+%token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET EMBED SEMICOLON EOF RETURN
 %token<string> LITERAL
-%token<string> VAR_NAME
+%token<string> IDENTIFIER
+%token<Z.t> NAT
 %start program
-%type <Syntax__Syntax.instruction> program
+%type <Syntax__Syntax.program> program
 %%
 program:
-  instruction EOF                                             { $1 }
+  list(function_definition)
+  BEGIN seq END EOF                                           { {function_definitions=$1; instruction=$3} }
+;
+function_definition:
+  FUNCTION IDENTIFIER BEGIN seq END                           { $2, $4 }
 ;
 instruction:
   | EXIT exit_code                                            { IExit($2) }
+  | RETURN exit_code                                          { IReturn($2) }
+  | SHIFT option(NAT)                                         { IShift($2) }
   | IF instruction THEN instruction ELSE instruction FI       { IIf ($2, $4, $6) }
-  | IF instruction THEN instruction FI                        { IIf ($2, $4, ICall("true", [])) }
+  | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallUtility("true", [])) }
   | NOT instruction                                           { INot ($2) }
-  | FOR VAR_NAME IN lexpr DO instruction DONE                 { IForeach ($2, $4, $6) }
+  | FOR IDENTIFIER IN lexpr DO instruction DONE               { IForeach ($2, $4, $6) }
   | WHILE instruction DO instruction DONE                     { IWhile ($2, $4) }
   | BEGIN seq END                                             { $2 }
   | PROCESS instruction                                       { ISubshell ($2) }
   | PIPE pipe EPIP                                            { $2 }
   | NOOUTPUT instruction                                      { INoOutput ($2) }
-  | VAR_NAME                                                  { ICall ($1, []) }
-  | VAR_NAME lexpr                                            { ICall ($1, $2) }
-  | VAR_NAME ASSTRING sexpr                                   { IAssignment ($1, $3) }
+  | IDENTIFIER                                                { ICallUtility ($1, []) }
+  | IDENTIFIER lexpr                                          { ICallUtility ($1, $2) }
+  | CALL IDENTIFIER                                           { ICallFunction ($2, []) }
+  | CALL IDENTIFIER lexpr                                     { ICallFunction ($2, $3) }
+  | IDENTIFIER ASSTRING sexpr                                 { IAssignment ($1, $3) }
   | LPAREN instruction RPAREN                                 { $2 }
 ;
 exit_code:
@@ -49,21 +58,22 @@ pipe:
   | instruction                                               { $1 }
 ;
 seq:
-  | instruction PTVIRG seq                                    { ISequence($1,$3) }
+  | instruction SEMICOLON seq                                 { ISequence($1,$3) }
   | instruction                                               { $1 }
 ;
 sfrag:
   | LITERAL                                                   { SLiteral($1) }
-  | VAR_NAME                                                  { SVariable($1) }
-  | EMBED delimited(LACCOL, instruction, RACCOL)              { SSubshell($2) }
+  | IDENTIFIER                                                { SVariable($1) }
+  | EMBED delimited(LBRACE, instruction, RBRACE)              { SSubshell($2) }
+  | ARG NAT                                                   { SArgument($2) }
 ;
 sexpr:
   | nonempty_list(sfrag)                                      { concat $1 }
 ;
 lfrag:
-  | sexpr                                                     { $1, Split }
-  | delimited (LACCOL, sexpr, RACCOL)                         { $1, DontSplit}
+  | SPLIT sexpr                                               { $2, Split }
+  | sexpr                                                     { $1, DontSplit}
 ;
 lexpr:
-  | delimited (LCROCH, separated_list(PTVIRG, lfrag), RCROCH) { $1 }
+  | delimited (LBRACKET, separated_list(SEMICOLON, lfrag), RBRACKET) { $1 }
 ;

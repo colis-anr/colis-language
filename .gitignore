@@ -13,6 +13,7 @@
 ## Project specific
 /src/why3
 /bin
+/doc
 
 ## Why3
 why3session.xml.bak
