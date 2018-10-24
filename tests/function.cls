@@ -1,12 +1,19 @@
-function f begin
-  echo ['Hello'; arg 0 '!']
+function greet begin
+  echo ['Hello'; arg 1 '!']
 end
 
 function twice begin
-  call f [arg 0];
-  call f [arg 1]
+  call greet [arg 1];
+  call greet [arg 2]
+end
+
+function butfirst begin
+  shift;
+  call greet [arg 1];
+  call greet [arg 2]
 end
 
 begin
-  call twice ['colis'; 'world']
+  call twice ['colis'; 'world'];
+  call butfirst ['you'; 'colis'; 'world']
 end
