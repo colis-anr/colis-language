@@ -23,6 +23,7 @@ depends: [
 
   "ocaml"  {build & >= "4.05"}
   "why3"   {build}
+  "batteries" {build}
 
   "odoc"   {with-doc}
 
