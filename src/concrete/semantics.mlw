@@ -257,8 +257,14 @@ module Context
   (* A variable environment *)
   type var_env = env string
 
+  let constant empty_var_env : var_env =
+    fun _ -> String.empty
+
   (** A function environment *)
   type func_env = env (option instruction)
+
+  let constant empty_func_env : func_env =
+    fun _ -> None
 
   type context = {
     arguments: list string;
@@ -341,9 +347,9 @@ module Semantics
   val function interp_utility state identifier (list string) :
     (state, bool)
 
-  axiom interp_builtin_extends_output : forall sta sta' name args b.
-    interp_builtin {sta with stdout=Stdout.empty} name args = (sta', b) ->
-    interp_builtin sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
+  axiom interp_utility_extends_output : forall sta sta' name args b.
+    interp_utility {sta with stdout=Stdout.empty} name args = (sta', b) ->
+    interp_utility sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
   (** Evaluation of a instruction i with input I, context C and state S resulting in an
       state S', context C', and behaviour b:
@@ -533,9 +539,9 @@ module Semantics
     eval_str_expr inp ctx sta (SArgument n) sta s None
 
   | eval_str_subshell: forall inp ctx ctx' sta sta2 ins bhv.
-    let sta1 = {sta with stdout = empty_stdout} in
+    let sta1 = { sta with stdout = Stdout.empty } in
     eval_instruction inp ctx sta1 ins sta2 ctx' bhv ->
-    let sta3 = {sta2 with stdout = sta.stdout} in
+    let sta3 = { sta2 with stdout = sta.stdout } in
     let s = Stdout.to_string sta2.stdout in
     let bo = Some (bool_of_behaviour bhv) in
     eval_str_expr inp ctx sta (SSubshell ins) sta3 s bo
@@ -562,10 +568,6 @@ module Semantics
       eval_list_expr inp ctx sta1 es sta2 l2 ->
       let l3 = l1 ++ l2 in
       eval_list_expr inp ctx sta (Cons (se, sp) es) sta2 l3
-
-  lemma eval_instruction_extends_stdout : forall inp ctx ctx' sta sta' ins bhv.
-    eval_instruction inp ctx {sta with stdout=empty_stdout} ins sta' ctx' bhv ->
-    eval_instruction inp ctx sta ins {sta' with stdout=concat_stdout sta.stdout sta'.stdout} ctx' bhv
 
   (** Evaluation of a program. It outputs in a boolean value *)
   inductive eval_function_definitions func_env (list function_definition) func_env =
@@ -616,12 +618,12 @@ module Semantics
     eval_foreach bhv inp ctx { sta with stdout = Stdout.empty } var ss ins sta' ctx' bhv' ->
     eval_foreach bhv inp ctx sta var ss ins { sta' with stdout = Stdout.concat sta.stdout sta'.stdout } ctx' bhv'
 
-  lemma eval_call_expands_stdout: forall inp ctx sta sta' sta'' s le ss b.
+  lemma eval_call_utility_expands_stdout: forall inp ctx sta sta' sta'' s le ss b.
     eval_list_expr inp ctx { sta with stdout = Stdout.empty } le sta' ss ->
-    (sta'', b) = interp_builtin { sta' with stdout = Stdout.empty } s ss ->
+    (sta'', b) = interp_utility { sta' with stdout = Stdout.empty } s ss ->
     let bhv = inject_behaviour inp b in
     let out = Stdout.(concat sta.stdout (concat sta'.stdout sta''.stdout)) in
-    eval_instruction inp ctx sta (ICall s le) { sta'' with stdout = out } ctx bhv
+    eval_instruction inp ctx sta (ICallUtility s le) { sta'' with stdout = out } ctx bhv
 
   lemma eval_sequence_expands_stdout: forall ins1 ins2[@induction].
     (forall inp ctx ctx' sta sta' bhv.

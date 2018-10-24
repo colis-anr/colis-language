@@ -82,9 +82,10 @@ let shell_to_colis shell =
 
 let run ~argument0 ?(arguments=[]) colis =
   let open Interpreter__Interpreter in
+  let open Semantics__Buffers in
   let input = { empty_input with argument0 } in
   let state = empty_state () in
   state.arguments := arguments;
   interp_program input state colis;
-  print_string (!(state.stdout) |> List.rev |> String.concat "\n");
+  print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)

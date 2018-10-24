@@ -36,7 +36,7 @@ module Interpreter
   }
 
   let empty_state () = {
-    filesystem = ref empty_filesystem;
+    filesystem = ref Filesystem.empty;
     var_env = ref C.empty_var_env;
     func_env = C.empty_func_env;
     arguments = ref Nil;
@@ -329,7 +329,7 @@ module Interpreter
         | EExit -> ()
         | EReturn -> ()
       end;
-      stdout_to_string !(sta'.stdout), Some !(sta'.result)
+      Stdout.to_string !(sta'.stdout), Some !(sta'.result)
 
     | SConcat se1 se2 ->
       label L1 in let s1, bo1 = interp_str_expr inp sta se1 in
