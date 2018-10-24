@@ -7,7 +7,7 @@ module FromShell = FromShell
 
 (* CoLiS *)
 
-exception ParseError of string
+exception ParseError of string * Lexing.position
 exception ConversionError of string
 
 type colis = AST.program
@@ -20,9 +20,11 @@ let colis_from_lexbuf ?(filename="-") lexbuf =
     ColisParser.program ColisLexer.token lexbuf
   with
   | ColisLexer.LexerError s ->
-     raise (ParseError s)
+     let pos = lexbuf.Lexing.lex_curr_p in
+     raise (ParseError (s, pos))
   | ColisParser.Error ->
-     raise (ParseError "")
+     let pos = lexbuf.Lexing.lex_curr_p in
+     raise (ParseError ("", pos))
 
 let colis_from_channel ?(filename="-") channel =
   let lexbuf = Lexing.from_channel channel in
@@ -66,8 +68,8 @@ let shell_from_file file =
   try
     Morsmall.parse_file file
   with
-    Morsmall.SyntaxError _pos ->
-    raise (ParseError "")
+    Morsmall.SyntaxError pos ->
+    raise (ParseError ("", pos))
 
 let shell_to_colis shell =
   try

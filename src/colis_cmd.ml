@@ -71,8 +71,13 @@ let main () =
            | Shell -> Colis.(shell_from_file ||> shell_to_colis)
       )
     with
-    | Colis.ParseError msg ->
-       eprintf "Parse error: %s@." msg;
+    | Colis.ParseError (msg, pos) ->
+       let print_position fmt pos =
+         let open Lexing in
+         fprintf fmt "%s:%d:%d" pos.pos_fname
+           pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+       in
+       eprintf "Syntax error at %a%s@." print_position pos (if msg = "" then "" else ": "^msg);
        exit 2
     | Colis.ConversionError msg ->
        eprintf "Conversion error: %s@." msg;

@@ -13,7 +13,7 @@ type shell = Morsmall.AST.program
 
 (** {2 Parsing} *)
 
-exception ParseError of string (* FIXME: and position *)
+exception ParseError of string * Lexing.position
 
 val colis_from_channel : ?filename:string -> in_channel -> colis
 (** Reads Colis syntax from a channel and returns the corresponding AST.
