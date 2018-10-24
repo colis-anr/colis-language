@@ -1,0 +1,13 @@
+input:
+  arguments: [A, B]
+  stdin: ""
+output:
+  stdout: |
+    Here is ./shift.cls - A - B
+    Here is ./shift.cls - B - 
+    This is f - X - Y - Z - W
+    This is f - W -  -  - 
+    This is f - X - Y Z W -  - 
+
+  stderr: ""
+  return_code: 1
