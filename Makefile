@@ -1,4 +1,4 @@
-.PHONY: build test prove doc clean extract-why3 clean-why3 install uninstall
+.PHONY: build test replay-proofs doc clean extract-why3 clean-why3 install uninstall
 
 build: extract-why3
 	dune build @install
@@ -21,9 +21,9 @@ doc: build
 test: build
 	dune runtest
 
-prove: prove-concrete-semantics prove-concrete-interpreter
+replay-proofs: $(patsubst %, replay-proofs-concrete-%, lemmas semantics interpreter)
 
-prove-concrete-%: src/concrete/%.mlw src/concrete/%/why3session.xml
+replay-proofs-concrete-%: src/concrete/%.mlw src/concrete/%/why3session.xml
 	why3 replay --use-steps \
 		-L src/language -L src/concrete \
 		src/concrete/$*

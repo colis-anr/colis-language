@@ -8,6 +8,7 @@ module Interpreter
   use list.List
   use list.Append
   use list.Length
+  use list.Nth
   use ref.Ref
   use option.Option
   use bool.Bool
@@ -22,6 +23,7 @@ module Interpreter
   use semantics.Env
   use semantics.Context as C
   use semantics.Semantics
+  use auxiliaries.TakeDrop
 
   (** {3 A purely imparative state} *)
 
@@ -108,8 +110,16 @@ module Interpreter
 
   (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
-  let interp_utility inp sta name args raises { EExit -> true }
-  = let sta', b = Semantics.interp_utility (state sta) name args in
+  let interp_utility inp sta id args
+    returns { () -> 
+      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      inject_behaviour (input inp sta) !(sta.result) = BNormal !(sta.result)
+    }
+    raises { EExit -> 
+      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      inject_behaviour (input inp sta) !(sta.result) = BExit !(sta.result)
+    }
+  = let sta', b = Semantics.interp_utility (state sta) id args in
     sta.filesystem := sta'.C.filesystem;
     sta.stdin := sta'.C.stdin;
     sta.stdout := sta'.C.stdout;
@@ -145,7 +155,7 @@ module Interpreter
     with EExit ->
       sta.result := False
     end
-  
+
   (** {3 The interpretation of statements} *)
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
@@ -197,10 +207,10 @@ module Interpreter
       interp_instruction inp sta ins2
 
     | ISubshell ins ->
-      (* Don't change `sta.senv` in the subshell *)
       let sta' = {
         sta with
-        var_env = ref !(sta.var_env)
+        var_env = ref !(sta.var_env);
+        arguments = ref !(sta.arguments);
       } in
       try
         interp_instruction inp sta' ins
@@ -235,8 +245,9 @@ module Interpreter
     | IPipe ins1 ins2 ->
       let sta' = {
         sta with
+        stdout = ref Stdout.empty;
         var_env = ref !(sta.var_env);
-        stdout = ref Stdout.empty
+        arguments = ref !(sta.arguments);
       } in
       try
         interp_instruction inp sta' ins1
@@ -246,9 +257,10 @@ module Interpreter
       end;
       let sta'' = {
         sta' with
-        var_env = ref !(sta.var_env);
+        stdin = ref (Stdout.to_stdin !(sta'.stdout));
         stdout = sta.stdout;
-        stdin = ref (Stdout.to_stdin !(sta'.stdout))
+        var_env = ref !(sta.var_env);
+        arguments = ref !(sta.arguments);
       } in
       interp_instruction inp sta'' ins2
 
@@ -259,15 +271,9 @@ module Interpreter
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in
       match sta.func_env id with
-      | None ->
-        sta.result := False;
-        maybe_exit inp sta
       | Some ins ->
         try
-          let inp' = {
-            inp with
-            argument0 = identifier_to_string id
-          } in
+          let inp' = { inp with argument0 = identifier_to_string id } in
           let sta' = {
             sta with
             arguments = ref args;
@@ -277,22 +283,42 @@ module Interpreter
         with
           EReturn -> ()
         end
+      | None ->
+        sta.result := False;
+        maybe_exit inp sta
       end
 
     | IForeach id le ins ->
       let ss = interp_list_expr inp sta le in
-      let last_result = ref True in
-      let rec foreach ss =
-        match ss with
-        | Nil -> ()
-        | Cons s ss' ->
+      let last_result = ref True in (* See NOTES[Previous in for-loop] *)
+      label L in
+      for i = 0 to length ss - 1 do
+        invariant {
+          1 <= i < length ss ->
+          eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
+            id (take i ss) ins (state sta) (context sta) (BNormal !last_result)
+        }
+        invariant { forall b1 ctx1 ctx2 sta1 sta2 bhv2.
+          eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
+            id (take i ss) ins (state sta) (context sta) (BNormal !last_result) ->
+          let ctx = context sta in
+          let inp1 = input inp sta in
+          eval_instruction inp1 {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} (state sta)
+            ins sta1 ctx1 (BNormal b1) ->
+          eval_foreach b1 {inp1 with C.previous_result = b1} ctx1 sta1 id (drop i ss) ins sta2 ctx2 bhv2 ->
+          eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
+            id ss ins sta2 ctx2 bhv2
+        }
+        match nth i ss with
+        | Some s ->
           sta.var_env := !(sta.var_env)[id <- s];
           interp_instruction inp sta ins;
           last_result := !(sta.result);
-          foreach ss'
+        | None ->
+          absurd
         end
-      in foreach ss;
-      sta.result := !last_result (* See NOTES[Previous in for-loop] for p=True *)
+      done;
+      sta.result := !last_result
 
     | IWhile ins1 ins2 ->
       let last_result = ref True in
@@ -329,7 +355,8 @@ module Interpreter
         sta with
         stdout = ref Stdout.empty;
         result = ref !(sta.result);
-        var_env = ref !(sta.var_env)
+        var_env = ref !(sta.var_env);
+        arguments = ref !(sta.arguments);
       } in
       try
         interp_instruction inp sta' ins
