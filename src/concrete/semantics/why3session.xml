@@ -97,149 +97,220 @@
  </goal>
 </theory>
 <theory name="Context" proved="true">
- <goal name="VC empty_input" expl="VC for empty_input" proved="true">
- <proof prover="1"><result status="valid" time="0.03"/></proof>
- </goal>
  <goal name="VC mk_state" expl="VC for mk_state" proved="true">
  <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
 </theory>
 <theory name="Semantics">
+ <goal name="VC nth_argument" expl="VC for nth_argument" proved="true">
+ <proof prover="1"><result status="valid" time="0.06"/></proof>
+ </goal>
+ <goal name="VC shift_arguments" expl="VC for shift_arguments" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC shift_arguments.0" expl="variant decrease" proved="true">
+  <transf name="split_vc" proved="true" >
+   <goal name="VC shift_arguments.0.0" expl="variant decrease" proved="true">
+   <proof prover="1"><result status="valid" time="0.04"/></proof>
+   </goal>
+  </transf>
+  </goal>
+  <goal name="VC shift_arguments.1" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.06"/></proof>
+  </goal>
+  <goal name="VC shift_arguments.2" expl="postcondition" proved="true">
+  <transf name="split_vc" proved="true" >
+   <goal name="VC shift_arguments.2.0" expl="postcondition" proved="true">
+   <transf name="split_vc" proved="true" >
+    <goal name="VC shift_arguments.2.0.0" expl="postcondition" proved="true">
+    <proof prover="0" timelimit="1"><result status="valid" time="0.01" steps="11"/></proof>
+    </goal>
+    <goal name="VC shift_arguments.2.0.1" expl="postcondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.05"/></proof>
+    </goal>
+    <goal name="VC shift_arguments.2.0.2" expl="postcondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.07"/></proof>
+    </goal>
+   </transf>
+   </goal>
+   <goal name="VC shift_arguments.2.1" expl="postcondition" proved="true">
+   <transf name="split_vc" proved="true" >
+    <goal name="VC shift_arguments.2.1.0" expl="postcondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.04"/></proof>
+    </goal>
+    <goal name="VC shift_arguments.2.1.1" expl="postcondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.08"/></proof>
+    </goal>
+    <goal name="VC shift_arguments.2.1.2" expl="postcondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.06"/></proof>
+    </goal>
+   </transf>
+   </goal>
+  </transf>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="shift_arguments_0" proved="true">
+ <proof prover="0" timelimit="1"><result status="valid" time="0.01" steps="8"/></proof>
+ <proof prover="1"><result status="timeout" time="1.00"/></proof>
+ </goal>
+ <goal name="shift_arguments_cons_some" proved="true">
+ <transf name="induction_ty_lex" proved="true" >
+  <goal name="shift_arguments_cons_some.0" proved="true">
+  <proof prover="0" timelimit="1"><result status="valid" time="0.03" steps="170"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="shift_arguments_cons_none" proved="true">
+ <transf name="induction_ty_lex" proved="true" >
+  <goal name="shift_arguments_cons_none.0" proved="true">
+  <proof prover="0" timelimit="1"><result status="valid" time="0.02" steps="97"/></proof>
+  <proof prover="1"><result status="valid" time="0.19"/></proof>
+  </goal>
+ </transf>
+ </goal>
  <goal name="eval_instruction_functional">
  </goal>
- <goal name="eval_str_expr_keeps_stdout" proved="true">
- <transf name="induction_pr" proved="true" >
-  <goal name="eval_str_expr_keeps_stdout.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.07"/></proof>
+ <goal name="eval_str_expr_keeps_stdout">
+ <transf name="induction_pr" >
+  <goal name="eval_str_expr_keeps_stdout.0">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.07"/></proof>
   </goal>
-  <goal name="eval_str_expr_keeps_stdout.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.07"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.1">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.07"/></proof>
   </goal>
-  <goal name="eval_str_expr_keeps_stdout.2" proved="true">
-  <proof prover="1"><result status="valid" time="0.08"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.2">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
   </goal>
-  <goal name="eval_str_expr_keeps_stdout.3" proved="true">
-  <proof prover="1"><result status="valid" time="0.09"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.3">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.08"/></proof>
   </goal>
- </transf>
- </goal>
- <goal name="eval_str_expr_extends_stdout" proved="true">
- <proof prover="1" obsolete="true"><result status="valid" time="0.08"/></proof>
- <transf name="induction_pr" proved="true" >
-  <goal name="eval_str_expr_extends_stdout.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.09"/></proof>
-  </goal>
-  <goal name="eval_str_expr_extends_stdout.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.09"/></proof>
-  </goal>
-  <goal name="eval_str_expr_extends_stdout.2" proved="true">
-  <proof prover="1"><result status="valid" time="0.10"/></proof>
-  </goal>
-  <goal name="eval_str_expr_extends_stdout.3" proved="true">
-  <proof prover="1"><result status="valid" time="0.18"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.4">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
   </goal>
  </transf>
  </goal>
- <goal name="eval_list_expr_keeps_stdout" proved="true">
- <transf name="induction_pr" proved="true" >
-  <goal name="eval_list_expr_keeps_stdout.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.08"/></proof>
+ <goal name="eval_str_expr_extends_stdout">
+ <transf name="induction_pr" >
+  <goal name="eval_str_expr_extends_stdout.0">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
   </goal>
-  <goal name="eval_list_expr_keeps_stdout.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.13"/></proof>
+  <goal name="eval_str_expr_extends_stdout.1">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
+  </goal>
+  <goal name="eval_str_expr_extends_stdout.2">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.11"/></proof>
+  </goal>
+  <goal name="eval_str_expr_extends_stdout.3">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.10"/></proof>
+  </goal>
+  <goal name="eval_str_expr_extends_stdout.4">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.18"/></proof>
   </goal>
  </transf>
  </goal>
- <goal name="eval_list_expr_expands_stdout" proved="true">
- <transf name="induction_pr" proved="true" >
-  <goal name="eval_list_expr_expands_stdout.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.10"/></proof>
+ <goal name="eval_list_expr_keeps_stdout">
+ <transf name="induction_pr" >
+  <goal name="eval_list_expr_keeps_stdout.0">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.08"/></proof>
   </goal>
-  <goal name="eval_list_expr_expands_stdout.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.37"/></proof>
+  <goal name="eval_list_expr_keeps_stdout.1">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.13"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="eval_list_expr_expands_stdout">
+ <transf name="induction_pr" >
+  <goal name="eval_list_expr_expands_stdout.0">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.10"/></proof>
+  </goal>
+  <goal name="eval_list_expr_expands_stdout.1">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.55"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="eval_foreach_expands_stdout">
  </goal>
+ <goal name="eval_call_utility_expands_stdout">
+ </goal>
  <goal name="eval_sequence_expands_stdout">
  <transf name="induction_pr" >
-  <goal name="eval_sequence_expands_stdout.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.12"/></proof>
+  <goal name="eval_sequence_expands_stdout.0">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.12"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.1">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.2">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
   </goal>
-  <goal name="eval_sequence_expands_stdout.3" proved="true">
-  <proof prover="1"><result status="valid" time="0.22"/></proof>
+  <goal name="eval_sequence_expands_stdout.3">
   </goal>
   <goal name="eval_sequence_expands_stdout.4">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="outofmemory" time="27.05"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.5">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
   </goal>
-  <goal name="eval_sequence_expands_stdout.6" proved="true">
-  <proof prover="1"><result status="valid" time="0.14"/></proof>
+  <goal name="eval_sequence_expands_stdout.6">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.7">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="outofmemory" time="27.05"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.8">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
   </goal>
-  <goal name="eval_sequence_expands_stdout.9" proved="true">
-  <proof prover="1"><result status="valid" time="0.16"/></proof>
+  <goal name="eval_sequence_expands_stdout.9">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.14"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.10">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.11">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.12">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" obsolete="true"><result status="valid" time="0.22"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.13">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="timeout" time="30.00"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
   </goal>
   <goal name="eval_sequence_expands_stdout.14">
-  <proof prover="0"><result status="timeout" time="30.00"/></proof>
-  <proof prover="1" timelimit="30"><result status="timeout" time="30.00"/></proof>
-  <proof prover="2"><result status="outofmemory" time="12.26"/></proof>
   </goal>
- </transf>
- </goal>
- <goal name="eval_call_expands_stdout" proved="true">
- <transf name="induction_pr" proved="true" >
-  <goal name="eval_call_expands_stdout.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.24"/></proof>
+  <goal name="eval_sequence_expands_stdout.15">
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
   </goal>
-  <goal name="eval_call_expands_stdout.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.16"/></proof>
+  <goal name="eval_sequence_expands_stdout.16">
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  </goal>
+  <goal name="eval_sequence_expands_stdout.17">
+  </goal>
+  <goal name="eval_sequence_expands_stdout.18">
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  </goal>
+  <goal name="eval_sequence_expands_stdout.19">
+  <proof prover="0" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="1" timelimit="30" obsolete="true"><result status="timeout" time="30.00"/></proof>
+  <proof prover="2" obsolete="true"><result status="outofmemory" time="12.26"/></proof>
   </goal>
  </transf>
  </goal>
@@ -249,40 +320,34 @@
   <proof prover="1" obsolete="true"><result status="valid" time="0.11"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.1">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.2">
-  <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.3">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.4">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.13"/></proof>
+  <proof prover="1" obsolete="true"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.5">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.18"/></proof>
+  <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.6">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.14"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.7">
-  <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1" obsolete="true"><result status="valid" time="0.13"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.8">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.18"/></proof>
+  </goal>
+  <goal name="eval_instruction_extends_stdout.9">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.14"/></proof>
+  </goal>
+  <goal name="eval_instruction_extends_stdout.10">
   <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  </goal>
-  <goal name="eval_instruction_extends_stdout.9">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.15"/></proof>
-  </goal>
-  <goal name="eval_instruction_extends_stdout.10">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.19"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.11">
   <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
@@ -290,15 +355,31 @@
   <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.12">
-  <proof prover="0" timelimit="1" obsolete="true"><result status="valid" time="0.05" steps="122"/></proof>
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1" obsolete="true"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="eval_instruction_extends_stdout.13">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.19"/></proof>
+  </goal>
+  <goal name="eval_instruction_extends_stdout.14">
   <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
-  <goal name="eval_instruction_extends_stdout.14">
+  <goal name="eval_instruction_extends_stdout.15">
+  <proof prover="0" timelimit="1" obsolete="true"><result status="valid" time="0.05" steps="122"/></proof>
+  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  </goal>
+  <goal name="eval_instruction_extends_stdout.16">
+  <proof prover="1" obsolete="true"><result status="valid" time="0.15"/></proof>
+  </goal>
+  <goal name="eval_instruction_extends_stdout.17">
+  </goal>
+  <goal name="eval_instruction_extends_stdout.18">
+  <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  </goal>
+  <goal name="eval_instruction_extends_stdout.19">
   <proof prover="0" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   <proof prover="2" timelimit="1" obsolete="true"><result status="timeout" time="1.00"/></proof>

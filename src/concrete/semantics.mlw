@@ -285,6 +285,7 @@ module Semantics
 
   use list.List
   use list.Append
+  use list.Length
   use option.Option
   use map.Map
   use bool.Bool
@@ -308,16 +309,30 @@ module Semantics
     | Nil -> String.empty
     end
 
-  let rec function shift_arguments (args: list string) (n: int) : option (list string)
+  let rec function shift_arguments (n: int) (args: list string) : option (list string)
     requires { n >= 0 }
     variant { args }
+    ensures { result = None <-> n > length args }
   = if n = 0 then
       Some args
     else
       match args with
       | Nil -> None
-      | Cons _ args' -> shift_arguments args' (n-1)
+      | Cons _ args' -> shift_arguments (n-1) args'
       end
+
+  lemma shift_arguments_0 : forall args.
+    shift_arguments 0 args = Some args
+
+  lemma shift_arguments_cons_some : forall args [@induction] arg args' n.
+    n - 1 >= 0 ->
+    shift_arguments (n-1) args = Some (Cons arg args') ->
+    shift_arguments n args = Some args'
+
+  lemma shift_arguments_cons_none : forall args [@induction] n.
+    n - 1 >= 0 ->
+    shift_arguments (n-1) args = Some Nil ->
+    shift_arguments n args = None
 
   let function bool_of_return_code (c:return_code) (previous_result:bool) : bool =
     match c with
@@ -370,20 +385,20 @@ module Semantics
     eval_instruction inp ctx sta (IReturn c) sta ctx bhv
 
   | eval_shift: forall inp ctx sta bn args.
-    Some args = shift_arguments ctx.arguments (option_get 1 bn) ->
+    Some args = shift_arguments (option_get 1 bn) ctx.arguments ->
     let ctx' = { ctx with arguments = args } in
     let sta' = sta in
     let bhv = BNormal True in
     eval_instruction inp ctx sta (IShift bn) sta' ctx' bhv
 
   | eval_shift_failure: forall inp ctx sta bn.
-    None = shift_arguments ctx.arguments (option_get 1 bn) ->
+    None = shift_arguments (option_get 1 bn) ctx.arguments ->
     let ctx' = ctx in
     let sta' = sta in
     let bhv = inject_behaviour inp False in
     eval_instruction inp ctx sta (IShift bn) sta' ctx' bhv
 
-  | eval_assign: forall inp ctx sta sta' id e s bo.
+  | eval_assignment: forall inp ctx sta sta' id e s bo.
     eval_str_expr inp ctx sta e sta' s bo ->
     let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
     let bhv = inject_behaviour inp (option_get True bo) in

@@ -7,10 +7,12 @@ module Interpreter
 
   use list.List
   use list.Append
+  use list.Length
   use ref.Ref
   use option.Option
   use bool.Bool
   use map.MapExt
+  use int.Int
 
   use mystring.String
   use syntax.Syntax
@@ -54,7 +56,9 @@ module Interpreter
   }
 
   lemma context_same: forall sta1 sta2.
+    !(sta1.arguments) = !(sta2.arguments) ->
     !(sta1.var_env) == !(sta2.var_env) ->
+    sta1.func_env == sta2.func_env ->
     context sta1 = context sta2
 
   let function state (sta:state) : C.state = {
@@ -113,26 +117,30 @@ module Interpreter
     maybe_exit inp sta
 
   let shift_arguments sta n
+    requires { n >= 0 }
     ensures {
       !(sta.result) = True ->
-      shift_arguments !((old sta).arguments) n = Some !(sta.arguments)
+      Some !(sta.arguments) = shift_arguments n !(old sta.arguments)
     }
     ensures {
       !(sta.result) = False ->
-      shift_arguments !((old sta).arguments) n = None /\
-      !(sta.arguments) = !((old sta).arguments)
+      None = shift_arguments n !(old sta.arguments) /\
+      !(sta.arguments) = !(old sta.arguments)
     }
   = try
-      let new_args = ref !(sta.arguments) in
+      let args = ref !(sta.arguments) in
       for i = 1 to n do
-        match !new_args with
+        invariant { length !(sta.arguments) >= i-1  }
+        invariant { shift_arguments (i-1) !(sta.arguments) = Some !args }
+        match !args with
         | Cons _ args' ->
-          new_args := args'
+          args := args'
         | Nil ->
+          assert { shift_arguments i !(sta.arguments) = None };
           raise EExit
         end
       done;
-      sta.arguments := !new_args;
+      sta.arguments := !args;
       sta.result := True
     with EExit ->
       sta.result := False
