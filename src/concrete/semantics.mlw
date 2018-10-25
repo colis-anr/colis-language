@@ -385,14 +385,14 @@ module Semantics
     eval_instruction inp ctx sta (IReturn c) sta ctx bhv
 
   | eval_shift: forall inp ctx sta bn args.
-    Some args = shift_arguments (option_get 1 bn) ctx.arguments ->
+    Some args = shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments ->
     let ctx' = { ctx with arguments = args } in
     let sta' = sta in
     let bhv = BNormal True in
     eval_instruction inp ctx sta (IShift bn) sta' ctx' bhv
 
   | eval_shift_failure: forall inp ctx sta bn.
-    None = shift_arguments (option_get 1 bn) ctx.arguments ->
+    None = shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments ->
     let ctx' = ctx in
     let sta' = sta in
     let bhv = inject_behaviour inp False in
@@ -550,7 +550,7 @@ module Semantics
     eval_str_expr inp ctx sta (SVariable id) sta s None
 
   | eval_arg: forall inp ctx sta n.
-    let s = nth_argument (Cons inp.argument0 ctx.arguments) n in
+    let s = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
     eval_str_expr inp ctx sta (SArgument n) sta s None
 
   | eval_str_subshell: forall inp ctx ctx' sta sta2 ins bhv.

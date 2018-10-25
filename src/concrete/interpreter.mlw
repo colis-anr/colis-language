@@ -183,7 +183,7 @@ module Interpreter
       raise EReturn
 
     | IShift bn ->
-      shift_arguments sta (option_get 1 bn);
+      shift_arguments sta (option_get (mk_nat 1) bn).nat;
       maybe_exit inp sta
 
     | IAssignment id se ->
@@ -322,7 +322,7 @@ module Interpreter
       !(sta.var_env) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
 
     | SArgument n ->
-      nth_argument (Cons inp.argument0 !(sta.arguments)) n, None
+      nth_argument (Cons inp.argument0 !(sta.arguments)) n.nat, None
 
     | SSubshell ins ->
       let sta' = {

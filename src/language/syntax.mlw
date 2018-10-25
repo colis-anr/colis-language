@@ -1,4 +1,19 @@
 
+(** Non-negative integers *)
+module Nat
+
+  use int.Int
+
+  type nat = { nat : int }
+    invariant { nat >= 0 }
+
+  let function mk_nat (i: int)
+    requires { i >= 0 }
+    ensures { result.nat = i }
+  = { nat = i }
+end
+
+(** Identifiers of variables and functions *)
 module Identifier
 
   use mystring.String
@@ -11,12 +26,14 @@ module Identifier
   val function identifier_to_string identifier : string
 end
 
+(** Abstract syntax of the CoLiS language *)
 module Syntax
 
   use list.List
   use option.Option
-  use mystring.String
 
+  use mystring.String
+  use export Nat
   use export Identifier
 
   (** Indicates if a string in a list expression should be split (on default IFS=`[ \t\n]`) *)
@@ -28,7 +45,7 @@ module Syntax
     | SVariable identifier                        (** id          | ${id}                                 *)
     | SSubshell instruction                       (** embed instr | $(instruction)                        *)
     | SConcat string_expression string_expression (** expr expr   | expression expression (without space) *)
-    | SArgument int                               (** arg N       | $N                                    *)
+    | SArgument nat                               (** arg N       | $N                                    *)
 
   (** A list_expression` evaluates to a `list string` *)
   with list_expression =                          (* [split? expr, ...] | "expr" OR expr *)
@@ -55,7 +72,7 @@ module Syntax
     | ICallFunction identifier list_expression         (* call id lexpr?                 | words                            *)
     | IReturn return_code                              (* return r                       | return r                         *)
     | IExit return_code                                (* exit r                         | exit r (see NOTES[Exit])         *)
-    | IShift (option int)                              (* shift n?                       | shift n?                         *)
+    | IShift (option nat)                              (* shift n?                       | shift n?                         *)
 
   with function_definition = (identifier, instruction) (* function id instr; | function id instr *)
 
