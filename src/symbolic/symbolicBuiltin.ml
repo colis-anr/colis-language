@@ -30,20 +30,21 @@ module Specification =
 
     type case =
       { outcome : bool ;
-        pre_state : lit ;
-        post_state : lit }
+        pre_state : raw_conj ;
+        post_state : raw_conj }
 
     let apply_case_to_filesystem filesystem new_root case =
       (* Add pre_state and post_state to the current clause *)
       (add_to_conj (case.pre_state & case.post_state) filesystem.clause)
       (* For each clause in the received disjunction, create the
          corresponding filesystem. *)
-      |> disjuncts
-      |> List.map
-        (fun clause ->
-          { root = new_root ;
-            clause ;
-            cwd = filesystem.cwd (* FIXME *) })
+      |> fold
+           (fun filesystems clause ->
+             { root = new_root ;
+               clause ;
+               cwd = filesystem.cwd (* FIXME *) }
+             :: filesystems)
+           []
 
       let apply_case_to_state state new_root case =
         apply_case_to_filesystem state.filesystem new_root case
