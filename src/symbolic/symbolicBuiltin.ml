@@ -30,17 +30,16 @@ module Specification =
 
     type case =
       { outcome : bool ;
-        pre_state : conj -> disj ;
-        post_state : conj -> disj }
+        pre_state : lit ;
+        post_state : lit }
 
     let apply_case_to_filesystem filesystem new_root case =
       (* Add pre_state and post_state to the current clause *)
-      (pure filesystem.clause
-       >>= case.pre_state
-       >>= case.post_state)
+      (add_to_conj (case.pre_state & case.post_state) filesystem.clause)
       (* For each clause in the received disjunction, create the
          corresponding filesystem. *)
-      |> map_to_list (*FIXME: see clause.mli*)
+      |> disjuncts
+      |> List.map
         (fun clause ->
           { root = new_root ;
             clause ;
@@ -74,11 +73,11 @@ let interp_touch sta args =
      Specification.apply_to_state sta @@
        fun root root' ->
        [ (* The dir "path" exists but does not have "feat". *)
-         { pre_state = dir (root, path) >=> abs (root, path) feat ;
+         { pre_state = dir (root, path) & abs (root, path) feat ;
            outcome = true ;
-           post_state = sim1 root full_path root' >=> reg (root', full_path) } ;
+           post_state = sim1 root full_path root' & reg (root', full_path) } ;
          (* The dir "path" exists and has "feat". *)
-         { pre_state = dir (root, path) >=> nabs (root, path) feat ;
+         { pre_state = dir (root, path) & nabs (root, path) feat ;
            outcome = true ;
            post_state = eq (root, Path.empty) (root', Path.empty) } ;
          (* The dir "path" does not exist. *)
@@ -98,16 +97,16 @@ let interp_mkdir sta args =
      Specification.apply_to_state sta @@
        fun root root' ->
        [ (* The dir "path" exists but does not have "feat". *)
-         { pre_state = dir (root, path) >=> abs (root, path) feat ;
+         { pre_state = dir (root, path) & abs (root, path) feat ;
            outcome = true ;
            post_state = sim1 root full_path root'
-                        >=> dir (root', full_path) >=> empty (root', full_path) } ;
+                        & dir (root', full_path) & empty (root', full_path) } ;
          (* The dir "path" does not exist. *)
          { pre_state = ndir (root, path) ; (*FIXME: see clause.mli*)
            outcome = false ;
            post_state = eq (root, Path.empty) (root', Path.empty) } ;
          (* The dir "path" exists and has "feat". *)
-         { pre_state = dir (root, path) >=> nabs (root, path) feat ;
+         { pre_state = dir (root, path) & nabs (root, path) feat ;
            outcome = false ;
            post_state = eq (root, Path.empty) (root', Path.empty) } ]
   | _ ->
