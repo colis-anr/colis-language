@@ -4,12 +4,15 @@ type t =
 
 let fresh =
   let free = ref 0 in
-  fun ?hint ?hintf ?hintv () ->
+  fun ?hint ?hintf ?hintv ?hintp () ->
   let hint =
-    match hint, hintf, hintv with
-    | Some hint, _, _ -> Some hint
-    | _, Some hintf, _ -> Some (Feat.to_string hintf)
-    | _, _, Some hintv -> hintv.hint
+    match hint, hintf, hintv, hintp with
+    | Some s, _, _, _ -> Some s
+    | _, Some f, _, _ -> Some (Feat.to_string f)
+    | _, _, Some v, _ -> v.hint
+    | _, _, _, Some p ->
+       let (_, f) = Path.split_last p in
+       Some (Feat.to_string f)
     | _ -> None
   in
   incr free;

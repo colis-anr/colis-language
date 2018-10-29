@@ -18,14 +18,23 @@ type raw_conj
 
 val rtrue : raw_conj
 
+val rfalse : raw_conj
+
 val exists : (Var.t -> raw_conj) -> raw_conj
 
 val (&) : raw_conj -> raw_conj -> raw_conj
-(** The conjunction of two raw_conjerals. *)
+(** The conjunction of two [raw_conj]. *)
+
+val (++) : raw_conj -> raw_conj -> raw_conj
+(** The disjunction of two [raw_conj]. Beware! [(++)] has a higher
+   precedence than [(&)]. *)
 
 val add_to_conj : raw_conj -> conj -> disj
 
 type term = Var.t * Path.t
+
+val ex : term -> raw_conj
+(** [ex x\[p\]] means "the path [p] exists in [x]." *)
 
 val eq : term -> term -> raw_conj
 (** [eq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in [x] and
@@ -38,10 +47,6 @@ val neq : term -> term -> raw_conj
 val abs : term -> Feat.t -> raw_conj
 (** [abs x\[p\] f] means "the path [p] exists in [x] and what's there
    does not have the feature [f]." *)
-
-val nabs : term -> Feat.t -> raw_conj
-(** [nabs x\[p\] f] means "the path [p] exists in [x] and what's there
-   does have the feature [f]." *)
 
 val reg : term -> raw_conj
 (** [reg x\[p\]] means "the path [p] exists in [x] and what's there is

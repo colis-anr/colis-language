@@ -78,7 +78,7 @@ let interp_touch sta args =
            outcome = true ;
            post_state = sim1 root full_path root' & reg (root', full_path) } ;
          (* The dir "path" exists and has "feat". *)
-         { pre_state = dir (root, path) & nabs (root, path) feat ;
+         { pre_state = ex (root, full_path) ;
            outcome = true ;
            post_state = eq (root, Path.empty) (root', Path.empty) } ;
          (* The dir "path" does not exist. *)
@@ -107,7 +107,7 @@ let interp_mkdir sta args =
            outcome = false ;
            post_state = eq (root, Path.empty) (root', Path.empty) } ;
          (* The dir "path" exists and has "feat". *)
-         { pre_state = dir (root, path) & nabs (root, path) feat ;
+         { pre_state = ex (root, full_path) ;
            outcome = false ;
            post_state = eq (root, Path.empty) (root', Path.empty) } ]
   | _ ->
