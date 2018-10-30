@@ -126,23 +126,28 @@ module Make (I : Constraints_implementation.S) : S = struct
   type term = Var.t * Path.t
 
   let resolve ((x, p) : term) (z : Var.t) : raw =
-    let rec aux x = function
-      | [] -> I.eq x z
-      | f :: q ->
-         exists @@ fun y ->
-         I.feat x f y & aux y q
+    let open Path in
+    let rec resolve vs x p z =
+      match vs, p with
+      |       _,            [] -> I.eq x z
+      |      vs, (Down f) :: p -> exists (fun y -> I.feat x f y & resolve (x::vs) y p z)
+      |      vs,  Here    :: p -> resolve vs x p z
+      |      [],  Up      :: p -> resolve [] x p z
+      | y :: vs,  Up      :: p -> resolve vs y p z
     in
-    aux x (Path.to_list p)
+    resolve [] x (Path.to_list p) z
 
   let noresolve ((x, p) : term) : raw =
-    let rec aux x = function
-      | [] -> rfalse
-      | f :: q ->
-         I.abs x f
-         ++ (exists @@ fun y ->
-             I.feat x f y & aux y q)
+    let open Path in
+    let rec noresolve vs x p =
+      match vs, p with
+      |       _,            [] -> rfalse
+      |      vs, (Down f) :: p -> I.abs x f ++ exists (fun y -> I.feat x f y & noresolve (x::vs) y p)
+      |      vs,  Here    :: p -> noresolve vs x p
+      |      [],  Up      :: p -> noresolve [] x p
+      | y :: vs,  Up      :: p -> noresolve vs y p
     in
-    aux x (Path.to_list p)
+    noresolve [] x (Path.to_list p)
 
   let ex t =
     exists @@ fun x ->
@@ -195,7 +200,7 @@ module Make (I : Constraints_implementation.S) : S = struct
     resolve t x & I.nfen x Feat.Set.empty
 
   let sim1 (x : Var.t) (p : Path.t) (y : Var.t) : raw =
-    let rec sim1 x p y =
+    let rec sim1_norm x p y =
       match p with
       | [] -> rtrue
       | [f] ->
@@ -204,9 +209,10 @@ module Make (I : Constraints_implementation.S) : S = struct
          exists2 @@ fun x' y' ->
          I.sim x (Feat.Set.singleton f) y
          & I.feat x f x' & I.feat y f y'
-         & sim1 x' q y'
+         & sim1_norm x' q y'
     in
-    sim1 x (Path.to_list p) y
+    let (p', _) = Path.split_last p in
+    ex (x, p') & ex (y, p') & sim1_norm x (Path.normalize_syntactically p) y
 
   let sim2 x p q y =
     exists @@ fun z ->

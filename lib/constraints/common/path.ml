@@ -1,4 +1,14 @@
-type t = Feat.t list
+type component =
+  | Up
+  | Here
+  | Down of Feat.t
+
+let component_from_string = function
+  | ".." -> Up
+  | "." -> Here
+  | s -> Down (Feat.from_string s) (*FIXME: check validity*)
+
+type t = component list
 
 let empty = []
 
@@ -17,4 +27,15 @@ let rec split_last = function
 
 let from_string s =
   String.split_on_char '/' s
-  |> List.map Feat.from_string
+  |> List.map component_from_string
+
+let normalize_syntactically p =
+  let rec aux q p =
+    match q, p with
+    |      _,            [] -> []
+    |      q, (Down f) :: p -> aux (f :: q) p
+    |      q,  Here    :: p -> aux q p
+    |     [],  Up      :: p -> aux [] p
+    | _ :: q,  Up      :: p -> aux q p
+  in
+  aux [] p

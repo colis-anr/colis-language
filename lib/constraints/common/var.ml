@@ -10,9 +10,7 @@ let fresh =
     | Some s, _, _, _ -> Some s
     | _, Some f, _, _ -> Some (Feat.to_string f)
     | _, _, Some v, _ -> v.hint
-    | _, _, _, Some p ->
-       let (_, f) = Path.split_last p in
-       Some (Feat.to_string f)
+    | _, _, _, Some _p -> assert false
     | _ -> None
   in
   incr free;
