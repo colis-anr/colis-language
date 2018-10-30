@@ -28,8 +28,8 @@ module Specification =
   struct
     type case =
       { outcome : bool ;
-        pre_state : Clause.raw ;
-        post_state : Clause.raw }
+        pre_state : Clause.t ;
+        post_state : Clause.t }
 
     let apply_case_to_filesystem filesystem new_root case =
       (* Add pre_state and post_state to the current clause *)

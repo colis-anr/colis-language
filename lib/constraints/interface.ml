@@ -1,98 +1,96 @@
 open Constraints_common
 
 module type S = sig
+  (** {2 Feature Formulaes} *)
+
+  type t
+  (** Abstract type for conjunctive clauses. *)
+
+  val and_ : t -> t -> t
+  (** The conjunction of two [t]. *)
+
+  val (&) : t -> t -> t
+  (** The conjunction of two [t] (alias for {!and}). *)
+
+  val or_ : t -> t -> t
+  (** The disjunction of two [t]. Beware! [(++)] has a higher
+     precedence than [(&)]. *)
+
+  type term = Var.t * Path.t
+
+  val ex : term -> t
+  (** [ex x\[p\]] means "the path [p] exists in [x]." *)
+
+  val nex : term -> t
+  (** [nex x\[p\]] means "the path [p] does not exist in [x]." *)
+
+  val eq : term -> term -> t
+  (** [eq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in [x]
+     and [y] resp. and what's there on both sides is equal." *)
+
+  val neq : term -> term -> t
+  (** [ex_neq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in
+     [x] and [y] resp. and what's there on both sides is different."
+     *)
+
+  val abs : term -> Feat.t -> t
+  (** [abs x\[p\] f] means "the path [p] exists in [x] and what's
+     there does not have the feature [f]." *)
+
+  val reg : term -> t
+  (** [reg x\[p\]] means "the path [p] exists in [x] and what's there
+     is a regular file." *)
+
+  val nreg : term -> t
+  (** [nreg x\[p\]] means "the path [p] exists in [x] and what's there
+     is not a regular file." *)
+
+  val nex_nreg : term -> t
+  (** [nex_nreg x\[p\]] means "the path [p] does not exist in [x] or
+     exists but is not a regular file." *)
+
+  val dir : term -> t
+  (** [dir x\[p\]] means "the path [p] exists in [x] and what's there
+     is a directory." *)
+
+  val ndir : term -> t
+  (** [ndir x\[p\]] means "the path [p] exists in [x] and what's there
+     isn't a directory." *)
+
+  val nex_ndir : term -> t
+  (** [nex_ndir x\[p\]] means "the path [p] does not exists in [x] or
+     exists but is not a directory." *)
+
+  val empty : term -> t
+  (** [empty x\[p\]] means "the path [p] exists in [x] and what's
+     there does not have any feature." *)
+
+  val nempty : term -> t
+  (** [nempty x\[p\]] means "the path [p] exists in [x] and what's
+     there has a feature." *)
+
+  val sim1 : Var.t -> Path.t -> Var.t -> t
+  (** [sim1 x p y] means, with [p = q/f] "the path [q] exists in both
+     [x] and [y] and [x] and [y] may only differ in the name [p]." *)
+
+  val sim2 : Var.t -> Path.t -> Path.t -> Var.t -> t
+(** [sim2 x p1 p2 y] means, with [p1 = q1/f1] and [p2 = q2/f2] "the
+   pathes [q1] and [q2] exist in both [x] and [y] and [x] and [y] may
+   only differ in the names [p1] and [p2]." *)
+
+  (** {2 Satisfiable clauses} *)
+
   type conj
-  (** Abstract type for satisfiable conjunctive clauses. *)
+  (** Abstract type for satisfiable clauses. *)
 
   type disj
   (** Abstract type for disjunctions of {!conj}. *)
 
   val ctrue : conj
-  val dtrue : disj
+
+  val add_to_conj : t -> conj -> disj
 
   val fold :  ('a -> conj -> 'a) -> 'a -> disj -> 'a
-
-  (** {2 Raw Clauses} *)
-
-  type raw
-  (** Abstract type for conjunctive clauses. *)
-
-  val rtrue : raw
-
-  val rfalse : raw
-
-  val exists : (Var.t -> raw) -> raw
-
-  val (&) : raw -> raw -> raw
-  (** The conjunction of two [raw]. *)
-
-  val (++) : raw -> raw -> raw
-  (** The disjunction of two [raw]. Beware! [(++)] has a higher
-     precedence than [(&)]. *)
-
-  val add_to_conj : raw -> conj -> disj
-
-  type term = Var.t * Path.t
-
-  val ex : term -> raw
-  (** [ex x\[p\]] means "the path [p] exists in [x]." *)
-
-  val nex : term -> raw
-  (** [nex x\[p\]] means "the path [p] does not exist in [x]." *)
-
-  val eq : term -> term -> raw
-  (** [eq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in [x]
-     and [y] resp. and what's there on both sides is equal." *)
-
-  val neq : term -> term -> raw
-  (** [ex_neq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in
-     [x] and [y] resp. and what's there on both sides is different."
-     *)
-
-  val abs : term -> Feat.t -> raw
-  (** [abs x\[p\] f] means "the path [p] exists in [x] and what's
-     there does not have the feature [f]." *)
-
-  val reg : term -> raw
-  (** [reg x\[p\]] means "the path [p] exists in [x] and what's there
-     is a regular file." *)
-
-  val nreg : term -> raw
-  (** [nreg x\[p\]] means "the path [p] exists in [x] and what's there
-     is not a regular file." *)
-
-  val nex_nreg : term -> raw
-  (** [nex_nreg x\[p\]] means "the path [p] does not exist in [x] or
-     exists but is not a regular file." *)
-
-  val dir : term -> raw
-  (** [dir x\[p\]] means "the path [p] exists in [x] and what's there
-     is a directory." *)
-
-  val ndir : term -> raw
-  (** [ndir x\[p\]] means "the path [p] exists in [x] and what's there
-     isn't a directory." *)
-
-  val nex_ndir : term -> raw
-  (** [nex_ndir x\[p\]] means "the path [p] does not exists in [x] or
-     exists but is not a directory." *)
-
-  val empty : term -> raw
-  (** [empty x\[p\]] means "the path [p] exists in [x] and what's
-     there does not have any feature." *)
-
-  val nempty : term -> raw
-  (** [nempty x\[p\]] means "the path [p] exists in [x] and what's
-     there has a feature." *)
-
-  val sim1 : Var.t -> Path.t -> Var.t -> raw
-  (** [sim1 x p y] means, with [p = q/f] "the path [q] exists in both
-     [x] and [y] and [x] and [y] may only differ in the name [p]." *)
-
-  val sim2 : Var.t -> Path.t -> Path.t -> Var.t -> raw
-(** [sim2 x p1 p2 y] means, with [p1 = q1/f1] and [p2 = q2/f2] "the
-   pathes [q1] and [q2] exist in both [x] and [y] and [x] and [y] may
-   only differ in the names [p1] and [p2]." *)
 end
 
 module Make (I : Constraints_implementation.S) : S = struct
@@ -100,11 +98,10 @@ module Make (I : Constraints_implementation.S) : S = struct
   type disj = conj list
 
   let ctrue = I.true_
-  let dtrue = [ctrue]
 
   let fold = List.fold_left
 
-  type raw = conj -> disj
+  type t = conj -> disj
 
   let rtrue = fun c -> [c]
   let rfalse = fun _c -> []
@@ -118,17 +115,19 @@ module Make (I : Constraints_implementation.S) : S = struct
     exists @@ fun y ->
     f x y
 
-  let (&) r1 r2 = fun c ->
+  let and_ r1 r2 = fun c ->
     c |> r1 |> List.map r2 |> List.flatten
+
+  let (&) = and_
 
   let add_to_conj = (@@)
 
-  let (++) r1 r2 = fun c ->
+  let or_ r1 r2 = fun c ->
     (c |> r1) @ (c |> r2)
 
   type term = Var.t * Path.t
 
-  let resolve ((x, p) : term) (z : Var.t) : raw =
+  let resolve (x, p) z =
     let open Path in
     let rec resolve vs x p z =
       match vs, p with
@@ -140,12 +139,12 @@ module Make (I : Constraints_implementation.S) : S = struct
     in
     resolve [] x (Path.to_list p) z
 
-  let noresolve ((x, p) : term) : raw =
+  let noresolve (x, p) =
     let open Path in
     let rec noresolve vs x p =
       match vs, p with
       |       _,            [] -> rfalse
-      |      vs, (Down f) :: p -> I.abs x f ++ exists (fun y -> I.feat x f y & noresolve (x::vs) y p)
+      |      vs, (Down f) :: p -> or_ (I.abs x f) (exists (fun y -> I.feat x f y & noresolve (x::vs) y p))
       |      vs,  Here    :: p -> noresolve vs x p
       |      [],  Up      :: p -> noresolve [] x p
       | y :: vs,  Up      :: p -> noresolve vs y p
@@ -180,9 +179,10 @@ module Make (I : Constraints_implementation.S) : S = struct
     resolve t x & I.nreg x
 
   let nex_nreg t =
-    noresolve t
-    ++ (exists @@ fun x ->
-        resolve t x & I.nreg x)
+    or_
+      (noresolve t)
+      (exists @@ fun x ->
+       resolve t x & I.nreg x)
 
   let dir t =
     exists @@ fun x ->
@@ -193,9 +193,10 @@ module Make (I : Constraints_implementation.S) : S = struct
     resolve t x & I.ndir x
 
   let nex_ndir t =
-    noresolve t
-    ++ (exists @@ fun x ->
-        resolve t x & I.ndir x)
+    or_
+      (noresolve t)
+      (exists @@ fun x ->
+       resolve t x & I.ndir x)
 
   let empty t =
     exists @@ fun x ->
@@ -205,7 +206,7 @@ module Make (I : Constraints_implementation.S) : S = struct
     exists @@ fun x ->
     resolve t x & I.nfen x Feat.Set.empty
 
-  let sim1 (x : Var.t) (p : Path.t) (y : Var.t) : raw =
+  let sim1 x p y =
     let rec sim1_norm x p y =
       match p with
       | [] -> rtrue
