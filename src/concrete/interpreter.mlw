@@ -301,10 +301,10 @@ module Interpreter
         invariant { forall b1 ctx1 ctx2 sta1 sta2 bhv2.
           eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
             id (take i ss) ins (state sta) (context sta) (BNormal !last_result) ->
-          let ctx = context sta in
           let inp1 = input inp sta in
-          eval_instruction inp1 {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} (state sta)
-            ins sta1 ctx1 (BNormal b1) ->
+          (* let ctx = context sta in *)
+          (* eval_instruction inp1 {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} (state sta) *)
+          (*   ins sta1 ctx1 (BNormal b1) -> *)
           eval_foreach b1 {inp1 with C.previous_result = b1} ctx1 sta1 id (drop i ss) ins sta2 ctx2 bhv2 ->
           eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
             id ss ins sta2 ctx2 bhv2
@@ -322,10 +322,16 @@ module Interpreter
 
     | IWhile ins1 ins2 ->
       let last_result = ref True in
+      label L in 
       while (
         interp_instruction {inp with under_condition=True} sta ins1;
         !(sta.result)
       ) do
+        (* invariant { *)
+        (*   eval_while !last_result (input inp sta) (context sta) (state sta)  *)
+        (*   eval_while True (input inp sta at L) (context sta at L) (state sta at L) *)
+        (*     ins1 ins2  *)
+        (* } *)
         interp_instruction inp sta ins2;
         last_result := !(sta.result);
       done;

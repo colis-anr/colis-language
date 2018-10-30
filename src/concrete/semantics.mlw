@@ -627,13 +627,24 @@ module Semantics
 
   lemma append_empty_right : forall l: list 'a.
     l = l ++ Nil
-    
-  lemma eval_foreach_concat: forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id ins ss1[@induction] ss2 bhv2.
-    eval_foreach b inp ctx sta id ss1 ins sta1 ctx1 (BNormal b1) ->
-    eval_foreach b1 inp ctx1 sta1 id ss2 ins sta2 ctx2 bhv2 ->
-    eval_foreach b inp ctx sta id (ss1 ++ ss2) ins sta2 ctx2 bhv2
 
-  lemma eval_foreach_last: forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss[@induction] ins bhv2.
+  let rec lemma eval_foreach_concat (ss1:list string)
+    ensures { forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id ins ss2 bhv2.
+      eval_foreach b inp ctx sta id ss1 ins sta1 ctx1 (BNormal b1) ->
+      eval_foreach b1 inp ctx1 sta1 id ss2 ins sta2 ctx2 bhv2 ->
+      eval_foreach b inp ctx sta id (ss1 ++ ss2) ins sta2 ctx2 bhv2
+    }
+  = match ss1 with
+    | Nil -> ()
+    | Cons _ ss1' -> eval_foreach_concat ss1'
+    end
+    
+  (* lemma eval_foreach_concat': forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id ins ss1[@induction] ss2 bhv2. *)
+  (*   eval_foreach b inp ctx sta id ss1 ins sta1 ctx1 (BNormal b1) -> *)
+  (*   eval_foreach b1 inp ctx1 sta1 id ss2 ins sta2 ctx2 bhv2 -> *)
+  (*   eval_foreach b inp ctx sta id (ss1 ++ ss2) ins sta2 ctx2 bhv2 *)
+
+  lemma eval_foreach_last': forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss[@induction] ins bhv2.
     eval_foreach b inp ctx sta id ss ins sta1 ctx1 (BNormal b1) ->
     let ctx1' = {ctx1 with var_env = ctx1.var_env[id <- s]} in
     eval_instruction inp ctx1' sta1 ins sta2 ctx2 bhv2 ->

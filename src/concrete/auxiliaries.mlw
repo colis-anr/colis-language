@@ -18,6 +18,9 @@ module TakeDrop
 
   lemma drop0: forall l: list 'a. drop 0 l = l
 
+  lemma drop_all: forall l: list 'a, i.
+    i >= length l -> drop i l = Nil
+
   lemma nth_drop: forall l[@induction]: list 'a, i.
     0 <= i < length l ->
     drop i l = Cons (NthNoOpt.nth i l) (drop (i+1) l)
@@ -25,14 +28,16 @@ module TakeDrop
   function take (n: int) (l: list 'a) : list 'a =
     if n = 0 then
       Nil
-    else match l with
+    else
+      match l with
       | Cons x l' -> Cons x (take (n-1) l')
       | Nil -> Nil
       end
 
   lemma take_0: forall l: list 'a. take 0 l = Nil
 
-  lemma take_all: forall l[@induction]: list 'a. take (length l) l = l
+  lemma take_all: forall l[@induction]: list 'a, i.
+    i >= length l -> take i l = l
 
   lemma take_drop: forall l[@induction] : list 'a, i.
     l = take i l ++ drop i l
