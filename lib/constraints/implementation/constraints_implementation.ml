@@ -24,4 +24,6 @@ module type S = sig
   val quantify_over : Var.t -> t -> t
 end
 
+module Dummy = (Dummy : S)
+module Naive = (Naive : S)
 module Efficient = (Efficient : S)
