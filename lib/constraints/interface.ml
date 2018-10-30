@@ -112,8 +112,8 @@ module Make (I : Constraints_implementation.S) : S = struct
 
   let exists2 f =
     exists @@ fun x ->
-              exists @@ fun y ->
-                        f x y
+    exists @@ fun y ->
+    f x y
 
   let (&) r1 r2 = fun c ->
     c |> r1 |> List.map r2 |> List.flatten
@@ -130,7 +130,7 @@ module Make (I : Constraints_implementation.S) : S = struct
       | [] -> I.eq x z
       | f :: q ->
          exists @@ fun y ->
-                   I.feat x f y & aux y q
+         I.feat x f y & aux y q
     in
     aux x (Path.to_list p)
 
@@ -140,59 +140,59 @@ module Make (I : Constraints_implementation.S) : S = struct
       | f :: q ->
          I.abs x f
          ++ (exists @@ fun y ->
-                       I.feat x f y & aux y q)
+             I.feat x f y & aux y q)
     in
     aux x (Path.to_list p)
 
   let ex t =
     exists @@ fun x ->
-              resolve t x
+    resolve t x
 
   let eq t u =
     exists @@ fun z ->
-              resolve t z & resolve u z
+    resolve t z & resolve u z
 
   let neq t u =
     exists2 @@ fun x y ->
-               resolve t x & resolve u y & I.neq x y
+    resolve t x & resolve u y & I.neq x y
 
   let abs t f =
     exists @@ fun x ->
-              resolve t x & I.abs x f
+    resolve t x & I.abs x f
 
   let reg t =
     exists @@ fun x ->
-              resolve t x & I.reg x
+    resolve t x & I.reg x
 
   let nreg t =
     exists @@ fun x ->
-              resolve t x & I.nreg x
+    resolve t x & I.nreg x
 
   let nex_nreg t =
     noresolve t
     ++ (exists @@ fun x ->
-                  resolve t x & I.nreg x)
+        resolve t x & I.nreg x)
 
   let dir t =
     exists @@ fun x ->
-              resolve t x & I.dir x
+    resolve t x & I.dir x
 
   let ndir t =
     exists @@ fun x ->
-              resolve t x & I.ndir x
+    resolve t x & I.ndir x
 
   let nex_ndir t =
     noresolve t
     ++ (exists @@ fun x ->
-                  resolve t x & I.ndir x)
+        resolve t x & I.ndir x)
 
   let empty t =
     exists @@ fun x ->
-              resolve t x & I.fen x Feat.Set.empty
+    resolve t x & I.fen x Feat.Set.empty
 
   let nempty t =
     exists @@ fun x ->
-              resolve t x & I.nfen x Feat.Set.empty
+    resolve t x & I.nfen x Feat.Set.empty
 
   let sim1 (x : Var.t) (p : Path.t) (y : Var.t) : raw =
     let rec sim1 x p y =
@@ -202,13 +202,13 @@ module Make (I : Constraints_implementation.S) : S = struct
          I.sim x (Feat.Set.singleton f) y
       | f :: q ->
          exists2 @@ fun x' y' ->
-                    I.sim x (Feat.Set.singleton f) y
-                    & I.feat x f x' & I.feat y f y'
-                    & sim1 x' q y'
+         I.sim x (Feat.Set.singleton f) y
+         & I.feat x f x' & I.feat y f y'
+         & sim1 x' q y'
     in
     sim1 x (Path.to_list p) y
 
   let sim2 x p q y =
     exists @@ fun z ->
-              sim1 x p z & sim1 z q y
+    sim1 x p z & sim1 z q y
 end
