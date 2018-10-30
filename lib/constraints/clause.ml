@@ -9,7 +9,7 @@ let dtrue = [ctrue]
 
 let fold = List.fold_left
 
-type raw_conj = conj -> disj
+type raw = conj -> disj
 
 let rtrue = L.singleton
 let rfalse = fun _c -> []
@@ -31,7 +31,7 @@ let (++) r1 r2 = fun c ->
 
 type term = Var.t * Path.t
 
-let resolve ((x, p) : term) (z : Var.t) : raw_conj =
+let resolve ((x, p) : term) (z : Var.t) : raw =
   let rec aux x = function
     | [] -> E.eq x z
     | f :: q ->
@@ -40,7 +40,7 @@ let resolve ((x, p) : term) (z : Var.t) : raw_conj =
   in
   aux x (Path.to_list p)
 
-let noresolve ((x, p) : term) : raw_conj =
+let noresolve ((x, p) : term) : raw =
   let rec aux x = function
     | [] -> rfalse
     | f :: q ->
@@ -100,7 +100,7 @@ let nempty t =
   exists @@ fun x ->
   resolve t x & E.nfen x Feat.Set.empty
 
-let sim1 (x : Var.t) (p : Path.t) (y : Var.t) : raw_conj =
+let sim1 (x : Var.t) (p : Path.t) (y : Var.t) : raw =
   let rec sim1 x p y =
     match p with
     | [] -> rtrue

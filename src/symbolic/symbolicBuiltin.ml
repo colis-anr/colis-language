@@ -1,7 +1,7 @@
 open Batteries
 open Semantics__Buffers
 open SymbolicInterpreter__Definitions
-open Constraints open Clause
+open Constraints
 
 let print_line str sta =
   let stdout = output str sta.stdout |> newline in
@@ -26,19 +26,17 @@ let with_clause sta clause =
 
 module Specification =
   struct
-    open Clause
-
     type case =
       { outcome : bool ;
-        pre_state : raw_conj ;
-        post_state : raw_conj }
+        pre_state : Clause.raw ;
+        post_state : Clause.raw }
 
     let apply_case_to_filesystem filesystem new_root case =
       (* Add pre_state and post_state to the current clause *)
-      (add_to_conj (case.pre_state & case.post_state) filesystem.clause)
+      Clause.(add_to_conj (case.pre_state & case.post_state) filesystem.clause)
       (* For each clause in the received disjunction, create the
          corresponding filesystem. *)
-      |> fold
+      |> Clause.fold
            (fun filesystems clause ->
              { root = new_root ;
                clause ;
@@ -67,6 +65,7 @@ module Specification =
 (* Interpretation of "touch" *)
 
 let interp_touch sta args =
+  let open Clause in
   match args with
   | [full_path] ->
      let full_path = Path.from_string full_path in
@@ -91,6 +90,7 @@ let interp_touch sta args =
 (* Interpretation of "mkdir" *)
 
 let interp_mkdir sta args =
+  let open Clause in
   match args with
   | [full_path] ->
      let full_path = Path.from_string full_path in
