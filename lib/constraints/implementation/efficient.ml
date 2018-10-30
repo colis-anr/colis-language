@@ -1,4 +1,6 @@
-type t
+type t = unit
+
+let true_ = ()
 
 let eq _x _y _c = assert false
 let neq _x _y _c = assert false

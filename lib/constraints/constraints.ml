@@ -1,3 +1,6 @@
 include Constraints_common
+
 module Implementation = Constraints_implementation
-module Clause = Interface
+
+module EfficientClause = Interface.Make(Implementation.Efficient)
+module Clause = EfficientClause
