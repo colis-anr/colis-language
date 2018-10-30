@@ -1,6 +1,5 @@
 open Constraints_common
 module E = Constraints_implementation.Efficient
-module L = ListMonad
 
 type conj = unit
 type disj = conj list
@@ -12,7 +11,7 @@ let fold = List.fold_left
 
 type raw = conj -> disj
 
-let rtrue = L.singleton
+let rtrue = fun c -> [c]
 let rfalse = fun _c -> []
 
 let exists f = fun c ->
@@ -24,7 +23,9 @@ let exists2 f =
   exists @@ fun y ->
   f x y
 
-let (&) = L.(>=>)
+let (&) r1 r2 = fun c ->
+  c |> r1 |> List.map r2 |> List.flatten
+
 let add_to_conj = (@@)
 
 let (++) r1 r2 = fun c ->
