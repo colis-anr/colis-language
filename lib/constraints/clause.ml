@@ -1,4 +1,5 @@
-module E = Constraints_back.Efficient
+open Constraints_common
+module E = Constraints_implementation.Efficient
 module L = ListMonad
 
 type conj = unit

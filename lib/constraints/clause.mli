@@ -1,3 +1,5 @@
+open Constraints_common
+
 (** {1 Clauses} *)
 
 type conj

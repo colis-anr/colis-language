@@ -1,4 +1,5 @@
 (library
  (name constraints)
  (public_name colis-language.constraints)
- (libraries colis-language.constraints.back))
+ (libraries colis-language.constraints.common
+            colis-language.constraints.implementation))
