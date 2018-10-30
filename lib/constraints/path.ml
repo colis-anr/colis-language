@@ -2,6 +2,12 @@ type t = Feat.t list
 
 let empty = []
 
+let to_list p = p
+
+let split_first = function
+  | [] -> failwith "split_first"
+  | h::t -> (h, t)
+
 let rec split_last = function
   | [] -> failwith "split_last"
   | [e] -> [], e

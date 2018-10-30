@@ -16,4 +16,6 @@ let ndir _x _c = assert false
 let fen _x _fs _c = assert false
 let nfen _x _fs _c = assert false
 
+let sim _x _fs _c = assert false
+
 let quantify_over _x _c = assert false

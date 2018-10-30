@@ -31,20 +31,24 @@ let (++) r1 r2 = fun c ->
 
 type term = Var.t * Path.t
 
-let rec resolve (x, p) z =
-  match p with
-  | [] -> E.eq x z
-  | f :: q ->
-     exists @@ fun y ->
-     E.feat x f y & resolve (y, q) z
+let resolve ((x, p) : term) (z : Var.t) : raw_conj =
+  let rec aux x = function
+    | [] -> E.eq x z
+    | f :: q ->
+       exists @@ fun y ->
+       E.feat x f y & aux y q
+  in
+  aux x (Path.to_list p)
 
-let rec noresolve (x, p) =
-  match p with
-  | [] -> rfalse
-  | f :: q ->
-     E.abs x f
-     ++ (exists @@ fun y ->
-         E.feat x f y & noresolve (y, q))
+let noresolve ((x, p) : term) : raw_conj =
+  let rec aux x = function
+    | [] -> rfalse
+    | f :: q ->
+       E.abs x f
+       ++ (exists @@ fun y ->
+           E.feat x f y & aux y q)
+  in
+  aux x (Path.to_list p)
 
 let ex t =
   exists @@ fun x ->
@@ -95,3 +99,21 @@ let empty t =
 let nempty t =
   exists @@ fun x ->
   resolve t x & E.nfen x Feat.Set.empty
+
+let sim1 (x : Var.t) (p : Path.t) (y : Var.t) : raw_conj =
+  let rec sim1 x p y =
+    match p with
+    | [] -> rtrue
+    | [f] ->
+       E.sim x (Feat.Set.singleton f) y
+    | f :: q ->
+       exists2 @@ fun x' y' ->
+       E.sim x (Feat.Set.singleton f) y
+       & E.feat x f x' & E.feat y f y'
+       & sim1 x' q y'
+  in
+  sim1 x (Path.to_list p) y
+
+let sim2 x p q y =
+  exists @@ fun z ->
+  sim1 x p z & sim1 z q y
