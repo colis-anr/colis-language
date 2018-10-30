@@ -69,11 +69,11 @@ let interp_touch sta args =
   match args with
   | [full_path] ->
      let full_path = Path.from_string full_path in
-     let path, feat = Path.split_last full_path in
+     let path, _ = Path.split_last full_path in
      Specification.apply_to_state sta @@
        fun root root' ->
        [ (* The dir "path" exists but does not have "feat". *)
-         { pre_state = dir (root, path) & abs (root, path) feat ;
+         { pre_state = dir (root, path) & nex (root, full_path) ;
            outcome = true ;
            post_state = sim1 root full_path root' & reg (root', full_path) } ;
          (* The dir "path" exists and has "feat". *)
@@ -94,16 +94,16 @@ let interp_mkdir sta args =
   match args with
   | [full_path] ->
      let full_path = Path.from_string full_path in
-     let path, feat = Path.split_last full_path in
+     let path, _ = Path.split_last full_path in
      Specification.apply_to_state sta @@
        fun root root' ->
        [ (* The dir "path" exists but does not have "feat". *)
-         { pre_state = dir (root, path) & abs (root, path) feat ;
+         { pre_state = dir (root, path) & nex (root, full_path) ;
            outcome = true ;
            post_state = sim1 root full_path root'
                         & dir (root', full_path) & empty (root', full_path) } ;
          (* The dir "path" does not exist. *)
-         { pre_state = ndir (root, path) ; (*FIXME: see clause.mli*)
+         { pre_state = nex_ndir (root, path) ;
            outcome = false ;
            post_state = eq (root, Path.empty) (root', Path.empty) } ;
          (* The dir "path" exists and has "feat". *)

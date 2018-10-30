@@ -37,6 +37,9 @@ module type S = sig
   val ex : term -> raw
   (** [ex x\[p\]] means "the path [p] exists in [x]." *)
 
+  val nex : term -> raw
+  (** [nex x\[p\]] means "the path [p] does not exist in [x]." *)
+
   val eq : term -> term -> raw
   (** [eq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in [x]
      and [y] resp. and what's there on both sides is equal." *)
@@ -152,6 +155,9 @@ module Make (I : Constraints_implementation.S) : S = struct
   let ex t =
     exists @@ fun x ->
     resolve t x
+
+  let nex t =
+    noresolve t
 
   let eq t u =
     exists @@ fun z ->
