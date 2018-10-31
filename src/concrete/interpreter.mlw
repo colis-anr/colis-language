@@ -294,21 +294,44 @@ module Interpreter
       label L in
       for i = 0 to length ss - 1 do
         invariant {
-          1 <= i < length ss ->
           eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
             id (take i ss) ins (state sta) (context sta) (BNormal !last_result)
         }
-        invariant { forall b1 ctx1 ctx2 sta1 sta2 bhv2.
-          eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
-            id (take i ss) ins (state sta) (context sta) (BNormal !last_result) ->
-          let inp1 = input inp sta in
-          (* let ctx = context sta in *)
-          (* eval_instruction inp1 {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} (state sta) *)
-          (*   ins sta1 ctx1 (BNormal b1) -> *)
-          eval_foreach b1 {inp1 with C.previous_result = b1} ctx1 sta1 id (drop i ss) ins sta2 ctx2 bhv2 ->
-          eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
-            id ss ins sta2 ctx2 bhv2
+        invariant {
+          i = length ss ->
+          eval_foreach True (input inp sta) (context sta) (state sta)
+            id ss ins (state sta) (context sta) (BNormal !last_result)
         }
+        invariant { forall ctx1 sta1 bhv.
+          match bhv with BExit _ | BReturn _ -> true | BNormal _ -> false end ->
+          let ctx = context sta in
+          let ctx' = {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} in
+          eval_instruction (input inp sta) ctx' (state sta) ins sta1 ctx1 bhv ->
+          eval_foreach True (input inp sta at L) (context sta at L) (state sta at L) id ss ins sta1 ctx1 bhv
+        }
+        invariant {
+          0 <= i < length ss ->
+          forall b1 ctx1 ctx2 sta1 sta2 bhv.
+          let inp1 = input inp sta in
+          let ctx = context sta in
+          let ctx' = {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} in
+          eval_instruction inp1 ctx' (state sta) ins sta1 ctx1 (BNormal b1) ->
+          eval_foreach b1 {inp1 with C.previous_result = b1} ctx1 sta1
+            id (drop (i+1) ss) ins sta2 ctx2 bhv ->
+          eval_foreach True (input inp sta at L) (context sta at L) (state sta at L)
+            id ss ins sta2 ctx2 bhv
+        }
+        (* invariant { forall b1 ctx1 ctx2 sta1 sta2 bhv2. *)
+        (*   eval_foreach True (input inp sta at L) (context sta at L) (state sta at L) *)
+        (*     id (take i ss) ins (state sta) (context sta) (BNormal !last_result) -> *)
+        (*   let inp1 = input inp sta in *)
+        (*   (\* let ctx = context sta in *\) *)
+        (*   (\* eval_instruction inp1 {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} (state sta) *\) *)
+        (*   (\*   ins sta1 ctx1 (BNormal b1) -> *\) *)
+        (*   eval_foreach b1 {inp1 with C.previous_result = b1} ctx1 sta1 id (drop i ss) ins sta2 ctx2 bhv2 -> *)
+        (*   eval_foreach True (input inp sta at L) (context sta at L) (state sta at L) *)
+        (*     id ss ins sta2 ctx2 bhv2 *)
+        (* } *)
         match nth i ss with
         | Some s ->
           sta.var_env := !(sta.var_env)[id <- s];

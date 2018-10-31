@@ -515,7 +515,7 @@ module Semantics
     let ss = Cons s ss' in
     let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
     eval_instruction inp ctx' sta ins sta1 ctx1 (BNormal b1) ->
-    eval_foreach b1 inp ctx1 sta1 id ss' ins sta2 ctx2 bhv2 ->
+    eval_foreach b1 {inp with previous_result = b1} ctx1 sta1 id ss' ins sta2 ctx2 bhv2 ->
     eval_foreach bhv inp ctx sta id ss ins sta2 ctx2 bhv2
 
   (* The first parameter is the previous behaviour, or the behaviour of the empty loop initially *)
@@ -644,10 +644,10 @@ module Semantics
   (*   eval_foreach b1 inp ctx1 sta1 id ss2 ins sta2 ctx2 bhv2 -> *)
   (*   eval_foreach b inp ctx sta id (ss1 ++ ss2) ins sta2 ctx2 bhv2 *)
 
-  lemma eval_foreach_last': forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss[@induction] ins bhv2.
+  lemma eval_foreach_last: forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss[@induction] ins bhv2.
     eval_foreach b inp ctx sta id ss ins sta1 ctx1 (BNormal b1) ->
     let ctx1' = {ctx1 with var_env = ctx1.var_env[id <- s]} in
-    eval_instruction inp ctx1' sta1 ins sta2 ctx2 bhv2 ->
+    eval_instruction {inp with previous_result = b1} ctx1' sta1 ins sta2 ctx2 bhv2 ->
     eval_foreach b inp ctx sta id (ss ++ Cons s Nil) ins sta2 ctx2 bhv2
 
   (** The evaluation of a string expression does not change the stdout *)
