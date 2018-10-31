@@ -4,8 +4,7 @@
 <why3session shape_version="5">
 <prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="1" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
-<prover id="2" name="Z3" version="4.6.0" timelimit="20" steplimit="0" memlimit="1000"/>
-<prover id="3" name="Eprover" version="2.2" timelimit="30" steplimit="0" memlimit="1000"/>
+<prover id="2" name="Z3" version="4.6.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <file name="../semantics.mlw">
 <theory name="Env" proved="true">
  <goal name="VC mixfix [&lt;-]" expl="VC for mixfix [&lt;-]" proved="true">
@@ -65,10 +64,10 @@
   <goal name="VC concat_aux.1" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC concat_aux.1.0" expl="postcondition" proved="true">
-   <proof prover="2" timelimit="1"><result status="valid" time="0.04"/></proof>
+   <proof prover="2"><result status="valid" time="0.04"/></proof>
    </goal>
    <goal name="VC concat_aux.1.1" expl="postcondition" proved="true">
-   <proof prover="2"><result status="valid" time="0.02"/></proof>
+   <proof prover="2" timelimit="20"><result status="valid" time="0.02"/></proof>
    </goal>
   </transf>
   </goal>
@@ -88,7 +87,7 @@
    <proof prover="1"><result status="valid" time="0.03"/></proof>
    </goal>
    <goal name="VC concat_assoc.2.1" expl="postcondition" proved="true">
-   <proof prover="2" timelimit="1"><result status="valid" time="0.05"/></proof>
+   <proof prover="2"><result status="valid" time="0.05"/></proof>
    </goal>
   </transf>
   </goal>
@@ -100,47 +99,47 @@
  <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
 </theory>
-<theory name="Semantics">
+<theory name="Arguments" proved="true">
  <goal name="VC nth_argument" expl="VC for nth_argument" proved="true">
- <proof prover="1"><result status="valid" time="0.06"/></proof>
+ <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
  <goal name="VC shift_arguments" expl="VC for shift_arguments" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC shift_arguments.0" expl="variant decrease" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC shift_arguments.0.0" expl="variant decrease" proved="true">
-   <proof prover="1"><result status="valid" time="0.04"/></proof>
+   <proof prover="1"><result status="valid" time="0.01"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC shift_arguments.1" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.06"/></proof>
+  <proof prover="1"><result status="valid" time="0.03"/></proof>
   </goal>
   <goal name="VC shift_arguments.2" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC shift_arguments.2.0" expl="postcondition" proved="true">
    <transf name="split_vc" proved="true" >
     <goal name="VC shift_arguments.2.0.0" expl="postcondition" proved="true">
-    <proof prover="0"><result status="valid" time="0.01" steps="11"/></proof>
+    <proof prover="0"><result status="valid" time="0.00" steps="5"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.0.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.05"/></proof>
+    <proof prover="1"><result status="valid" time="0.03"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.0.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.07"/></proof>
+    <proof prover="1"><result status="valid" time="0.03"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC shift_arguments.2.1" expl="postcondition" proved="true">
    <transf name="split_vc" proved="true" >
     <goal name="VC shift_arguments.2.1.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.04"/></proof>
+    <proof prover="1"><result status="valid" time="0.03"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.1.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.08"/></proof>
+    <proof prover="1"><result status="valid" time="0.02"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.1.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.06"/></proof>
+    <proof prover="1"><result status="valid" time="0.03"/></proof>
     </goal>
    </transf>
    </goal>
@@ -149,22 +148,28 @@
  </transf>
  </goal>
  <goal name="shift_arguments_0" proved="true">
- <proof prover="0"><result status="valid" time="0.01" steps="8"/></proof>
+ <proof prover="0"><result status="valid" time="0.00" steps="2"/></proof>
+ <proof prover="1"><result status="timeout" time="1.00"/></proof>
  </goal>
  <goal name="shift_arguments_cons_some" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="shift_arguments_cons_some.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.03" steps="170"/></proof>
+  <proof prover="0"><result status="valid" time="0.01" steps="159"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="shift_arguments_cons_none" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="shift_arguments_cons_none.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.02" steps="97"/></proof>
-  <proof prover="1"><result status="valid" time="0.19"/></proof>
+  <proof prover="0"><result status="valid" time="0.01" steps="86"/></proof>
+  <proof prover="1"><result status="valid" time="0.08"/></proof>
   </goal>
  </transf>
+ </goal>
+</theory>
+<theory name="Semantics">
+ <goal name="VC with_result" expl="VC for with_result" proved="true">
+ <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
  <goal name="eval_instruction_functional">
  </goal>
@@ -177,114 +182,117 @@
  <goal name="append_empty_right" proved="true">
  <proof prover="1"><result status="valid" time="0.09"/></proof>
  </goal>
- <goal name="VC eval_foreach_concat" expl="VC for eval_foreach_concat">
- <transf name="induction_ty_lex" >
-  <goal name="VC eval_foreach_concat.0" expl="VC for eval_foreach_concat">
-  <transf name="split_vc" >
-   <goal name="VC eval_foreach_concat.0.0" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.16"/></proof>
-   </goal>
-   <goal name="VC eval_foreach_concat.0.1" expl="postcondition">
-   <transf name="split_vc" >
-    <goal name="VC eval_foreach_concat.0.1.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.12"/></proof>
+ <goal name="eval_foreach_nil" proved="true">
+ <proof prover="1"><result status="valid" time="0.26"/></proof>
+ </goal>
+ <goal name="VC eval_foreach_concat" expl="VC for eval_foreach_concat" proved="true">
+ <proof prover="1"><result status="valid" time="0.21"/></proof>
+ </goal>
+ <goal name="VC eval_foreach_last" expl="VC for eval_foreach_last" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC eval_foreach_last.0" expl="postcondition" proved="true">
+  <transf name="inversion_arg_pr" proved="true" arg1="H1">
+   <goal name="VC eval_foreach_last.0.0" expl="postcondition" proved="true">
+   <transf name="destruct_alg_subst" proved="true" arg1="bhv2">
+    <goal name="VC eval_foreach_last.0.0.0" expl="postcondition" proved="true">
+    <transf name="split_vc" proved="true" >
+     <goal name="VC eval_foreach_last.0.0.0.0" expl="postcondition" proved="true">
+     <transf name="apply" proved="true" arg1="eval_foreach_step" arg2="with" arg3="ctx2,sta2,s,(Nil:list string)">
+      <goal name="VC eval_foreach_last.0.0.0.0.0" expl="apply premises" proved="true">
+      <proof prover="1"><result status="valid" time="0.14"/></proof>
+      </goal>
+      <goal name="VC eval_foreach_last.0.0.0.0.1" expl="apply premises" proved="true">
+      <proof prover="1"><result status="valid" time="0.11"/></proof>
+      </goal>
+      <goal name="VC eval_foreach_last.0.0.0.0.2" expl="apply premises" proved="true">
+      <proof prover="1"><result status="valid" time="0.13"/></proof>
+      </goal>
+     </transf>
+     </goal>
+    </transf>
     </goal>
-    <goal name="VC eval_foreach_concat.0.1.1" expl="postcondition">
-    <proof prover="0" timelimit="20" memlimit="2500"><undone/></proof>
-    <proof prover="1" timelimit="20" memlimit="2500"><undone/></proof>
-    <proof prover="2" memlimit="2500"><undone/></proof>
-    <proof prover="3"><undone/></proof>
+    <goal name="VC eval_foreach_last.0.0.1" expl="postcondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.16"/></proof>
+    </goal>
+    <goal name="VC eval_foreach_last.0.0.2" expl="postcondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.15"/></proof>
     </goal>
    </transf>
    </goal>
-  </transf>
-  </goal>
- </transf>
- </goal>
- <goal name="eval_foreach_last">
- <transf name="split_vc" >
-  <goal name="eval_foreach_last.0">
-  <transf name="destruct_alg_subst" arg1="bhv2">
-   <goal name="eval_foreach_last.0.0">
-   <proof prover="1" obsolete="true"><result status="valid" time="16.68"/></proof>
+   <goal name="VC eval_foreach_last.0.1" expl="postcondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.13"/></proof>
    </goal>
-   <goal name="eval_foreach_last.0.1">
-   <proof prover="0" timelimit="20" memlimit="2500" obsolete="true"><result status="timeout" time="20.00"/></proof>
-   <proof prover="1" timelimit="20" memlimit="2500" obsolete="true"><result status="valid" time="4.95"/></proof>
-   <proof prover="2" memlimit="2500" obsolete="true"><result status="timeout" time="20.00"/></proof>
-   </goal>
-   <goal name="eval_foreach_last.0.2">
-   <proof prover="0" timelimit="20" memlimit="2500" obsolete="true"><result status="timeout" time="20.00"/></proof>
-   <proof prover="1" timelimit="20" memlimit="2500" obsolete="true"><result status="valid" time="4.90"/></proof>
-   <proof prover="2" memlimit="2500" obsolete="true"><result status="timeout" time="20.00"/></proof>
+   <goal name="VC eval_foreach_last.0.2" expl="postcondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.13"/></proof>
    </goal>
   </transf>
   </goal>
+  <goal name="VC eval_foreach_last.1" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.23"/></proof>
+  </goal>
  </transf>
  </goal>
- <goal name="eval_str_expr_keeps_stdout">
- <transf name="induction_pr" >
-  <goal name="eval_str_expr_keeps_stdout.0">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.07"/></proof>
+ <goal name="eval_str_expr_keeps_stdout" proved="true">
+ <transf name="induction_pr" proved="true" >
+  <goal name="eval_str_expr_keeps_stdout.0" proved="true">
+  <proof prover="1"><result status="valid" time="0.19"/></proof>
   </goal>
-  <goal name="eval_str_expr_keeps_stdout.1">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.19"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.1" proved="true">
+  <proof prover="1"><result status="valid" time="0.26"/></proof>
   </goal>
-  <goal name="eval_str_expr_keeps_stdout.2">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.2" proved="true">
+  <proof prover="1"><result status="valid" time="0.23"/></proof>
   </goal>
-  <goal name="eval_str_expr_keeps_stdout.3">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.08"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.3" proved="true">
+  <proof prover="1"><result status="valid" time="0.18"/></proof>
   </goal>
-  <goal name="eval_str_expr_keeps_stdout.4">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
+  <goal name="eval_str_expr_keeps_stdout.4" proved="true">
+  <proof prover="1"><result status="valid" time="0.26"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="eval_str_expr_extends_stdout">
  <transf name="induction_pr" >
-  <goal name="eval_str_expr_extends_stdout.0">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
+  <goal name="eval_str_expr_extends_stdout.0" proved="true">
+  <proof prover="1"><result status="valid" time="0.21"/></proof>
   </goal>
-  <goal name="eval_str_expr_extends_stdout.1">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.09"/></proof>
+  <goal name="eval_str_expr_extends_stdout.1" proved="true">
+  <proof prover="1"><result status="valid" time="0.24"/></proof>
   </goal>
-  <goal name="eval_str_expr_extends_stdout.2">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.11"/></proof>
+  <goal name="eval_str_expr_extends_stdout.2" proved="true">
+  <proof prover="1"><result status="valid" time="0.21"/></proof>
   </goal>
   <goal name="eval_str_expr_extends_stdout.3">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.10"/></proof>
+  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="eval_str_expr_extends_stdout.4">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.18"/></proof>
+  <proof prover="1" obsolete="true"><result status="timeout" time="2.00"/></proof>
   </goal>
  </transf>
  </goal>
- <goal name="eval_list_expr_keeps_stdout">
- <transf name="induction_pr" >
-  <goal name="eval_list_expr_keeps_stdout.0">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.08"/></proof>
+ <goal name="eval_list_expr_keeps_stdout" proved="true">
+ <transf name="induction_pr" proved="true" >
+  <goal name="eval_list_expr_keeps_stdout.0" proved="true">
+  <proof prover="1"><result status="valid" time="0.21"/></proof>
   </goal>
-  <goal name="eval_list_expr_keeps_stdout.1">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.13"/></proof>
+  <goal name="eval_list_expr_keeps_stdout.1" proved="true">
+  <proof prover="1"><result status="valid" time="0.31"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="eval_list_expr_expands_stdout">
  <transf name="induction_pr" >
-  <goal name="eval_list_expr_expands_stdout.0">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.10"/></proof>
+  <goal name="eval_list_expr_expands_stdout.0" proved="true">
+  <proof prover="1"><result status="valid" time="0.23"/></proof>
   </goal>
   <goal name="eval_list_expr_expands_stdout.1">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.55"/></proof>
+  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="eval_foreach_expands_stdout">
  </goal>
  <goal name="eval_call_utility_expands_stdout">
- </goal>
- <goal name="eval_sequence_expands_stdout">
  </goal>
  <goal name="eval_instruction_extends_stdout">
  </goal>
