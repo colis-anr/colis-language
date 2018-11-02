@@ -11,6 +11,11 @@
  <proof prover="1"><result status="valid" time="0.02"/></proof>
  </goal>
 </theory>
+<theory name="Behaviour" proved="true">
+ <goal name="VC behaviour" expl="VC for behaviour" proved="true">
+ <proof prover="1"><result status="valid" time="0.02"/></proof>
+ </goal>
+</theory>
 <theory name="Buffers" proved="true">
  <goal name="Stdout.VC to_string" expl="VC for to_string" proved="true">
  <proof prover="1"><result status="valid" time="0.02"/></proof>
@@ -149,7 +154,6 @@
  </goal>
  <goal name="shift_arguments_0" proved="true">
  <proof prover="0"><result status="valid" time="0.00" steps="2"/></proof>
- <proof prover="1"><result status="timeout" time="1.00"/></proof>
  </goal>
  <goal name="shift_arguments_cons_some" proved="true">
  <transf name="induction_ty_lex" proved="true" >
@@ -168,6 +172,9 @@
  </goal>
 </theory>
 <theory name="Semantics">
+ <goal name="VC behaviour&#39;" expl="VC for behaviour&#39;" proved="true">
+ <proof prover="1"><result status="valid" time="0.05"/></proof>
+ </goal>
  <goal name="VC with_result" expl="VC for with_result" proved="true">
  <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
@@ -251,22 +258,22 @@
   </goal>
  </transf>
  </goal>
- <goal name="eval_str_expr_extends_stdout">
- <transf name="induction_pr" >
-  <goal name="eval_str_expr_extends_stdout.0" proved="true">
+ <goal name="VC eval_str_expr_extends_stdout" expl="VC for eval_str_expr_extends_stdout" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC eval_str_expr_extends_stdout.0" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.17"/></proof>
+  </goal>
+  <goal name="VC eval_str_expr_extends_stdout.1" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.18"/></proof>
+  </goal>
+  <goal name="VC eval_str_expr_extends_stdout.2" expl="postcondition" proved="true">
   <proof prover="1"><result status="valid" time="0.21"/></proof>
   </goal>
-  <goal name="eval_str_expr_extends_stdout.1" proved="true">
+  <goal name="VC eval_str_expr_extends_stdout.3" expl="postcondition" proved="true">
   <proof prover="1"><result status="valid" time="0.24"/></proof>
   </goal>
-  <goal name="eval_str_expr_extends_stdout.2" proved="true">
-  <proof prover="1"><result status="valid" time="0.21"/></proof>
-  </goal>
-  <goal name="eval_str_expr_extends_stdout.3">
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  </goal>
-  <goal name="eval_str_expr_extends_stdout.4">
-  <proof prover="1" obsolete="true"><result status="timeout" time="2.00"/></proof>
+  <goal name="VC eval_str_expr_extends_stdout.4" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.49"/></proof>
   </goal>
  </transf>
  </goal>
@@ -280,17 +287,17 @@
   </goal>
  </transf>
  </goal>
- <goal name="eval_list_expr_expands_stdout">
- <transf name="induction_pr" >
-  <goal name="eval_list_expr_expands_stdout.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.23"/></proof>
+ <goal name="VC eval_list_expr_expands_stdout" expl="VC for eval_list_expr_expands_stdout" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC eval_list_expr_expands_stdout.0" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.16"/></proof>
   </goal>
-  <goal name="eval_list_expr_expands_stdout.1">
-  <proof prover="1" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <goal name="VC eval_list_expr_expands_stdout.1" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.24" steps="345"/></proof>
   </goal>
  </transf>
  </goal>
- <goal name="eval_foreach_expands_stdout">
+ <goal name="VC eval_foreach_expands_stdout" expl="VC for eval_foreach_expands_stdout">
  </goal>
  <goal name="eval_call_utility_expands_stdout">
  </goal>

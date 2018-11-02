@@ -47,7 +47,7 @@ module TakeDrop
     l = take i l ++ (Cons (NthNoOpt.nth i l) (drop (i+1) l))
 
   lemma take_nth: forall l: list 'a, i.
-    0 < i < length l - 1 ->
+    0 <= i < length l - 1 ->
     take (i+1) l = take i l ++ Cons (NthNoOpt.nth i l) Nil
 
   use option.Option
@@ -55,4 +55,7 @@ module TakeDrop
   lemma some_nth: forall l[@induction]: list 'a, i.
     0 <= i < length l <->
     Nth.nth i l <> None
+
+  lemma nth_nth: forall l[@induction] i, x:'a.
+    Nth.nth i l = Some x -> NthNoOpt.nth i l = x
 end

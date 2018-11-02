@@ -30,12 +30,14 @@ module Interpreter
   (* We use refs instead of mutable fields to be able to reuse `stdin` (and `stdout`) but
      shadow `senv`. *)
   type state = {
+    (* Semantics.state *)
     filesystem : ref filesystem;
+    stdin : ref stdin;
+    stdout : ref stdout;
+    (* Semantics.context *)
     var_env : ref C.var_env;
     func_env : C.func_env;
     arguments: ref (list string);
-    stdin : ref stdin;
-    stdout : ref stdout;
     result : ref bool;
   }
 
@@ -51,15 +53,23 @@ module Interpreter
 
   (** {4 Conversion to `semantics.Context`} *)
 
-  function context (sta:state) : C.context = {
-    C.arguments = !(sta.arguments);
+  let function context (sta:state)
+    ensures {
+      result.C.var_env = !(sta.var_env) /\
+      result.C.func_env = sta.func_env /\
+      result.C.arguments = !(sta.arguments) /\
+      result.C.result = !(sta.result)
+    }
+  = {
     C.var_env = !(sta.var_env);
     C.func_env = sta.func_env;
+    C.arguments = !(sta.arguments);
     C.result = !(sta.result);
   }
 
   lemma context_same: forall sta1 sta2.
     !(sta1.arguments) = !(sta2.arguments) ->
+    !(sta1.result) = !(sta2.result) ->
     !(sta1.var_env) == !(sta2.var_env) ->
     sta1.func_env == sta2.func_env ->
     context sta1 = context sta2
@@ -69,6 +79,12 @@ module Interpreter
     C.stdin = !(sta.stdin);
     C.stdout = !(sta.stdout)
   }
+
+  lemma state_same: forall sta1 sta2.
+    !(sta1.filesystem) = !(sta2.filesystem) ->
+    !(sta1.stdin) = !(sta2.stdin) ->
+    !(sta1.stdout) = !(sta2.stdout) ->
+    state sta1 = state sta2
 
   (** {3 The input type} *)
 
@@ -82,16 +98,15 @@ module Interpreter
     under_condition = False;
   }
 
-  let function input (inp:input) (sta:state) : C.input = {
+  let function input (inp:input) : C.input = {
     C.argument0 = inp.argument0;
     C.under_condition = inp.under_condition;
   }
 
-  lemma input_same : forall inp inp' sta sta'.
+  lemma input_same : forall inp inp'.
     inp.argument0 = inp'.argument0 ->
     inp.under_condition = inp'.under_condition ->
-    !(sta.result) = !(sta'.result) ->
-    input inp sta = input inp' sta'
+    input inp = input inp 
 
   (** {3 The exit exception} *)
 
@@ -100,10 +115,10 @@ module Interpreter
 
   let maybe_exit (inp:input) (sta:state) : unit
     returns { () ->
-      behaviour' (input inp sta) (context sta) = BNormal
+      behaviour' (input inp) (context sta) = BNormal
     }
     raises { EExit ->
-      behaviour' (input inp sta) (context sta) = BExit
+      behaviour' (input inp) (context sta) = BExit
     }
   = if andb (strict inp.under_condition) (notb !(sta.result)) then
       raise EExit
@@ -111,14 +126,13 @@ module Interpreter
   (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
   let interp_utility inp sta id args
-    ensures {
-      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result))
-    }
     returns { () -> 
-      behaviour' (input inp sta) (context sta) = BNormal
+      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      behaviour' (input inp) (context sta) = BNormal
     }
     raises { EExit -> 
-      behaviour' (input inp sta) (context sta) = BExit
+      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      behaviour' (input inp) (context sta) = BExit
     }
   = let sta', b = Semantics.interp_utility (state sta) id args in
     sta.filesystem := sta'.C.filesystem;
@@ -164,15 +178,15 @@ module Interpreter
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
     returns { () ->
-      eval_instruction (input inp (old sta), context (old sta), state (old sta))
+      eval_instruction (input inp, context (old sta), state (old sta))
         ins (state sta, context sta, BNormal)
     }
     raises { EReturn ->
-      eval_instruction (input inp (old sta), context (old sta), state (old sta))
+      eval_instruction (input inp, context (old sta), state (old sta))
         ins (state sta, context sta, BReturn)
     }
     raises { EExit ->
-      eval_instruction (input inp (old sta), context (old sta), state (old sta))
+      eval_instruction (input inp, context (old sta), state (old sta))
         ins (state sta, context sta, BExit)
     }
   = label L in match ins with
@@ -196,8 +210,10 @@ module Interpreter
       raise EReturn
 
     | IShift bn ->
-      shift_arguments sta (option_get (mk_nat 1) bn).nat;
+      let n = (option_get (mk_nat 1) bn).nat in
+      shift_arguments sta n;
       maybe_exit inp sta
+      (* case !(sta.result); apply eval_shift with (contents (arguments sta)) *)
 
     | IAssignment id se ->
       let str, b = interp_str_expr True inp sta se in
@@ -246,26 +262,30 @@ module Interpreter
       interp_instruction inp sta' ins
 
     | IPipe ins1 ins2 ->
-      let sta' = {
-        sta with
+      (* A state for interpreting ins1 *)
+      let sta1 = {
+        sta with (* func_env, filesystem, stdin *)
+        (* Fresh stdout *)
         stdout = ref Stdout.empty;
+        (* Don't modify fields in sta that correspond to Semantics.context *)
         var_env = ref !(sta.var_env);
         arguments = ref !(sta.arguments);
+        result = ref !(sta.result);
       } in
       try
-        interp_instruction inp sta' ins1
+        interp_instruction inp sta1 ins1;
       with
         | EExit _ -> ()
         | EReturn _ -> ()
       end;
-      let sta'' = {
-        sta' with
-        stdin = ref (Stdout.to_stdin !(sta'.stdout));
-        stdout = sta.stdout;
+      let sta2 = {
+        sta with (* func_env, filesystem, stdout *)
+        stdin = ref (Stdout.to_stdin !(sta1.stdout));
+        (* Reconstruct and don't modify fields in sta that correspond to Semantics.context *)
         var_env = ref !(sta.var_env);
         arguments = ref !(sta.arguments);
       } in
-      interp_instruction inp sta'' ins2
+      interp_instruction inp sta2 ins2
 
     | ICallUtility name le ->
       let args = interp_list_expr inp sta le in
@@ -294,36 +314,26 @@ module Interpreter
     | IForeach id le ins ->
       let ss = interp_list_expr inp sta le in
       let last_result = ref True in (* See NOTES[Previous in for-loop] *)
-      label L in
+      let ghost sta0 = state sta in
+      let ghost ctx0 = context sta in
       for i = 0 to length ss - 1 do
         invariant {
-          eval_foreach True (input inp sta at L, context sta at L, state sta at L)
-            id (take i ss) ins (state sta, context sta, BNormal) !last_result
+          eval_foreach True
+            (input inp, ctx0, sta0)
+            id (take i ss) ins
+            (state sta, context sta, BNormal)
+            !last_result
         }
-        invariant {
-          0 <= i < length ss ->
-          forall b1 b2 ctx1 ctx2 sta1 sta2 bhv.
-          let ctx = context sta in
-          let ctx' = {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} in
-          eval_instruction (input inp sta, ctx', state sta) ins
-            (sta1, ctx1, BNormal) ->
-          eval_foreach b1 (input inp sta, ctx1, sta1) id
-           (drop (i+1) ss) ins (sta2, ctx2, bhv) b2 ->
-          eval_foreach True (input inp sta at L, context sta at L, state sta at L)
+        invariant { forall sta1, ctx1, bhv1, b1.
+          eval_foreach !last_result
+            (input inp, context sta, state sta)
+            id (drop i ss) ins
+            (sta1, ctx1, bhv1) b1 ->
+          eval_foreach True
+            (input inp, ctx0, sta0)
             id ss ins
-            (sta2, ctx2, bhv) b2
+            (sta1, ctx1, bhv1) b1
         }
-        (* invariant { forall b1 ctx1 ctx2 sta1 sta2 bhv2. *)
-        (*   eval_foreach True (input inp sta at L) (context sta at L) (state sta at L) *)
-        (*     id (take i ss) ins (state sta) (context sta) (BNormal !last_result) -> *)
-        (*   let inp1 = input inp sta in *)
-        (*   (\* let ctx = context sta in *\) *)
-        (*   (\* eval_instruction inp1 {ctx with C.var_env = ctx.C.var_env[id <- NthNoOpt.nth i ss]} (state sta) *\) *)
-        (*   (\*   ins sta1 ctx1 (BNormal b1) -> *\) *)
-        (*   eval_foreach b1 {inp1 with C.previous_result = b1} ctx1 sta1 id (drop i ss) ins sta2 ctx2 bhv2 -> *)
-        (*   eval_foreach True (input inp sta at L) (context sta at L) (state sta at L) *)
-        (*     id ss ins sta2 ctx2 bhv2 *)
-        (* } *)
         match nth i ss with
         | Some s ->
           sta.var_env := !(sta.var_env)[id <- s];
@@ -357,7 +367,7 @@ module Interpreter
     diverges
     ensures { context sta = context (old sta) }
     returns { s, b' ->
-      eval_str_expr b (input inp (old sta), context (old sta), state (old sta))
+      eval_str_expr b (input inp, context (old sta), state (old sta))
         se (state sta, s, b')
     }
   = match se with
@@ -373,7 +383,7 @@ module Interpreter
 
     | SSubshell ins ->
       let sta' = {
-        sta with
+        sta with (* filesystem; stdin; func_env *)
         stdout = ref Stdout.empty;
         result = ref !(sta.result);
         var_env = ref !(sta.var_env);
@@ -389,9 +399,9 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr b (input inp sta, context sta, state sta at L1) se1 (state sta, s1, b1) };
+      assert { eval_str_expr b (input inp, context sta, state sta at L1) se1 (state sta, s1, b1) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr b1 (input inp sta, context sta, state sta at L2) se2 (state sta, s2, b2) };
+      assert { eval_str_expr b1 (input inp, context sta, state sta at L2) se2 (state sta, s2, b2) };
       s1^s2, b2
     end
 
@@ -399,7 +409,7 @@ module Interpreter
     diverges
     ensures { context sta = context (old sta) }
     returns { ss ->
-      eval_list_expr (input inp (old sta), context (old sta), state (old sta))
+      eval_list_expr (input inp, context (old sta), state (old sta))
         le (state sta, ss)
     }
   = match le with
@@ -416,12 +426,13 @@ module Interpreter
   let interp_program inp sta pro
     diverges
     returns { () ->
-      eval_program (input inp (old sta), context (old sta), state (old sta))
+      eval_program (input inp, context (old sta), state (old sta))
         pro (state sta, !(sta.result))
     }
   = try
-      let rec aux e defs variant { defs } =
-        match defs with
+      let rec aux (e:Context.func_env) defs
+        ensures { eval_function_definitions e defs result }
+      = match defs with
         | Nil -> e
         | Cons (id, instr) defs' ->
           aux e[id <- Some instr]  defs'
