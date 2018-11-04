@@ -640,10 +640,10 @@ module Semantics
       eval_instruction (inp, { ctx with func_env = fenv }, sta) pro.instruction (sta', ctx', bhv) ->
       eval_program (inp, ctx, sta) pro (sta', ctx'.result)
 
-  lemma eval_instruction_functional: forall ins[@induction] inp (*out1 out2*) ctx ctx1 ctx2 sta sta1 sta2 bhv1 bhv2.
-    eval_instruction (inp, ctx, sta) (* { sta with stdout = out1 } *) ins (sta1, ctx1, bhv1) ->
-    eval_instruction (inp, ctx, sta) (* { sta with stdout = out2 } *) ins (sta2, ctx2, bhv2) ->
-    sta1 = sta2 /\ ctx1 = ctx2 /\ bhv1 = bhv2
+  (* lemma eval_instruction_functional: forall ins[@induction] inp (\*out1 out2*\) ctx ctx1 ctx2 sta sta1 sta2 bhv1 bhv2. *)
+  (*   eval_instruction (inp, ctx, sta) (\* { sta with stdout = out1 } *\) ins (sta1, ctx1, bhv1) -> *)
+  (*   eval_instruction (inp, ctx, sta) (\* { sta with stdout = out2 } *\) ins (sta2, ctx2, bhv2) -> *)
+  (*   sta1 = sta2 /\ ctx1 = ctx2 /\ bhv1 = bhv2 *)
 
   lemma cons_append : forall x: 'a, l1[@induction] l2.
     (Cons x l1) ++ l2 = Cons x (l1 ++ l2)
@@ -670,11 +670,6 @@ module Semantics
     | Nil -> ()
     | Cons _ ss1' -> eval_foreach_concat ss1'
     end
-    
-  (* lemma eval_foreach_concat': forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id ins ss1[@induction] ss2 bhv2. *)
-  (*   eval_foreach b inp ctx sta id ss1 ins sta1 ctx1 (BNormal b1) -> *)
-  (*   eval_foreach b1 inp ctx1 sta1 id ss2 ins sta2 ctx2 bhv2 -> *)
-  (*   eval_foreach b inp ctx sta id (ss1 ++ ss2) ins sta2 ctx2 bhv2 *)
 
   let rec lemma eval_foreach_last (ss:list string)
     ensures { forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id s ins bhv2.
@@ -747,7 +742,32 @@ module Semantics
     let out = Stdout.(concat sta.stdout (concat sta'.stdout sta''.stdout)) in
     eval_instruction (inp, ctx, sta) (ICallUtility s le) ({sta'' with stdout = out}, ctx, bhv)
 
-  lemma eval_instruction_extends_stdout: forall ins[@induction] inp ctx ctx' sta sta' bhv.
-    eval_instruction (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta', ctx', bhv) ->
-    eval_instruction (inp, ctx, sta) ins ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, ctx', bhv)
+  let rec lemma eval_instruction_extends_stdout (ins:instruction)
+    ensures { forall inp ctx ctx' sta sta' bhv.
+      eval_instruction (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta', ctx', bhv) ->
+      eval_instruction (inp, ctx, sta) ins ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, ctx', bhv)
+    }
+  = match ins with
+    | ISubshell ins
+    | INot ins
+    | INoOutput ins
+    | IForeach _ _ ins ->
+      eval_instruction_extends_stdout ins
+    | ISequence ins1 ins2
+    | IPipe ins1 ins2
+    | IWhile ins1 ins2 ->
+      eval_instruction_extends_stdout ins1;
+      eval_instruction_extends_stdout ins2
+    | IIf ins1 ins2 ins3 ->
+      eval_instruction_extends_stdout ins1;
+      eval_instruction_extends_stdout ins2;
+      eval_instruction_extends_stdout ins3
+    | IAssignment _ _
+    | ICallUtility _ _
+    | ICallFunction _ _
+    | IReturn _
+    | IExit _
+    | IShift _ ->
+      ()
+    end
 end

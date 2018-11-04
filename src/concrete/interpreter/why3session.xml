@@ -149,7 +149,7 @@
   <proof prover="2"><result status="valid" time="0.32"/></proof>
   </goal>
   <goal name="VC interp_instruction.26" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.34"/></proof>
+  <proof prover="2"><result status="valid" time="0.20"/></proof>
   </goal>
   <goal name="VC interp_instruction.27" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.38"/></proof>
@@ -215,7 +215,7 @@
   <proof prover="2"><result status="valid" time="0.43"/></proof>
   </goal>
   <goal name="VC interp_instruction.48" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.44"/></proof>
+  <proof prover="2"><result status="valid" time="0.29"/></proof>
   </goal>
   <goal name="VC interp_instruction.49" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.41"/></proof>
@@ -291,7 +291,7 @@
      <goal name="VC interp_instruction.63.1.0.1" expl="apply premises" proved="true">
      <transf name="apply" proved="true" arg1="eval_foreach_abort" arg2="with" arg3="(nth i ss),(drop (i + 1) ss)">
       <goal name="VC interp_instruction.63.1.0.1.0" expl="apply premises" proved="true">
-      <proof prover="2" timelimit="30"><result status="valid" time="12.99"/></proof>
+      <proof prover="2" timelimit="30"><result status="valid" time="10.16"/></proof>
       </goal>
       <goal name="VC interp_instruction.63.1.0.1.1" expl="apply premises" proved="true">
       <proof prover="2"><result status="valid" time="0.10"/></proof>
@@ -331,7 +331,7 @@
      <goal name="VC interp_instruction.64.1.0.1" expl="apply premises" proved="true">
      <transf name="apply" proved="true" arg1="eval_foreach_abort" arg2="with" arg3="(nth i ss),(drop (i + 1) ss)">
       <goal name="VC interp_instruction.64.1.0.1.0" expl="apply premises" proved="true">
-      <proof prover="2" timelimit="30"><result status="valid" time="13.58"/></proof>
+      <proof prover="2" timelimit="30"><result status="valid" time="9.78"/></proof>
       </goal>
       <goal name="VC interp_instruction.64.1.0.1.1" expl="apply premises" proved="true">
       <proof prover="2"><result status="valid" time="0.08"/></proof>
@@ -404,10 +404,10 @@
   <proof prover="2"><result status="valid" time="0.07"/></proof>
   </goal>
   <goal name="VC interp_str_expr.1" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.13"/></proof>
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_str_expr.2" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.08"/></proof>
+  <proof prover="2"><result status="valid" time="0.07"/></proof>
   </goal>
   <goal name="VC interp_str_expr.3" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.20"/></proof>
@@ -416,7 +416,7 @@
   <proof prover="2"><result status="valid" time="0.20"/></proof>
   </goal>
   <goal name="VC interp_str_expr.5" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.07"/></proof>
+  <proof prover="2"><result status="valid" time="0.08"/></proof>
   </goal>
   <goal name="VC interp_str_expr.6" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.24"/></proof>
@@ -454,7 +454,7 @@
  </transf>
  </goal>
  <goal name="VC interp_list_expr" expl="VC for interp_list_expr" proved="true">
- <proof prover="2"><result status="valid" time="0.36"/></proof>
+ <proof prover="2"><result status="valid" time="0.50"/></proof>
  </goal>
  <goal name="VC interp_program" expl="VC for interp_program" proved="true">
  <transf name="split_vc" proved="true" >

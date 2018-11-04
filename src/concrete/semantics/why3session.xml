@@ -5,6 +5,7 @@
 <prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="1" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="2" name="Z3" version="4.6.0" timelimit="1" steplimit="0" memlimit="1000"/>
+<prover id="3" name="Eprover" version="2.2" timelimit="1" steplimit="0" memlimit="1000"/>
 <file name="../semantics.mlw">
 <theory name="Env" proved="true">
  <goal name="VC mixfix [&lt;-]" expl="VC for mixfix [&lt;-]" proved="true">
@@ -178,8 +179,6 @@
  <goal name="VC with_result" expl="VC for with_result" proved="true">
  <proof prover="1"><result status="valid" time="0.03"/></proof>
  </goal>
- <goal name="eval_instruction_functional">
- </goal>
  <goal name="cons_append" proved="true">
  <proof prover="1"><result status="valid" time="0.09"/></proof>
  </goal>
@@ -235,7 +234,7 @@
   </transf>
   </goal>
   <goal name="VC eval_foreach_last.1" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.23"/></proof>
+  <proof prover="1"><result status="valid" time="0.50"/></proof>
   </goal>
  </transf>
  </goal>
@@ -273,7 +272,7 @@
   <proof prover="1"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC eval_str_expr_extends_stdout.4" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.68"/></proof>
+  <proof prover="1"><result status="valid" time="0.87"/></proof>
   </goal>
  </transf>
  </goal>
@@ -301,7 +300,60 @@
  </goal>
  <goal name="eval_call_utility_expands_stdout">
  </goal>
- <goal name="eval_instruction_extends_stdout">
+ <goal name="VC eval_instruction_extends_stdout" expl="VC for eval_instruction_extends_stdout">
+ <transf name="split_vc" >
+  <goal name="VC eval_instruction_extends_stdout.0" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.86"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.1" expl="postcondition" proved="true">
+  <transf name="destruct_alg_subst" proved="true" arg1="bhv">
+   <goal name="VC eval_instruction_extends_stdout.1.0" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.22"/></proof>
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.1.1" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.38"/></proof>
+   </goal>
+   <goal name="VC eval_instruction_extends_stdout.1.2" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.22"/></proof>
+   </goal>
+  </transf>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.2" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.34"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.3" expl="postcondition" proved="true">
+  <proof prover="0"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1" timelimit="20" memlimit="2500"><result status="valid" time="3.67"/></proof>
+  <proof prover="2"><result status="timeout" time="1.00"/></proof>
+  <proof prover="3"><result status="timeout" time="1.00"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.4" expl="postcondition">
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.5" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.60"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.6" expl="postcondition">
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.7" expl="postcondition">
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.8" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.60"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.9" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.73"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.10" expl="postcondition">
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.11" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.32"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.12" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.43"/></proof>
+  </goal>
+  <goal name="VC eval_instruction_extends_stdout.13" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.38"/></proof>
+  </goal>
+ </transf>
  </goal>
 </theory>
 </file>
