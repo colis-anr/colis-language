@@ -273,7 +273,7 @@
   <proof prover="1"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC eval_str_expr_extends_stdout.4" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.49"/></proof>
+  <proof prover="1"><result status="valid" time="0.68"/></proof>
   </goal>
  </transf>
  </goal>
@@ -290,7 +290,7 @@
  <goal name="VC eval_list_expr_expands_stdout" expl="VC for eval_list_expr_expands_stdout" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC eval_list_expr_expands_stdout.0" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.16"/></proof>
+  <proof prover="1"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC eval_list_expr_expands_stdout.1" expl="postcondition" proved="true">
   <proof prover="0"><result status="valid" time="0.24" steps="345"/></proof>

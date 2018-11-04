@@ -512,33 +512,6 @@ module Semantics
     let ctx'' = with_result b ctx' in
     eval_instruction (inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx'', bhv)
 
-  (** Semantics of the for loop
-
-      http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_04_03
-   *)
-  with eval_foreach bool (input, context, state) identifier (list string) instruction (state, context, behaviour) bool =
-
-  | eval_foreach_done: forall b inp ctx sta id ins.
-    let sta' = sta in
-    let ctx' = ctx in
-    let b' = b in
-    eval_foreach b (inp, ctx, sta) id Nil ins (sta', ctx', BNormal) b'
-
-  | eval_foreach_step: forall b b2 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss' ins bhv2.
-    let ss = Cons s ss' in
-    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
-    eval_instruction (inp, ctx', sta) ins (sta1, ctx1, BNormal) ->
-    eval_foreach ctx1.result (inp, ctx1, sta1) id ss' ins (sta2, ctx2, bhv2) b2 ->
-    eval_foreach b (inp, ctx, sta) id ss ins (sta2, ctx2, bhv2) b2
-
-  | eval_foreach_abort: forall b inp ctx ctx1 sta sta1 id s ss' ins bhv1.
-    let ss = Cons s ss' in
-    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
-    eval_instruction (inp, ctx', sta) ins (sta1, ctx1, bhv1) ->
-    match bhv1 with BExit | BReturn -> true | BNormal -> false end ->
-    let r = ctx1.result in
-    eval_foreach b (inp, ctx, sta) id ss ins (sta1, ctx1, bhv1) r
-
   (** Semantics of the while loop.
 
       http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_04_09
@@ -573,6 +546,33 @@ module Semantics
     eval_instruction (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
     match bhv2 with BExit | BReturn -> true | BNormal -> false end ->
     eval_while bhv (inp, ctx, sta) ins1 ins2 (sta2, ctx2, bhv2) ctx2.result
+
+  (** Semantics of the for loop
+
+      http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_04_03
+   *)
+  with eval_foreach bool (input, context, state) identifier (list string) instruction (state, context, behaviour) bool =
+
+  | eval_foreach_done: forall b inp ctx sta id ins.
+    let sta' = sta in
+    let ctx' = ctx in
+    let b' = b in
+    eval_foreach b (inp, ctx, sta) id Nil ins (sta', ctx', BNormal) b'
+
+  | eval_foreach_step: forall b b2 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss' ins bhv2.
+    let ss = Cons s ss' in
+    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
+    eval_instruction (inp, ctx', sta) ins (sta1, ctx1, BNormal) ->
+    eval_foreach ctx1.result (inp, ctx1, sta1) id ss' ins (sta2, ctx2, bhv2) b2 ->
+    eval_foreach b (inp, ctx, sta) id ss ins (sta2, ctx2, bhv2) b2
+
+  | eval_foreach_abort: forall b inp ctx ctx1 sta sta1 id s ss' ins bhv1.
+    let ss = Cons s ss' in
+    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
+    eval_instruction (inp, ctx', sta) ins (sta1, ctx1, bhv1) ->
+    match bhv1 with BExit | BReturn -> true | BNormal -> false end ->
+    let r = ctx1.result in
+    eval_foreach b (inp, ctx, sta) id ss ins (sta1, ctx1, bhv1) r
 
   (** Evaluation of an expression with some input I, context C, and state S, resulting in
       another state S, a string and an output comprised of a string result and an optional

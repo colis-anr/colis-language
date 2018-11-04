@@ -347,16 +347,22 @@ module Interpreter
 
     | IWhile ins1 ins2 ->
       let last_result = ref True in
-      label L in 
+      let ghost sta0 = state sta in
+      let ghost ctx0 = context sta in
       while (
         interp_instruction {inp with under_condition=True} sta ins1;
         !(sta.result)
       ) do
-        (* invariant { *)
-        (*   eval_while !last_result (input inp sta) (context sta) (state sta)  *)
-        (*   eval_while True (input inp sta at L) (context sta at L) (state sta at L) *)
-        (*     ins1 ins2  *)
-        (* } *)
+        invariant { forall sta1 ctx1 bhv1 b1.
+          eval_while !last_result
+            (input inp, context sta, state sta)
+            ins1 ins2
+            (sta1, ctx1, bhv1) b1 ->
+          eval_while True
+            (input inp, ctx0, sta0)
+            ins1 ins2
+            (sta1, ctx1, bhv1) b1
+        }
         interp_instruction inp sta ins2;
         last_result := !(sta.result);
       done;
