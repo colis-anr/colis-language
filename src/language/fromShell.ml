@@ -9,10 +9,25 @@ let on_located = Morsmall.Location.on_located
 module C = struct
   include Syntax__Syntax
 
-  let econcat_l = function
-    | [] -> failwith "econcat_l"
-    | h :: t -> List.fold_left (fun se se' -> SConcat (se, se')) h t
+  let sconcat_l = function
+    | [] -> failwith "sconcat_l"
+    | s :: ss -> List.fold_left (fun s1 s2 -> SConcat (s1, s2)) s ss
+
+  let isequence_l = function
+    | [] -> failwith "isequence_l"
+    | i :: is -> List.fold_left (fun i1 i2 -> ISequence (i1, i2)) i is
+
+  let itrue = ICallUtility ("true", [])
+  let ifalse = ICallUtility ("false", [])
 end
+
+let list_fold_map (f : 'a -> 'b -> ('a * 'c)) (x : 'a) (l : 'b list) : ('a * 'c list) =
+  List.fold_left
+    (fun (x, l') e ->
+      let (x', e') = f x e in
+      (x', e' :: l'))
+    (x, []) l
+  |> fun (x, l) -> (x, List.rev l)
 
 (* Define constants coming from Shell or hypothesis we make on input
    Shell scripts. *)
@@ -31,6 +46,29 @@ let ifs = [' '; '\n'; '\t']
 
 exception Unsupported of string (*FIXME: position*)
 
+(* Define the conversion environment. *)
+
+module E = struct
+  module SMap = Map.Make(String)
+
+  type t =
+    { toplevel : bool ;
+      functions : C.instruction SMap.t }
+
+  let empty =
+    { toplevel = true ;
+      functions = SMap.empty }
+
+  let with_deeper e f =
+    let (e', x) = f { e with toplevel = false } in
+    ({ e' with toplevel = e.toplevel }, x)
+
+  let get_functions e =
+    e.functions |> SMap.to_seq |> List.of_seq
+end
+
+let on_located_with_env (f : E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a located -> (E.t * 'b) =
+  on_located (f e)
 
 (* Define split requirements. This will be usefull in the conversion
    of expressions. They are in fact in a lattice:
@@ -76,90 +114,82 @@ and word'__to__name word' =
    that each string_expression has a unique requirement. This is what
    then gives the 'split' flag in CoLiS. *)
 
-and word_component__to__string_expression_split_requirement = function
+and word_component__to__string_expression_split_requirement e = function
   | Literal s when List.exists (String.contains s) ifs ->
      (C.SLiteral s, NoSplit)
   | Literal s | Name s ->
      (C.SLiteral s, DoesntCare)
   | Variable (name, NoAttribute) ->
      (C.SVariable name, Split)
-  | Subshell program ->
-     let prog = program__to__program program in
-     if prog.function_definitions = [] then
-       (C.SSubshell prog.C.instruction, Split)
-     else
-       raise (Unsupported "function definition in string subshell")
+  | Subshell c's ->
+     let (_, i) = command'_list__to__instruction e c's in
+     (C.SSubshell i, Split)
   | DoubleQuoted word ->
-     word_DoubleQuoted__to__string_expression_split_requirement word
+     word_DoubleQuoted__to__string_expression_split_requirement e word
   | _ ->
      raise (Unsupported "(word_component)")
 
-and word_component_DoubleQuoted__to__string_expression = function
+and word_component_DoubleQuoted__to__string_expression e = function
   | Literal s | Name s -> C.SLiteral s
   | Variable (name, NoAttribute) -> C.SVariable name
-  | Subshell program ->
-    let prog = program__to__program program in
-    if prog.function_definitions = [] then
-      C.SSubshell (program__to__program program).C.instruction
-    else
-      raise (Unsupported "function definition in string subshell")
+  | Subshell c's ->
+     let (_, i) = command'_list__to__instruction e c's in
+     C.SSubshell i
   | _ -> raise (Unsupported "(word_component_DoubleQuoted)")
 
-and word__to__string_expression_split_requirement word : (C.string_expression * split_requirement) =
+and word__to__string_expression_split_requirement e w : (C.string_expression * split_requirement) =
   (* Note: the type annotation here is required because otherwise,
-     OCaml gets lost in type unification. *)
+     OCaml gets lost in type unification for some reason. *)
   let string_expression_list, split_requirement_list =
-    List.map word_component__to__string_expression_split_requirement word
+    List.map (word_component__to__string_expression_split_requirement e) w
     |> List.split
   in
-  (C.econcat_l string_expression_list,
+  (C.sconcat_l string_expression_list,
    unify_split_requirement_list split_requirement_list)
 
-and word_DoubleQuoted__to__string_expression_split_requirement word =
-  List.map word_component_DoubleQuoted__to__string_expression word
-  |> C.econcat_l
+and word_DoubleQuoted__to__string_expression_split_requirement e word =
+  List.map (word_component_DoubleQuoted__to__string_expression e) word
+  |> C.sconcat_l
   |> fun string_expression -> (string_expression, NoSplit)
 
 (* Now, the real functions. *)
 
-and word__to__string_expression word =
+and word__to__string_expression e w =
   (* In that case, we don't care about the splitting. *)
-  fst (word__to__string_expression_split_requirement word)
+  fst (word__to__string_expression_split_requirement e w)
 
-and word_list__to__list_expression word_list =
-  List.map word__to__string_expression_split_requirement word_list
-  |> List.map
-       (fun (string_expression, split_requirement) ->
-         (string_expression,
-          match split_requirement with
-          | Impossible -> raise (Unsupported "mixed words")
-          | DoesntCare | NoSplit -> C.DontSplit
-          | Split -> C.Split))
+and word_list__to__list_expression e word_list =
+  List.map
+    (fun w ->
+      let (se, sr) = word__to__string_expression_split_requirement e w in
+      (se,
+       match sr with
+       | Impossible -> raise (Unsupported "mixed words")
+       | DoesntCare | NoSplit -> C.DontSplit
+       | Split -> C.Split))
+    word_list
 
-and word'_list__to__list_expression word'_list =
+and word'_list__to__list_expression e word'_list =
   List.map (fun word' -> word'.Morsmall.Location.value) word'_list
-  |> word_list__to__list_expression
+  |> word_list__to__list_expression e
 
-and assignment__to__assign (name, word) =
-  C.IAssignment (name, word__to__string_expression word)
+and assignment__to__assign e (n, w) =
+  let s1 = word__to__string_expression e w in
+  (e, C.IAssignment (n, s1))
 
-and assignment'__to__assign assignment' =
-  on_located assignment__to__assign assignment'
+and assignment'__to__assign e assignment' =
+  on_located_with_env assignment__to__assign e assignment'
 
-(* ============================= [ Statements ] ============================= *)
+(* ============================ [ Instructions ] ============================ *)
 
-and command__to__statement = function
+and command__to__instruction (e : E.t) : command -> E.t * C.instruction = function
 
   | Simple ([], []) ->
      assert false
 
-  | Simple (assignment' :: assignment'_list, []) ->
-     List.fold_left
-       (fun statement assignment' ->
-         let assign = assignment'__to__assign assignment' in
-         C.ISequence (statement, assign))
-       (assignment'__to__assign assignment')
-       assignment'_list
+  | Simple ((_ :: _) as a's, []) ->
+     let (e, as_) = list_fold_map assignment'__to__assign e a's in
+     (e, C.isequence_l as_)
 
   | Simple (assignment'_list, word' :: word'_list) ->
      let name = word'__to__name word' in
@@ -183,7 +213,7 @@ and command__to__statement = function
 
        | "set", [C.SLiteral "-e", _] ->
           (* FIXME *)
-          C.ICallUtility ("true", [])
+          C.itrue
 
        (* All the other special builtins: unsupported *)
 
@@ -217,86 +247,104 @@ and command__to__statement = function
   | Async _ ->
      raise (Unsupported "asynchronous separator &")
 
-  | Seq (first', second') ->
-     let first = command'__to__statement first' in
-     let second = command'__to__statement second' in
-     C.ISequence (first, second)
+  | Seq (c1', c2') ->
+     (* Warning: no E.with_deeper here. *)
+     let (e1, i1) = command'__to__instruction e  c1' in
+     let (e2, i2) = command'__to__instruction e1 c2' in
+     (e2, C.ISequence (i1, i2))
 
-  | And (first', second') ->
-     let first = command'__to__statement first' in
-     let second = command'__to__statement second' in
-     C.IIf (first, second, C.INot (C.ICallUtility ("false", [])))
+  | And (c1', c2') ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e  c1' in
+     let (e2, i2) = command'__to__instruction e1 c2' in
+     (e2, C.IIf (i1, i2, C.INot C.ifalse))
 
-  | Or (first', second') ->
-     let first = command'__to__statement first' in
-     let second = command'__to__statement second' in
-     C.IIf (first, C.ICallUtility ("true", []), second)
+  | Or (c1', c2') ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e  c1' in
+     let (e2, i2) = command'__to__instruction e1 c2' in
+     (e2, C.IIf (i1, C.itrue, i2))
 
-  | Not command' ->
-     let statement = command'__to__statement command' in
-     C.INot statement
+  | Not c1' ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e c1' in
+     (e1, C.INot i1)
 
-  | Pipe (first', second') ->
-     let first = command'__to__statement first' in
-     let second = command'__to__statement second' in
-     C.IPipe (first, second)
+  | Pipe (c1', c2') ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e  c1' in
+     let (e2, i2) = command'__to__instruction e1 c2' in
+     (e2, C.IPipe (i1, i2))
 
-  | Subshell command' ->
-     let statement = command'__to__statement command' in
-     C.ISubshell statement
+  | Subshell c1' ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e c1' in
+     (e1, C.ISubshell i1)
 
   | For (_, None, _) ->
      raise (Unsupported "for with no list")
 
-  | For (name, Some word_list, command') ->
-     let statement = command'__to__statement command' in
-     C.IForeach (name, word_list__to__list_expression word_list, statement)
+  | For (x, Some word_list, c1') ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e c1' in
+     (e1, C.IForeach (x, word_list__to__list_expression word_list, i1))
+  (* FIXME: with only functions and topevel, it's alright. If we put
+     more, we have to be carefull because c1' also happens after itself. *)
 
   | Case _ ->
      raise (Unsupported "case")
 
-  | If (test', body', None) ->
-     let test = command'__to__statement test' in
-     let body = command'__to__statement body' in
-     C.IIf (test, body, C.ICallUtility ("true", []))
+  | If (c1', c2', None) ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e  c1' in
+     let (e2, i2) = command'__to__instruction e1 c2' in
+     (e2, C.IIf (i1, i2, C.itrue))
 
-  | If (test', body', Some rest') ->
-     let test = command'__to__statement test' in
-     let body = command'__to__statement body' in
-     let rest = command'__to__statement rest' in
-     C.IIf (test, body, rest)
+  | If (c1', c2', Some c3') ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e  c1' in
+     let (e2, i2) = command'__to__instruction e1 c2' in
+     let (_ , i3) = command'__to__instruction e1 c3' in (* Warning: it's e1! *)
+     (e2, C.IIf (i1, i2, i3))
+  (* FIXME: with only functions and topevel, it's alright. If we put
+     more, we have to be carefull about merging e2 and e3. *)
 
-  | While (cond', body') ->
-     C.IWhile (command'__to__statement cond',
-               command'__to__statement body')
+  | While (c1', c2') ->
+     E.with_deeper e @@ fun e ->
+     let (e1, i1) = command'__to__instruction e  c1' in
+     let (e2, i2) = command'__to__instruction e1 c2' in
+     (e2, C.IWhile (i1, i2))
+  (* FIXME: with only functions and topevel, it's alright. If we put
+     more, we have to be carefull because c1' also happens after c2',
+     etc. *)
 
-  | Until (_cond, _body) ->
-     raise (Unsupported "until")
+  | Until (c1', c2') ->
+     command__to__instruction e (While (Morsmall.Location.dummily_located (Not c1'), c2'))
 
   | Function _ ->
      raise (Unsupported ("function"))
 
   | Redirection _ as command ->
-     redirection__to__statement command
+     redirection__to__instruction command
 
   | HereDocument _ ->
      raise (Unsupported ("here document"))
 
-and command'__to__statement command' =
-  on_located command__to__statement command'
+and command'__to__instruction env command' =
+  on_located_with_env command__to__instruction env command'
 
-and redirection__to__statement = function
+and redirection__to__instruction = function
   (* >=2 redirected to /dev/null. Since they don't have any impact on
      the semantics of the program, we don't care. *)
   | Redirection (command', descr, Output, [Literal "/dev/null"])
        when descr >= 2 ->
-     command'__to__statement command'
+     command'__to__instruction command'
 
   (* 1 redirected to >=2, this means the output will never ever have
      an impact on the semantics again ==> ignore *)
   | Redirection (command', 1, OutputDuplicate, [Literal i])
        when (try int_of_string i >= 2 with Failure _ ->  false) ->
-     C.INoOutput (command'__to__statement command')
+     C.INoOutput (command'__to__instruction command')
 
   (* 1 redirected to /dev/null. This means that the output will never
      have an impact on the semantics again ==> Ignore. In fact, we can
@@ -312,22 +360,23 @@ and redirection__to__statement = function
        and flush_redirections'_to_1 redirection' =
          on_located flush_redirections_to_1 redirection'
        in
-       C.INoOutput (command__to__statement (flush_redirections'_to_1 command'))
+       C.INoOutput (command__to__instruction (flush_redirections'_to_1 command'))
      )
 
   | _ -> raise (Unsupported ("other redirections"))
 
+and command'_list__to__instruction e = function
+  | [] ->
+     (e, C.itrue)
+  | c's ->
+     let (e, is) = list_fold_map command'__to__instruction E.empty c's in
+     (e, C.isequence_l is)
+
 and program__to__program : program -> C.program = function
   | [] ->
-     let instruction = C.ICallUtility ("true", []) in
-     { C.function_definitions = []; instruction }
-  | first' :: rest' ->
-    let instruction =
-      List.fold_left
-       (fun statement command' ->
-         let statement' = command'__to__statement command' in
-         C.ISequence (statement, statement'))
-       (command'__to__statement first')
-       rest'
-    in
-    { C.function_definitions = []; instruction }
+     { C.function_definitions = [];
+       instruction = C.itrue }
+  | c's ->
+     let (e, i) = command'_list__to__instruction E.empty c's in
+     { C.function_definitions = E.get_functions e ;
+       instruction = i }

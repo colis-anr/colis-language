@@ -41,7 +41,7 @@ module Syntax
     | RPrevious      (** previous | $?    *)
 
   (** TODO add utilities `true`, `false` to *Specification of UNIX commands*  *)
-  with instruction =                                   (* ColLiS                         | Shell                            *)
+  with instruction =                                   (* CoLiS                          | Shell                            *)
     | IAssignment identifier string_expression         (* id := sexpr                    | id=sexpr                         *)
     | ISequence instruction instruction                (* instr; instr                   | instr; instr                     *)
     | ISubshell instruction                            (* process instr                  | ( instr )                        *)
