@@ -2,8 +2,8 @@
 #+OPTIONS: ^:nil
 * Syntax
 ** Functions
-- not required without shift, leave out for now
-- no ~Return~ behaviour either
+- one cannot use a name and then define a function with that name
+- no ~Return~ behaviour for now
 ** Exit
 - CM: TODO ~exit $ret~ not representable? Add ~CVar var~ to ~return_code~? ~SExit sexpr~
   instead with ~$?~ as expression? Stuck when sexpr not numerical/boolean?
@@ -25,7 +25,7 @@ Syntax in Shell: ~$@~
 - but the callable will not be statically known any more
 ** Shell callees
 - special builtins :: operates on full environment
-- functions :: 
+- functions ::
   - naming ambiguity with special builtins is prohibited
   - built using special builtins
   - operates full environment
@@ -127,7 +127,7 @@ dash -ec 'if set +e; then echo X; fi; false; echo A/$?'; echo --$?~
 | X    |
 | A/1  |
 | --0~ |
-  
+
 - To implement ~set -e/+e~, a second field indicating the global strict mode
   (~strict_mode~) has to be added in the state and added in this test as ~ctx.strict_mode
   && negb ctx.under_condition~ to account for the following example:
@@ -227,4 +227,3 @@ and lies on the middle ground by using exceptions to indicate the program behavi
 imperative stdout, but an immutable state and context.
 
 The implementation was changed to a fully imperative design as of [2018-10-02 Tue].
-
