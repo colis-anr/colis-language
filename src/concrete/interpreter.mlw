@@ -257,8 +257,7 @@ module Interpreter
         interp_instruction inp sta ins3
 
     | INoOutput ins ->
-      (* Don’t write to `sta.stdout` *)
-      let sta' = {sta with stdout = ref Stdout.empty} in
+      let sta' = {sta with stdout = ref !(sta.stdout)} in
       interp_instruction inp sta' ins
 
     | IPipe ins1 ins2 ->
