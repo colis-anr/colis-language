@@ -83,10 +83,12 @@ let main () =
        eprintf "Conversion error: %s@." msg;
        exit 3
   in
+  let argument0 = file in
+  let arguments = get_arguments () in
   match get_action () with
   | Run ->
      (
-       Colis.run ~argument0:file ~arguments:(get_arguments ()) program
+      Colis.run ~argument0 ~arguments program
      )
   | RunSymbolic ->
      (

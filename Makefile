@@ -23,7 +23,6 @@ extract-why3:
 		-D src/language/driver.drv -D src/concrete/driver.drv \
 		-L src/language -L src/concrete \
 		-o src/why3 \
-		map.Const \
 		interpreter.Interpreter
 
 clean-why3:
