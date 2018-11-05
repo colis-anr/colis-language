@@ -66,6 +66,9 @@ module E = struct
     let (e', x) = f (deeper e) in
     ({ e' with toplevel = e.toplevel }, x)
 
+  let add_function e n i =
+    { e with functions = SMap.add n i e.functions }
+
   let get_functions e =
     e.functions |> SMap.to_seq |> List.of_seq
 
@@ -125,6 +128,8 @@ and word_component__to__string_expression_split_requirement e = function
      (C.SLiteral s, NoSplit)
   | Literal s | Name s ->
      (C.SLiteral s, DoesntCare)
+  | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
+     (C.SArgument (Z.of_int (int_of_string name)), Split)
   | Variable (name, NoAttribute) ->
      (C.SVariable name, Split)
   | Subshell c's ->
@@ -136,8 +141,12 @@ and word_component__to__string_expression_split_requirement e = function
      raise (Unsupported "(word_component)")
 
 and word_component_DoubleQuoted__to__string_expression e = function
-  | Literal s | Name s -> C.SLiteral s
-  | Variable (name, NoAttribute) -> C.SVariable name
+  | Literal s | Name s ->
+     C.SLiteral s
+  | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
+     C.SArgument (Z.of_int (int_of_string name))
+  | Variable (name, NoAttribute) ->
+     C.SVariable name
   | Subshell c's ->
      let (_, i) = command'_list__to__instruction e c's in
      C.SSubshell i
@@ -321,8 +330,17 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
   | Until (c1', c2') ->
      command__to__instruction e (While (Morsmall.Location.dummily_located (Not c1'), c2'))
 
-  | Function _ ->
-     raise (Unsupported ("function"))
+  | Function (n, c1') ->
+     (* FIXME: not so easy. Because we can't know statically what will
+        be called in the function... We could assume that noone
+        defines a function after its use, keep track of all the
+        commands that are used and forbid the definition of a function
+        with a name that has already been used. *)
+     if E.is_function n e then
+       raise (Unsupported "re-definition of a function")
+     else
+       let (_, i) = command'__to__instruction e c1' in
+       (E.add_function e n i, C.itrue)
 
   | Redirection _ as command ->
      (e, redirection__to__instruction (E.deeper e) command)
