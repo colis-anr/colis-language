@@ -59,12 +59,18 @@ module E = struct
     { toplevel = true ;
       functions = SMap.empty }
 
+  let deeper e =
+    { e with toplevel = false }
+
   let with_deeper e f =
-    let (e', x) = f { e with toplevel = false } in
+    let (e', x) = f (deeper e) in
     ({ e' with toplevel = e.toplevel }, x)
 
   let get_functions e =
     e.functions |> SMap.to_seq |> List.of_seq
+
+  let is_function n e =
+    SMap.mem n e.functions
 end
 
 let on_located_with_env (f : E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a located -> (E.t * 'b) =
@@ -191,11 +197,9 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      let (e, as_) = list_fold_map assignment'__to__assign e a's in
      (e, C.isequence_l as_)
 
-  | Simple (assignment'_list, word' :: word'_list) ->
+  | Simple ([], word' :: word'_list) ->
      let name = word'__to__name word' in
-     let args = word'_list__to__list_expression word'_list in
-     if assignment'_list <> [] then
-       raise (Unsupported "assignment prefixing simple command");
+     let args = word'_list__to__list_expression e word'_list in
      (
        match name, args with
 
@@ -205,23 +209,26 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
           raise (Unsupported "absolute source")
 
        | "exit", [] | "exit", [C.SVariable "?", _] ->
-          C.(IExit RPrevious)
+          (e, C.(IExit RPrevious))
        | "exit", [C.SLiteral n, _] when int_of_string_opt n = Some 0 ->
-          C.(IExit RSuccess)
+          (e, C.(IExit RSuccess))
        | "exit", [C.SLiteral n, _] when int_of_string_opt n <> None ->
-          C.(IExit RFailure)
+          (e, C.(IExit RFailure))
 
        | "set", [C.SLiteral "-e", _] ->
           (* FIXME *)
-          C.itrue
+          (e, C.itrue)
 
        (* All the other special builtins: unsupported *)
 
        | _ when List.mem name special_builtins ->
           raise (Unsupported ("special builtin: " ^ name))
 
-       (* cd: not a special builtin, but still deserves a special
-          treatement *)
+       | _ when E.is_function name e ->
+          (e, C.ICallFunction (name, args))
+
+       (* cd: not a special builtin (so it is handled after functions,
+          but still deserves a special treatement *)
 
        | "cd", _ ->
           raise (Unsupported "cd")
@@ -231,18 +238,11 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        (* all the other commands *)
 
        | _ ->
-          let command =
-            List.fold_right
-              (fun assignment' statement ->
-                let assign = assignment'__to__assign assignment' in
-                (* FIXME: export *)
-                C.ISequence (assign, statement))
-              assignment'_list
-              (C.ICallUtility (name, args))
-          in
-          (* FIXME: subshell if assignment'_list <> [] *)
-          command
+          (e, C.ICallUtility (name, args))
      )
+
+  | Simple (_::_, _::_) ->
+     raise (Unsupported "prefix assignments")
 
   | Async _ ->
      raise (Unsupported "asynchronous separator &")
@@ -287,7 +287,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
   | For (x, Some word_list, c1') ->
      E.with_deeper e @@ fun e ->
      let (e1, i1) = command'__to__instruction e c1' in
-     (e1, C.IForeach (x, word_list__to__list_expression word_list, i1))
+     (e1, C.IForeach (x, word_list__to__list_expression e word_list, i1))
   (* FIXME: with only functions and topevel, it's alright. If we put
      more, we have to be carefull because c1' also happens after itself. *)
 
@@ -325,7 +325,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      raise (Unsupported ("function"))
 
   | Redirection _ as command ->
-     redirection__to__instruction command
+     (e, redirection__to__instruction (E.deeper e) command)
 
   | HereDocument _ ->
      raise (Unsupported ("here document"))
@@ -333,18 +333,18 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
 and command'__to__instruction env command' =
   on_located_with_env command__to__instruction env command'
 
-and redirection__to__instruction = function
+and redirection__to__instruction e = function
   (* >=2 redirected to /dev/null. Since they don't have any impact on
      the semantics of the program, we don't care. *)
   | Redirection (command', descr, Output, [Literal "/dev/null"])
        when descr >= 2 ->
-     command'__to__instruction command'
+     snd (command'__to__instruction e command')
 
   (* 1 redirected to >=2, this means the output will never ever have
      an impact on the semantics again ==> ignore *)
   | Redirection (command', 1, OutputDuplicate, [Literal i])
        when (try int_of_string i >= 2 with Failure _ ->  false) ->
-     C.INoOutput (command'__to__instruction command')
+     C.INoOutput (snd (command'__to__instruction e command'))
 
   (* 1 redirected to /dev/null. This means that the output will never
      have an impact on the semantics again ==> Ignore. In fact, we can
@@ -360,7 +360,7 @@ and redirection__to__instruction = function
        and flush_redirections'_to_1 redirection' =
          on_located flush_redirections_to_1 redirection'
        in
-       C.INoOutput (command__to__instruction (flush_redirections'_to_1 command'))
+       C.INoOutput (snd (command__to__instruction e (flush_redirections'_to_1 command')))
      )
 
   | _ -> raise (Unsupported ("other redirections"))
