@@ -22,7 +22,7 @@ depends: [
   "zarith"
 
   "ocaml"  {build & >= "4.05"}
-  "why3"   {build}
+  "why3"   {build & with-test}
 
   "odoc"   {with-doc}
 
