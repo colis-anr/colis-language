@@ -29,18 +29,6 @@ let list_fold_map (f : 'a -> 'b -> ('a * 'c)) (x : 'a) (l : 'b list) : ('a * 'c 
     (x, []) l
   |> fun (x, l) -> (x, List.rev l)
 
-(* Define constants coming from Shell or hypothesis we make on input
-   Shell scripts. *)
-
-let special_builtins = [
-    (* Important note: cd is not in that list because it is
-       technically not a special built-in! *)
-    "break"; ":"; "continue"; "."; "eval"; "exec";
-    "exit"; "export"; "readonly"; "return"; "set";
-    "shift"; "times"; "trap"; "unset" ]
-
-let ifs = [' '; '\n'; '\t']
-
 (* Add an exception raised when there is a feature in the input Shell
    script that is not supported. *)
 
@@ -49,31 +37,59 @@ exception Unsupported of string (*FIXME: position*)
 (* Define the conversion environment. *)
 
 module E = struct
+  module SSet = Set.Make(String)
   module SMap = Map.Make(String)
 
+  (* Define constants coming from Shell or hypothesis we make on input
+     Shell scripts. *)
+
+  let special_builtins = [
+      (* Important note: cd is not in that list because it is
+         technically not a special built-in! *)
+      "break"; ":"; "continue"; "."; "eval"; "exec";
+      "exit"; "export"; "readonly"; "return"; "set";
+      "shift"; "times"; "trap"; "unset" ]
+
+  let ifs = [' '; '\n'; '\t']
+
   type t =
-    { toplevel : bool ;
+    { at_toplevel : bool ;
+      names_called : SSet.t ;
       functions : C.instruction SMap.t }
 
   let empty =
-    { toplevel = true ;
+    { at_toplevel = true ;
+      names_called = SSet.empty ;
       functions = SMap.empty }
 
-  let deeper e =
-    { e with toplevel = false }
+  let check_legal_function_name e n =
+    if List.mem n special_builtins then
+      raise (Unsupported "function definition shadowing a special builtin");
+    if SMap.mem n e.functions then
+      raise (Unsupported "function definition shadowing an other function");
+    if SSet.mem n e.names_called then
+      raise (Unsupported "function definition after a use of the same name")
 
-  let with_deeper e f =
-    let (e', x) = f (deeper e) in
-    ({ e' with toplevel = e.toplevel }, x)
+  let add_called e n =
+    { e with names_called = SSet.add n e.names_called }
 
   let add_function e n i =
     { e with functions = SMap.add n i e.functions }
 
+  let replace_function e n i =
+    if not (SMap.mem n e.functions) then
+      failwith "E.replace_function";
+    { e with functions = SMap.add n i e.functions }
+
+  let is_function e n =
+    SMap.mem n e.functions
+
   let get_functions e =
     e.functions |> SMap.to_seq |> List.of_seq
 
-  let is_function n e =
-    SMap.mem n e.functions
+  let with_deeper e f =
+    let (e', x) = f { e with at_toplevel = false } in
+    ({ e' with at_toplevel = e.at_toplevel }, x)
 end
 
 let on_located_with_env (f : E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a located -> (E.t * 'b) =
@@ -109,12 +125,12 @@ let unify_split_requirement_list =
    type in Morsmall.AST and Y is a type in Syntax__Syntax. The
    functions X'__to__Y take a located type in Morsmall.C. *)
 
-let rec word__to__name = function
-  | [Literal s] | [Name s] -> s
+let rec word__to__name e = function
+  | [Literal s] | [Name s] -> (e, s)
   | _ -> raise (Unsupported "(word_to_name)")
 
-and word'__to__name word' =
-  on_located word__to__name word'
+and word'__to__name e word' =
+  on_located_with_env word__to__name e word'
 
 (* ============================ [ Expressions ] ============================= *)
 (* We flag each string_expression with its requirements in term of
@@ -124,64 +140,71 @@ and word'__to__name word' =
    then gives the 'split' flag in CoLiS. *)
 
 and word_component__to__string_expression_split_requirement e = function
-  | Literal s when List.exists (String.contains s) ifs ->
-     (C.SLiteral s, NoSplit)
+  | Literal s when List.exists (String.contains s) E.ifs ->
+     (e, (C.SLiteral s, NoSplit))
   | Literal s | Name s ->
-     (C.SLiteral s, DoesntCare)
+     (e, (C.SLiteral s, DoesntCare))
   | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
-     (C.SArgument (Z.of_int (int_of_string name)), Split)
+     (e, (C.SArgument (Z.of_int (int_of_string name)), Split))
   | Variable (name, NoAttribute) ->
-     (C.SVariable name, Split)
+     (e, (C.SVariable name, Split))
   | Subshell c's ->
-     let (_, i) = command'_list__to__instruction e c's in
-     (C.SSubshell i, Split)
+     E.with_deeper e @@ fun e ->
+     let (e, i) = command'_list__to__instruction e c's in
+     (e, (C.SSubshell i, Split))
   | DoubleQuoted word ->
+     E.with_deeper e @@ fun e ->
      word_DoubleQuoted__to__string_expression_split_requirement e word
   | _ ->
      raise (Unsupported "(word_component)")
 
 and word_component_DoubleQuoted__to__string_expression e = function
   | Literal s | Name s ->
-     C.SLiteral s
+     (e, C.SLiteral s)
   | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
-     C.SArgument (Z.of_int (int_of_string name))
+     (e, C.SArgument (Z.of_int (int_of_string name)))
   | Variable (name, NoAttribute) ->
-     C.SVariable name
+     (e, C.SVariable name)
   | Subshell c's ->
-     let (_, i) = command'_list__to__instruction e c's in
-     C.SSubshell i
+     E.with_deeper e @@ fun e ->
+     let (e, i) = command'_list__to__instruction e c's in
+     (e, C.SSubshell i)
   | _ -> raise (Unsupported "(word_component_DoubleQuoted)")
 
-and word__to__string_expression_split_requirement e w : (C.string_expression * split_requirement) =
+and word__to__string_expression_split_requirement e w : (E.t * (C.string_expression * split_requirement)) =
   (* Note: the type annotation here is required because otherwise,
      OCaml gets lost in type unification for some reason. *)
-  let string_expression_list, split_requirement_list =
-    List.map (word_component__to__string_expression_split_requirement e) w
-    |> List.split
+  let (e, expr_and_req) =
+    list_fold_map word_component__to__string_expression_split_requirement e w
   in
-  (C.sconcat_l string_expression_list,
-   unify_split_requirement_list split_requirement_list)
+  let string_expression_list, split_requirement_list =
+    List.split expr_and_req
+  in
+  (e, (C.sconcat_l string_expression_list, unify_split_requirement_list split_requirement_list))
 
 and word_DoubleQuoted__to__string_expression_split_requirement e word =
-  List.map (word_component_DoubleQuoted__to__string_expression e) word
-  |> C.sconcat_l
-  |> fun string_expression -> (string_expression, NoSplit)
+  let (e, exprs) =
+    list_fold_map word_component_DoubleQuoted__to__string_expression e word
+  in
+  (e, (C.sconcat_l exprs, NoSplit))
 
 (* Now, the real functions. *)
 
 and word__to__string_expression e w =
   (* In that case, we don't care about the splitting. *)
-  fst (word__to__string_expression_split_requirement e w)
+  let (e, (expr, _)) = word__to__string_expression_split_requirement e w in
+  (e, expr)
 
 and word_list__to__list_expression e word_list =
-  List.map
-    (fun w ->
-      let (se, sr) = word__to__string_expression_split_requirement e w in
-      (se,
-       match sr with
-       | Impossible -> raise (Unsupported "mixed words")
-       | DoesntCare | NoSplit -> C.DontSplit
-       | Split -> C.Split))
+  list_fold_map
+    (fun e w ->
+      let (e, (se, sr)) = word__to__string_expression_split_requirement e w in
+      (e, (se,
+           match sr with
+           | Impossible -> raise (Unsupported "mixed words")
+           | DoesntCare | NoSplit -> C.DontSplit
+           | Split -> C.Split)))
+    e
     word_list
 
 and word'_list__to__list_expression e word'_list =
@@ -189,7 +212,7 @@ and word'_list__to__list_expression e word'_list =
   |> word_list__to__list_expression e
 
 and assignment__to__assign e (n, w) =
-  let s1 = word__to__string_expression e w in
+  let (e, s1) = word__to__string_expression e w in
   (e, C.IAssignment (n, s1))
 
 and assignment'__to__assign e assignment' =
@@ -207,8 +230,9 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      (e, C.isequence_l as_)
 
   | Simple ([], word' :: word'_list) ->
-     let name = word'__to__name word' in
-     let args = word'_list__to__list_expression e word'_list in
+     let (e, name) = word'__to__name e word' in
+     let (e, args) = word'_list__to__list_expression e word'_list in
+
      (
        match name, args with
 
@@ -228,12 +252,15 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
           (* FIXME *)
           (e, C.itrue)
 
+       | "shift", [] ->
+          (e, C.IShift None)
+
        (* All the other special builtins: unsupported *)
 
-       | _ when List.mem name special_builtins ->
+       | _ when List.mem name E.special_builtins ->
           raise (Unsupported ("special builtin: " ^ name))
 
-       | _ when E.is_function name e ->
+       | _ when E.is_function e name ->
           (e, C.ICallFunction (name, args))
 
        (* cd: not a special builtin (so it is handled after functions,
@@ -249,6 +276,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        | _ ->
           (e, C.ICallUtility (name, args))
      )
+     |> fun (e, i) -> (E.add_called e name, i)
 
   | Simple (_::_, _::_) ->
      raise (Unsupported "prefix assignments")
@@ -295,8 +323,9 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
 
   | For (x, Some word_list, c1') ->
      E.with_deeper e @@ fun e ->
-     let (e1, i1) = command'__to__instruction e c1' in
-     (e1, C.IForeach (x, word_list__to__list_expression e word_list, i1))
+     let (e0, expr) = word_list__to__list_expression e word_list in
+     let (e1, i1) = command'__to__instruction e0 c1' in
+     (e1, C.IForeach (x, expr, i1))
   (* FIXME: with only functions and topevel, it's alright. If we put
      more, we have to be carefull because c1' also happens after itself. *)
 
@@ -331,19 +360,14 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      command__to__instruction e (While (Morsmall.Location.dummily_located (Not c1'), c2'))
 
   | Function (n, c1') ->
-     (* FIXME: not so easy. Because we can't know statically what will
-        be called in the function... We could assume that noone
-        defines a function after its use, keep track of all the
-        commands that are used and forbid the definition of a function
-        with a name that has already been used. *)
-     if E.is_function n e then
-       raise (Unsupported "re-definition of a function")
-     else
-       let (_, i) = command'__to__instruction e c1' in
-       (E.add_function e n i, C.itrue)
+     E.check_legal_function_name e n;
+     E.with_deeper e @@ fun e ->
+     let (e, i) = command'__to__instruction (E.add_function e n C.itrue) c1' in
+     (E.replace_function e n i, C.itrue)
 
   | Redirection _ as command ->
-     (e, redirection__to__instruction (E.deeper e) command)
+     E.with_deeper e @@ fun e ->
+     (e, redirection__to__instruction e command)
 
   | HereDocument _ ->
      raise (Unsupported ("here document"))

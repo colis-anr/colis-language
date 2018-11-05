@@ -3,10 +3,7 @@ input:
   arguments: []
 
 output:
-  stdout: |
-    a
-    c
-    b
-    d
-  stderr: ""
-  return_code: 0
+  stdout: ""
+  stderr: |
+    Conversion error: unsupported feature: function definition after a use of the same name
+  return_code: 3
