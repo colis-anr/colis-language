@@ -13,8 +13,7 @@ module type S = sig
   (** The conjunction of two [t] (alias for {!and}). *)
 
   val or_ : t -> t -> t
-  (** The disjunction of two [t]. Beware! [(++)] has a higher
-     precedence than [(&)]. *)
+  (** The disjunction of two [t]. *)
 
   type term = Var.t * Path.t
 
