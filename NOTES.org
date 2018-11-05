@@ -3,7 +3,6 @@
 * Syntax
 ** Functions
 - one cannot use a name and then define a function with that name
-- no ~Return~ behaviour for now
 ** Exit
 - CM: TODO ~exit $ret~ not representable? Add ~CVar var~ to ~return_code~? ~SExit sexpr~
   instead with ~$?~ as expression? Stuck when sexpr not numerical/boolean?

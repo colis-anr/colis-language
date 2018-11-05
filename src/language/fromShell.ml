@@ -248,6 +248,13 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        | "exit", [C.SLiteral n, _] when int_of_string_opt n <> None ->
           (e, C.(IExit RFailure))
 
+       | "return", [] | "return", [C.SVariable "?", _] ->
+          (e, C.(IReturn RPrevious))
+       | "return", [C.SLiteral n, _] when int_of_string_opt n = Some 0 ->
+          (e, C.(IReturn RSuccess))
+       | "return", [C.SLiteral n, _] when int_of_string_opt n <> None ->
+          (e, C.(IReturn RFailure))
+
        | "set", [C.SLiteral "-e", _] ->
           (* FIXME *)
           (e, C.itrue)
