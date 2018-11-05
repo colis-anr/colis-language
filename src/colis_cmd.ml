@@ -86,10 +86,8 @@ let main () =
      )
   | RunSymbolic ->
      (
-      if true then
-        Colis.run_symbolic ~arguments program
-      else
-        Colis.run_symbexec ~arguments program
+       eprintf "Symbolic execution is not supported yet.@.";
+       exit 3
      )
   | PrintColis ->
      (

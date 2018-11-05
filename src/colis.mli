@@ -63,9 +63,3 @@ val shell_to_colis : shell -> colis
 
 val run : ?arguments:(string list) -> colis -> unit
 (** Runs a Colis program. *)
-
-val run_symbolic : ?arguments:(string list) -> colis -> unit
-(** Symbolically runs a Colis program. *)
-
-val run_symbexec : ?arguments:(string list) -> colis -> unit
-(** Symbolically runs a Colis program, legacy mode *)
