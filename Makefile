@@ -2,7 +2,9 @@
 replay-concrete-proofs=$(patsubst %, replay-concrete-proof-%, auxiliaries semantics interpreter)
 # replay-symbolic-proofs=$(patsubst %, replay-symbolic-proof-%, interpreter)
 
-.PHONY: build test replay-proofs doc clean extract-why3 clean-why3 install uninstall replay-proofs $(replay-concrete-proofs)
+.PHONY: ci build test replay-proofs doc clean extract-why3 clean-why3 install uninstall replay-proofs $(replay-concrete-proofs)
+
+ci: build doc test replay-proofs install uninstall clean
 
 build: extract-why3
 	dune build @install

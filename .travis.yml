@@ -8,15 +8,14 @@ services:
 
 env:
   global:
-    - WHY3COMMIT="#41d0c60dfbb45ce967ad93793e70606ada8d207a"
+    - "WHY3COMMIT=#41d0c60df"
   matrix:
-    - TAG=4.05
-    - TAG=4.06
+    # - TAG=4.05
+    # - TAG=4.06
     - TAG=4.07
 
 ## Two steps: we first build the Dockerfile. If it succeeds, we try
 ## running tests, installing and uninstalling in the Dockerfile.
 
 script:
-  - docker build --build-arg tag=$TAG --build-arg switch=$SWITCH --build-arg why3commit=$WHY3COMMIT --tag colisanr/colis-language:$TRAVIS_BRANCH .
-  - docker run --entrypoint /bin/sh colisanr/colis-language:$TRAVIS_BRANCH -c 'eval $(opam env) && cd /home/opam/colis-language && make test && make replay-proofs && make install && make uninstall'
+  - docker build --build-arg TAG=$TAG --build-arg SWITCH=$SWITCH --build-arg WHY3COMMIT=$WHY3COMMIT --tag colisanr/colis-language:$TRAVIS_BRANCH .
