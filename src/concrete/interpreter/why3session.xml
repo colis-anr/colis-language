@@ -202,7 +202,7 @@
   <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instruction.43" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.45"/></proof>
+  <proof prover="2"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_instruction.44" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.41"/></proof>
@@ -238,7 +238,7 @@
   <proof prover="2"><result status="valid" time="0.60"/></proof>
   </goal>
   <goal name="VC interp_instruction.55" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.84" steps="233"/></proof>
+  <proof prover="1"><result status="valid" time="0.62" steps="233"/></proof>
   </goal>
   <goal name="VC interp_instruction.56" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.54"/></proof>
@@ -403,13 +403,13 @@
  <goal name="VC interp_str_expr" expl="VC for interp_str_expr" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC interp_str_expr.0" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.07"/></proof>
+  <proof prover="2"><result status="valid" time="0.08"/></proof>
   </goal>
   <goal name="VC interp_str_expr.1" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_str_expr.2" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.08"/></proof>
+  <proof prover="2"><result status="valid" time="0.07"/></proof>
   </goal>
   <goal name="VC interp_str_expr.3" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.36"/></proof>
