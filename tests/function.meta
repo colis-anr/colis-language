@@ -2,9 +2,12 @@ input:
   arguments: []
   stdin: ""
 output:
+  # We cannot test $0 on the program level when comparing shell and colis scripts with different file extensions
   stdout: |
+    Function: twice
     Hello colis!
     Hello world!
+    Function: butfirst
     Hello colis!
     Hello world!
 

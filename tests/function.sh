@@ -15,6 +15,6 @@ butfirst () {
     greet $2
 }
 
-echo Program: $0
+# echo Program: $0
 twice 'colis' 'world'
 butfirst 'you' 'colis' 'world'

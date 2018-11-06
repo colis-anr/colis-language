@@ -1,0 +1,3 @@
+(library
+ (name constraints_common)
+ (public_name colis-language.constraints.common))
