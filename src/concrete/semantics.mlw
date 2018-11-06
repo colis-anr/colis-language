@@ -72,24 +72,15 @@ module Buffers
     let constant empty : t = Nil
 
     let function is_empty stdin =
-      match stdin with Nil -> True | _ -> False end
+      match stdin with
+      | Nil -> True
+      | _ -> False
+      end
   end
 
   type stdin = Stdin.t
 
   scope Stdout
-
-  (* The list contains the lines of the stdout, with the most recent first *)
-  type stdout = { lines: list string }
-    invariant { lines <> Nil }
-    by { lines = Cons String.empty Nil }
-
-  let function stdout_is_empty stdout =
-    match stdout with Nil -> True | _ -> False end
-
-  let constant empty_stdout =
-    { lines = Cons String.empty Nil }
->>>>>>> origin/master
 
     (** The current line and the previous lines, with the most recent line first.
 

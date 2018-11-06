@@ -1,4 +1,7 @@
-false | true
-exit true | true
-exit false | true
-echo OK
+f() {
+    false | true
+    return 0 | true
+    exit 1 | true
+    echo OK
+}
+f
