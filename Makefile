@@ -30,6 +30,9 @@ doc: build
 test: build
 	dune runtest
 
+# Do everything for continuous integration
+ci: build doc test replay-proofs install uninstall clean
+
 ## Extract Why3 to OCaml
 
 extract-why3:
@@ -37,10 +40,15 @@ extract-why3:
 	rm -f src/why3/*
 	why3 extract --modular --recursive \
 		-D ocaml64 \
-		-D src/language/driver.drv -D src/concrete/driver.drv \
-		-L src/language -L src/concrete \
+		-D src/language/driver.drv \
+    -D src/concrete/driver.drv \
+    -D src/symbolic/driver.drv \
+		-L src/language \
+    -L src/concrete \
+    -L src/symbolic \
 		-o src/why3 \
-		interpreter.Interpreter
+		interpreter.Interpreter \
+    symbolicInterpreter.Interpreter
 
 clean-why3:
 	rm -rf src/why3

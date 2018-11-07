@@ -15,13 +15,16 @@ module Interpreter
   use map.MapExt
   use int.Int
 
+  use auxiliaries.Auxiliaries
   use mystring.String
   use syntax.Syntax
   use semantics.Filesystem
   use semantics.Buffers
   use semantics.Behaviour
   use semantics.Env
+  use semantics.Input
   use semantics.Context as C
+  use semantics.State as S
   use semantics.Semantics
   use auxiliaries.TakeDrop
 
@@ -74,10 +77,10 @@ module Interpreter
     sta1.func_env == sta2.func_env ->
     context sta1 = context sta2
 
-  let function state (sta:state) : C.state = {
-    C.filesystem = !(sta.filesystem);
-    C.stdin = !(sta.stdin);
-    C.stdout = !(sta.stdout)
+  let function state (sta:state) : S.state = {
+    S.filesystem = !(sta.filesystem);
+    S.stdin = !(sta.stdin);
+    S.stdout = !(sta.stdout)
   }
 
   lemma state_same: forall sta1 sta2.
@@ -86,28 +89,6 @@ module Interpreter
     !(sta1.stdout) = !(sta2.stdout) ->
     state sta1 = state sta2
 
-  (** {3 The input type} *)
-
-  type input = {
-    argument0: string;
-    under_condition: bool;
-  }
-
-  let constant empty_input = {
-    argument0 = String.empty;
-    under_condition = False;
-  }
-
-  let function input (inp:input) : C.input = {
-    C.argument0 = inp.argument0;
-    C.under_condition = inp.under_condition;
-  }
-
-  lemma input_same : forall inp inp'.
-    inp.argument0 = inp'.argument0 ->
-    inp.under_condition = inp'.under_condition ->
-    input inp = input inp 
-
   (** {3 The exit exception} *)
 
   exception EExit
@@ -115,10 +96,10 @@ module Interpreter
 
   let maybe_exit (inp:input) (sta:state) : unit
     returns { () ->
-      behaviour' (input inp) (context sta) = BNormal
+      behaviour' inp (context sta) = BNormal
     }
     raises { EExit ->
-      behaviour' (input inp) (context sta) = BExit
+      behaviour' inp (context sta) = BExit
     }
   = if andb (strict inp.under_condition) (notb !(sta.result)) then
       raise EExit
@@ -127,17 +108,17 @@ module Interpreter
 
   let interp_utility inp sta id args
     returns { () -> 
-      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
-      behaviour' (input inp) (context sta) = BNormal
+      interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      behaviour' inp (context sta) = BNormal
     }
     raises { EExit -> 
-      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
-      behaviour' (input inp) (context sta) = BExit
+      interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      behaviour' inp (context sta) = BExit
     }
-  = let sta', b = Semantics.interp_utility (state sta) id args in
-    sta.filesystem := sta'.C.filesystem;
-    sta.stdin := sta'.C.stdin;
-    sta.stdout := sta'.C.stdout;
+  = let sta', b = interp_utility (state sta) id args in
+    sta.filesystem := sta'.S.filesystem;
+    sta.stdin := sta'.S.stdin;
+    sta.stdout := sta'.S.stdout;
     sta.result := b;
     maybe_exit inp sta
 
@@ -178,15 +159,15 @@ module Interpreter
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
     returns { () ->
-      eval_instruction (input inp, context (old sta), state (old sta))
+      eval_instruction (inp, context (old sta), state (old sta))
         ins (state sta, context sta, BNormal)
     }
     raises { EReturn ->
-      eval_instruction (input inp, context (old sta), state (old sta))
+      eval_instruction (inp, context (old sta), state (old sta))
         ins (state sta, context sta, BReturn)
     }
     raises { EExit ->
-      eval_instruction (input inp, context (old sta), state (old sta))
+      eval_instruction (inp, context (old sta), state (old sta))
         ins (state sta, context sta, BExit)
     }
   = label L in match ins with
@@ -318,18 +299,18 @@ module Interpreter
       for i = 0 to length ss - 1 do
         invariant {
           eval_foreach True
-            (input inp, ctx0, sta0)
+            (inp, ctx0, sta0)
             id (take i ss) ins
             (state sta, context sta, BNormal)
             !last_result
         }
         invariant { forall sta1, ctx1, bhv1, b1.
           eval_foreach !last_result
-            (input inp, context sta, state sta)
+            (inp, context sta, state sta)
             id (drop i ss) ins
             (sta1, ctx1, bhv1) b1 ->
           eval_foreach True
-            (input inp, ctx0, sta0)
+            (inp, ctx0, sta0)
             id ss ins
             (sta1, ctx1, bhv1) b1
         }
@@ -354,11 +335,11 @@ module Interpreter
       ) do
         invariant { forall sta1 ctx1 bhv1 b1.
           eval_while !last_result
-            (input inp, context sta, state sta)
+            (inp, context sta, state sta)
             ins1 ins2
             (sta1, ctx1, bhv1) b1 ->
           eval_while True
-            (input inp, ctx0, sta0)
+            (inp, ctx0, sta0)
             ins1 ins2
             (sta1, ctx1, bhv1) b1
         }
@@ -372,7 +353,7 @@ module Interpreter
     diverges
     ensures { context sta = context (old sta) }
     returns { s, b' ->
-      eval_str_expr b (input inp, context (old sta), state (old sta))
+      eval_str_expr b (inp, context (old sta), state (old sta))
         se (state sta, s, b')
     }
   = match se with
@@ -404,9 +385,9 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr b (input inp, context sta, state sta at L1) se1 (state sta, s1, b1) };
+      assert { eval_str_expr b (inp, context sta, state sta at L1) se1 (state sta, s1, b1) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr b1 (input inp, context sta, state sta at L2) se2 (state sta, s2, b2) };
+      assert { eval_str_expr b1 (inp, context sta, state sta at L2) se2 (state sta, s2, b2) };
       s1^s2, b2
     end
 
@@ -414,7 +395,7 @@ module Interpreter
     diverges
     ensures { context sta = context (old sta) }
     returns { ss ->
-      eval_list_expr (input inp, context (old sta), state (old sta))
+      eval_list_expr (inp, context (old sta), state (old sta))
         le (state sta, ss)
     }
   = match le with
@@ -431,20 +412,12 @@ module Interpreter
   let interp_program inp sta pro
     diverges
     returns { () ->
-      eval_program (input inp, context (old sta), state (old sta))
+      eval_program (inp, context (old sta), state (old sta))
         pro (state sta, !(sta.result))
     }
   = try
-      let rec aux (e:Context.func_env) defs
-        ensures { eval_function_definitions e defs result }
-      = match defs with
-        | Nil -> e
-        | Cons (id, instr) defs' ->
-          aux e[id <- Some instr]  defs'
-        end
-      in
-      let e = aux sta.func_env pro.function_definitions in
-      interp_instruction inp { sta with func_env = e } pro.instruction
+      let fenv = interp_function_definitions sta.func_env pro.function_definitions in
+      interp_instruction inp { sta with func_env = fenv } pro.instruction
     with
       | EExit -> ()
       | EReturn -> ()

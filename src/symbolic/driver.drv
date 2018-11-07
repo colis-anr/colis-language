@@ -1,0 +1,21 @@
+module symbolicInterpreter.Constraints
+  syntax type clause "Constraints.Clause.conj"
+  syntax type variable "Constraints.Var.t"
+  syntax type feature "Constraints.Feat.t"
+end
+
+module symbolicInterpreter.Interpreter
+  syntax val interp_utility "SymbolicUtilities.interp %1 %2 %3"
+end
+
+module set.Fset
+  syntax type set "%1 BatSet.t"
+  syntax val singleton "BatSet.singleton %1"
+  syntax val add "BatSet.add %1 %2"
+  syntax val empty "BatSet.empty"
+  syntax val (==) "BatSet.equal %1 %2"
+  syntax val choose "BatSet.choose %1"
+  syntax val remove "BatSet.remove %1 %2"
+  syntax val union "BatSet.union %1 %2"
+  syntax val is_empty "BatSet.is_empty %1"
+end

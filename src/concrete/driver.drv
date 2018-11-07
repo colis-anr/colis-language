@@ -1,8 +1,3 @@
-module semantics.Filesystem
-  syntax type filesystem "unit"
-  syntax function empty "()"
-end
-
 module semantics.Semantics
   syntax function interp_utility "Utilities.interp_utility %1 %2 %3"
 end
