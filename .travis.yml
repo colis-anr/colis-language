@@ -8,14 +8,18 @@ services:
 
 env:
   global:
-    - "WHY3COMMIT=#41d0c60df"
+    - "MORSMALLPIN=git+https://github.com/colis-anr/morsmall"
+    - "WHY3PIN=https://gitlab.inria.fr/why3/why3.git#41d0c60df"
   matrix:
-    # - TAG=4.05
-    # - TAG=4.06
     - TAG=4.07
-
-## Two steps: we first build the Dockerfile. If it succeeds, we try
-## running tests, installing and uninstalling in the Dockerfile.
+    # - TAG=4.06
+    # - TAG=4.05
 
 script:
-  - docker build --build-arg TAG=$TAG --build-arg SWITCH=$SWITCH --build-arg WHY3COMMIT=$WHY3COMMIT --tag colisanr/colis-language:$TRAVIS_BRANCH .
+  - docker build
+      --build-arg "TAG=$TAG"
+      --build-arg "SWITCH=$SWITCH"
+      --build-arg "WHY3PIN=$WHY3PIN"
+      --build-arg "MORSMALLPIN=$MORSMALLPIN"
+      --tag colisanr/colis-language:$TRAVIS_BRANCH
+      .

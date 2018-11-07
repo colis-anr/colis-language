@@ -5,23 +5,21 @@ ARG IMAGE=ocaml/opam2:$TAG
 
 FROM $IMAGE
 
-# Only ARGs after FROM are available subsequentally...
-ARG SWITCH=
-ARG WHY3COMMIT=
-
 MAINTAINER Nicolas Jeannerod
 
-RUN sudo apt-get update && sudo apt-get install -y wget autoconf automake
+ARG SWITCH=
+ARG MORSMALLPIN=
+ARG WHY3PIN=
 
 RUN [ -z "$SWITCH" ] || opam switch create "$SWITCH"
 
 ## ============================ [ Dependencies ] ============================ ##
 
-## FIXME: there should be a better way
-RUN opam pin -n git+https://github.com/colis-anr/morsmall
-RUN opam pin -n https://gitlab.inria.fr/why3/why3.git$WHY3COMMIT
+RUN sudo apt-get update && sudo apt-get install -y wget autoconf automake
 
-WORKDIR /home/opam/colis-language
+RUN [ -n "$MORSMALLPIN" ] && opam pin -n "$MORSMALLPIN"
+RUN [ -n "$WHY3PIN" ] && opam pin -n "$WHY3PIN"
+
 COPY *.opam .
 RUN opam depext -i $(opam show . -f depends: | cut -d '"' -f 2)
 
