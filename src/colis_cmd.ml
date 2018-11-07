@@ -92,8 +92,7 @@ let main () =
      )
   | RunSymbolic ->
      (
-       eprintf "Symbolic execution is not supported yet.@.";
-       exit 3
+      Colis.run_symbolic ~argument0 ~arguments program
      )
   | PrintColis ->
      (

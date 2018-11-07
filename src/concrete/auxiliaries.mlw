@@ -1,3 +1,15 @@
+module Auxiliaries
+
+  use option.Option
+
+  let function option_get default opt =
+    match opt with
+    | Some x -> x
+    | None -> default
+    end
+
+end
+
 (** Used for proving the soundness of interpreting IForeach *)
 module TakeDrop
   use int.Int

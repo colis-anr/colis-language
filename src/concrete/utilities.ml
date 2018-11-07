@@ -3,7 +3,7 @@
     See subsections of http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap04.html#tag_20
   *)
 
-open Semantics__Context
+open Semantics__State
 open Semantics__Buffers
 
 let interp_utility : state -> string -> string list -> (state * bool) =

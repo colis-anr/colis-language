@@ -83,9 +83,55 @@ let shell_to_colis shell =
 let run ~argument0 ?(arguments=[]) colis =
   let open Interpreter__Interpreter in
   let open Semantics__Buffers in
-  let input = { empty_input with argument0 } in
+  let input = { Semantics__Input.empty with argument0 } in
   let state = empty_state () in
   state.arguments := arguments;
   interp_program input state colis;
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
+
+let print_symbolic_filesystem fmt fs =
+  let open SymbolicInterpreter__Filesystem in
+  let open Constraints in
+  let slash fmt () = pp_print_string fmt "/" in
+  fprintf fmt "root: %a@\n" Var.pp_print fs.root;
+  fprintf fmt "cwd: %a@\n" (pp_print_list ~pp_sep:slash Feat.pp_print) fs.cwd;
+  fprintf fmt "clause: %a@\n" Clause.pp_print_conj fs.clause
+
+let print_symbolic_state fmt sta =
+  let open SymbolicInterpreter__State in
+  let open Semantics__Buffers in
+  print_symbolic_filesystem fmt sta.filesystem;
+  (* Print stdin *)
+  if sta.stdin <> [] then begin
+    fprintf fmt "stdin: |@\n";
+    List.iter (fprintf fmt "  %s@\n")
+      (List.rev sta.stdin)
+  end;
+  (* Print stdout *)
+  if not (Stdout.is_empty sta.stdout) then begin
+    fprintf fmt "stdout: |@\n";
+    List.iter (fprintf fmt "  %s@\n")
+      (List.rev @@ sta.stdout.lines);
+    fprintf fmt "  %s" sta.stdout.line
+  end
+
+let run_symbolic ~argument0 ?(arguments=[]) colis =
+  let module Input = Semantics__Input in
+  let module Filesystem = SymbolicInterpreter__Filesystem in
+  let module State = SymbolicInterpreter__State in
+  let module Context = Semantics__Context in
+  let open SymbolicInterpreter__Interpreter in
+  let input = { Input.empty with argument0 } in
+  let state =
+    let fs =
+      let root = Constraints.Var.fresh ~hint:"root" () in
+      let clause = Constraints.Clause.ctrue in
+      { Filesystem.root; clause; cwd = [] }
+    in State.mk fs in
+  let context = { Context.empty_context with arguments } in
+  let normals, failures = interp_program input context state colis in
+  printf "* Success states@\n";
+  List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list normals);
+  printf "* Failure states@\n";
+  List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list failures)

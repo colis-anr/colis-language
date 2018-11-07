@@ -1,11 +1,4 @@
 
-(** {2 (Dummy) filesystem} *)
-
-module Filesystem
-  type filesystem
-  val constant empty: filesystem
-end
-
 (** {2 Environment (mapping from identifiers)} *)
 
 module Env
@@ -82,6 +75,8 @@ module Buffers
 
   scope Stdout
 
+    use bool.Bool
+
     (** The current line and the previous lines, with the most recent line first.
 
         Keeping the current line and the previous lines explicitely separated (instead of
@@ -94,6 +89,14 @@ module Buffers
 
     let constant empty =
       { line = String.empty; lines = Nil }
+
+    let function is_empty out =
+      andb
+       (String.(equal empty out.line))
+       (match out.lines with
+        | Nil -> True
+        | _ -> False
+        end)
 
     (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
     let function to_stdin out =
@@ -197,37 +200,29 @@ end
     NOTES[Evaluation relation]
  *)
 
-module Context
+(** {2 Read-only context for the evaluation of a term} *)
+module Input
 
-  use map.Map
   use bool.Bool
-  use option.Option
-  use list.List
-  use list.Reverse
-  use list.Append
-
   use mystring.String
-  use syntax.Identifier
-  use syntax.Syntax
-
-  use Filesystem
-  use Behaviour
-  use Buffers
-  use Env
-
-  (** {3 Read-only context for the evaluation of a term} *)
 
   type input = {
     under_condition: bool; (* evaluation under condition - implying unstrict mode *)
     argument0: string;     (* $0 *)
   }
 
-  let constant empty_input = {
+  let constant empty = {
     argument0 = String.empty;
     under_condition = False;
   }
+end
 
-  (** {3 Read/write context for the evaluation of a term} *)
+(** {2 Read/write context for the evaluation of a term with abstract filesystem} *)
+module AbstractState
+
+  use Buffers
+
+  type filesystem
 
   (** The state is unreversable ("following a linear logic") and each internal state should
       be consumed exactly once *)
@@ -237,17 +232,33 @@ module Context
     stdout: stdout;
   }
 
-  let function mk_state fs in_ out
-    ensures { result.filesystem = fs }
-    ensures { result.stdin = in_ }
-    ensures { result.stdout = out }
-  = { filesystem = fs; stdin = in_; stdout = out }
-
-  let constant empty_state = {
-    filesystem = Filesystem.empty;
+  let mk fs = {
+    filesystem = fs;
     stdin = Stdin.empty;
     stdout = Stdout.empty;
   }
+end
+
+module Filesystem
+  type filesystem = unit
+  let empty = ()
+end
+
+module State
+  use Filesystem as F
+  clone export AbstractState with type filesystem = F.filesystem
+end
+
+module Context
+
+  use option.Option
+  use list.List
+
+  use mystring.String
+  use syntax.Syntax
+
+  use Buffers
+  use Env
 
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
       subprocesses)
@@ -334,19 +345,21 @@ module Semantics
 
   use list.List
   use list.Append
-  use list.Length
   use option.Option
   use map.Map
   use bool.Bool
-  use int.Int
 
   use mystring.String
   use syntax.Syntax
 
   use Behaviour
-  use Context
+  use Input
+  use Filesystem
   use Buffers
   use Arguments
+  use auxiliaries.Auxiliaries
+  use Context
+  use State
 
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with
@@ -372,18 +385,6 @@ module Semantics
     ensures { result.func_env = ctx.func_env }
     ensures { result.arguments = ctx.arguments }
     { ctx with result = ret }
-
-  (* let function opt_inject_behaviour (inp:input) (ret_opt:option bool) : behaviour = *)
-  (*   match ret_opt with *)
-  (*   | Some ret -> behaviour inp ret *)
-  (*   | None -> BNormal *)
-  (*   end *)
-
-  let function option_get default opt =
-    match opt with
-    | Some x -> x
-    | None -> default
-    end
 
   (** {3 Specification of the semantics} *)
 
@@ -650,6 +651,16 @@ module Semantics
     | eval_function_definition: forall e e' id ins defs.
       eval_function_definitions e[id <- Some ins] defs e' ->
       eval_function_definitions e (Cons (id, ins) defs) e'
+
+  (* use Behaviour *)
+
+  let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)
+    ensures { eval_function_definitions fenv defs result }
+  = match defs with
+    | Nil -> fenv
+    | Cons (id, instr) defs' ->
+      interp_function_definitions Env.(fenv[id <- Some instr])  defs'
+    end
 
   inductive eval_program (input, context, state) program (state, bool) =
 

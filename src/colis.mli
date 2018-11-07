@@ -67,3 +67,11 @@ val run : argument0:string -> ?arguments:(string list) -> colis -> unit
     @param argument0 Value for argument zero (the interpreter or filename)
     @param arguments Other arguments
   *)
+
+
+val run_symbolic : argument0:string -> ?arguments:(string list) -> colis -> unit
+(** Symbolically executes a Colis program.
+
+    @param argument0 Value for argument zero (the interpreter or filename)
+    @param arguments Other arguments
+  *)
