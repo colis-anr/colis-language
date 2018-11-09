@@ -12,8 +12,8 @@ env:
     - "WHY3PIN=https://gitlab.inria.fr/why3/why3.git#41d0c60df"
   matrix:
     - TAG=4.07
-    # - TAG=4.06
-    # - TAG=4.05
+    - TAG=4.06
+    - TAG=4.05
 
 script:
   - docker build
