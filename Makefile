@@ -6,12 +6,12 @@ replay-concrete-proofs=$(patsubst %, replay-concrete-proof-%, auxiliaries semant
   extract-why3 clean-why3 \
   replay-proofs $(replay-concrete-proofs)
 
-# Do everything for continuous integration
-ci: build doc test replay-proofs install uninstall clean
-
 build: extract-why3
 	dune build @install
 	ln -sf _build/install/default/bin .
+
+# Do everything for continuous integration
+ci: build doc test replay-proofs install uninstall clean
 
 clean: clean-why3
 	dune clean
