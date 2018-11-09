@@ -18,13 +18,11 @@ authors: [
 maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 
 depends: [
+  "camlzip"   {build | with-test}
   "morsmall"
-  "zarith"
-
-  "ocaml"  {build & >= "4.05"}
-  "why3"   {build & with-test}
-
-  "odoc"   {with-doc}
-
+  "ocaml"     {build & >= "4.05"}
+  "odoc"      {with-doc}
   "ppx_protocol_conv_yaml"  {with-test}
+  "zarith"
+  "why3"      {build | with-test}
 ]
