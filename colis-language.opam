@@ -15,14 +15,27 @@ authors: [
   "Benedikt Becker <benedikt.becker@inria.fr"
   "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 ]
+
 maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 
+pin-depends: [
+  [ "morsmall.dev" "https://github.com/colis-anr/morsmall.git" ]
+  [ "why3.dev"     "https://gitlab.inria.fr/why3/why3.git#41d0c60df" ]
+]
+
+depexts: [
+  # For the installation of the automatic provers, see Dockerfile
+  ["wget" "autoconf" "automake"] { os-distribution = "ubuntu"
+                                 | os-distribution = "debian"
+                                 | os-distribution = "archlinux"}
+]
+
 depends: [
-  "camlzip"   {build | with-test}
-  "morsmall"
-  "ocaml"     {build & >= "4.05"}
-  "odoc"      {with-doc}
-  "ppx_protocol_conv_yaml"  {with-test}
   "zarith"
-  "why3"      {build | with-test}
+  "ocaml"                  {build & >= "4.05"}
+  "camlzip"                {build | with-test}
+  "morsmall"               {= "dev"}
+  "why3"                   {= "dev" & (build | with-test)}
+  "ppx_protocol_conv_yaml" {with-test}
+  "odoc"                   {with-doc}
 ]

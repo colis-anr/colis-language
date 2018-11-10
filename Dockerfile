@@ -7,21 +7,33 @@ FROM $IMAGE
 
 MAINTAINER Nicolas Jeannerod
 
+ENV OPAMFILE=colis-language.opam
 ARG SWITCH=
-ARG MORSMALLPIN=
-ARG WHY3PIN=
 
 RUN [ -z "$SWITCH" ] || opam switch create "$SWITCH"
 
 ## ============================ [ Dependencies ] ============================ ##
 
-RUN sudo apt-get update && sudo apt-get install -y wget autoconf automake
+RUN sudo apt-get update && sudo apt-get install -yy -qq wget autoconf automake
 
-RUN [ -n "$MORSMALLPIN" ] && opam pin -n "$MORSMALLPIN"
-RUN [ -n "$WHY3PIN" ] && opam pin -n "$WHY3PIN"
+WORKDIR /home/opam/colis-language
+COPY . .
+RUN sudo chown -R opam .
 
-COPY *.opam .
-RUN opam depext -i $(opam show . -f depends: | cut -d '"' -f 2)
+# The following and the `apt-get install` above could be accomplished by something like
+# `opam install --only-deps` if it was supported...
+
+# Extract pin-depends from opam file and pin them
+RUN opam show . -f pin-depends: 2>/dev/null \
+  | grep -A 50000 '^$' \
+  | tr -s '[]"' ' ' \
+  | xargs -n2 opam pin -n
+
+# Extract dependencies from opam file and install their dependencies
+RUN opam show . -f depends: \
+  | grep -A 50000 '^$' \
+  | cut -d '"' -f 2 \
+  | xargs opam depext --install
 
 ## ========================= [ Solvers for Why3 ] =========================== ##
 
@@ -71,6 +83,4 @@ RUN eval $(opam env) \
 
 WORKDIR /home/opam/colis-language
 
-COPY . .
-RUN sudo chown -R opam .
 RUN eval $(opam env) && make ci

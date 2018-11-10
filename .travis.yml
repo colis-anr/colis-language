@@ -7,19 +7,13 @@ services:
 ## are in fact tags for the ocaml/opam2 Docker image that we pull.
 
 env:
-  global:
-    - "MORSMALLPIN=git+https://github.com/colis-anr/morsmall"
-    - "WHY3PIN=https://gitlab.inria.fr/why3/why3.git#41d0c60df"
-  matrix:
-    - TAG=4.07
-    - TAG=4.06
-    - TAG=4.05
+  - TAG=4.07
+  - TAG=4.06
+  - TAG=4.05
 
 script:
   - docker build
       --build-arg "TAG=$TAG"
       --build-arg "SWITCH=$SWITCH"
-      --build-arg "WHY3PIN=$WHY3PIN"
-      --build-arg "MORSMALLPIN=$MORSMALLPIN"
       --tag colisanr/colis-language:$TRAVIS_BRANCH
       .
