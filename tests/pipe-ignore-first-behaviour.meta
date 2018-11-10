@@ -1,0 +1,10 @@
+input:
+  stdin: ""
+  arguments: []
+
+output:
+  stdout: |
+    OK
+
+  stderr: ""
+  return_code: 0

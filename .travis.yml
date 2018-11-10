@@ -7,12 +7,13 @@ services:
 ## are in fact tags for the ocaml/opam2 Docker image that we pull.
 
 env:
-  - TAG=4.05
-  - TAG=4.06
   - TAG=4.07
-
-## Two steps: we first build the Dockerfile. If it succeeds, we try
-## running tests, installing and uninstalling in the Dockerfile.
+  - TAG=4.06
+  - TAG=4.05
 
 script:
-  - docker build --build-arg tag=$TAG --build-arg switch=$SWITCH --tag colisanr/colis-language:$TRAVIS_BRANCH .
+  - docker build
+      --build-arg "TAG=$TAG"
+      --build-arg "SWITCH=$SWITCH"
+      --tag colisanr/colis-language:$TRAVIS_BRANCH
+      .

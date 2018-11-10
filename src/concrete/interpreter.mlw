@@ -7,55 +7,71 @@ module Interpreter
 
   use list.List
   use list.Append
+  use list.Length
+  use list.Nth
   use ref.Ref
   use option.Option
   use bool.Bool
-  use array.Array
   use map.MapExt
+  use int.Int
 
   use mystring.String
   use syntax.Syntax
   use semantics.Filesystem
   use semantics.Buffers
   use semantics.Behaviour
-  use semantics.Environment
+  use semantics.Env
   use semantics.Context as C
   use semantics.Semantics
+  use auxiliaries.TakeDrop
 
   (** {3 A purely imparative state} *)
 
   (* We use refs instead of mutable fields to be able to reuse `stdin` (and `stdout`) but
      shadow `senv`. *)
   type state = {
+    (* Semantics.state *)
     filesystem : ref filesystem;
+    stdin : ref stdin;
+    stdout : ref stdout;
+    (* Semantics.context *)
     var_env : ref C.var_env;
     func_env : C.func_env;
     arguments: ref (list string);
-    stdin : ref stdin;
-    stdout : ref stdout;
     result : ref bool;
   }
 
   let empty_state () = {
-    filesystem = ref empty_filesystem;
-    var_env = ref (empty_env String.empty);
-    func_env = empty_env None;
+    filesystem = ref Filesystem.empty;
+    var_env = ref C.empty_var_env;
+    func_env = C.empty_func_env;
     arguments = ref Nil;
-    stdin = ref empty_stdin;
-    stdout = ref empty_stdout;
+    stdin = ref Stdin.empty;
+    stdout = ref Stdout.empty;
     result = ref True;
   }
 
   (** {4 Conversion to `semantics.Context`} *)
 
-  function context (sta:state) : C.context = {
-    C.arguments = !(sta.arguments);
+  let function context (sta:state)
+    ensures {
+      result.C.var_env = !(sta.var_env) /\
+      result.C.func_env = sta.func_env /\
+      result.C.arguments = !(sta.arguments) /\
+      result.C.result = !(sta.result)
+    }
+  = {
     C.var_env = !(sta.var_env);
     C.func_env = sta.func_env;
+    C.arguments = !(sta.arguments);
+    C.result = !(sta.result);
   }
 
   lemma context_same: forall sta1 sta2.
+    !(sta1.arguments) = !(sta2.arguments) ->
+    !(sta1.result) = !(sta2.result) ->
     !(sta1.var_env) == !(sta2.var_env) ->
+    sta1.func_env == sta2.func_env ->
     context sta1 = context sta2
 
   let function state (sta:state) : C.state = {
@@ -63,6 +79,12 @@ module Interpreter
     C.stdin = !(sta.stdin);
     C.stdout = !(sta.stdout)
   }
+
+  lemma state_same: forall sta1 sta2.
+    !(sta1.filesystem) = !(sta2.filesystem) ->
+    !(sta1.stdin) = !(sta2.stdin) ->
+    !(sta1.stdout) = !(sta2.stdout) ->
+    state sta1 = state sta2
 
   (** {3 The input type} *)
 
@@ -76,16 +98,15 @@ module Interpreter
     under_condition = False;
   }
 
-  let function input (inp:input) (sta:state) : C.input = {
+  let function input (inp:input) : C.input = {
     C.argument0 = inp.argument0;
     C.under_condition = inp.under_condition;
-    C.previous_result = !(sta.result);
   }
 
-  lemma input_same : forall inp inp' sta sta'.
+  lemma input_same : forall inp inp'.
+    inp.argument0 = inp'.argument0 ->
     inp.under_condition = inp'.under_condition ->
-    !(sta.result) = !(sta'.result) ->
-    input inp sta = input inp' sta'
+    input inp = input inp 
 
   (** {3 The exit exception} *)
 
@@ -94,65 +115,79 @@ module Interpreter
 
   let maybe_exit (inp:input) (sta:state) : unit
     returns { () ->
-      inject_behaviour (input inp sta) !(sta.result) = BNormal !(sta.result)
+      behaviour' (input inp) (context sta) = BNormal
     }
     raises { EExit ->
-      inject_behaviour (input inp sta) !(sta.result) = BExit !(sta.result)
+      behaviour' (input inp) (context sta) = BExit
     }
   = if andb (strict inp.under_condition) (notb !(sta.result)) then
       raise EExit
 
   (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
-  let interp_utility inp sta name args raises { EExit -> true }
-  = let sta', b = Semantics.interp_utility (state sta) name args in
+  let interp_utility inp sta id args
+    returns { () -> 
+      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      behaviour' (input inp) (context sta) = BNormal
+    }
+    raises { EExit -> 
+      Semantics.interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      behaviour' (input inp) (context sta) = BExit
+    }
+  = let sta', b = Semantics.interp_utility (state sta) id args in
     sta.filesystem := sta'.C.filesystem;
     sta.stdin := sta'.C.stdin;
     sta.stdout := sta'.C.stdout;
     sta.result := b;
     maybe_exit inp sta
 
+  use semantics.Arguments
+
   let shift_arguments sta n
+    requires { n >= 0 }
     ensures {
       !(sta.result) = True ->
-      shift_arguments !((old sta).arguments) n = Some !(sta.arguments)
+      Some !(sta.arguments) = shift_arguments n !(old sta.arguments)
     }
     ensures {
       !(sta.result) = False ->
-      shift_arguments !((old sta).arguments) n = None /\
-      !(sta.arguments) = !((old sta).arguments)
+      None = shift_arguments n !(old sta.arguments) /\
+      !(sta.arguments) = !(old sta.arguments)
     }
   = try
-      let new_args = ref !(sta.arguments) in
+      let args = ref !(sta.arguments) in
       for i = 1 to n do
-        match !new_args with
+        invariant { length !(sta.arguments) >= i-1  }
+        invariant { shift_arguments (i-1) !(sta.arguments) = Some !args }
+        match !args with
         | Cons _ args' ->
-          new_args := args'
+          args := args'
         | Nil ->
+          assert { shift_arguments i !(sta.arguments) = None };
           raise EExit
         end
       done;
-      sta.arguments := !new_args;
+      sta.arguments := !args;
       sta.result := True
     with EExit ->
       sta.result := False
     end
-  
+
   (** {3 The interpretation of statements} *)
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
     returns { () ->
-      eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
-        ins (state sta) (context sta) (BNormal !(sta.result))
+      eval_instruction (input inp, context (old sta), state (old sta))
+        ins (state sta, context sta, BNormal)
     }
     raises { EReturn ->
-      eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
-        ins (state sta) (context sta) (BReturn !(sta.result))
+      eval_instruction (input inp, context (old sta), state (old sta))
+        ins (state sta, context sta, BReturn)
     }
     raises { EExit ->
-      eval_instruction (input inp (old sta)) (context (old sta)) (state (old sta))
-        ins (state sta) (context sta) (BExit !(sta.result))
+      eval_instruction (input inp, context (old sta), state (old sta))
+        ins (state sta, context sta, BExit)
     }
   = label L in match ins with
 
@@ -175,13 +210,15 @@ module Interpreter
       raise EReturn
 
     | IShift bn ->
-      shift_arguments sta (option_get 1 bn);
+      let n = (option_get (mk_nat 1) bn).nat in
+      shift_arguments sta n;
       maybe_exit inp sta
+      (* case !(sta.result); apply eval_shift with (contents (arguments sta)) *)
 
     | IAssignment id se ->
-      let str, bo = interp_str_expr inp sta se in
+      let str, b = interp_str_expr True inp sta se in
       sta.var_env := !(sta.var_env)[id <- str];
-      sta.result := option_get True bo;
+      sta.result := b;
       maybe_exit inp sta
 
     | ISequence ins1 ins2 ->
@@ -189,8 +226,11 @@ module Interpreter
       interp_instruction inp sta ins2
 
     | ISubshell ins ->
-      (* Don't change `sta.senv` in the subshell *)
-      let sta' = {sta with var_env = ref !(sta.var_env) } in
+      let sta' = {
+        sta with
+        var_env = ref !(sta.var_env);
+        arguments = ref !(sta.arguments);
+      } in
       try
         interp_instruction inp sta' ins
       with
@@ -201,7 +241,7 @@ module Interpreter
 
     | INot ins ->
       try
-        interp_instruction {inp with under_condition=True} sta ins;
+        interp_instruction { inp with under_condition=True } sta ins;
       with
         | EReturn ->
           sta.result := notb !(sta.result);
@@ -217,29 +257,34 @@ module Interpreter
         interp_instruction inp sta ins3
 
     | INoOutput ins ->
-      (* Don’t write to `sta.stdout` *)
-      let sta' = {sta with stdout = ref empty_stdout} in
+      let sta' = {sta with stdout = ref !(sta.stdout)} in
       interp_instruction inp sta' ins
 
     | IPipe ins1 ins2 ->
-      let sta' = {
-        sta with
+      (* A state for interpreting ins1 *)
+      let sta1 = {
+        sta with (* func_env, filesystem, stdin *)
+        (* Fresh stdout *)
+        stdout = ref Stdout.empty;
+        (* Don't modify fields in sta that correspond to Semantics.context *)
         var_env = ref !(sta.var_env);
-        stdout = ref empty_stdout
+        arguments = ref !(sta.arguments);
+        result = ref !(sta.result);
       } in
       try
-        interp_instruction inp sta' ins1
+        interp_instruction inp sta1 ins1;
       with
         | EExit _ -> ()
         | EReturn _ -> ()
       end;
-      let sta'' = {
-        sta' with
+      let sta2 = {
+        sta with (* func_env, filesystem, stdout *)
+        stdin = ref (Stdout.to_stdin !(sta1.stdout));
+        (* Reconstruct and don't modify fields in sta that correspond to Semantics.context *)
         var_env = ref !(sta.var_env);
-        stdout = sta.stdout;
-        stdin = ref (stdout_to_stdin !(sta'.stdout))
+        arguments = ref !(sta.arguments);
       } in
-      interp_instruction inp sta'' ins2
+      interp_instruction inp sta2 ins2
 
     | ICallUtility name le ->
       let args = interp_list_expr inp sta le in
@@ -248,15 +293,9 @@ module Interpreter
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in
       match sta.func_env id with
-      | None ->
-        sta.result := False;
-        maybe_exit inp sta
       | Some ins ->
         try
-          let inp' = {
-            inp with
-            argument0 = identifier_to_string id
-          } in
+          let inp' = { inp with argument0 = identifier_to_string id } in
           let sta' = {
             sta with
             arguments = ref args;
@@ -266,83 +305,122 @@ module Interpreter
         with
           EReturn -> ()
         end
+      | None ->
+        sta.result := False;
+        maybe_exit inp sta
       end
 
     | IForeach id le ins ->
       let ss = interp_list_expr inp sta le in
-      let last_result = ref True in
-      let rec foreach ss =
-        match ss with
-        | Nil -> ()
-        | Cons s ss' ->
+      let last_result = ref True in (* See NOTES[Previous in for-loop] *)
+      let ghost sta0 = state sta in
+      let ghost ctx0 = context sta in
+      for i = 0 to length ss - 1 do
+        invariant {
+          eval_foreach True
+            (input inp, ctx0, sta0)
+            id (take i ss) ins
+            (state sta, context sta, BNormal)
+            !last_result
+        }
+        invariant { forall sta1, ctx1, bhv1, b1.
+          eval_foreach !last_result
+            (input inp, context sta, state sta)
+            id (drop i ss) ins
+            (sta1, ctx1, bhv1) b1 ->
+          eval_foreach True
+            (input inp, ctx0, sta0)
+            id ss ins
+            (sta1, ctx1, bhv1) b1
+        }
+        match nth i ss with
+        | Some s ->
           sta.var_env := !(sta.var_env)[id <- s];
           interp_instruction inp sta ins;
           last_result := !(sta.result);
-          foreach ss'
+        | None ->
+          absurd
         end
-      in foreach ss;
-      sta.result := !last_result (* See NOTES[Previous in for-loop] for p=True *)
+      done;
+      sta.result := !last_result
 
     | IWhile ins1 ins2 ->
       let last_result = ref True in
+      let ghost sta0 = state sta in
+      let ghost ctx0 = context sta in
       while (
         interp_instruction {inp with under_condition=True} sta ins1;
         !(sta.result)
       ) do
+        invariant { forall sta1 ctx1 bhv1 b1.
+          eval_while !last_result
+            (input inp, context sta, state sta)
+            ins1 ins2
+            (sta1, ctx1, bhv1) b1 ->
+          eval_while True
+            (input inp, ctx0, sta0)
+            ins1 ins2
+            (sta1, ctx1, bhv1) b1
+        }
         interp_instruction inp sta ins2;
         last_result := !(sta.result);
       done;
       sta.result := !last_result
     end
 
-  with interp_str_expr (inp:input) (sta:state) (se:string_expression) : (string, option bool)
+  with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (string, bool)
     diverges
     ensures { context sta = context (old sta) }
-    returns { s, bo ->
-      eval_str_expr (input inp (old sta)) (context (old sta)) (state (old sta))
-        se (state sta) s bo
+    returns { s, b' ->
+      eval_str_expr b (input inp, context (old sta), state (old sta))
+        se (state sta, s, b')
     }
   = match se with
 
     | SLiteral s ->
-      s, None
+      s, b
 
     | SVariable id ->
-      !(sta.var_env) id, None  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
+      !(sta.var_env) id, b  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
 
     | SArgument n ->
-      nth_argument (Cons inp.argument0 !(sta.arguments)) n, None
+      nth_argument (Cons inp.argument0 !(sta.arguments)) n.nat, b
 
     | SSubshell ins ->
-      let sta' = {sta with stdout = ref empty_stdout; result = ref !(sta.result); var_env = ref !(sta.var_env)} in
+      let sta' = {
+        sta with (* filesystem; stdin; func_env *)
+        stdout = ref Stdout.empty;
+        result = ref !(sta.result);
+        var_env = ref !(sta.var_env);
+        arguments = ref !(sta.arguments);
+      } in
       try
         interp_instruction inp sta' ins
       with
         | EExit -> ()
         | EReturn -> ()
       end;
-      stdout_to_string !(sta'.stdout), Some !(sta'.result)
+      Stdout.to_string !(sta'.stdout), !(sta'.result)
 
     | SConcat se1 se2 ->
-      label L1 in let s1, bo1 = interp_str_expr inp sta se1 in
-      assert { eval_str_expr (input inp (sta at L1)) (context (sta at L1)) (state (sta at L1)) se1 (state sta) s1 bo1 };
-      label L2 in let s2, bo2 = interp_str_expr inp sta se2 in
-      assert { eval_str_expr (input inp (sta at L1)) (context (sta at L2)) (state (sta at L2)) se2 (state sta) s2 bo2 };
-      let bo3 = bool_opt_compose bo1 bo2 in
-      s1^s2, bo3
+      label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
+      assert { eval_str_expr b (input inp, context sta, state sta at L1) se1 (state sta, s1, b1) };
+      label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
+      assert { eval_str_expr b1 (input inp, context sta, state sta at L2) se2 (state sta, s2, b2) };
+      s1^s2, b2
     end
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
     diverges
     ensures { context sta = context (old sta) }
     returns { ss ->
-      eval_list_expr (input inp (old sta)) (context (old sta)) (state (old sta))
-        le (state sta) ss
+      eval_list_expr (input inp, context (old sta), state (old sta))
+        le (state sta, ss)
     }
   = match le with
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
-      let s, _ = interp_str_expr inp sta se in
+      let s, _ = interp_str_expr True inp sta se in
       let l1 = match sp with Split -> String.split_on_default_ifs s | DontSplit -> Cons s Nil end in
       let l2 = interp_list_expr inp sta le_rest in
       l1 ++ l2
@@ -353,12 +431,13 @@ module Interpreter
   let interp_program inp sta pro
     diverges
     returns { () ->
-      eval_program (input inp (old sta)) (context (old sta)) (state (old sta))
-        pro (state sta) (context sta) !(sta.result)
+      eval_program (input inp, context (old sta), state (old sta))
+        pro (state sta, !(sta.result))
     }
   = try
-      let rec aux e defs variant { defs } =
-        match defs with
+      let rec aux (e:Context.func_env) defs
+        ensures { eval_function_definitions e defs result }
+      = match defs with
         | Nil -> e
         | Cons (id, instr) defs' ->
           aux e[id <- Some instr]  defs'

@@ -38,7 +38,12 @@ exception Unsupported of string (*FIXME: position*)
 
 module E = struct
   module SSet = Set.Make(String)
-  module SMap = Map.Make(String)
+  module SMap = struct
+    include Map.Make(String)
+
+    let to_list m =
+      fold (fun k v l -> (k, v) :: l) m []
+  end
 
   (* Define constants coming from Shell or hypothesis we make on input
      Shell scripts. *)
@@ -85,7 +90,7 @@ module E = struct
     SMap.mem n e.functions
 
   let get_functions e =
-    e.functions |> SMap.to_seq |> List.of_seq
+    e.functions |> SMap.to_list
 
   let with_deeper e f =
     let (e', x) = f { e with at_toplevel = false } in

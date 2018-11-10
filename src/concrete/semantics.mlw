@@ -1,10 +1,14 @@
 
+(** {2 (Dummy) filesystem} *)
+
 module Filesystem
   type filesystem
-  val constant empty_filesystem: filesystem
+  val constant empty: filesystem
 end
 
-module Environment
+(** {2 Environment (mapping from identifiers)} *)
+
+module Env
   use map.Map
   use syntax.Identifier
   use mystring.String
@@ -23,6 +27,8 @@ module Environment
       else e id'
 end
 
+(** {2 Behaviour of a CoLiS instruction} *)
+
 module Behaviour
 
   use option.Option
@@ -33,31 +39,23 @@ module Behaviour
   let function strict under_condition =
     notb under_condition
 
-  type behaviour =
-    | BNormal bool
-    | BExit bool
-    | BReturn bool
+  type behaviour = BNormal | BExit | BReturn
 
-  let function bool_of_behaviour (bhv:behaviour) : bool =
-    match bhv with
-    | BNormal b
-    | BReturn b 
-    | BExit b -> b
-    end
-
-  let function map_behaviour (f: bool -> bool) (bhv: behaviour) : behaviour =
-    match bhv with
-    | BNormal b -> BNormal (f b)
-    | BReturn b -> BReturn (f b)
-    | BExit b -> BExit (f b)
-    end
-
-  let function bool_opt_compose (bo1 bo2: option bool) : option bool =
-    match bo2 with
-    | Some _ -> bo2
-    | None -> bo1
-    end
+  let function behaviour under_condition res
+    returns {
+      | BNormal ->
+        under_condition = True \/ res = True
+      | BExit ->
+        under_condition = False /\ res = False
+      | BReturn ->
+        false
+    }
+  = if andb (strict under_condition) (notb res)
+    then BExit
+    else BNormal
 end
+
+(** {2 Stdin and stdout buffers} *)
 
 module Buffers
   use list.List
@@ -67,82 +65,131 @@ module Buffers
 
   (* stdin and stdout are comprised of a list of lines, cf. NOTES[Stdin/stdout] *)
 
-  (* The list contains the lines of the stdin, to be read in-order *)
-  type stdin = list string
+  scope Stdin
+    (* The list contains the lines of the stdin, to be read in-order *)
+    type t = list string
 
-  let constant empty_stdin : stdin = Nil
+    let constant empty : t = Nil
 
-  let function stdin_is_empty stdin =
-    match stdin with Nil -> True | _ -> False end
-
-  (* The list contains the lines of the stdout, with the most recent first *)
-  type stdout = { lines: list string }
-    invariant { lines <> Nil }
-    by { lines = Cons String.empty Nil }
-
-  let function stdout_is_empty stdout =
-    match stdout with Nil -> True | _ -> False end
-
-  let constant empty_stdout =
-    { lines = Cons String.empty Nil }
-
-  (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
-  let function stdout_to_stdin stdout =
-    reverse stdout.lines
-
-  let output (str:string) (out:stdout) =
-    match out.lines with
-      | Cons l ls ->
-        {lines = Cons (l^str) ls}
-    end
-
-  let newline out =
-    { lines = Cons String.empty out.lines }
-
-  (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
-  let function stdout_to_string (out: stdout) : string =
-    let rec remove_trailing_newlines lines variant { lines } =
-      match lines with
-      | Nil -> Nil
-      | Cons l lines' ->
-        if String.(equal l empty)
-        then remove_trailing_newlines lines'
-        else lines
+    let function is_empty stdin =
+      match stdin with
+      | Nil -> True
+      | _ -> False
       end
-    in
-    concat_lines (reverse (remove_trailing_newlines out.lines))
+  end
 
-  (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
+  type stdin = Stdin.t
 
-     concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
+  scope Stdout
 
-     and when final lines are not closed (using `echo -n S3`):
+    (** The current line and the previous lines, with the most recent line first.
 
-     concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
+        Keeping the current line and the previous lines explicitely separated (instead of
+        a single list with is non-empty by invariant) simplifies stating the below lemmas
+     *)
+    type t = {line: string; lines: list string}
 
-     Ah, here the complexity for specifying `read` that we avoided by using `list string`
-     re-emerges!
-   *)
-  let function concat_stdout (sout1 sout2:stdout) : stdout =
-    let rec function aux l1 l2
-      requires { l1 <> Nil }
-      requires { l2 <> Nil }
-      variant { l2 }
-    = match l2 with
-      | Cons s2 Nil ->
-        match l1 with
-        | Cons s1 l1_rest ->
-          Cons (s1 ^ s2) l1_rest
-        | Nil -> absurd
+    let function all_lines out =
+      Cons out.line out.lines
+
+    let constant empty =
+      { line = String.empty; lines = Nil }
+
+    (** Pipe stdout to stdin (last line is lost: NOTES[Stdin/stdout] *)
+    let function to_stdin out =
+      reverse (all_lines out)
+
+    let output str out =
+      { out with line = out.line^str }
+
+    let newline out =
+      { line = String.empty; lines = Cons out.line out.lines }
+
+    (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
+    let function to_string out : string =
+      let rec remove_trailing_newlines lines variant { lines } =
+        match lines with
+        | Nil -> Nil
+        | Cons l lines' ->
+          if String.(equal l empty)
+          then remove_trailing_newlines lines'
+          else lines
         end
-      | Cons s2 l2_rest ->
-        Cons s2 (aux l1 l2_rest)
-      | Nil -> absurd
-      end
-    in {lines = aux sout1.lines sout2.lines}
+      in
+      concat_lines (reverse (remove_trailing_newlines out.lines))
 
-  let function diff (out1 out2:stdout) =
-    empty_stdout (* FIXME *)
+    (* Concatenate two stdouts (see NOTES[Stdin/stdout]).
+
+         concat_stdout [""; "S2"; "S1"] [""; "S3"] -> concat_stdout [""; "S3; "S2"; "S1"]
+
+       and when final lines are not closed (using `echo -n S3`):
+
+         concat_stdout ["S3"; "S2"; "S1"] ["S5"; "S4"] -> concat_stdout ["S5"; "S3S4; "S2"; "S1"]
+
+       Ah, here the complexity for specifying `read` that we avoided by using `list string`
+       re-emerges!
+    *)
+    let rec function concat out1 out2
+      variant { out2.lines }
+      (* ensures { concat_rel out1 out2 result } *)
+    = match out2.lines with
+      | Nil -> {line=out1.line^out2.line; lines= out1.lines}
+      | Cons line2 lines2 ->
+        let out3 = concat out1 {line=line2; lines=lines2} in
+        {line=out2.line; lines=all_lines out3}
+      end
+
+    let rec lemma concat_empty_left (out:t)
+      variant { out.lines }
+      ensures {
+        concat empty out = out
+      }
+    = match out.lines with
+      | Nil -> ()
+      | Cons l ls -> concat_empty_left {line=l; lines=ls}
+      end
+
+
+    let rec lemma concat_empty_right (out:t)
+      variant { out.lines }
+      ensures {
+        concat out empty = out
+      }
+    = match out.lines with
+      | Nil -> ()
+      | Cons l ls -> concat_empty_right {line=l; lines=ls}
+      end
+
+    let rec lemma concat_aux (out2:t)
+      variant { out2.lines }
+      ensures { forall out1 line3.
+        let out12 = concat out1 out2 in
+        concat out1 { line = out2.line^line3; lines = out2.lines }  = 
+          { line = out12.line^line3; lines = out12.lines }
+      }
+    = match out2.lines with
+      | Nil -> ()
+      | Cons line2 lines2 -> concat_aux { line = line2; lines = lines2 }
+      end
+
+    let rec lemma concat_assoc out3
+      variant { out3.lines }
+      ensures { forall out1 out2.
+        concat out1 (concat out2 out3) =
+          concat (concat out1 out2) out3
+      }
+    = match out3.lines with
+      | Nil ->
+        assert { forall out2.
+          concat out2 out3 =
+            { line = out2.line^out3.line; lines = out2.lines }
+        }
+      | Cons line3 lines3 ->
+        concat_assoc {line = line3; lines = lines3}
+      end
+  end
+
+  type stdout = Stdout.t
 end
 
 (** {2 Contexts for the evaluation}
@@ -166,19 +213,17 @@ module Context
   use Filesystem
   use Behaviour
   use Buffers
-  use Environment
+  use Env
 
   (** {3 Read-only context for the evaluation of a term} *)
 
   type input = {
-    argument0: string;     (* $0 *)
     under_condition: bool; (* evaluation under condition - implying unstrict mode *)
-    previous_result: bool; (* result of last command, i.e. `$?`, default `True` *)
+    argument0: string;     (* $0 *)
   }
 
   let constant empty_input = {
     argument0 = String.empty;
-    previous_result = True;
     under_condition = False;
   }
 
@@ -192,10 +237,16 @@ module Context
     stdout: stdout;
   }
 
+  let function mk_state fs in_ out
+    ensures { result.filesystem = fs }
+    ensures { result.stdin = in_ }
+    ensures { result.stdout = out }
+  = { filesystem = fs; stdin = in_; stdout = out }
+
   let constant empty_state = {
-    filesystem = empty_filesystem;
-    stdin = empty_stdin;
-    stdout = empty_stdout;
+    filesystem = Filesystem.empty;
+    stdin = Stdin.empty;
+    stdout = Stdout.empty;
   }
 
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
@@ -207,39 +258,38 @@ module Context
   (* A variable environment *)
   type var_env = env string
 
+  let constant empty_var_env : var_env =
+    fun _ -> String.empty
+
   (** A function environment *)
   type func_env = env (option instruction)
 
+  let constant empty_func_env : func_env =
+    fun _ -> None
+
   type context = {
-    arguments: list string;
     var_env: var_env;
     func_env: func_env;
+    arguments: list string;
+    result: bool; (* previous result ($?) for input state, current result for output state *)
   }
 
   let constant empty_context = {
-    arguments = Nil;
     var_env = empty_env String.empty; 
     func_env = empty_env None;
+    arguments = Nil;
+    result = True;
   }
 end
 
-(** {2 Semantics of the CoLiS language} *)
+(** {2 Argument lists} *)
 
-module Semantics
-
+module Arguments
   use list.List
-  use list.Append
-  use option.Option
-  use map.Map
-  use bool.Bool
+  use list.Length
   use int.Int
-
+  use option.Option
   use mystring.String
-  use syntax.Syntax
-
-  use Behaviour
-  use Context
-  use Buffers
 
   let rec function nth_argument (args: list string) (n: int) : string
     requires { n >= 0 }
@@ -252,37 +302,90 @@ module Semantics
     | Nil -> String.empty
     end
 
-  let rec function shift_arguments (args: list string) (n: int) : option (list string)
+  let rec function shift_arguments (n: int) (args: list string) : option (list string)
     requires { n >= 0 }
     variant { args }
+    ensures { result = None <-> n > length args }
   = if n = 0 then
       Some args
     else
       match args with
       | Nil -> None
-      | Cons _ args' -> shift_arguments args' (n-1)
+      | Cons _ args' -> shift_arguments (n-1) args'
       end
 
-  let function bool_of_return_code (c:return_code) (previous_result:bool) : bool =
+  lemma shift_arguments_0 : forall args.
+    shift_arguments 0 args = Some args
+
+  lemma shift_arguments_cons_some : forall args [@induction] arg args' n.
+    n - 1 >= 0 ->
+    shift_arguments (n-1) args = Some (Cons arg args') ->
+    shift_arguments n args = Some args'
+
+  lemma shift_arguments_cons_none : forall args [@induction] n.
+    n - 1 >= 0 ->
+    shift_arguments (n-1) args = Some Nil ->
+    shift_arguments n args = None
+end
+
+(** {2 Semantics of the CoLiS language} *)
+
+module Semantics
+
+  use list.List
+  use list.Append
+  use list.Length
+  use option.Option
+  use map.Map
+  use bool.Bool
+  use int.Int
+
+  use mystring.String
+  use syntax.Syntax
+
+  use Behaviour
+  use Context
+  use Buffers
+  use Arguments
+
+  let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with
     | RSuccess -> True
     | RFailure -> False
-    | RPrevious -> previous_result
+    | RPrevious -> previous
     end
 
-  let function inject_behaviour (inp:input) (ret:bool) : behaviour =
-    if andb (strict inp.under_condition) (notb ret)
-    then BExit False
-    else BNormal ret
+  let function behaviour' (inp:input) (ctx:context) : behaviour
+    returns {
+      | BNormal ->
+        inp.under_condition = True \/ ctx.result = True
+      | BExit ->
+        inp.under_condition = False /\ ctx.result = False
+      | BReturn ->
+        false
+    }
+  = behaviour inp.under_condition ctx.result
 
-  let function opt_inject_behaviour (inp:input) (ret_opt:option bool) : behaviour =
-    match ret_opt with
-    | Some ret -> inject_behaviour inp ret
-    | None -> BNormal True
-    end
+  let function with_result ret ctx =
+    ensures { result.result = ret }
+    ensures { result.var_env = ctx.var_env }
+    ensures { result.func_env = ctx.func_env }
+    ensures { result.arguments = ctx.arguments }
+    { ctx with result = ret }
+
+  (* let function opt_inject_behaviour (inp:input) (ret_opt:option bool) : behaviour = *)
+  (*   match ret_opt with *)
+  (*   | Some ret -> behaviour inp ret *)
+  (*   | None -> BNormal *)
+  (*   end *)
 
   let function option_get default opt =
-    match opt with Some x -> x | None -> default end
+    match opt with
+    | Some x -> x
+    | None -> default
+    end
+
+  (** {3 Specification of the semantics} *)
 
   (** Interprete a command defined in the document *Specification of UNIX Commands*.
 
@@ -291,6 +394,9 @@ module Semantics
   val function interp_utility state identifier (list string) :
     (state, bool)
 
+  axiom interp_utility_extends_output : forall sta sta' name args b.
+    interp_utility {sta with stdout=Stdout.empty} name args = (sta', b) ->
+    interp_utility sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
   (** Evaluation of a instruction i with input I, context C and state S resulting in an
       state S', context C', and behaviour b:
@@ -298,166 +404,193 @@ module Semantics
       $(I, C, S) i \Downarrow (S', C', b)$
    *)
 
-  inductive eval_instruction input context state instruction state context behaviour =
+  inductive eval_instruction (input, context, state) instruction (state, context, behaviour) =
 
   | eval_exit: forall inp ctx sta c.
-    let b = bool_of_return_code c inp.previous_result in
-    let bhv = BExit b in
-    eval_instruction inp ctx sta (IExit c) sta ctx bhv
+    let b = bool_of_return_code c ctx.result in
+    let ctx' = with_result b ctx in
+    eval_instruction (inp, ctx, sta) (IExit c) (sta, ctx', BExit)
 
   | eval_return: forall inp ctx sta c.
-    let b = bool_of_return_code c inp.previous_result in
-    let bhv = BReturn b in
-    eval_instruction inp ctx sta (IReturn c) sta ctx bhv
+    let b = bool_of_return_code c ctx.result in
+    let ctx' = with_result b ctx in
+    eval_instruction (inp, ctx, sta) (IReturn c) (sta, ctx', BReturn)
 
   | eval_shift: forall inp ctx sta bn args.
-    Some args = shift_arguments ctx.arguments (option_get 1 bn) ->
-    let ctx' = { ctx with arguments = args } in
+    Some args = shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments ->
     let sta' = sta in
-    let bhv = BNormal True in
-    eval_instruction inp ctx sta (IShift bn) sta' ctx' bhv
+    let ctx' = with_result True { ctx with arguments = args } in
+    let bhv = behaviour' inp ctx' in
+    eval_instruction (inp, ctx, sta) (IShift bn) (sta', ctx', bhv)
 
   | eval_shift_failure: forall inp ctx sta bn.
-    None = shift_arguments ctx.arguments (option_get 1 bn) ->
-    let ctx' = ctx in
+    None = shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments ->
     let sta' = sta in
-    let bhv = inject_behaviour inp False in
-    eval_instruction inp ctx sta (IShift bn) sta' ctx' bhv
+    let ctx' = with_result False ctx in
+    let bhv = behaviour' inp ctx' in
+    eval_instruction (inp, ctx, sta) (IShift bn) (sta', ctx', bhv)
 
-  | eval_assign: forall inp ctx sta sta' id e s bo.
-    eval_str_expr inp ctx sta e sta' s bo ->
-    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
-    let bhv = inject_behaviour inp (option_get True bo) in
-    eval_instruction inp ctx sta (IAssignment id e) sta' ctx' bhv
+  | eval_assignment: forall inp ctx sta sta' id e s b.
+    eval_str_expr True (inp, ctx, sta) e (sta', s, b) ->
+    let ctx' = with_result b { ctx with var_env = ctx.var_env[id <- s] } in
+    let bhv = behaviour' inp ctx' in
+    eval_instruction (inp, ctx, sta) (IAssignment id e) (sta', ctx', bhv)
   
-  | eval_sequence_normal: forall inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 b1 bhv2.
-    eval_instruction inp ctx sta ins1 sta1 ctx1 (BNormal b1) ->
-    eval_instruction {inp with previous_result = b1} ctx1 sta1 ins2 sta2 ctx2 bhv2 ->
-    eval_instruction inp ctx sta (ISequence ins1 ins2) sta2 ctx2 bhv2
+  | eval_sequence_normal: forall inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 bhv2.
+    eval_instruction (inp, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    eval_instruction (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
+    eval_instruction (inp, ctx, sta) (ISequence ins1 ins2) (sta2, ctx2, bhv2)
   
   | eval_sequence_abort: forall inp sta sta1 ctx ctx1 ins1 ins2 bhv.
-    match bhv with BExit _ | BReturn _ -> true | BNormal _ -> false end ->
-    eval_instruction inp ctx sta ins1 sta1 ctx1 bhv ->
-    eval_instruction inp ctx sta (ISequence ins1 ins2) sta1 ctx1 bhv
+    match bhv with BExit | BReturn -> true | BNormal -> false end ->
+    eval_instruction (inp, ctx, sta) ins1 (sta1, ctx1, bhv) ->
+    eval_instruction (inp, ctx, sta) (ISequence ins1 ins2) (sta1, ctx1, bhv)
   
-  | eval_subshell: forall inp sta sta' ctx ctx' ins bhv.
-    eval_instruction inp ctx sta ins sta' ctx' bhv ->
-    let bhv' = inject_behaviour inp (bool_of_behaviour bhv) in
-    eval_instruction inp ctx sta (ISubshell ins) sta' ctx bhv'
+  | eval_subshell: forall inp sta sta' ctx ctx'' ins bhv b.
+    eval_instruction (inp, ctx, sta) ins (sta', {ctx'' with result = b}, bhv) -> (* bhv is ignored *)
+    let ctx' = with_result b ctx in
+    let bhv' = behaviour' inp ctx'' in
+    eval_instruction (inp, ctx, sta) (ISubshell ins) (sta', ctx', bhv')
 
   | eval_not: forall inp ctx ctx' sta sta' ins bhv.
-    match bhv with BNormal _ | BReturn _ -> true | BExit _ -> false end ->
-    eval_instruction {inp with under_condition = True} ctx sta ins sta' ctx' bhv ->
-    let bhv' = map_behaviour notb bhv in
-    eval_instruction inp ctx sta (INot ins) sta' ctx' bhv'
+    match bhv with BNormal | BReturn -> true | BExit -> false end ->
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins (sta', ctx', bhv) ->
+    let ctx'' = with_result (notb ctx'.result) ctx' in
+    eval_instruction (inp, ctx, sta) (INot ins) (sta', ctx'', bhv)
 
-  | eval_not_transmit: forall inp ctx ctx' sta sta' ins b.
-    let bhv = BExit b in
-    eval_instruction {inp with under_condition = True} ctx sta ins sta' ctx' bhv ->
-    eval_instruction inp ctx sta (INot ins) sta' ctx' bhv
+  | eval_not_transmit: forall inp ctx ctx' sta sta' ins.
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins (sta', ctx', BExit) ->
+    eval_instruction (inp, ctx, sta) (INot ins) (sta', ctx', BExit)
   
   | eval_if_true: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 ins3 bhv2.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
-    eval_instruction {inp with previous_result = True} ctx1 sta1 ins2 sta2 ctx2 bhv2 ->
-    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta2 ctx2 bhv2
+    ctx1.result = True ->
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    eval_instruction (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
+    eval_instruction (inp, ctx, sta) (IIf ins1 ins2 ins3) (sta2, ctx2, bhv2)
   
   | eval_if_false: forall inp ctx ctx1 ctx3 sta sta1 sta3 ins1 ins2 ins3 bhv3.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal False) ->
-    eval_instruction {inp with previous_result = False} ctx1 sta1 ins3 sta3 ctx3 bhv3 ->
-    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta3 ctx3 bhv3
+    ctx1.result = False ->
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    eval_instruction (inp, ctx1, sta1) ins3 (sta3, ctx3, bhv3) ->
+    eval_instruction (inp, ctx, sta) (IIf ins1 ins2 ins3) (sta3, ctx3, bhv3)
   
   | eval_if_transmit: forall inp ctx ctx1 sta sta1 ins1 ins2 ins3 bhv1.
-    match bhv1 with BExit _ | BReturn _ -> true | BNormal _ -> false end ->
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 bhv1 ->
-    eval_instruction inp ctx sta (IIf ins1 ins2 ins3) sta1 ctx1 bhv1
+    match bhv1 with BExit | BReturn -> true | BNormal -> false end ->
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+    eval_instruction (inp, ctx, sta) (IIf ins1 ins2 ins3) (sta1, ctx1, bhv1)
   
   | eval_nooutput: forall inp ctx ctx' sta sta' ins bhv.
-    eval_instruction inp ctx sta ins sta' ctx' bhv ->
+    eval_instruction (inp, ctx, sta) ins (sta', ctx', bhv) ->
     let sta'' = {sta' with stdout = sta.stdout} in
-    eval_instruction inp ctx sta (INoOutput ins) sta'' ctx' bhv
+    eval_instruction (inp, ctx, sta) (INoOutput ins) (sta'', ctx', bhv)
   
   (** See NOTES[Pipe semantics] *)
   | eval_pipe: forall inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv1 bhv2.
-    let sta' = {sta with stdout = empty_stdout} in
-    eval_instruction inp ctx sta' ins1 sta1 ctx1 bhv1 ->
-    let sta1' = {sta1 with stdout = sta.stdout; stdin = stdout_to_stdin sta1.stdout} in
-    eval_instruction inp ctx sta1' ins2 sta2 ctx2 bhv2 ->
-    (* TODO Really ignore context changes from ins1 and ins2 in the context? *)
-    eval_instruction inp ctx sta (IPipe ins1 ins2) sta2 ctx bhv2
+    let sta' = {sta with stdout = Stdout.empty} in
+    eval_instruction (inp, ctx, sta') ins1 (sta1, ctx1, bhv1) -> 
+    let sta1' = {sta1 with stdout = sta.stdout; stdin = Stdout.to_stdin sta1.stdout} in
+    eval_instruction (inp, ctx, sta1') ins2 (sta2, ctx2, bhv2) ->
+    let sta2' = { sta2 with stdin = sta1.stdin } in
+    let ctx' = with_result ctx2.result ctx in
+    eval_instruction (inp, ctx, sta) (IPipe ins1 ins2) (sta2', ctx', bhv2)
   
   | eval_call_utility: forall inp ctx sta sta' sta'', id:identifier, es ss b.
-    eval_list_expr inp ctx sta es sta' ss ->
+    eval_list_expr (inp, ctx, sta) es (sta', ss) ->
     (sta'', b) = interp_utility sta' id ss ->
-    let bhv = inject_behaviour inp b in
-    eval_instruction inp ctx sta (ICallUtility id es) sta'' ctx bhv
+    let ctx' = with_result b ctx in
+    let bhv = behaviour' inp ctx' in
+    eval_instruction (inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)
 
-  | eval_call_function: forall inp ctx ctx' sta sta' sta'' id es ss ins bhv.
-    eval_list_expr inp ctx sta es sta' ss ->
+  | eval_call_function: forall inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
+    eval_list_expr (inp, ctx, sta) es (sta1, args) ->
     ctx.func_env id = Some ins ->
-    eval_instruction { inp with argument0 = identifier_to_string id } { ctx with arguments = ss } sta' ins sta'' ctx' bhv ->
-    let bhv' = match bhv with BReturn b -> BNormal b | _ -> bhv end in
-    eval_instruction inp ctx sta (ICallFunction id es) sta' ctx bhv'
+    let inp1 = { inp with argument0 = identifier_to_string id } in
+    let ctx1 = { ctx with arguments = args } in
+    eval_instruction (inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
+    let bhv' = match bhv with BReturn -> BNormal | _ -> bhv end in
+    let ctx' = with_result ctx2.result ctx in
+    eval_instruction (inp, ctx, sta) (ICallFunction id es) (sta2, ctx', bhv')
 
   | eval_call_function_not_found: forall inp ctx sta sta' id es ss.
-    eval_list_expr inp ctx sta es sta' ss ->
+    eval_list_expr (inp, ctx, sta) es (sta', ss) ->
     ctx.func_env id = None ->
-    let bhv = inject_behaviour inp False in
-    eval_instruction inp ctx sta (ICallFunction id es) sta' ctx bhv
+    let ctx' = with_result False ctx in
+    let bhv = behaviour' inp ctx' in
+    eval_instruction (inp, ctx, sta) (ICallFunction id es) (sta', ctx', bhv)
   
-  | eval_foreach: forall inp ctx ctx' sta sta' sta'' id es ins ss bhv.
-    eval_list_expr inp ctx sta es sta' ss -> 
-    (* The behaviour of empty for-loops is `BNormal True` *)
-    eval_foreach (BNormal True) inp ctx sta' id ss ins sta'' ctx' bhv ->
-    eval_instruction inp ctx sta (IForeach id es ins) sta'' ctx' bhv
+  | eval_foreach: forall inp ctx ctx' sta sta' sta'' id es ins ss bhv b.
+    eval_list_expr (inp, ctx, sta) es (sta', ss) -> 
+    eval_foreach True (inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
+    let ctx'' = with_result b ctx' in
+    eval_instruction (inp, ctx, sta) (IForeach id es ins) (sta'', ctx'', bhv)
 
-  | eval_while: forall inp ctx ctx' sta sta' ins1 ins2 bhv.
+  | eval_while: forall inp ctx ctx' sta sta' ins1 ins2 bhv b.
     (* The behaviour of empty while-loops is `BNormal True` *)
-    eval_while (BNormal True) inp ctx sta ins1 ins2 sta' ctx' bhv ->
-    eval_instruction inp ctx sta (IWhile ins1 ins2) sta' ctx' bhv
+    eval_while True (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) b ->
+    let ctx'' = with_result b ctx' in
+    eval_instruction (inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx'', bhv)
 
-  (* The first parameter is the previous behaviour, or the behaviour of the empty loop initially *)
-  with eval_while behaviour input context state instruction instruction state context behaviour =
+  (** Semantics of the while loop.
+
+      http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_04_09
+   *)
+  with eval_while bool (input, context, state) instruction instruction (state, context, behaviour) bool =
 
   (** while-condition is false *)
-  | eval_while_false: forall bhv inp ctx ctx1 sta sta1 ins1 ins2.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal False) ->
-    eval_while bhv inp ctx sta ins1 ins2 sta1 ctx1 bhv
+  | eval_while_false: forall b inp ctx ctx1 sta sta1 ins1 ins2.
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = False ->
+    let ctx1' = with_result b ctx1 in
+    let b' = b in
+    eval_while b (inp, ctx, sta) ins1 ins2 (sta1, ctx1', BNormal) b'
+
+  (** while-condition true, body normal, and loop again *)
+  | eval_while_true_loop: forall b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = True ->
+    eval_instruction (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
+    eval_while ctx2.result (inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) b3 ->
+    eval_while b (inp, ctx, sta) ins1 ins2 (sta3, ctx3, bhv3) b3
 
   (** while-condition is not normal *)
   | eval_while_transmit: forall bhv inp ctx ctx1 sta sta1 ins1 ins2 bhv1.
-    match bhv1 with BExit _ | BReturn _ -> true | BNormal _ -> false end ->
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 bhv1 ->
-    eval_while bhv inp ctx sta ins1 ins2 sta1 ctx1 bhv1
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+    match bhv1 with BExit | BReturn -> true | BNormal -> false end ->
+    eval_while bhv (inp, ctx, sta) ins1 ins2 (sta1, ctx1, bhv1) ctx1.result
 
   (** while-condition true but while-body not normal *)
   | eval_while_true_transmit: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv2.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
-    match bhv2 with BExit _ | BReturn _ -> true | BNormal _ -> false end ->
-    eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 bhv2 ->
-    eval_while bhv inp ctx sta ins1 ins2 sta2 ctx2 bhv2
+    eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    eval_instruction (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
+    match bhv2 with BExit | BReturn -> true | BNormal -> false end ->
+    eval_while bhv (inp, ctx, sta) ins1 ins2 (sta2, ctx2, bhv2) ctx2.result
 
-  (** while-condition true, body normal, and loop again *)
-  | eval_while_true_loop: forall bhv inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 b bhv3.
-    eval_instruction {inp with under_condition = True} ctx sta ins1 sta1 ctx1 (BNormal True) ->
-    eval_instruction inp ctx1 sta1 ins2 sta2 ctx2 (BNormal b) ->
-    eval_while (BNormal b) {inp with previous_result = b} ctx2 sta2 ins1 ins2 sta3 ctx3 bhv3 ->
-    eval_while bhv inp ctx sta ins1 ins2 sta3 ctx3 bhv3
+  (** Semantics of the for loop
 
-  (* The first parameter is the previous behaviour, or the behaviour of the empty loop initially *)
-  with eval_foreach behaviour input context state identifier (list string) instruction state context behaviour =
+      http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_04_03
+   *)
+  with eval_foreach bool (input, context, state) identifier (list string) instruction (state, context, behaviour) bool =
 
-  | eval_foreach_done: forall bhv inp ctx sta id ins.
-    eval_foreach bhv inp ctx sta id Nil ins sta ctx bhv
+  | eval_foreach_done: forall b inp ctx sta id ins.
+    let sta' = sta in
+    let ctx' = ctx in
+    let b' = b in
+    eval_foreach b (inp, ctx, sta) id Nil ins (sta', ctx', BNormal) b'
 
-  | eval_foreach_step: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 id s ss ins b1 bhv2.
-    eval_instruction inp {ctx with var_env = ctx.var_env[id <- s]} sta ins sta1 ctx1 (BNormal b1) ->
-    eval_foreach (BNormal b1) inp ctx1 sta1 id ss ins sta2 ctx2 bhv2 ->
-    eval_foreach bhv inp ctx sta id (Cons s ss) ins sta2 ctx2 bhv2
+  | eval_foreach_step: forall b b2 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss' ins bhv2.
+    let ss = Cons s ss' in
+    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
+    eval_instruction (inp, ctx', sta) ins (sta1, ctx1, BNormal) ->
+    eval_foreach ctx1.result (inp, ctx1, sta1) id ss' ins (sta2, ctx2, bhv2) b2 ->
+    eval_foreach b (inp, ctx, sta) id ss ins (sta2, ctx2, bhv2) b2
 
-  | eval_foreach_abort: forall bhv inp ctx ctx1 sta sta1 id s ss ins bhv1.
-    match bhv1 with BExit _ | BReturn _ -> true | BNormal _ -> false end ->
-    eval_instruction inp {ctx with var_env = ctx.var_env[id <- s]} sta ins sta1 ctx1 bhv1 ->
-    eval_foreach bhv inp ctx sta id (Cons s ss) ins sta1 ctx1 bhv1
+  | eval_foreach_abort: forall b inp ctx ctx1 sta sta1 id s ss' ins bhv1.
+    let ss = Cons s ss' in
+    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
+    eval_instruction (inp, ctx', sta) ins (sta1, ctx1, bhv1) ->
+    match bhv1 with BExit | BReturn -> true | BNormal -> false end ->
+    let r = ctx1.result in
+    eval_foreach b (inp, ctx, sta) id ss ins (sta1, ctx1, bhv1) r
 
   (** Evaluation of an expression with some input I, context C, and state S, resulting in
       another state S, a string and an output comprised of a string result and an optional
@@ -465,54 +598,50 @@ module Semantics
 
       $(Input, Context, State) e \Downarrow (State, String, OptBool)$
    *)
-  with eval_str_expr input context state string_expression state string (option bool)  =
+  with eval_str_expr bool (input, context, state) string_expression (state, string, bool)  =
 
-  | eval_str_literal: forall inp ctx sta s. 
-    eval_str_expr inp ctx sta (SLiteral s) sta s None
+  | eval_str_literal: forall b inp ctx sta str. 
+    eval_str_expr b (inp, ctx, sta) (SLiteral str) (sta, str, b)
 
-  | eval_str_variable: forall inp ctx sta id.
-    let s = ctx.var_env[id] in
-    eval_str_expr inp ctx sta (SVariable id) sta s None
+  | eval_str_variable: forall b inp ctx sta id.
+    let str = ctx.var_env[id] in
+    eval_str_expr b (inp, ctx, sta) (SVariable id) (sta, str, b)
 
-  | eval_arg: forall inp ctx sta n.
-    let s = nth_argument (Cons inp.argument0 ctx.arguments) n in
-    eval_str_expr inp ctx sta (SArgument n) sta s None
+  | eval_arg: forall b inp ctx sta n.
+    let str = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
+    eval_str_expr b (inp, ctx, sta) (SArgument n) (sta, str, b)
 
-  | eval_str_subshell: forall inp ctx ctx' sta sta2 ins bhv.
-    let sta1 = {sta with stdout = empty_stdout} in
-    eval_instruction inp ctx sta1 ins sta2 ctx' bhv ->
-    let sta3 = {sta2 with stdout = sta.stdout} in
-    let s = Buffers.stdout_to_string sta2.stdout in
-    let bo = Some (bool_of_behaviour bhv) in
-    eval_str_expr inp ctx sta (SSubshell ins) sta3 s bo
+  | eval_str_subshell: forall b inp ctx ctx1 sta sta1 ins bhv1.
+    let sta' = { sta with stdout = Stdout.empty } in
+    eval_instruction (inp, ctx, sta') ins (sta1, ctx1, bhv1) ->
+    let str = Stdout.to_string sta1.stdout in
+    let sta1' = { sta1 with stdout = sta.stdout } in
+    let b' = ctx1.result in
+    eval_str_expr b (inp, ctx, sta) (SSubshell ins) (sta1', str, b')
 
-  | eval_str_concat : forall inp ctx sta sta1 sta2 e1 e2 s1 s2 bo1 bo2.
-    eval_str_expr inp ctx sta e1 sta1 s1 bo1 ->
-    eval_str_expr inp ctx sta1 e2 sta2 s2 bo2 ->
-    let bo3 = bool_opt_compose bo1 bo2 in
-    let s3 = s1 ^ s2 in
-    eval_str_expr inp ctx sta (SConcat e1 e2) sta2 s3 bo3
+  | eval_str_concat : forall b b1 b2 inp ctx sta sta1 sta2 e1 e2 str1 str2.
+    eval_str_expr b (inp, ctx, sta) e1 (sta1, str1, b1) ->
+    eval_str_expr b1 (inp, ctx, sta1) e2 (sta2, str2, b2) ->
+    let str3 = str1 ^ str2 in
+    eval_str_expr b (inp, ctx, sta) (SConcat e1 e2) (sta2, str3, b2)
 
   (** Evaluation of expressions to a list of strings:
 
       $(Bool, I, C, S) es \Downarrow (S, StringList)$
    *)
-  with eval_list_expr input context state list_expression state (list string) =
+  with eval_list_expr (input, context, state) list_expression (state, list string) =
 
     | eval_list_expr_nil: forall inp ctx sta.
-      eval_list_expr inp ctx sta Nil sta Nil
+      eval_list_expr (inp, ctx, sta) Nil (sta, Nil)
 
-    | eval_list_expr_cons: forall inp ctx sta sta1 sta2 se sp es s bo l2.
-      eval_str_expr inp ctx sta se sta1 s bo ->
+    | eval_list_expr_cons: forall inp ctx sta sta1 sta2 se sp es s b1 l2.
+      eval_str_expr True (inp, ctx, sta) se (sta1, s, b1) ->
       let l1 = match sp with Split -> String.split_on_default_ifs s | DontSplit -> Cons s Nil end in
-      eval_list_expr inp ctx sta1 es sta2 l2 ->
+      eval_list_expr (inp, ctx, sta1) es (sta2, l2) ->
       let l3 = l1 ++ l2 in
-      eval_list_expr inp ctx sta (Cons (se, sp) es) sta2 l3
+      eval_list_expr (inp, ctx, sta) (Cons (se, sp) es) (sta2, l3)
 
-  lemma eval_instruction_extends_stdout : forall inp ctx ctx' sta sta' ins bhv.
-    eval_instruction inp ctx {sta with stdout=empty_stdout} ins sta' ctx' bhv ->
-    eval_instruction inp ctx sta ins {sta' with stdout=concat_stdout sta.stdout sta'.stdout} ctx' bhv
-
+  (** Evaluation of a program. It outputs in a boolean value *)
   inductive eval_function_definitions func_env (list function_definition) func_env =
 
     | eval_function_definitions_done: forall fenv.
@@ -522,11 +651,45 @@ module Semantics
       eval_function_definitions e[id <- Some ins] defs e' ->
       eval_function_definitions e (Cons (id, ins) defs) e'
 
-  inductive eval_program input context state program state context bool =
+  inductive eval_program (input, context, state) program (state, bool) =
 
-    | eval_program_instruction: forall inp ctx e ctx' sta sta' pro bhv.
-      eval_function_definitions ctx.func_env pro.function_definitions e ->
-      eval_instruction inp { ctx with func_env = e } sta pro.instruction sta' ctx' bhv ->
-      let b = bool_of_behaviour bhv in
-      eval_program inp ctx sta pro sta' ctx' b
+    | eval_program_instruction: forall inp ctx fenv ctx' sta sta' pro bhv.
+      eval_function_definitions ctx.func_env pro.function_definitions fenv ->
+      eval_instruction (inp, { ctx with func_env = fenv }, sta) pro.instruction (sta', ctx', bhv) ->
+      eval_program (inp, ctx, sta) pro (sta', ctx'.result)
+
+  (* lemma eval_instruction_functional: forall ins[@induction] inp (\*out1 out2*\) ctx ctx1 ctx2 sta sta1 sta2 bhv1 bhv2. *)
+  (*   eval_instruction (inp, ctx, sta) (\* { sta with stdout = out1 } *\) ins (sta1, ctx1, bhv1) -> *)
+  (*   eval_instruction (inp, ctx, sta) (\* { sta with stdout = out2 } *\) ins (sta2, ctx2, bhv2) -> *)
+  (*   sta1 = sta2 /\ ctx1 = ctx2 /\ bhv1 = bhv2 *)
+
+  (** {3 Auxiliary lemmas for foreach} *)
+
+  lemma eval_foreach_nil: forall b b1 inp ctx ctx1 sta sta1 id ins bhv1.
+    eval_foreach b (inp, ctx, sta) id Nil ins (sta1, ctx1, bhv1) b1 ->
+    sta1 = sta1 /\ ctx1 = ctx /\ bhv1 = BNormal /\ b = b1
+
+  let rec lemma eval_foreach_concat (ss1:list string)
+    ensures { forall b inp b1 b2 ctx ctx1 ctx2 sta sta1 sta2 id ins ss2 bhv2.
+      eval_foreach b (inp, ctx, sta) id ss1 ins (sta1, ctx1, BNormal) b1 ->
+      eval_foreach b1 (inp, ctx1, sta1) id ss2 ins (sta2, ctx2, bhv2) b2 ->
+      eval_foreach b (inp, ctx, sta) id (ss1 ++ ss2) ins (sta2, ctx2, bhv2) b2
+    }
+  = match ss1 with
+    | Nil -> ()
+    | Cons _ ss1' -> eval_foreach_concat ss1'
+    end
+
+  let rec lemma eval_foreach_last (ss:list string)
+    ensures { forall b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id s ins bhv2.
+      eval_foreach b (inp, ctx, sta) id ss ins (sta1, ctx1, BNormal) b1 ->
+      let ctx1' = {ctx1 with var_env = ctx1.var_env[id <- s]} in
+      eval_instruction (inp, ctx1', sta1) ins (sta2, ctx2, bhv2) ->
+      let b' = ctx2.result in
+      eval_foreach b (inp, ctx, sta) id (ss ++ Cons s Nil) ins (sta2, ctx2, bhv2) b'
+    }
+  = match ss with
+    | Nil -> ()
+    | Cons _ ss' -> eval_foreach_last ss'
+    end
 end
