@@ -3,6 +3,12 @@
     See NOTES[Concrete interpreter type] for discussion on arguments.
  *)
 
+(** The filesystem is no modelled by the concrete interpreter *)
+module Filesystem
+  type filesystem = unit
+  let constant empty : filesystem = ()
+end
+
 module Interpreter
 
   use list.List
@@ -18,7 +24,7 @@ module Interpreter
   use auxiliaries.Auxiliaries
   use mystring.String
   use syntax.Syntax
-  use semantics.Filesystem
+  use Filesystem
   use semantics.Buffers
   use semantics.Behaviour
   use semantics.Env
@@ -56,7 +62,7 @@ module Interpreter
 
   (** {4 Conversion to `semantics.Context`} *)
 
-  let function context (sta:state)
+  let function context (sta:state) : C.context
     ensures {
       result.C.var_env = !(sta.var_env) /\
       result.C.func_env = sta.func_env /\
@@ -106,7 +112,7 @@ module Interpreter
 
   (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
-  let interp_utility inp sta id args
+  let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
     returns { () -> 
       interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
       behaviour' inp (context sta) = BNormal
@@ -223,12 +229,12 @@ module Interpreter
     | INot ins ->
       try
         interp_instruction { inp with under_condition=True } sta ins;
+        sta.result := notb !(sta.result)
       with
         | EReturn ->
           sta.result := notb !(sta.result);
           raise EReturn
       end;
-      sta.result := notb !(sta.result)
 
     | IIf ins1 ins2 ins3 ->
       interp_instruction {inp with under_condition=True} sta ins1;

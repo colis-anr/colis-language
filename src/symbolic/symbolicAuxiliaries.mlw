@@ -1,0 +1,57 @@
+module Auxiliaries
+
+  let function fst : ('a, 'b) -> 'a =
+    fun p ->
+      match p with
+      | x, _ -> x
+      end
+
+  let function snd : ('a, 'b) -> 'b =
+    fun p ->
+      match p with
+      | _, y -> y
+      end
+end
+
+module List
+  use list.Map
+  use export list.List
+
+  let rec function map (f: 'a -> 'b) (l: list 'a) : list 'b
+    ensures { result = Map.map f l }
+  = match l with
+    | Nil -> Nil
+    | Cons x l' ->
+      Cons (f x) (map f l')
+    end
+end
+
+
+module Fset
+
+  use bool.Bool
+  use set.FsetComprehension
+  use list.ListRich
+  use export set.Fset
+
+  val function filter (p: 'a -> bool) (s: set 'a) : set 'a
+    ensures { result = filter p s }
+
+  val function partition (p: 'a -> bool) (s: set 'a) : (set 'a, set 'a)
+    returns { s1, s2 ->
+      s = union s1 s2 /\
+      (forall x. mem x s1 -> p x) /\
+      (forall x. mem x s2 -> notb (p x))
+    }
+
+  val function fold (f: 'a -> 'b -> 'b) (s:set 'a) (init:'b) : 'b
+
+  val function map (f: 'a -> 'b) (s: set 'a) : set 'b
+    ensures { result = map f s }
+
+  val function to_list (s: set 'a) : list 'a
+    ensures { forall x. mem x s <-> Mem.mem x result }
+
+  val function of_list (l: list 'a) : set 'a
+    ensures { forall x. mem x result <-> Mem.mem x l }
+end
