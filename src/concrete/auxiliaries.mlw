@@ -7,7 +7,6 @@ module Auxiliaries
     | Some x -> x
     | None -> default
     end
-
 end
 
 (** Used for proving the soundness of interpreting IForeach *)

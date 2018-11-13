@@ -231,12 +231,6 @@ module AbstractState
     stdin: stdin;
     stdout: stdout;
   }
-
-  let mk fs = {
-    filesystem = fs;
-    stdin = Stdin.empty;
-    stdout = Stdout.empty;
-  }
 end
 
 module Filesystem
@@ -246,7 +240,8 @@ end
 
 module State
   use Filesystem as F
-  clone export AbstractState with type filesystem = F.filesystem
+  clone export AbstractState
+    with type filesystem = F.filesystem
 end
 
 module Context

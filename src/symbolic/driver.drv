@@ -5,15 +5,21 @@ module symbolicInterpreter.Constraints
 end
 
 module symbolicInterpreter.Interpreter
-  syntax val interp_utility "SymbolicUtilities.interp %1 %2 %3"
+  syntax val interp_utility "BatSet.of_list (SymbolicUtilities.interp %1 %2 %3)"
 end
 
-module set.Fset
+module symbolicAuxiliaries.Fset
   syntax type set "%1 BatSet.t"
+  syntax val (==) "BatSet.equal %1 %2"
   syntax val singleton "BatSet.singleton %1"
   syntax val add "BatSet.add %1 %2"
   syntax val empty "BatSet.empty"
-  syntax val (==) "BatSet.equal %1 %2"
+  syntax val map "BatSet.map %1 %2"
+  syntax val fold "BatSet.fold %1 %2 %3"
+  syntax val filter "BatSet.filter %1 %2"
+  syntax val partition "BatSet.partition %1 %2"
+  syntax val to_list "BatSet.elements %1"
+  syntax val of_list "BatSet.of_list %1"
   syntax val choose "BatSet.choose %1"
   syntax val remove "BatSet.remove %1 %2"
   syntax val union "BatSet.union %1 %2"

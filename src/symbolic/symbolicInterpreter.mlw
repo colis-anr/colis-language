@@ -11,6 +11,9 @@ module Constraints
   (** abstract type for tree constraints, [IMPORTANT] which are always satisfiable *)
 end
 
+(** A symbolic file system.
+
+   The only symbolic part in this intepreter *)
 module Filesystem
 
   use list.List
@@ -26,62 +29,88 @@ module Filesystem
 end
 
 module State
-
   use Filesystem
-
   clone export semantics.AbstractState
     with type filesystem = filesystem 
 end
 
-module States
-  use set.Fset
-  use bool.Bool
+module FullState
+
   use semantics.Context
   use State
 
-  type states = set (context, state)
-
-  (** The symbolic interpretation of a program results describes multiple possible results
-   *)
-  type results = {
-    normal: states;
-    exit: states;
-    return_: states;
+  type full_state 'a = {
+    context: context;
+    state: state;
+    info: 'a (* Used to fiddle additional information through interp_instruction' *)
   }
-  (* (\** Alternatively: *\) *)
-  (* type result = set (context, state, concrete.Semantics.behaviour) *)
 
-  let constant empty_results = {
+  let function with_info inf =
+    fun sta ->
+      {sta with info = inf}
+end
+
+(** The symbolic interpretation of a program results describes multiple possible results
+  *)
+module Results
+
+  use symbolicAuxiliaries.Fset
+  use semantics.Input
+  use semantics.Behaviour
+  use semantics.Semantics
+  use State
+  use FullState
+
+  type t 'a = {
+    normal: set (full_state 'a);
+    exit: set (full_state 'a);
+    return_: set (full_state 'a);
+  }
+
+  let constant empty = {
     normal = Fset.empty;
     exit = Fset.empty;
     return_ = Fset.empty;
   }
 
-  let rec filter_by_result (b: bool) (stas:states) =
-    if Fset.is_empty stas then
-      Fset.empty
-    else
-      let ctx, sta = choose stas in
-      let stas' = filter_by_result b (remove (ctx, sta) stas) in
-      if notb (xorb b ctx.result) then
-        add (ctx, sta) stas'
-      else
-        stas'
+  let separate_normal res =
+    res.normal, {res with normal = Fset.empty}
 
-  let function partition res =
-    res.normal, { res with normal = Fset.empty }
+  let map f res = {
+    normal = Fset.map f res.normal;
+    exit = Fset.map f res.exit;
+    return_ = Fset.map f res.return_;
+  }
 
-  let union res1 res2 = {
+  let union res1 res2 = Fset.({
     normal  = union res1.normal  res2.normal;
     exit    = union res1.exit    res2.exit;
     return_ = union res1.return_ res2.return_;
-  }
+  })
+
+  let function all res =
+    union res.normal (union res.exit res.return_)
+
+  let inject (inp:input) (stas:set (full_state 'a)) : t 'a
+    ensures { all result = stas }
+    ensures { forall s. mem s result.normal -> behaviour' inp (context s) = BNormal }
+    ensures { forall s. mem s result.exit -> behaviour' inp (context s) = BExit }
+  = let aux bhv = fun sta ->
+      match bhv, behaviour' inp (context sta) with
+      | BNormal, BNormal -> True
+      | BExit, BExit -> True
+      | _ -> False
+      end
+    in
+    {normal = Fset.filter (aux BNormal) stas;
+     exit = Fset.filter (aux BExit) stas;
+     return_ = Fset.empty}
 end
 
 module Interpreter
 
-  use set.Fset
   use bool.Bool
+  use option.Option
   use list.List
   use list.Append
   use mystring.String
@@ -91,87 +120,251 @@ module Interpreter
   use semantics.Input
   use semantics.Context
   use semantics.Buffers
-  use semantics.Semantics as S
+  use semantics.Arguments
+  use semantics.Semantics as Sem
+  use auxiliaries.Auxiliaries
+  use symbolicAuxiliaries.Auxiliaries
+  use symbolicAuxiliaries.Fset
   use State
-  use States
+  use FullState
+  use Results as Rs
 
   (* Implemented in OCaml *)
-  val function interp_utility state identifier (list string) : list (state, bool)
+  val function interp_utility state identifier (list string) : set (state, bool)
 
-  let rec interp_instruction inp ctx sta ins : results diverges =
+  let rec interp_instruction (inp:input) (ctx:context) (sta:state) (ins:instruction) : Rs.t unit diverges =
     match ins with
-    | IIf t1 t2 t3 ->
-      interp_if inp ctx sta t1 t2 t3
-    | ISequence t1 t2 ->
-      interp_sequence inp ctx sta t1 t2
+
+    | IAssignment var se ->
+      let str = interp_string_expression ctx sta se in
+      let sta' =
+        let ctx' = {
+          ctx with
+          var_env = ctx.var_env[var <- str];
+          result = True;
+        }
+        in {context = ctx'; state = sta; info = ()}
+      in {Rs.empty with Rs.normal = Fset.singleton sta'}
+
+    | ISequence ins1 ins2 ->
+      let res1_normal, res1_other =
+        Rs.separate_normal 
+          (interp_instruction inp ctx sta ins1)
+      in
+      let res2 = interp_instruction' inp res1_normal ins2 in
+      Rs.union res2 res1_other
+
+    | ISubshell ins ->
+      let res = interp_instruction inp ctx sta ins in
+      let stas = Rs.all res in
+      Rs.inject inp stas
+
+    | INot ins ->
+      let res = interp_instruction inp ctx sta ins in
+      let flip_result sta =
+        let res' = notb sta.context.result in
+        let ctx = {sta.context with result = res'} in
+        {sta with context = ctx}
+      in
+      Rs.({
+        normal = Fset.map (fun r -> flip_result r) res.normal;
+        return_ = Fset.map (fun r -> flip_result r) res.return_;
+        exit = res.exit})
+
+    | INoOutput ins -> 
+      let res = interp_instruction inp ctx sta ins in
+      let reset_output sta =
+        let sta' = {sta.state with stdout = sta.state.stdout} in
+        {sta with state = sta'}
+      in
+      Rs.({normal = Fset.map (fun r -> reset_output r) res.normal;
+           exit = Fset.map (fun r -> reset_output r) res.exit;
+           return_ = Fset.map (fun r -> reset_output r) res.return_})
+
+    | IIf ins1 ins2 ins3 ->
+      let res1 = interp_instruction {inp with under_condition=True} ctx sta ins1 in
+      let res1_normal, res1_other = Rs.separate_normal res1 in
+      let res2 =
+        let res1_true, res1_false =
+          Fset.partition
+            (fun sta -> sta.context.result)
+            res1_normal
+        in
+        Rs.union
+          (interp_instruction' inp res1_true ins2)
+          (interp_instruction' inp res1_false ins3)
+      in
+      Rs.union res2 res1_other
+
     | ICallUtility id le ->
-      interp_call_utility inp ctx sta id le
-    | IAssignment v se ->
-      interp_assignment inp ctx sta v se
-    | IExit c ->
+      let args, sta' = interp_list_expression inp ctx sta le in
+      let res : set (state, bool) = interp_utility sta'.state id args in
+      let stas =
+        let inject_state r =
+          let ctx = {ctx with result = snd r} in
+          {context = ctx; state = fst r; info = ()}
+        in
+        Fset.map (fun r -> inject_state r) res
+      in
+      Rs.inject inp stas
+
+    | ICallFunction id le ->
+      let args, sta' = interp_list_expression inp ctx sta le in
+      match ctx.func_env id with
+      | None ->
+        let sta'' =
+          let ctx' = {sta'.context with result = False} in
+          {context = ctx'; state = sta'.state; info = ()}
+        in
+        Rs.inject inp (Fset.singleton sta'')
+      | Some ins ->
+        let res =
+          let inp' = {inp with argument0 = identifier_to_string id} in
+          let ctx' = {sta'.context with arguments = args} in
+          interp_instruction inp' ctx' sta'.state ins
+        in
+        Rs.({normal = union res.normal res.return_;
+             return_ = Fset.empty;
+             exit = res.exit})
+      end
+
+    | IShift bn ->
+      match shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments with
+      | Some args ->
+        let ctx' = {ctx with result = True; arguments = args} in
+        let sta' = {context = ctx'; state = sta; info=()} in
+        Rs.({empty with normal = Fset.singleton sta'})
+      | None ->
+        let ctx' = {ctx with result = False} in
+        let sta' = {context = ctx'; state = sta; info=()} in
+        Rs.inject inp (Fset.singleton sta')
+      end
+
+    | IForeach id le ins ->
+      let strs, sta' = interp_list_expression inp ctx sta le in
+      let rec aux (stas:set (full_state bool)) (strs:list string) : Rs.t unit =
+        match strs with
+        | Nil ->
+          let set_result sta =
+            let ctx = {sta.context with result = sta.info} in
+            {sta with context = ctx; info = ()}
+          in
+          let stas' = Fset.map (fun r -> set_result r) stas in
+          Rs.({empty with normal = stas'})
+        | Cons str strs' ->
+          let stas' =
+            let set_var sta =
+              let venv = sta.context.var_env[id <- str] in
+              let ctx = {sta.context with var_env = venv} in
+              {sta with context = ctx}
+            in
+            Fset.map (fun s -> set_var s) stas
+          in
+          let res_normal, res_other =
+            Rs.separate_normal
+              (interp_instruction' inp stas' ins)
+          in
+          let res_normal' =
+            let result_as_info sta = {sta with info = sta.context.result} in
+            Fset.map (fun s -> result_as_info s) res_normal
+          in
+          Rs.(union
+               (map (with_info ()) res_other)
+               (aux res_normal' strs'))
+        end
+      in
+      aux (Fset.singleton ({sta' with info = True})) strs
+
+    | IWhile ins1 ins2 ->
+      let rec aux (stas: set (full_state bool)) : Rs.t unit =
+        let res1_normal, res1_other =
+          Rs.separate_normal
+            (interp_instruction' {inp with under_condition=True} stas ins1)
+        in
+        let res1_true, res1_false =
+          Fset.partition (fun sta -> sta.context.result) res1_normal
+        in
+        let res2_normal, res2_other =
+          Rs.separate_normal
+            (interp_instruction' inp res1_true ins2)
+        in
+        let res1_false' = Rs.({empty with normal=res1_false}) in
+        Rs.(union
+             (map (with_info ())
+               (union res2_other
+                 (union res1_false' res1_other)))
+             (aux res2_normal))
+      in
+      aux (Fset.singleton ({context=ctx; state=sta; info=True}))
+
+    | IPipe ins1 ins2 ->
+      let stas1 = (* Behaviour in ins1 is ignored *)
+        Rs.all
+         (let sta' = {sta with stdout = Stdout.empty} in
+          interp_instruction inp ctx sta' ins1)
+      in
+      let res2 =
+        let stas1' =
+          let prepare sta1 =
+            let sta' = {
+              sta1.state with
+              stdout = sta.stdout;
+              stdin = Stdout.to_stdin sta1.state.stdout
+            } in
+            {context=ctx; state=sta'; info=sta1.state.stdin}
+          in
+          Fset.map (fun s -> prepare s) stas1
+        in
+        interp_instruction' inp stas1' ins2
+      in
+      let revise sta2 =
+        let sta2' = {sta2.state with stdin = sta2.info} in
+        {state = sta2'; context = ctx; info=()}
+      in
+      Rs.map (fun s -> revise s) res2
+
+    | IExit code ->
       let r =
-        match c with
+        match code with
         | RPrevious -> ctx.result
         | RSuccess -> True
         | RFailure -> False
         end
       in
-      let ctx' = { ctx with result = r } in
-      { empty_results with exit = Fset.singleton (ctx', sta) }
-    | _ -> absurd
+      let sta =
+        let ctx' = {ctx with result = r} in
+        {context = ctx'; state = sta; info=()}
+      in
+      Rs.({empty with exit = Fset.singleton sta})
+
+    | IReturn code -> 
+      let r =
+        match code with
+        | RPrevious -> ctx.result
+        | RSuccess -> True
+        | RFailure -> False
+        end
+      in
+      let sta =
+        let ctx' = {ctx with result = r} in
+        {context = ctx'; state = sta; info=()}
+      in
+      Rs.({empty with return_ = Fset.singleton sta})
     end
 
-  with interp_instruction' inp stas ins : results diverges =
-    if Fset.is_empty stas then
-      empty_results
-    else
-      let ctx, sta = choose stas in
-      let stas' = remove (ctx, sta) stas in
-      union
-        (interp_instruction inp ctx sta ins)
-        (interp_instruction' inp stas' ins)
-
-  with interp_sequence inp ctx sta ins1 ins2 : results =
-    let res1 = interp_instruction inp ctx sta ins1 in
-    let res1_normal, res1_other = partition res1 in
-    let res2 = interp_instruction' inp res1_normal ins2 in
-    union res1_other res2
-
-  with interp_if inp ctx sta ins1 ins2 ins3 : results =
-    let res1 = interp_instruction { inp with under_condition=True } ctx sta ins1 in
-    let res1_normal, res1_other = partition res1 in
-    let res2 =
-      union
-        (interp_instruction' inp (filter_by_result True res1_normal) ins2)
-        (interp_instruction' inp (filter_by_result False res1_normal) ins3)
-    in
-    union res1_other res2
-
-  with interp_call_utility inp ctx sta id le =
-    let args, sta' = interp_list_expression inp ctx sta le in
-    let rec aux res =
-      match res with
-      | Nil -> empty_results
-      | Cons (sta', res) res' ->
-        let ctx' = { ctx with result = res } in
-        let res =
-          if andb (strict inp.under_condition) (notb res) then
-            { empty_results with exit = singleton (ctx', sta') }
-          else
-            { empty_results with normal = singleton (ctx', sta') }
-        in
-        union res (aux res')
+  with interp_instruction' (inp:input) (stas: set (full_state 'a)) (ins:instruction) : Rs.t 'a diverges =
+    (* Cannot fold `stas` because `interp_instruction` may not terminate *)
+    let rec aux (stas: list (full_state 'a)) =
+      match stas with
+      | Nil ->
+        Rs.empty
+      | Cons sta stas' -> 
+        let res = interp_instruction inp sta.context sta.state ins in
+        let res' = Rs.map (with_info sta.info) res in
+        Rs.union res' (aux stas')
       end
-    in aux (interp_utility sta' id args)
-
-  with interp_assignment inp ctx sta var se =
-    let str = interp_string_expression ctx sta se in
-    let ctx' = {
-      ctx with
-      var_env = ctx.var_env[var <- str];
-      result = True;
-    } in
-    { empty_results with normal = singleton (ctx', sta) }
+    in
+    aux (Fset.to_list stas)
 
   with interp_string_expression ctx sta se : string diverges =
     match se with
@@ -185,10 +378,10 @@ module Interpreter
     | SArgument _ -> absurd
     end
 
-  with interp_list_expression inp ctx sta le : (list string, state)
+  with interp_list_expression (inp:input) (ctx:context) (sta:state) le : (list string, full_state unit)
     diverges
   = match le with
-    | Nil -> Nil, sta
+    | Nil -> Nil, {state=sta; context=ctx; info=()}
     | Cons (se, split) le' ->
       let str = interp_string_expression ctx sta se in
       let strs = match split with Split -> String.split_on_default_ifs str | DontSplit -> Cons str Nil end in
@@ -196,21 +389,15 @@ module Interpreter
       strs ++ strs', sta
     end
 
-  let rec only_states res elts =
-    if Fset.is_empty elts then
-      Fset.empty
-    else
-      let ctx, sta = Fset.choose elts in
-      let elts' = Fset.remove (ctx, sta) elts in
-      let rest = only_states res elts' in
-      if notb (xorb res ctx.result) then
-        Fset.add sta rest
-      else
-        rest
+  let function only_states_with_result (res: bool) (stas: set (full_state unit)) : set state =
+    Fset.(map (fun sta -> sta.state)
+           (filter (fun sta -> notb (xorb res sta.context.result))
+              stas))
 
   let interp_program inp ctx sta pro : (set state, set state) diverges =
-    let fenv = S.interp_function_definitions ctx.func_env pro.function_definitions in
-    let res = interp_instruction inp { ctx with func_env = fenv } sta pro.instruction in
-    let all_res = Fset.(union res.normal (union res.exit res.return_)) in
-    only_states True all_res, only_states False all_res
+    let fenv = Sem.interp_function_definitions ctx.func_env pro.function_definitions in
+    let res = interp_instruction inp {ctx with func_env = fenv} sta pro.instruction in
+    let all_res = Rs.all res in
+    only_states_with_result True all_res,
+    only_states_with_result False all_res
 end
