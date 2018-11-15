@@ -19,8 +19,8 @@ authors: [
 maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 
 pin-depends: [
-  [ "morsmall.dev" "https://github.com/colis-anr/morsmall.git" ]
-  [ "why3.dev"     "https://gitlab.inria.fr/why3/why3.git#41d0c60df" ]
+  [ "morsmall.dev" "git+https://github.com/colis-anr/morsmall.git" ]
+  [ "why3.dev"     "git+https://gitlab.inria.fr/why3/why3.git#41d0c60df" ]
 ]
 
 depexts: [
