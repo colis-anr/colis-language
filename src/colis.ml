@@ -122,13 +122,14 @@ let run_symbolic ~argument0 ?(arguments=[]) colis =
   let module State = SymbolicInterpreter__State in
   let module Context = Semantics__Context in
   let open SymbolicInterpreter__Interpreter in
+  let open Semantics__Buffers in
   let input = { Input.empty with argument0 } in
   let state =
-    let fs =
+    let filesystem =
       let root = Constraints.Var.fresh ~hint:"root" () in
       let clause = Constraints.Clause.ctrue in
       { Filesystem.root; clause; cwd = [] }
-    in State.mk fs in
+    in {State.filesystem; stdin = Stdin.empty; stdout = Stdout.empty} in
   let context = { Context.empty_context with arguments } in
   let normals, failures = interp_program input context state colis in
   printf "* Success states@\n";
