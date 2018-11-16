@@ -34,15 +34,15 @@ module State
     with type filesystem = filesystem 
 end
 
-module FullState
+module SymState
 
   use semantics.Context
   use State
 
-  type full_state 'a = {
+  type sym_state 'a = {
     context: context;
     state: state;
-    info: 'a (* Used to fiddle additional information through interp_instruction' *)
+    info: 'a (* Used to fiddle additional information through interp_instruction': A stdin in pipe and the last reuslt in the loops *)
   }
 
   let function with_info inf =
@@ -59,12 +59,12 @@ module Results
   use semantics.Behaviour
   use semantics.Semantics
   use State
-  use FullState
+  use SymState
 
   type t 'a = {
-    normal: set (full_state 'a);
-    exit: set (full_state 'a);
-    return_: set (full_state 'a);
+    normal: set (sym_state 'a);
+    exit: set (sym_state 'a);
+    return_: set (sym_state 'a);
   }
 
   let constant empty = {
@@ -91,7 +91,7 @@ module Results
   let function all res =
     union res.normal (union res.exit res.return_)
 
-  let inject (inp:input) (stas:set (full_state 'a)) : t 'a
+  let inject (inp:input) (stas:set (sym_state 'a)) : t 'a
     ensures { all result = stas }
     ensures { forall s. mem s result.normal -> behaviour' inp (context s) = BNormal }
     ensures { forall s. mem s result.exit -> behaviour' inp (context s) = BExit }
@@ -126,7 +126,7 @@ module Interpreter
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset
   use State
-  use FullState
+  use SymState
   use Results as Rs
 
   (* Implemented in OCaml *)
@@ -242,7 +242,7 @@ module Interpreter
 
     | IForeach id le ins ->
       let strs, sta' = interp_list_expression inp ctx sta le in
-      let rec aux (stas:set (full_state bool)) (strs:list string) : Rs.t unit =
+      let rec aux (stas:set (sym_state bool)) (strs:list string) : Rs.t unit =
         match strs with
         | Nil ->
           let set_result sta =
@@ -276,7 +276,7 @@ module Interpreter
       aux (Fset.singleton ({sta' with info = True})) strs
 
     | IWhile ins1 ins2 ->
-      let rec aux (stas: set (full_state bool)) : Rs.t unit =
+      let rec aux (stas: set (sym_state bool)) : Rs.t unit =
         let res1_normal, res1_other =
           Rs.separate_normal
             (interp_instruction' {inp with under_condition=True} stas ins1)
@@ -378,7 +378,7 @@ module Interpreter
     | SArgument _ -> absurd
     end
 
-  with interp_list_expression (inp:input) (ctx:context) (sta:state) le : (list string, full_state unit)
+  with interp_list_expression (inp:input) (ctx:context) (sta:state) le : (list string, sym_state unit)
     diverges
   = match le with
     | Nil -> Nil, {state=sta; context=ctx; info=()}
@@ -389,7 +389,7 @@ module Interpreter
       strs ++ strs', sta
     end
 
-  let function only_states_with_result (res: bool) (stas: set (full_state unit)) : set state =
+  let function only_states_with_result (res: bool) (stas: set (sym_state unit)) : set state =
     Fset.(map (fun sta -> sta.state)
            (filter (fun sta -> notb (xorb res sta.context.result))
               stas))
