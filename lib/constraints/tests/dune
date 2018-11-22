@@ -1,0 +1,7 @@
+(executable
+ (name run)
+ (libraries colis-language.constraints))
+
+(alias
+ (name runtest)
+ (action (run ./run.exe)))
