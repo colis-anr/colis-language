@@ -15,3 +15,15 @@ let fresh =
   in
   incr free;
   { id = !free ; hint }
+
+let compare v1 v2 = Pervasives.compare v1.id v2.id
+let eq v1 v2 = compare v1 v2 = 0
+
+module Self = struct
+  type s = t
+  type t = s
+  let compare = compare
+end
+
+module Set = Set.Make(Self)
+module Map = Map.Make(Self)
