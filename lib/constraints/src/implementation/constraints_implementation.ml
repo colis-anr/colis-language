@@ -9,10 +9,14 @@ module type S = sig
   val neq : Var.t -> Var.t -> t -> t list
 
   val feat : Var.t -> Feat.t -> Var.t -> t -> t list
+  val nfeat : Var.t -> Feat.t -> Var.t -> t -> t list
+
   val abs : Var.t -> Feat.t -> t -> t list
+  val nabs : Var.t -> Feat.t -> t -> t list
 
   val reg : Var.t -> t -> t list
   val nreg : Var.t -> t -> t list
+
   val dir : Var.t -> t -> t list
   val ndir : Var.t -> t -> t list
 
@@ -20,6 +24,7 @@ module type S = sig
   val nfen : Var.t -> Feat.Set.t -> t -> t list
 
   val sim : Var.t -> Feat.Set.t -> Var.t -> t -> t list
+  val nsim : Var.t -> Feat.Set.t -> Var.t -> t -> t list
 
   val quantify_over : Var.t -> t -> t
 end
