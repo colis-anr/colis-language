@@ -96,7 +96,7 @@ module Make (I : Constraints_implementation.S) : S = struct
 
   let exists f = fun c ->
     let x = Var.fresh () in
-    c |> f x |> List.map (I.quantify_over x)
+    c |> f x |> List.map (I.quantify_over x) |> List.flatten
 
   let exists2 f =
     exists @@ fun x ->
