@@ -15,95 +15,84 @@ module type S = sig
   val or_ : t -> t -> t
   (** The disjunction of two [t]. *)
 
-  type term = Var.t * Path.t
+  val var : (Var.t -> t) -> t
+  val var2 : (Var.t -> Var.t -> t) -> t
 
-  val ex : term -> t
-  (** [ex x\[p\]] means "the path [p] exists in [x]." *)
+  val exists : (Var.t -> t) -> t
+  val exists2 : (Var.t -> Var.t -> t) -> t
 
-  val nex : term -> t
-  (** [nex x\[p\]] means "the path [p] does not exist in [x]." *)
-
-  val eq : term -> term -> t
-  (** [eq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in [x]
-     and [y] resp. and what's there on both sides is equal." *)
-
-  val neq : term -> term -> t
-  (** [ex_neq x\[p\] y\[q\]] means "the pathes [p] and [q] exist in
-     [x] and [y] resp. and what's there on both sides is different."
-     *)
-
-  val abs : term -> Feat.t -> t
-  (** [abs x\[p\] f] means "the path [p] exists in [x] and what's
-     there does not have the feature [f]." *)
-
-  val reg : term -> t
-  (** [reg x\[p\]] means "the path [p] exists in [x] and what's there
-     is a regular file." *)
-
-  val nreg : term -> t
-  (** [nreg x\[p\]] means "the path [p] exists in [x] and what's there
-     is not a regular file." *)
-
-  val nex_nreg : term -> t
-  (** [nex_nreg x\[p\]] means "the path [p] does not exist in [x] or
-     exists but is not a regular file." *)
-
-  val dir : term -> t
-  (** [dir x\[p\]] means "the path [p] exists in [x] and what's there
-     is a directory." *)
-
-  val ndir : term -> t
-  (** [ndir x\[p\]] means "the path [p] exists in [x] and what's there
-     isn't a directory." *)
-
-  val nex_ndir : term -> t
-  (** [nex_ndir x\[p\]] means "the path [p] does not exists in [x] or
-     exists but is not a directory." *)
-
-  val empty : term -> t
-  (** [empty x\[p\]] means "the path [p] exists in [x] and what's
-     there does not have any feature." *)
-
-  val nempty : term -> t
-  (** [nempty x\[p\]] means "the path [p] exists in [x] and what's
-     there has a feature." *)
-
-  val sim1 : Var.t -> Path.t -> Var.t -> t
-  (** [sim1 x p y] means, with [p = q/f] "the path [q] exists in both
-     [x] and [y] and [x] and [y] may only differ in the name [p]." *)
-
-  val sim2 : Var.t -> Path.t -> Path.t -> Var.t -> t
-(** [sim2 x p1 p2 y] means, with [p1 = q1/f1] and [p2 = q2/f2] "the
-   pathes [q1] and [q2] exist in both [x] and [y] and [x] and [y] may
-   only differ in the names [p1] and [p2]." *)
+  val eq : Var.t -> Var.t -> t
+  val neq : Var.t -> Var.t -> t
+  val feat : Var.t -> Feat.t -> Var.t -> t
+  val nfeat : Var.t -> Feat.t -> Var.t -> t
+  val abs : Var.t -> Feat.t -> t
+  val nabs : Var.t -> Feat.t -> t
+  val reg : Var.t -> t
+  val nreg : Var.t -> t
+  val dir : Var.t -> t
+  val ndir : Var.t -> t
+  val fen : Var.t -> Feat.Set.t -> t
+  val nfen : Var.t -> Feat.Set.t -> t
+  val empty : Var.t -> t
+  val nempty : Var.t -> t
+  val sim : Var.t -> Feat.Set.t -> Var.t -> t
+  val nsim : Var.t -> Feat.Set.t -> Var.t -> t
+  val sim1 : Var.t -> Feat.t -> Var.t -> t
+  val nsim1 : Var.t -> Feat.t -> Var.t -> t
+  val sim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
+  val nsim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
 
   (** {2 Satisfiable clauses} *)
 
-  type conj
-  (** Abstract type for satisfiable clauses. *)
+  type sat_conj
+  (** Abstract type for satisfiable conjunctions. *)
 
-  type disj
-  (** Abstract type for disjunctions of {!conj}. *)
+  val true_ : sat_conj
+  (** The empty conjunction, true. *)
 
-  val ctrue : conj
-
-  val add_to_conj : t -> conj -> disj
-
-  val fold :  ('a -> conj -> 'a) -> 'a -> disj -> 'a
+  val add_to_sat_conj : t -> sat_conj -> sat_conj list
+  (** [add_to_sat_conj f c] adds the formula [f] to a satisfiable
+     conjunction [c]. The result is a list of satisfiable conjunctions
+     whose disjunction is equivalent to ([c] &and; [f]). The list
+     might be empty when ([c] &and; [f]) is unsatisfiable. *)
 end
 
 module Make (I : Constraints_implementation.S) : S = struct
-  type conj = I.t
-  type disj = conj list
+  type sat_conj = I.t
+  let true_ = I.true_
 
-  let ctrue = I.true_
+  type t = sat_conj -> sat_conj list
 
-  let fold = List.fold_left
+  let eq = I.eq
+  let neq = I.neq
+  let feat = I.feat
+  let nfeat = I.nfeat
+  let abs = I.abs
+  let nabs = I.nabs
+  let reg = I.reg
+  let nreg = I.nreg
+  let dir = I.dir
+  let ndir = I.ndir
+  let fen = I.fen
+  let nfen = I.nfen
+  let sim = I.sim
+  let nsim = I.nsim
 
-  type t = conj -> disj
+  let empty x = fen x Feat.Set.empty
+  let nempty x = nfen x Feat.Set.empty
+  let sim1 x f y = sim x (Feat.Set.singleton f) y
+  let nsim1 x f y = sim x (Feat.Set.singleton f) y
+  let sim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
+  let nsim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
 
-  let rtrue = fun c -> [c]
-  let rfalse = fun _c -> []
+  let var f = fun c ->
+    let x = Var.fresh () in
+    c |> f x
+
+  let var2 f =
+    var @@ fun x ->
+    var @@ fun y ->
+    f x y
 
   let exists f = fun c ->
     let x = Var.fresh () in
@@ -119,108 +108,8 @@ module Make (I : Constraints_implementation.S) : S = struct
 
   let (&) = and_
 
-  let add_to_conj = (@@)
+  let add_to_sat_conj = (@@)
 
   let or_ r1 r2 = fun c ->
     (c |> r1) @ (c |> r2)
-
-  type term = Var.t * Path.t
-
-  let resolve (x, p) z =
-    let open Path in
-    let rec resolve vs x p z =
-      match vs, p with
-      |       _,            [] -> I.eq x z
-      |      vs, (Down f) :: p -> exists (fun y -> I.feat x f y & resolve (x::vs) y p z)
-      |      vs,  Here    :: p -> resolve vs x p z
-      |      [],  Up      :: p -> resolve [] x p z
-      | y :: vs,  Up      :: p -> resolve vs y p z
-    in
-    resolve [] x (Path.to_list p) z
-
-  let noresolve (x, p) =
-    let open Path in
-    let rec noresolve vs x p =
-      match vs, p with
-      |       _,            [] -> rfalse
-      |      vs, (Down f) :: p -> or_ (I.abs x f) (exists (fun y -> I.feat x f y & noresolve (x::vs) y p))
-      |      vs,  Here    :: p -> noresolve vs x p
-      |      [],  Up      :: p -> noresolve [] x p
-      | y :: vs,  Up      :: p -> noresolve vs y p
-    in
-    noresolve [] x (Path.to_list p)
-
-  let ex t =
-    exists @@ fun x ->
-    resolve t x
-
-  let nex t =
-    noresolve t
-
-  let eq t u =
-    exists @@ fun z ->
-    resolve t z & resolve u z
-
-  let neq t u =
-    exists2 @@ fun x y ->
-    resolve t x & resolve u y & I.neq x y
-
-  let abs t f =
-    exists @@ fun x ->
-    resolve t x & I.abs x f
-
-  let reg t =
-    exists @@ fun x ->
-    resolve t x & I.reg x
-
-  let nreg t =
-    exists @@ fun x ->
-    resolve t x & I.nreg x
-
-  let nex_nreg t =
-    or_
-      (noresolve t)
-      (exists @@ fun x ->
-       resolve t x & I.nreg x)
-
-  let dir t =
-    exists @@ fun x ->
-    resolve t x & I.dir x
-
-  let ndir t =
-    exists @@ fun x ->
-    resolve t x & I.ndir x
-
-  let nex_ndir t =
-    or_
-      (noresolve t)
-      (exists @@ fun x ->
-       resolve t x & I.ndir x)
-
-  let empty t =
-    exists @@ fun x ->
-    resolve t x & I.fen x Feat.Set.empty
-
-  let nempty t =
-    exists @@ fun x ->
-    resolve t x & I.nfen x Feat.Set.empty
-
-  let sim1 x p y =
-    let rec sim1_norm x p y =
-      match p with
-      | [] -> rtrue
-      | [f] ->
-         I.sim x (Feat.Set.singleton f) y
-      | f :: q ->
-         exists2 @@ fun x' y' ->
-         I.sim x (Feat.Set.singleton f) y
-         & I.feat x f x' & I.feat y f y'
-         & sim1_norm x' q y'
-    in
-    let (p', _) = Path.split_last p in
-    ex (x, p') & ex (y, p') & sim1_norm x (Path.normalize_syntactically p) y
-
-  let sim2 x p q y =
-    exists @@ fun z ->
-    sim1 x p z & sim1 z q y
 end
