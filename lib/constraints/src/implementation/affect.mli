@@ -14,3 +14,5 @@ val from_lists :
   ?feat_sets:(Metavar.t * Feat.Set.t) list -> unit -> t
 
 val merge : t -> t -> t option
+
+val compatible : t -> t -> bool

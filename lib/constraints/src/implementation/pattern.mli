@@ -13,3 +13,5 @@ type literal =
 
 val find : ?pred:(Affect.t -> bool) -> literal list -> Syntax.literal list ->
            (Affect.t * Syntax.literal list) option
+
+val mem : ?pred:(Affect.t -> bool) -> literal list -> Syntax.literal list -> bool

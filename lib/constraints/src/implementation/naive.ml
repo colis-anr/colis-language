@@ -1,14 +1,37 @@
 open Constraints_common open Syntax
 
-type conj = (Var.Set.t [@opaque]) * literal list
+module List = struct
+  include List
+
+  let remove x = filter ((<>) x)
+end
+
+type conj = Var.t list * literal list
 [@@deriving show { with_path = false }]
+
+let replace_var_in_atom x y = function
+  | Eq (a, b) -> Eq ((if Var.equal a x then y else a), (if Var.equal b x then y else b))
+  | Feat (a, f, b) -> Feat ((if Var.equal a x then y else a), f, (if Var.equal b x then y else b))
+  | Abs (a, f) -> Abs ((if Var.equal a x then y else a), f)
+  | Reg a -> Reg (if Var.equal a x then y else a)
+  | Dir a -> Dir (if Var.equal a x then y else a)
+  | Fen (a, fs) -> Fen ((if Var.equal a x then y else a), fs)
+  | Sim (a, fs, b) -> Sim ((if Var.equal a x then y else a), fs, (if Var.equal b x then y else b))
+
+let replace_var_in_literal x y = function
+  | Pos a -> Pos (replace_var_in_atom x y a)
+  | Neg a -> Neg (replace_var_in_atom x y a)
+
+let rec replace_var_in_literal_list x y = function
+  | [] -> []
+  | l :: ls -> replace_var_in_literal x y l :: replace_var_in_literal_list x y ls
 
 type t = conj
 
 type disj = conj list
 [@@deriving show { with_path = false }]
 
-let true_ = (Var.Set.empty, [])
+let true_ = ([], [])
 
 let c_feat_abs (_, c) =
   let (x, y, f) = Metavar.fresh3 () in
@@ -25,6 +48,19 @@ let c_nsim_refl (_, c) =
   let pat = Pattern.[Neg (Sim (x, fs, x))] in
   OptionMonad.(Pattern.find pat c >>= fun _ -> Some [])
 
+let s_feats (es, c) =
+  let (x, y, z, f) = Metavar.fresh4 () in
+  let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
+  OptionMonad.(
+    Pattern.find
+      ~pred:(fun aff -> List.mem (Affect.var aff x) es &&
+                          not (Var.equal (Affect.var aff y) (Affect.var aff z)))
+      pat c
+    >>= fun (aff, c) ->
+    Some [List.remove (Affect.var aff x) es,
+          Pos (Feat (Affect.var aff x, Affect.feat aff f, Affect.var aff y)) :: replace_var_in_literal_list (Affect.var aff z) (Affect.var aff y) c]
+  )
+
 let p_feat (es, c) =
   let (x, y, z, fs, f) = Metavar.fresh5 () in
   let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Feat (x, f, z))] in
@@ -33,11 +69,27 @@ let p_feat (es, c) =
       ~pred:(fun aff -> not (Feat.Set.mem (Affect.feat aff f) (Affect.feat_set aff fs)))
       pat c
     >>= fun (aff, c) ->
+    let a = Pos (Feat (Affect.var aff y, Affect.feat aff f, Affect.var aff z)) in
+    if List.mem a c then
+      None (* FIXME: not satisfying, I don't want to check this myself *)
+    else
+      Some [
+          es,
+          [Pos (Sim (Affect.var aff x, Affect.feat_set aff fs, Affect.var aff y));
+           Pos (Feat (Affect.var aff x, Affect.feat aff f, Affect.var aff z));
+           a] @ c
+      ]
+  )
+
+let r_nfeat (es, c) =
+  let (x, y, f) = Metavar.fresh3 () in
+  let pat = Pattern.[Neg (Feat (x, f, y))] in
+  OptionMonad.(
+    Pattern.find pat c >>= fun (aff, c) ->
     Some [
-        es,
-        [Pos (Sim (Affect.var aff x, Affect.feat_set aff fs, Affect.var aff y));
-         Pos (Feat (Affect.var aff x, Affect.feat aff f, Affect.var aff z));
-         Pos (Feat (Affect.var aff y, Affect.feat aff f, Affect.var aff z))] @ c
+        (es, Pos (Abs (Affect.var aff x, Affect.feat aff f)):: c);
+        let z = Var.fresh () in
+        (z::es, [Pos (Feat (Affect.var aff x, Affect.feat aff f, z)); Neg (Sim (Affect.var aff x, Feat.Set.empty, z))] @ c)
       ]
   )
 
@@ -66,23 +118,22 @@ let apply_l rules disj =
   if changes then Some disj else None
 
 let rules = [
-    (* c_cycle *)
+    (* FIXME: write the others *)
     c_feat_abs;
-    (* c_feat_fen *)
     c_neq_refl;
     c_nsim_refl;
-    (* s_eq *)
-    (* ... *)
+    s_feats;
     p_feat;
-    (* (fun _ -> assert false) *)
+    r_nfeat;
   ]
 
-let rec normalize d =
+let rec normalize ?(i=0) d =
+  assert (i < 200);
   match apply_l rules d with
   | None -> d
-  | Some d -> normalize d
+  | Some d -> normalize ~i:(i+1) d
 
-let quantify_over x (e, c) = normalize [Var.Set.add x e, c]
+let quantify_over x (e, c) = normalize [x::e, c]
 let add l (e, c) = normalize [e, l :: c]
 
 let eq x y = add (Pos (Eq (x, y)))
