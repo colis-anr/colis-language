@@ -42,3 +42,6 @@ let merge aff1 aff2 =
   (aff1.feats @ aff2.feats) |> sort |> simplify Feat.equal >>= fun feats ->
   (aff1.feat_sets @ aff2.feat_sets) |> sort |> simplify Feat.Set.equal >>= fun feat_sets ->
   Some { vars ; feats ; feat_sets }
+
+let compatible aff1 aff2 =
+  merge aff1 aff2 <> None
