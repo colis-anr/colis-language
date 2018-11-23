@@ -31,13 +31,13 @@ depexts: [
 ]
 
 depends: [
-  "zarith"
-  "ocaml"                  {build & >= "4.05"}
   "camlzip"                {build | with-test}
   "morsmall"               {= "dev"}
-  "why3"                   {= "dev" & (build | with-test)}
+  "ocaml"                  {build & >= "4.05"}
+  "odoc"                   {with-doc}
   "ppx_deriving"           {build}
   "ppx_inline_test"        {build | with-test}
   "ppx_protocol_conv_yaml" {with-test}
-  "odoc"                   {with-doc}
+  "why3"                   {= "dev" & (build | with-test)}
+  "zarith"
 ]
