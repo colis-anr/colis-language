@@ -81,3 +81,6 @@ let rec match_ pls ls =
 
 let find ?(pred=(fun _ -> true)) pls ls =
   match_ pls ls |> List.find_opt (fun (aff, _) -> pred aff)
+
+let mem ?pred pls ls =
+  find ?pred pls ls <> None
