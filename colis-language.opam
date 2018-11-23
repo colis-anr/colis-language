@@ -36,6 +36,8 @@ depends: [
   "camlzip"                {build | with-test}
   "morsmall"               {= "dev"}
   "why3"                   {= "dev" & (build | with-test)}
+  "ppx_deriving"           {build}
+  "ppx_inline_test"        {build | with-test}
   "ppx_protocol_conv_yaml" {with-test}
   "odoc"                   {with-doc}
 ]

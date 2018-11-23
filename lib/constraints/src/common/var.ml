@@ -2,6 +2,13 @@ type t =
   { id : int ;
     hint : string option }
 
+let show v =
+  let hint = match v.hint with None -> "_" | Some h -> h in
+  hint ^ string_of_int v.id
+
+let pp fmt v =
+  Format.pp_print_string fmt (show v)
+
 let fresh =
   let free = ref 0 in
   fun ?hint ?hintf ?hintv ?hintp () ->
@@ -17,7 +24,7 @@ let fresh =
   { id = !free ; hint }
 
 let compare v1 v2 = Pervasives.compare v1.id v2.id
-let eq v1 v2 = compare v1 v2 = 0
+let equal v1 v2 = compare v1 v2 = 0
 
 module Self = struct
   type s = t
