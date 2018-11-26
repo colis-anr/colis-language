@@ -30,5 +30,5 @@ module type S = sig
 end
 
 module Dummy = (Dummy : S)
-module Naive = (Naive : S)
+module Naive = (Constraints_implementation_naive : S)
 module Efficient = (Efficient : S)
