@@ -18,7 +18,7 @@ module type S = sig
   val var : (Var.t -> t) -> t
   val var2 : (Var.t -> Var.t -> t) -> t
 
-  val exists : (Var.t -> t) -> t
+  val exists : ?hint:string -> (Var.t -> t) -> t
   val exists2 : (Var.t -> Var.t -> t) -> t
 
   val eq : Var.t -> Var.t -> t
@@ -94,8 +94,8 @@ module Make (I : Constraints_implementation.S) : S = struct
     var @@ fun y ->
     f x y
 
-  let exists f = fun c ->
-    let x = Var.fresh () in
+  let exists ?hint f = fun c ->
+    let x = Var.fresh ?hint () in
     c |> f x |> List.map (I.quantify_over x) |> List.flatten
 
   let exists2 f =

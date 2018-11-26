@@ -1,13 +1,27 @@
-open Constraints_common open Syntax
+open Constraints_common open Atom open Literal
 
 module List = struct
   include List
 
+  let rec map_filter f = function
+    | [] -> []
+    | h :: t ->
+       match f h with
+       | None -> map_filter f t
+       | Some h' -> h' :: map_filter f t
+
   let remove x = filter ((<>) x)
 end
 
-type conj = Var.t list * literal list
+type conj = Var.Set.t * Literal.Set.t
 [@@deriving show { with_path = false }]
+
+let compare_conj (es1, ls1) (es2, ls2) =
+  match Var.Set.compare es1 es2 with
+  | 0 -> Literal.Set.compare ls1 ls2
+  | n -> n
+
+let equal_conj c1 c2 = compare_conj c1 c2 = 0
 
 let replace_var_in_atom x y = function
   | Eq (a, b) -> Eq ((if Var.equal a x then y else a), (if Var.equal b x then y else b))
@@ -22,82 +36,154 @@ let replace_var_in_literal x y = function
   | Pos a -> Pos (replace_var_in_atom x y a)
   | Neg a -> Neg (replace_var_in_atom x y a)
 
-let rec replace_var_in_literal_list x y = function
-  | [] -> []
-  | l :: ls -> replace_var_in_literal x y l :: replace_var_in_literal_list x y ls
+let replace_var_in_literal_set x y =
+  Literal.Set.map (replace_var_in_literal x y)
 
 type t = conj
 
 type disj = conj list
 [@@deriving show { with_path = false }]
 
-let true_ = ([], [])
+let true_ = (Var.Set.empty, Literal.Set.empty)
 
-let c_feat_abs (_, c) =
-  let (x, y, f) = Metavar.fresh3 () in
-  let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Abs (x, f))] in
-  OptionMonad.(Pattern.find pat c >>= fun _ -> Some [])
+let (x, y, z) = Metavar.fresh3 ()
+let (f, g) = Metavar.fresh2 ()
+let (fs, gs) = Metavar.fresh2 ()
 
-let c_neq_refl (_, c) =
-  let x = Metavar.fresh () in
-  let pat = Pattern.[Neg (Eq (x, x))] in
-  OptionMonad.(Pattern.find pat c >>= fun _ -> Some [])
+module Rule = struct
+  open OptionMonad
 
-let c_nsim_refl (_, c) =
-  let (x, fs) = Metavar.fresh2 () in
-  let pat = Pattern.[Neg (Sim (x, fs, x))] in
-  OptionMonad.(Pattern.find pat c >>= fun _ -> Some [])
+  let c_feat_abs (_, c) =
+    let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Abs (x, f))] in
+    Pattern.find pat c >>= fun _ -> Some []
 
-let s_feats (es, c) =
-  let (x, y, z, f) = Metavar.fresh4 () in
-  let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
-  OptionMonad.(
+  let c_neq_refl (_, c) =
+    let pat = Pattern.[Neg (Eq (x, x))] in
+    Pattern.find pat c >>= fun _ -> Some []
+
+  let c_nsim_refl (_, c) =
+    let pat = Pattern.[Neg (Sim (x, fs, x))] in
+    Pattern.find pat c >>= fun _ -> Some []
+
+  let s_eq (es, c) =
+    let pat = Pattern.[Pos (Eq (x, y))] in
     Pattern.find
-      ~pred:(fun aff -> List.mem (Affect.var aff x) es &&
+      ~pred:(fun aff -> Var.Set.mem (Affect.var aff x) es &&
+                          not (Var.equal (Affect.var aff x) (Affect.var aff y)))
+      pat c
+    >>= fun (aff, c) ->
+    let x = Affect.var aff x in
+    let y = Affect.var aff y in
+    Some [
+        Var.Set.remove x es,
+        replace_var_in_literal_set x y c;
+      ]
+
+  let s_feats (es, c) =
+    let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
+    Pattern.find
+      ~pred:(fun aff -> Var.Set.mem (Affect.var aff x) es &&
                           not (Var.equal (Affect.var aff y) (Affect.var aff z)))
       pat c
     >>= fun (aff, c) ->
-    Some [List.remove (Affect.var aff x) es,
-          Pos (Feat (Affect.var aff x, Affect.feat aff f, Affect.var aff y)) :: replace_var_in_literal_list (Affect.var aff z) (Affect.var aff y) c]
-  )
+    let x = Affect.var aff x in
+    let y = Affect.var aff y in
+    let z = Affect.var aff z in
+    let f = Affect.feat aff f in
+    Some [
+        Var.Set.remove x es,
+        replace_var_in_literal_set z y c
+        |> Literal.Set.add (Pos (Feat (x, f, y)))
+      ]
 
-let p_feat (es, c) =
-  let (x, y, z, fs, f) = Metavar.fresh5 () in
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Feat (x, f, z))] in
-  OptionMonad.(
+  let s_feats_glob (es, c) =
+    let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
+    Pattern.find
+      ~pred:(fun aff -> not (Var.Set.mem (Affect.var aff y) es && not (Var.Set.mem (Affect.var aff z) es)))
+      pat c
+    >>= fun (aff, c) ->
+    let x = Affect.var aff x in
+    let y = Affect.var aff y in
+    let z = Affect.var aff z in
+    let f = Affect.feat aff f in
+    Some [
+        es,
+        c (* FIXME: maybe replace right from here? *)
+        |> Literal.Set.add (Pos (Feat (x, f, y)))
+        |> Literal.Set.add (Pos (Eq (y, z)))
+      ]
+
+  let p_feat (es, c) =
+    let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Feat (x, f, z))] in
     Pattern.find
       ~pred:(fun aff -> not (Feat.Set.mem (Affect.feat aff f) (Affect.feat_set aff fs)))
       pat c
     >>= fun (aff, c) ->
-    let a = Pos (Feat (Affect.var aff y, Affect.feat aff f, Affect.var aff z)) in
-    if List.mem a c then
-      None (* FIXME: not satisfying, I don't want to check this myself *)
-    else
-      Some [
-          es,
-          [Pos (Sim (Affect.var aff x, Affect.feat_set aff fs, Affect.var aff y));
-           Pos (Feat (Affect.var aff x, Affect.feat aff f, Affect.var aff z));
-           a] @ c
-      ]
-  )
-
-let r_nfeat (es, c) =
-  let (x, y, f) = Metavar.fresh3 () in
-  let pat = Pattern.[Neg (Feat (x, f, y))] in
-  OptionMonad.(
-    Pattern.find pat c >>= fun (aff, c) ->
+    let x = Affect.var aff x in
+    let y = Affect.var aff y in
+    let z = Affect.var aff z in
+    let f = Affect.feat aff f in
+    let fs = Affect.feat_set aff fs in
     Some [
-        (es, Pos (Abs (Affect.var aff x, Affect.feat aff f)):: c);
-        let z = Var.fresh () in
-        (z::es, [Pos (Feat (Affect.var aff x, Affect.feat aff f, z)); Neg (Sim (Affect.var aff x, Feat.Set.empty, z))] @ c)
+        es,
+        c
+        |> Literal.Set.add (Pos (Sim (x, fs, y)))
+        |> Literal.Set.add (Pos (Feat (x, f, z)))
+        |> Literal.Set.add (Pos (Feat (y, f, z)))
       ]
-  )
 
-let apply rule disj =
+  let r_nfeat (es, c) =
+    let pat = Pattern.[Neg (Feat (x, f, y))] in
+    Pattern.find pat c >>= fun (aff, c) ->
+    let x = Affect.var aff x in
+    let f = Affect.feat aff f in
+    Some [
+        (es,
+         c
+         |> Literal.Set.add (Pos (Abs (x, f))));
+        let z = Var.fresh () in
+        (Var.Set.add z es,
+         c
+         |> Literal.Set.add (Pos (Feat (x, f, z)))
+         |> Literal.Set.add (Neg (Sim (x, Feat.Set.empty, z))))
+      ]
+
+  let r_nfen_fen (es, c) =
+    let pat = Pattern.[Pos (Fen (x, fs)); Neg (Fen (x, gs))] in
+    Pattern.find pat c >>= fun (aff, c) ->
+    Some (
+        let c = Literal.Set.add (Pos (Fen (Affect.var aff x, Affect.feat_set aff fs))) c in
+        Feat.Set.diff (Affect.feat_set aff fs) (Affect.feat_set aff gs) |> Feat.Set.elements
+        |> List.map
+             (fun f ->
+               let z = Var.fresh () in
+               (Var.Set.add z es,
+                Literal.Set.add (Pos (Feat (Affect.var aff x, f, z))) c))
+      )
+end
+
+let apply_rule_on_conj ((name : string), (rule : conj -> disj option)) conj =
+  match rule conj with
+  | None -> None
+  | Some [] -> Some []
+  | Some [conj'] ->
+     if equal_conj conj' conj then
+       None
+     else
+       (
+         Log.debug (fun m -> m "Rule %s applied" name);
+         Some [conj']
+       )
+  | Some disj' ->
+     Log.debug (fun m -> m "Rule %s applied" name);
+     assert (List.for_all ((<>) conj) disj');
+     Some disj'
+
+let apply_rule_on_disj rule disj =
   let (changes, disj) =
     List.fold_left
       (fun (changes, disj) conj ->
-        match rule conj with
+        match apply_rule_on_conj rule conj with
         | None -> (changes, conj :: disj)
         | Some disj' -> (true, disj' @ disj))
       (false, [])
@@ -105,11 +191,11 @@ let apply rule disj =
   in
   if changes then Some disj else None
 
-let apply_l rules disj =
+let apply_rules_on_disj (rules : (string * (conj -> disj option)) list) (disj : disj) : disj option =
   let (changes, disj) =
     List.fold_left
       (fun (changes, disj) rule ->
-        match apply rule disj with
+        match apply_rule_on_disj rule disj with
         | None -> (changes, disj)
         | Some disj -> (true, disj))
       (false, disj)
@@ -117,24 +203,34 @@ let apply_l rules disj =
   in
   if changes then Some disj else None
 
-let rules = [
+let rules : (string * (conj -> disj option)) list = Rule.[
     (* FIXME: write the others *)
-    c_feat_abs;
-    c_neq_refl;
-    c_nsim_refl;
-    s_feats;
-    p_feat;
-    r_nfeat;
+    "C-Feat-Abs",   c_feat_abs;
+    "C-NEq-Refl",   c_neq_refl;
+    "C-NSim-Refl",  c_nsim_refl;
+    "S-Eq",         s_eq;
+    "S-Feats",      s_feats;
+    "S-Feats-Glob", s_feats_glob;
+    "P-Feats",      p_feat;
+    "R-NFeat",      r_nfeat;
+    "R-NFen-Fen",   r_nfen_fen;
   ]
 
-let rec normalize ?(i=0) d =
-  assert (i < 200);
-  match apply_l rules d with
-  | None -> d
-  | Some d -> normalize ~i:(i+1) d
+let rec normalize limit d =
+  Log.info (fun m -> m "Normalizing:@\n%a" pp_disj d);
+  assert (limit >= 0);
+  match apply_rules_on_disj rules d with
+  | None ->
+     Log.info (fun m -> m "Normal form reached");
+     d
+  | Some d ->
+     normalize (limit-1) d
 
-let quantify_over x (e, c) = normalize [x::e, c]
-let add l (e, c) = normalize [e, l :: c]
+let normalize ?(limit=10) disj =
+  normalize limit disj
+
+let quantify_over x (e, c) = normalize [Var.Set.add x e, c]
+let add l (e, c) = normalize [e, Literal.Set.add l c]
 
 let eq x y = add (Pos (Eq (x, y)))
 let neq x y = add (Neg (Eq (x, y)))

@@ -1,4 +1,4 @@
-open Constraints_common open Syntax
+open Constraints_common
 
 module List = struct
   include List
@@ -19,7 +19,7 @@ type atom =
   | Fen of Metavar.t * Metavar.t
   | Sim of Metavar.t * Metavar.t * Metavar.t
 
-let match_atom (pa : atom) (a : Syntax.atom) : Affect.t list =
+let match_atom (pa : atom) (a : Atom.t) : Affect.t list =
   match pa, a with
   | Eq (mx, my), Eq (x, y) ->
      [Affect.from_lists ~vars:[mx, x; my, y] ();
@@ -40,7 +40,7 @@ type literal =
   | Pos of atom
   | Neg of atom
 
-let match_literal (pl : literal) (l : Syntax.literal) : Affect.t list =
+let match_literal (pl : literal) (l : Literal.t) : Affect.t list =
   match pl, l with
   | Pos pa, Pos a -> match_atom pa a
   | Neg pa, Neg a -> match_atom pa a
@@ -62,7 +62,7 @@ let%test _ =
   let g = Feat.from_string "g" in
   match_literal_l
     (Pos (Abs (mx, mg)))
-    Syntax.[Pos (Feat (x, f, y)); Pos (Abs (x, g))]
+    [Pos (Feat (x, f, y)); Pos (Abs (x, g))]
   =
     [Affect.from_lists ~vars:[mx, x] ~feats:[mg, g] (),
      [Pos (Feat (x, f, y))]]
@@ -80,7 +80,12 @@ let rec match_ pls ls =
                    Some (aff, ls2)))
 
 let find ?(pred=(fun _ -> true)) pls ls =
-  match_ pls ls |> List.find_opt (fun (aff, _) -> pred aff)
+  Literal.Set.elements ls
+  |> match_ pls
+  |> List.find_opt (fun (aff, _) -> pred aff)
+  |> function
+    | None -> None
+    | Some (aff, ls) -> Some (aff, Literal.Set.of_list ls)
 
 let mem ?pred pls ls =
   find ?pred pls ls <> None
