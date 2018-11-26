@@ -82,7 +82,7 @@ module Rule = struct
   let s_feats (es, c) =
     let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
     Pattern.find
-      ~pred:(fun aff -> Var.Set.mem (Affect.var aff x) es &&
+      ~pred:(fun aff -> Var.Set.mem (Affect.var aff z) es &&
                           not (Var.equal (Affect.var aff y) (Affect.var aff z)))
       pat c
     >>= fun (aff, c) ->
@@ -91,7 +91,7 @@ module Rule = struct
     let z = Affect.var aff z in
     let f = Affect.feat aff f in
     Some [
-        Var.Set.remove x es,
+        Var.Set.remove z es,
         replace_var_in_literal_set z y c
         |> Literal.Set.add (Pos (Feat (x, f, y)))
       ]
@@ -136,6 +136,7 @@ module Rule = struct
     let pat = Pattern.[Neg (Feat (x, f, y))] in
     Pattern.find pat c >>= fun (aff, c) ->
     let x = Affect.var aff x in
+    let y = Affect.var aff y in
     let f = Affect.feat aff f in
     Some [
         (es,
@@ -145,7 +146,7 @@ module Rule = struct
         (Var.Set.add z es,
          c
          |> Literal.Set.add (Pos (Feat (x, f, z)))
-         |> Literal.Set.add (Neg (Sim (x, Feat.Set.empty, z))))
+         |> Literal.Set.add (Neg (Sim (y, Feat.Set.empty, z))))
       ]
 
   let r_nfen_fen (es, c) =
@@ -165,7 +166,11 @@ end
 let apply_rule_on_conj ((name : string), (rule : conj -> disj option)) conj =
   match rule conj with
   | None -> None
-  | Some [] -> Some []
+  | Some [] ->
+     (
+       Log.debug (fun m -> m "Clash %s applied" name);
+       Some []
+     )
   | Some [conj'] ->
      if equal_conj conj' conj then
        None
@@ -217,11 +222,11 @@ let rules : (string * (conj -> disj option)) list = Rule.[
   ]
 
 let rec normalize limit d =
-  Log.info (fun m -> m "Normalizing:@\n%a" pp_disj d);
+  Log.debug (fun m -> m "Normalizing:@\n%a" pp_disj d);
   assert (limit >= 0);
   match apply_rules_on_disj rules d with
   | None ->
-     Log.info (fun m -> m "Normal form reached");
+     Log.debug (fun m -> m "Normal form reached");
      d
   | Some d ->
      normalize (limit-1) d
