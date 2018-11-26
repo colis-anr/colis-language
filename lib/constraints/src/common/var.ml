@@ -3,23 +3,35 @@ type t =
     hint : string option }
 
 let show v =
-  let hint = match v.hint with None -> "_" | Some h -> h in
-  hint ^ string_of_int v.id
+  let hint = match v.hint with None -> "?" | Some h -> h in
+  let number =
+    let number = string_of_int v.id in
+    let buf = Buffer.create 8 in
+    String.iter
+      (fun c -> Buffer.add_string buf
+              (match c with
+               | '0' -> "₀"
+               | '1' -> "₁"
+               | '2' -> "₂"
+               | '3' -> "₃"
+               | '4' -> "₄"
+               | '5' -> "₅"
+               | '6' -> "₆"
+               | '7' -> "₇"
+               | '8' -> "₈"
+               | '9' -> "₉"
+               | _ -> assert false))
+      number;
+    Buffer.contents buf
+  in
+  hint ^ number
 
 let pp fmt v =
   Format.pp_print_string fmt (show v)
 
 let fresh =
   let free = ref 0 in
-  fun ?hint ?hintf ?hintv ?hintp () ->
-  let hint =
-    match hint, hintf, hintv, hintp with
-    | Some s, _, _, _ -> Some s
-    | _, Some f, _, _ -> Some (Feat.to_string f)
-    | _, _, Some v, _ -> v.hint
-    | _, _, _, Some _p -> assert false
-    | _ -> None
-  in
+  fun ?hint () ->
   incr free;
   { id = !free ; hint }
 
@@ -32,5 +44,19 @@ module Self = struct
   let compare = compare
 end
 
-module Set = Set.Make(Self)
+module Set = struct
+  include Set.Make(Self)
+
+  let pp fmt fs =
+    let fpf = Format.fprintf in
+    match elements fs with
+    | [] ->
+       fpf fmt "[]"
+    | f :: fs ->
+       fpf fmt "[";
+       pp fmt f;
+       List.iter (fpf fmt ", %a" pp) fs;
+       fpf fmt "]"
+end
+
 module Map = Map.Make(Self)
