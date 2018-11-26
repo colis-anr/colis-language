@@ -8,3 +8,5 @@ val fresh5 : unit -> t * t * t * t * t
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
+
+module Map : Map.S with type key = t
