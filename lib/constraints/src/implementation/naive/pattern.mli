@@ -11,7 +11,7 @@ type literal =
   | Pos of atom
   | Neg of atom
 
-val find : ?pred:(Affect.t -> bool) -> literal list -> Literal.Set.t ->
-           (Affect.t * Literal.Set.t) option
+val find : ?pred:(Assign.t -> bool) -> literal list -> Literal.Set.t ->
+           (Assign.t * Literal.Set.t) option
 
-val mem : ?pred:(Affect.t -> bool) -> literal list -> Literal.Set.t -> bool
+val mem : ?pred:(Assign.t -> bool) -> literal list -> Literal.Set.t -> bool

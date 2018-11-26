@@ -36,12 +36,12 @@ let c_nsim_refl (_, c) =
 let s_eq (es, c) =
   let pat = Pattern.[Pos (Eq (x, y))] in
   Pattern.find
-    ~pred:(fun aff -> Var.Set.mem (Affect.var aff x) es &&
-                        not (Var.equal (Affect.var aff x) (Affect.var aff y)))
+    ~pred:(fun aff -> Var.Set.mem (Assign.var aff x) es &&
+                        not (Var.equal (Assign.var aff x) (Assign.var aff y)))
     pat c
   >>= fun (aff, c) ->
-  let x = Affect.var aff x in
-  let y = Affect.var aff y in
+  let x = Assign.var aff x in
+  let y = Assign.var aff y in
   Some [
       Var.Set.remove x es,
       replace_var_in_literal_set x y c;
@@ -50,14 +50,14 @@ let s_eq (es, c) =
 let s_feats (es, c) =
   let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
   Pattern.find
-    ~pred:(fun aff -> Var.Set.mem (Affect.var aff z) es &&
-                        not (Var.equal (Affect.var aff y) (Affect.var aff z)))
+    ~pred:(fun aff -> Var.Set.mem (Assign.var aff z) es &&
+                        not (Var.equal (Assign.var aff y) (Assign.var aff z)))
     pat c
   >>= fun (aff, c) ->
-  let x = Affect.var aff x in
-  let y = Affect.var aff y in
-  let z = Affect.var aff z in
-  let f = Affect.feat aff f in
+  let x = Assign.var aff x in
+  let y = Assign.var aff y in
+  let z = Assign.var aff z in
+  let f = Assign.feat aff f in
   Some [
       Var.Set.remove z es,
       replace_var_in_literal_set z y c
@@ -67,13 +67,13 @@ let s_feats (es, c) =
 let s_feats_glob (es, c) =
   let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
   Pattern.find
-    ~pred:(fun aff -> not (Var.Set.mem (Affect.var aff y) es && not (Var.Set.mem (Affect.var aff z) es)))
+    ~pred:(fun aff -> not (Var.Set.mem (Assign.var aff y) es && not (Var.Set.mem (Assign.var aff z) es)))
     pat c
   >>= fun (aff, c) ->
-  let x = Affect.var aff x in
-  let y = Affect.var aff y in
-  let z = Affect.var aff z in
-  let f = Affect.feat aff f in
+  let x = Assign.var aff x in
+  let y = Assign.var aff y in
+  let z = Assign.var aff z in
+  let f = Assign.feat aff f in
   Some [
       es,
       c (* FIXME: maybe replace right from here? *)
@@ -84,14 +84,14 @@ let s_feats_glob (es, c) =
 let p_feat (es, c) =
   let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Feat (x, f, z))] in
   Pattern.find
-    ~pred:(fun aff -> not (Feat.Set.mem (Affect.feat aff f) (Affect.feat_set aff fs)))
+    ~pred:(fun aff -> not (Feat.Set.mem (Assign.feat aff f) (Assign.feat_set aff fs)))
     pat c
   >>= fun (aff, c) ->
-  let x = Affect.var aff x in
-  let y = Affect.var aff y in
-  let z = Affect.var aff z in
-  let f = Affect.feat aff f in
-  let fs = Affect.feat_set aff fs in
+  let x = Assign.var aff x in
+  let y = Assign.var aff y in
+  let z = Assign.var aff z in
+  let f = Assign.feat aff f in
+  let fs = Assign.feat_set aff fs in
   Some [
       es,
       c
@@ -103,9 +103,9 @@ let p_feat (es, c) =
 let r_nfeat (es, c) =
   let pat = Pattern.[Neg (Feat (x, f, y))] in
   Pattern.find pat c >>= fun (aff, c) ->
-  let x = Affect.var aff x in
-  let y = Affect.var aff y in
-  let f = Affect.feat aff f in
+  let x = Assign.var aff x in
+  let y = Assign.var aff y in
+  let f = Assign.feat aff f in
   Some [
       (es,
        c
@@ -121,13 +121,13 @@ let r_nfen_fen (es, c) =
   let pat = Pattern.[Pos (Fen (x, fs)); Neg (Fen (x, gs))] in
   Pattern.find pat c >>= fun (aff, c) ->
   Some (
-      let c = Literal.Set.add (Pos (Fen (Affect.var aff x, Affect.feat_set aff fs))) c in
-      Feat.Set.diff (Affect.feat_set aff fs) (Affect.feat_set aff gs) |> Feat.Set.elements
+      let c = Literal.Set.add (Pos (Fen (Assign.var aff x, Assign.feat_set aff fs))) c in
+      Feat.Set.diff (Assign.feat_set aff fs) (Assign.feat_set aff gs) |> Feat.Set.elements
       |> List.map
            (fun f ->
              let z = Var.fresh () in
              (Var.Set.add z es,
-              Literal.Set.add (Pos (Feat (Affect.var aff x, f, z))) c))
+              Literal.Set.add (Pos (Feat (Assign.var aff x, f, z))) c))
     )
 
 let all : (string * (Conj.t -> Conj.disj option)) list = [
