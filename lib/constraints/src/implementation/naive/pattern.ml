@@ -19,20 +19,20 @@ type atom =
   | Fen of Metavar.t * Metavar.t
   | Sim of Metavar.t * Metavar.t * Metavar.t
 
-let match_atom (pa : atom) (a : Atom.t) : Affect.t list =
+let match_atom (pa : atom) (a : Atom.t) : Assign.t list =
   match pa, a with
   | Eq (mx, my), Eq (x, y) ->
-     [Affect.from_lists ~vars:[mx, x; my, y] ();
-      Affect.from_lists ~vars:[mx, y; my, x] ()]
+     [Assign.from_lists ~vars:[mx, x; my, y] ();
+      Assign.from_lists ~vars:[mx, y; my, x] ()]
   | Feat (mx, mf, my), Feat (x, f, y) ->
-     [Affect.from_lists ~vars:[mx, x; my, y] ~feats:[mf, f] ()]
+     [Assign.from_lists ~vars:[mx, x; my, y] ~feats:[mf, f] ()]
   | Abs (mx, mf), Abs (x, f) ->
-     [Affect.from_lists ~vars:[mx, x] ~feats:[mf, f] ()]
+     [Assign.from_lists ~vars:[mx, x] ~feats:[mf, f] ()]
   | Fen (mx, mfs), Fen (x, fs) ->
-     [Affect.from_lists ~vars:[mx, x] ~feat_sets:[mfs, fs] ()]
+     [Assign.from_lists ~vars:[mx, x] ~feat_sets:[mfs, fs] ()]
   | Sim (mx, mfs, my), Sim (x, fs, y) ->
-     [Affect.from_lists ~vars:[mx, x; my, y] ~feat_sets:[mfs, fs] ();
-      Affect.from_lists ~vars:[mx, y; my, x] ~feat_sets:[mfs, fs] ()]
+     [Assign.from_lists ~vars:[mx, x; my, y] ~feat_sets:[mfs, fs] ();
+      Assign.from_lists ~vars:[mx, y; my, x] ~feat_sets:[mfs, fs] ()]
   | _ ->
      []
 
@@ -40,7 +40,7 @@ type literal =
   | Pos of atom
   | Neg of atom
 
-let match_literal (pl : literal) (l : Literal.t) : Affect.t list =
+let match_literal (pl : literal) (l : Literal.t) : Assign.t list =
   match pl, l with
   | Pos pa, Pos a -> match_atom pa a
   | Neg pa, Neg a -> match_atom pa a
@@ -64,19 +64,19 @@ let%test _ =
     (Pos (Abs (mx, mg)))
     [Pos (Feat (x, f, y)); Pos (Abs (x, g))]
   =
-    [Affect.from_lists ~vars:[mx, x] ~feats:[mg, g] (),
+    [Assign.from_lists ~vars:[mx, x] ~feats:[mg, g] (),
      [Pos (Feat (x, f, y))]]
 
 let rec match_ pls ls =
   let open OptionMonad in
   match pls with
-  | [] -> [Affect.empty, ls]
+  | [] -> [Assign.empty, ls]
   | pl :: pls' ->
      match_literal_l pl ls
      |> List.map_flatten (fun (aff1, ls1) ->
             match_ pls' ls1
             |> List.map_filter (fun (aff2, ls2) ->
-                   Affect.merge aff1 aff2 >>= fun aff ->
+                   Assign.merge aff1 aff2 >>= fun aff ->
                    Some (aff, ls2)))
 
 let find ?(pred=(fun _ -> true)) pls ls =
