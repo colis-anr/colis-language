@@ -48,15 +48,10 @@ module Set = struct
   include Set.Make(Self)
 
   let pp fmt fs =
-    let fpf = Format.fprintf in
     match elements fs with
-    | [] ->
-       fpf fmt "[]"
-    | f :: fs ->
-       fpf fmt "[";
-       pp fmt f;
-       List.iter (fpf fmt ", %a" pp) fs;
-       fpf fmt "]"
+    | [] -> ()
+    | f :: fs -> pp fmt f;
+                 List.iter (Format.fprintf fmt ", %a" pp) fs
 end
 
 module Map = Map.Make(Self)

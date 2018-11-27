@@ -77,7 +77,7 @@ let apply_rules_on_disj rules disj =
   if changes then Some disj else None
 
 let rec normalize limit d =
-  Log.debug (fun m -> m "Normalizing:@\n%a" Conj.pp_disj d);
+  Log.debug (fun m -> m "Normalizing@ %a" Conj.pp_disj d);
   assert (limit >= 0);
   match apply_rules_on_disj Rules.all d with
   | None ->

@@ -22,11 +22,7 @@ module Set = struct
 
   let pp fmt fs =
     match elements fs with
-    | [] ->
-       fpf fmt "⊤"
-    | f :: fs ->
-       fpf fmt "(";
-       pp fmt f;
-       List.iter (fpf fmt " ∧ %a" pp) fs;
-       fpf fmt ")"
+    | [] -> ()
+    | f :: fs -> pp fmt f;
+                 List.iter (fpf fmt " ∧ %a" pp) fs
 end
