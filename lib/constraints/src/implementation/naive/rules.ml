@@ -1,5 +1,63 @@
 open Constraints_common open Atom open Literal open OptionMonad
 
+let accessibility c =
+  (* Create the graph and fill it. *)
+  let reach = Hashtbl.create 8 in
+  let edges = Hashtbl.create 8 in
+  Literal.Set.iter
+    (function
+     | Pos (Feat (x, _, y)) ->
+        Hashtbl.replace reach y ();
+        Hashtbl.add edges x y
+     | _ -> ())
+    c;
+  (* Create a queue and add the nodes that are reachable from
+     nobody. *)
+  let queue = Queue.create () in
+  Hashtbl.iter
+    (fun x _ ->
+      if not (Hashtbl.mem reach x) then
+        Queue.push (x, Var.Set.empty) queue)
+    edges;
+  let res = Hashtbl.create 8 in
+  let rec aux () =
+    if not (Queue.is_empty queue) then
+      (
+        (* Get a node [x] and a bunch of nodes [y]s
+           that lead to [x]. *)
+        let (x, ys) = Queue.pop queue in
+        (* We check for cycles. *)
+        if Var.Set.mem x ys then
+          raise (Invalid_argument "accessibility");
+        (* We add the [y]s to the result: they lead to [x]. *)
+        let ys =
+          match Hashtbl.find_opt res x with
+          | None -> ys
+          | Some zs -> Var.Set.union ys zs
+        in
+        Hashtbl.replace res x ys;
+        (* For each node [z] accessible from [x], we carry on. *)
+        let ys = Var.Set.add x ys in
+        Hashtbl.find_all edges x
+        |> List.iter (fun z -> Queue.add (z, ys) queue);
+        aux ()
+      )
+  in
+  aux ();
+  Hashtbl.fold (fun x ys l -> (x, ys) :: l) res []
+
+let is_atom_about xs = function
+  | Abs (a, _) | Reg a | Dir a | Fen (a, _) ->
+     Var.Set.mem a xs
+  | Eq (a, b) | Feat (a, _, b) | Sim (a, _, b) ->
+     Var.Set.mem a xs || Var.Set.mem b xs
+
+let is_literal_about xs = function
+  | Pos a | Neg a -> is_atom_about xs a
+
+let remove_literals_about_in_literal_set xs =
+  Literal.Set.filter (fun l -> not (is_literal_about xs l))
+
 let replace_var_in_atom x y = function
   | Eq (a, b) -> Eq ((if Var.equal a x then y else a), (if Var.equal b x then y else b))
   | Feat (a, f, b) -> Feat ((if Var.equal a x then y else a), f, (if Var.equal b x then y else b))
@@ -21,8 +79,6 @@ let (&) l s = Literal.Set.add l s
 let (x, y, z) = Metavar.fresh3 ()
 let (f, g) = Metavar.fresh2 ()
 let (fs, gs) = Metavar.fresh2 ()
-
-(* FIXME: C-Cycle *)
 
 let c_feat_abs (_, c) =
   let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Abs (x, f))] in
@@ -306,8 +362,29 @@ let p_nsim (es, c) =
   let gs = Assign.feat_set aff gs in
   Some [es, Pos (Sim (x, fs, y)) & Neg (Sim (x, gs, z)) & Neg (Sim (y, gs, z)) & c]
 
+(* ========================================================================== *)
+(* ============================== [ C-Cycle ] =============================== *)
+(* ========================================================================== *)
+
+let c_cycle (es, c) =
+  try
+    let xs =
+      accessibility c
+      |> List.filter (fun (x, ys) ->
+             Var.Set.mem x es && Var.Set.subset ys es)
+      |> List.map (fun (x, _) -> x)
+      |> Var.Set.of_list
+    in
+    Some [Var.Set.diff es xs, remove_literals_about_in_literal_set xs c]
+  with
+    Invalid_argument _ -> Some []
+
+(* ========================================================================== *)
+(* ============================= [ All Rules ] ============================== *)
+(* ========================================================================== *)
+
 let all : (string * (Conj.t -> Conj.disj option)) list = [
-    (* "C-Cycle",      c_cycle; *)
+    "C-Cycle",      c_cycle;
     "C-Feat-Abs",   c_feat_abs;
     "C-Feat-Fen",   c_feat_fen;
     "C-NEq-Refl",   c_neq_refl;
