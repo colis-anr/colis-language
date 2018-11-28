@@ -42,6 +42,11 @@ module type S = sig
   val sim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
   val nsim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
 
+  (** {2 Macros} *)
+
+  val resolve : Var.t -> Path.t -> Path.t -> Var.t -> t
+  val similar : Var.t -> Var.t -> Path.t -> Path.t -> Var.t -> Var.t -> t
+
   (** {2 Satisfiable clauses} *)
 
   type sat_conj
@@ -112,4 +117,32 @@ module Make (I : Constraints_implementation.S) : S = struct
 
   let or_ r1 r2 = fun c ->
     (c |> r1) @ (c |> r2)
+
+  let rec resolve x pi q z =
+    match Path.split_first_rel q with
+    | None -> eq x z
+    | Some (Down f, q) -> exists (fun y -> feat x f y & resolve y (x :: pi) q z)
+    | Some (Here, q) -> resolve x pi q z
+    | Some (Up, q) ->
+       match pi with
+       | [] -> resolve x [] q z
+       | y::pi -> resolve y pi q z
+
+  let resolve r cwd q z =
+    match q with
+    | Path.Abs q -> resolve r [] Path.(rel (concat cwd q)) z
+    | Path.Rel q -> resolve r [] q z
+
+  let rec similar x x' p z z' =
+    match p with
+    | [] ->
+       eq x z & eq x' z'
+    | f::p ->
+       exists2 @@ fun y y' ->
+       feat x f y & feat x' f y' & sim1 x f x' & similar y y' p z z'
+
+  let similar r r' cwd q z z' =
+    match q with
+    | Path.Abs q -> similar r r' Path.(normalize (Abs q)) z z'
+    | Path.Rel q -> similar r r' Path.(normalize (concat cwd q)) z z'
 end
