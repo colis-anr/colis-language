@@ -45,6 +45,7 @@ module type S = sig
   (** {2 Macros} *)
 
   val resolve : Var.t -> Path.t -> Path.t -> Var.t -> t
+  val noresolve : Var.t -> Path.t -> Path.t -> t
   val similar : Var.t -> Var.t -> Path.t -> Path.t -> Var.t -> Var.t -> t
 
   (** {2 Satisfiable clauses} *)
@@ -130,8 +131,25 @@ module Make (I : Constraints_implementation.S) : S = struct
 
   let resolve r cwd q z =
     match q with
-    | Path.Abs q -> resolve r [] Path.(rel (concat cwd q)) z
-    | Path.Rel q -> resolve r [] q z
+    | Path.Abs q -> resolve r [] q z
+    | Path.Rel q -> resolve r [] Path.(rel (concat cwd q)) z
+
+  let rec noresolve x pi q =
+    (* Invariant: dir(x). *)
+    match Path.split_first_rel q with
+    | None -> (fun _ -> []) (* false *)
+    | Some (Down f, q) -> or_ (abs x f) (exists (fun y -> feat x f y & (or_ (ndir y) (dir y & noresolve y (x::pi) q))))
+    | Some (Here, q) -> noresolve x [] q
+    | Some (Up, q) ->
+       match pi with
+       | [] -> noresolve x [] q
+       | y::pi -> noresolve y pi q
+
+  let noresolve r cwd q =
+    dir r
+    & match q with
+      | Path.Abs q -> noresolve r [] q
+      | Path.Rel q -> noresolve r [] Path.(rel (concat cwd q))
 
   let rec similar x x' p z z' =
     match p with
