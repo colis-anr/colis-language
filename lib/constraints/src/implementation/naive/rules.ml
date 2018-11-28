@@ -46,18 +46,6 @@ let accessibility c =
   aux ();
   Hashtbl.fold (fun x ys l -> (x, ys) :: l) res []
 
-let is_atom_about xs = function
-  | Abs (a, _) | Reg a | Dir a | Fen (a, _) ->
-     Var.Set.mem a xs
-  | Eq (a, b) | Feat (a, _, b) | Sim (a, _, b) ->
-     Var.Set.mem a xs || Var.Set.mem b xs
-
-let is_literal_about xs = function
-  | Pos a | Neg a -> is_atom_about xs a
-
-let remove_literals_about_in_literal_set xs =
-  Literal.Set.filter (fun l -> not (is_literal_about xs l))
-
 let replace_var_in_atom x y = function
   | Eq (a, b) -> Eq ((if Var.equal a x then y else a), (if Var.equal b x then y else b))
   | Feat (a, f, b) -> Feat ((if Var.equal a x then y else a), f, (if Var.equal b x then y else b))
@@ -79,6 +67,10 @@ let (&) l s = Literal.Set.add l s
 let (x, y, z) = Metavar.fresh3 ()
 let (f, g) = Metavar.fresh2 ()
 let (fs, gs) = Metavar.fresh2 ()
+
+let c_cycle (_, c) =
+  try ignore (accessibility c); None
+  with Invalid_argument _ -> Some []
 
 let c_feat_abs (_, c) =
   let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Abs (x, f))] in
@@ -361,23 +353,6 @@ let p_nsim (es, c) =
   let fs = Assign.feat_set aff fs in
   let gs = Assign.feat_set aff gs in
   Some [es, Pos (Sim (x, fs, y)) & Neg (Sim (x, gs, z)) & Neg (Sim (y, gs, z)) & c]
-
-(* ========================================================================== *)
-(* ============================== [ C-Cycle ] =============================== *)
-(* ========================================================================== *)
-
-let c_cycle (es, c) =
-  try
-    let xs =
-      accessibility c
-      |> List.filter (fun (x, ys) ->
-             Var.Set.mem x es && Var.Set.subset ys es)
-      |> List.map (fun (x, _) -> x)
-      |> Var.Set.of_list
-    in
-    Some [Var.Set.diff es xs, remove_literals_about_in_literal_set xs c]
-  with
-    Invalid_argument _ -> Some []
 
 (* ========================================================================== *)
 (* ============================= [ All Rules ] ============================== *)
