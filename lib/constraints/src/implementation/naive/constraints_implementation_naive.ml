@@ -21,3 +21,5 @@ let fen x fs = add (Pos (Fen (x, fs)))
 let nfen x fs = add (Neg (Fen (x, fs)))
 let sim x fs y = add (Pos (Sim (x, fs, y)))
 let nsim x fs y = add (Neg (Sim (x, fs, y)))
+
+let pp = Conj.pp
