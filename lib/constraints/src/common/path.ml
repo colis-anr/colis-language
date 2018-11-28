@@ -3,10 +3,10 @@ type comp =
   | Here
   | Down of Feat.t
 
-(* let comp_from_string = function
- *   | ".." -> Up
- *   | "." -> Here
- *   | s -> Down (Feat.from_string s) (\*FIXME: check validity*\) *)
+let comp_from_string = function
+  | ".." -> Up
+  | "." -> Here
+  | s -> Down (Feat.from_string s) (*FIXME: check validity*)
 
 type rel = comp list
 
@@ -16,7 +16,22 @@ let split_first_rel = function
   | [] -> None
   | h::t -> Some (h, t)
 
+let rec split_last_rel = function
+  | [] -> None
+  | [e] -> Some ([], e)
+  | h::t ->
+     match split_last_rel t with
+     | None -> assert false
+     | Some (t, e) -> Some (h::t, e)
+
 type t = Abs of rel | Rel of rel
+
+let from_string s =
+  String.split_on_char '/' s
+  |> function
+    | [] -> failwith "Path.from_string"
+    | "" :: p -> Abs (List.map comp_from_string p)
+    | p -> Rel (List.map comp_from_string p)
 
 let rel = function
   | Abs q -> q
