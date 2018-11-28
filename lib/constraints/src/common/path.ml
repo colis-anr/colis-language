@@ -1,41 +1,41 @@
-type component =
+type comp =
   | Up
   | Here
   | Down of Feat.t
 
-let component_from_string = function
-  | ".." -> Up
-  | "." -> Here
-  | s -> Down (Feat.from_string s) (*FIXME: check validity*)
+(* let comp_from_string = function
+ *   | ".." -> Up
+ *   | "." -> Here
+ *   | s -> Down (Feat.from_string s) (\*FIXME: check validity*\) *)
 
-type t = component list
+type rel = comp list
 
-let empty = []
+let empty_rel = []
 
-let to_list p = p
+let split_first_rel = function
+  | [] -> None
+  | h::t -> Some (h, t)
 
-let split_first = function
-  | [] -> failwith "split_first"
-  | h::t -> (h, t)
+type t = Abs of rel | Rel of rel
 
-let rec split_last = function
-  | [] -> failwith "split_last"
-  | [e] -> [], e
-  | h::t ->
-     let t',e = split_last t in
-     h::t',e
+let rel = function
+  | Abs q -> q
+  | Rel q -> q
 
-let from_string s =
-  String.split_on_char '/' s
-  |> List.map component_from_string
+let concat p q =
+  match p with
+  | Abs p -> Abs (p @ q)
+  | Rel p -> Rel (p @ q)
 
-let normalize_syntactically p =
-  let rec aux q p =
+let normalize p =
+  let rec normalize q p =
     match q, p with
-    |      _,            [] -> []
-    |      q, (Down f) :: p -> aux (f :: q) p
-    |      q,  Here    :: p -> aux q p
-    |     [],  Up      :: p -> aux [] p
-    | _ :: q,  Up      :: p -> aux q p
+    | q, [] -> List.rev q
+    | q, Down f :: p -> normalize (f :: q) p
+    | q, Here :: p -> normalize q p
+    | [], Up :: p -> normalize [] p
+    | _::q, Up :: p -> normalize q p
   in
-  aux [] p
+  match p with
+  | Abs p -> normalize [] p
+  | Rel _ -> failwith "Path.normalize"
