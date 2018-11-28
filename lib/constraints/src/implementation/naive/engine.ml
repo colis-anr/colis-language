@@ -76,15 +76,42 @@ let apply_rules_on_disj rules disj =
   in
   if changes then Some disj else None
 
+let is_atom_about xs = function
+  | Atom.Abs (a, _) | Reg a | Dir a | Fen (a, _) ->
+     Var.Set.mem a xs
+  | Eq (a, b) | Feat (a, _, b) | Sim (a, _, b) ->
+     Var.Set.mem a xs || Var.Set.mem b xs
+
+let is_literal_about xs = function
+  | Literal.Pos a | Neg a -> is_atom_about xs a
+
+let remove_literals_about_in_literal_set xs =
+  Literal.Set.filter (fun l -> not (is_literal_about xs l))
+
 let rec normalize limit d =
-  Log.debug (fun m -> m "Normalizing@ %a" Conj.pp_disj d);
+  Log.debug (fun m -> m "%a" Conj.pp_disj d);
   assert (limit >= 0);
   match apply_rules_on_disj Rules.all d with
   | None ->
-     Log.debug (fun m -> m "Normal form reached");
      d
   | Some d ->
      normalize (limit-1) d
 
-let normalize ?(limit=10) disj =
-  normalize limit disj
+let normalize ?(limit=50) (disj : Conj.disj) : Conj.disj =
+  Log.debug (fun m -> m "Normalizing");
+  let disj' = normalize limit disj in
+  let disj' =
+    List.map
+      (fun (es, c) ->
+        let xs =
+          Rules.accessibility c
+          |> List.filter (fun (x, ys) ->
+                 Var.Set.mem x es && Var.Set.subset ys es)
+          |> List.map (fun (x, _) -> x)
+          |> Var.Set.of_list
+        in
+        (Var.Set.diff es xs, remove_literals_about_in_literal_set xs c))
+      disj'
+  in
+  Log.debug (fun m -> m "Normal form reached");
+  disj'
