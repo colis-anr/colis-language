@@ -9,6 +9,8 @@ module Constraints
 
   type clause
   (** abstract type for tree constraints, [IMPORTANT] which are always satisfiable *)
+
+  type path
 end
 
 (** A symbolic file system.
@@ -24,7 +26,7 @@ module Filesystem
   type filesystem = {
     root : variable;
     clause : clause;
-    cwd : list feature;
+    cwd : path;
   }
 end
 
@@ -130,7 +132,7 @@ module Interpreter
   use Results as Rs
 
   (* Implemented in OCaml *)
-  val function interp_utility state identifier (list string) : set (state, bool)
+  val function interp_utility identifier (list string) state : set (state, bool)
 
   let rec interp_instruction (inp:input) (ctx:context) (sta:state) (ins:instruction) : Rs.t unit diverges =
     match ins with
@@ -198,7 +200,7 @@ module Interpreter
 
     | ICallUtility id le ->
       let args, sta' = interp_list_expression inp ctx sta le in
-      let res : set (state, bool) = interp_utility sta'.state id args in
+      let res : set (state, bool) = interp_utility id args sta'.state in
       let stas =
         let inject_state r =
           let ctx = {ctx with result = snd r} in

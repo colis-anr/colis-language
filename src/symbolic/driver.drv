@@ -1,7 +1,8 @@
 module symbolicInterpreter.Constraints
-  syntax type clause "Constraints.Clause.conj"
+  syntax type clause "Constraints.Clause.sat_conj"
   syntax type variable "Constraints.Var.t"
   syntax type feature "Constraints.Feat.t"
+  syntax type path "Constraints.Path.t"
 end
 
 module symbolicInterpreter.Interpreter
