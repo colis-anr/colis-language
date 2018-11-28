@@ -24,3 +24,5 @@ let sim _ _ _ () = [()]
 let nsim _ _ _ () = [()]
 
 let quantify_over _ () = [()]
+
+let pp _ _ = ()

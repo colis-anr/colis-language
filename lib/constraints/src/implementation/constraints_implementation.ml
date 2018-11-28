@@ -27,6 +27,8 @@ module type S = sig
   val nsim : Var.t -> Feat.Set.t -> Var.t -> t -> t list
 
   val quantify_over : Var.t -> t -> t list
+
+  val pp : Format.formatter -> t -> unit
 end
 
 module Dummy = (Dummy : S)

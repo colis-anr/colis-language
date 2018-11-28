@@ -24,3 +24,5 @@ let sim _x _fs _y _c = assert false
 let nsim _x _fs _y _c = assert false
 
 let quantify_over _x _c = assert false
+
+let pp _ _ = assert false
