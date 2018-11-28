@@ -21,3 +21,5 @@ val rel : t -> rel
 val concat : t -> rel -> t
 
 val normalize : t -> Feat.t list
+
+val split_last : t -> (t * comp) option
