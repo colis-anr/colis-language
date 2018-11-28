@@ -15,16 +15,16 @@ type colis = AST.program
 let colis_from_lexbuf ?(filename="-") lexbuf =
   lexbuf.Lexing.lex_curr_p <-
     { lexbuf.Lexing.lex_curr_p
-    with Lexing.pos_fname = filename };
+      with Lexing.pos_fname = filename };
   try
     ColisParser.program ColisLexer.token lexbuf
   with
   | ColisLexer.LexerError s ->
-     let pos = lexbuf.Lexing.lex_curr_p in
-     raise (ParseError (s, pos))
+    let pos = lexbuf.Lexing.lex_curr_p in
+    raise (ParseError (s, pos))
   | ColisParser.Error ->
-     let pos = lexbuf.Lexing.lex_curr_p in
-     raise (ParseError ("", pos))
+    let pos = lexbuf.Lexing.lex_curr_p in
+    raise (ParseError ("", pos))
 
 let colis_from_channel ?(filename="-") channel =
   let lexbuf = Lexing.from_channel channel in
@@ -90,13 +90,30 @@ let run ~argument0 ?(arguments=[]) colis =
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
 
+let pp_comp fmt = function
+  | Constraints.Path.Here -> Format.pp_print_string fmt "."
+  | Up -> Format.pp_print_string fmt ".."
+  | Down f -> Constraints.Feat.pp fmt f
+
+(* TODO replace with Path.pp *)
+let path_pp fmt path =
+  let rel =
+    match path with
+    | Constraints.Path.Abs rel ->
+      Format.pp_print_string fmt "/";
+      rel
+    | Rel rel ->
+      rel
+  in
+  let pp_sep fmt () = pp_print_string fmt "/" in
+  pp_print_list ~pp_sep pp_comp fmt rel
+
 let print_symbolic_filesystem fmt fs =
   let open SymbolicInterpreter__Filesystem in
   let open Constraints in
-  let slash fmt () = pp_print_string fmt "/" in
-  fprintf fmt "root: %a@\n" Var.pp_print fs.root;
-  fprintf fmt "cwd: %a@\n" (pp_print_list ~pp_sep:slash Feat.pp_print) fs.cwd;
-  fprintf fmt "clause: %a@\n" Clause.pp_print_conj fs.clause
+  fprintf fmt "root: %a@\n" Var.pp fs.root;
+  fprintf fmt "cwd: %a@\n" path_pp fs.cwd;
+  fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt sta =
   let open SymbolicInterpreter__State in
@@ -127,8 +144,8 @@ let run_symbolic ~argument0 ?(arguments=[]) colis =
   let state =
     let filesystem =
       let root = Constraints.Var.fresh ~hint:"root" () in
-      let clause = Constraints.Clause.ctrue in
-      { Filesystem.root; clause; cwd = [] }
+      let clause = Constraints.Clause.true_ in
+      { Filesystem.root; clause; cwd = Constraints.Path.Abs [] }
     in {State.filesystem; stdin = Stdin.empty; stdout = Stdout.empty} in
   let context = { Context.empty_context with arguments } in
   let normals, failures = interp_program input context state colis in
