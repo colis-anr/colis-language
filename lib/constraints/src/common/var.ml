@@ -2,7 +2,7 @@ type t =
   { id : int ;
     hint : string option }
 
-let show v =
+let to_string v =
   let hint = match v.hint with None -> "?" | Some h -> h in
   let number =
     let number = string_of_int v.id in
@@ -27,7 +27,7 @@ let show v =
   hint ^ number
 
 let pp fmt v =
-  Format.pp_print_string fmt (show v)
+  Format.pp_print_string fmt (to_string v)
 
 let fresh =
   let free = ref 0 in
