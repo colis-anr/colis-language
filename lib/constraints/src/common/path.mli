@@ -1,17 +1,22 @@
-type component =
+type comp =
   | Up
   | Here
   | Down of Feat.t
 
-type t
+type rel = comp list
 
-val empty : t
+val empty_rel : rel
 
-val to_list : t -> component list
+val split_first_rel : rel -> (comp * rel) option
 
-val split_first : t -> component * t
-val split_last : t -> t * component
+type t =
+  | Abs of rel
+  | Rel of rel
 
-val from_string : string -> t
+(* val from_string : string -> t *)
 
-val normalize_syntactically : t -> Feat.t list
+val rel : t -> rel
+
+val concat : t -> rel -> t
+
+val normalize : t -> Feat.t list
