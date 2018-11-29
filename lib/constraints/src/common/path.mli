@@ -16,6 +16,9 @@ type t =
 
 val from_string : string -> t
 
+val to_string : t -> string
+val pp : Format.formatter -> t -> unit
+
 val rel : t -> rel
 
 val concat : t -> rel -> t
