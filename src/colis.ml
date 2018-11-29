@@ -156,10 +156,11 @@ let run_symbolic ~argument0 ?(arguments=[]) colis =
   List.iter
     (fun state ->
        let normals, failures = Interpreter.interp_program input context state colis in
-       printf "* Initial state";
+       printf "* Initial state@\n";
        printf "@\n- @[%a@]@\n" print_symbolic_state state;
        printf "* Success states@\n";
-       List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list normals);
+       List.iter (printf "@\n- @[%a@]" print_symbolic_state) (BatSet.to_list normals);
+       printf "@\n";
        printf "* Failure states@\n";
-       List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list failures))
+       List.iter (printf "@\n- @[%a@]" print_symbolic_state) (BatSet.to_list failures))
     states
