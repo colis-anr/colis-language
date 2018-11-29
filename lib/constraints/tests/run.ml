@@ -26,7 +26,12 @@ let tests =
       expectation = Unsat ;
       formula =
         feat x f y & sim x Feat.Set.empty x' & nfeat x' f y
-    }
+    } ;
+    {
+      expectation = Unsat ;
+      formula =
+        nsim x Feat.Set.empty y & ndir x & ndir y
+    } ;
   ]
 
 let src = Logs.Src.create "colis-language.constraints.test" ~doc:"Logging from the constraints' test engine"
