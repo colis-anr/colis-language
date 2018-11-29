@@ -19,7 +19,7 @@ module type S = sig
   val var2 : (Var.t -> Var.t -> t) -> t
 
   val exists : ?hint:string -> (Var.t -> t) -> t
-  val exists2 : (Var.t -> Var.t -> t) -> t
+  val exists2 : ?hint1:string -> ?hint2:string -> (Var.t -> Var.t -> t) -> t
 
   val eq : Var.t -> Var.t -> t
   val neq : Var.t -> Var.t -> t
@@ -106,9 +106,9 @@ module Make (I : Constraints_implementation.S) : S = struct
     let x = Var.fresh ?hint () in
     c |> f x |> List.map (I.quantify_over x) |> List.flatten
 
-  let exists2 f =
-    exists @@ fun x ->
-    exists @@ fun y ->
+  let exists2 ?hint1 ?hint2 f =
+    exists ?hint:hint1 @@ fun x ->
+    exists ?hint:hint2 @@ fun y ->
     f x y
 
   let and_ r1 r2 = fun c ->
