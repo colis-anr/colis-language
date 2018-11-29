@@ -50,8 +50,7 @@ let replace_var_in_atom x y = function
   | Eq (a, b) -> Eq ((if Var.equal a x then y else a), (if Var.equal b x then y else b))
   | Feat (a, f, b) -> Feat ((if Var.equal a x then y else a), f, (if Var.equal b x then y else b))
   | Abs (a, f) -> Abs ((if Var.equal a x then y else a), f)
-  | Reg a -> Reg (if Var.equal a x then y else a)
-  | Dir a -> Dir (if Var.equal a x then y else a)
+  | Kind (a, k) -> Kind ((if Var.equal a x then y else a), k)
   | Fen (a, fs) -> Fen ((if Var.equal a x then y else a), fs)
   | Sim (a, fs, b) -> Sim ((if Var.equal a x then y else a), fs, (if Var.equal b x then y else b))
 
@@ -67,6 +66,7 @@ let (&) l s = Literal.Set.add l s
 let (x, y, z) = Metavar.fresh3 ()
 let (f, g) = Metavar.fresh2 ()
 let (fs, gs) = Metavar.fresh2 ()
+let (k, l) = Metavar.fresh2 ()
 
 let c_cycle (_, c) =
   try ignore (accessibility c); None
@@ -90,6 +90,13 @@ let c_neq_refl (_, c) =
 let c_nsim_refl (_, c) =
   let pat = Pattern.[Neg (Sim (x, fs, x))] in
   Pattern.find pat c >>= fun _ -> Some []
+
+let c_kinds (_, c) =
+  let pat = Pattern.[Pos (Kind (x, k)); Pos (Kind (x, l))] in
+  Pattern.find
+    ~pred:(fun aff -> Assign.kind aff k <> Assign.kind aff l)
+    pat c
+  >>= fun _ -> Some []
 
 let s_eq (es, c) =
   let pat = Pattern.[Pos (Eq (x, y))] in
@@ -221,6 +228,19 @@ let r_nfeat (es, c) =
       let z = Var.fresh () in
       (Var.Set.add z es, Pos (Feat (x, f, z)) & Neg (Sim (y, Feat.Set.empty, z)) & c)
     ]
+
+let r_nkind (es, c) =
+  let pat = Pattern.[Neg (Kind (x, k))] in
+  Pattern.find pat c >>= fun (aff, c) ->
+  let x = Assign.var aff x in
+  let k = Assign.kind aff k in
+  Some (
+      Kind.all
+      |> List.filter ((<>) k)
+      |> List.map
+           (fun k ->
+             (es, Pos (Kind (x, k)) & c))
+    )
 
 let r_nabs (es, c) =
   let pat = Pattern.[Neg (Abs (x, f))] in

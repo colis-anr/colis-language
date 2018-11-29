@@ -16,6 +16,7 @@ type atom =
   | Eq of Metavar.t * Metavar.t
   | Feat of Metavar.t * Metavar.t * Metavar.t
   | Abs of Metavar.t * Metavar.t
+  | Kind of Metavar.t * Metavar.t
   | Fen of Metavar.t * Metavar.t
   | Sim of Metavar.t * Metavar.t * Metavar.t
 
@@ -28,6 +29,8 @@ let match_atom (pa : atom) (a : Atom.t) : Assign.t list =
      [Assign.from_lists ~vars:[mx, x; my, y] ~feats:[mf, f] ()]
   | Abs (mx, mf), Abs (x, f) ->
      [Assign.from_lists ~vars:[mx, x] ~feats:[mf, f] ()]
+  | Kind (mx, mk), Kind (x, k) ->
+     [Assign.from_lists ~vars:[mx, x] ~kinds:[mk, k] ()]
   | Fen (mx, mfs), Fen (x, fs) ->
      [Assign.from_lists ~vars:[mx, x] ~feat_sets:[mfs, fs] ()]
   | Sim (mx, mfs, my), Sim (x, fs, y) ->

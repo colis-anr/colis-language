@@ -77,7 +77,7 @@ let apply_rules_on_disj rules disj =
   if changes then Some disj else None
 
 let is_atom_about xs = function
-  | Atom.Abs (a, _) | Reg a | Dir a | Fen (a, _) ->
+  | Atom.Abs (a, _) | Kind (a, _) | Fen (a, _) ->
      Var.Set.mem a xs
   | Eq (a, b) | Feat (a, _, b) | Sim (a, _, b) ->
      Var.Set.mem a xs || Var.Set.mem b xs
