@@ -271,11 +271,10 @@ let one_difference_in x y fs (es, c) =
      (Var.Set.add z (Var.Set.add z' es), Pos (Feat (x, f, z)) & Pos (Feat (y, f, z')) & Neg (Sim (z, Feat.Set.empty, z')) & c)]
   in
   Feat.Set.elements fs
-  |> List.fold_left
-       (fun disj f ->
-         List.map (difference_in x y f) disj
-         |> List.flatten)
-       [es, c]
+  |> List.map
+       (fun f ->
+         difference_in x y f (es, c))
+  |> List.flatten
 
 let r_nfen_fen (es, c) =
   let pat = Pattern.[Pos (Fen (x, fs)); Neg (Fen (x, gs))] in

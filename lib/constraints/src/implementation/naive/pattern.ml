@@ -23,19 +23,19 @@ type atom =
 let match_atom (pa : atom) (a : Atom.t) : Assign.t list =
   match pa, a with
   | Eq (mx, my), Eq (x, y) ->
-     [Assign.from_lists ~vars:[mx, x; my, y] ();
-      Assign.from_lists ~vars:[mx, y; my, x] ()]
+     (match Assign.from_lists ~vars:[mx, x; my, y] () with None -> [] | Some a -> [a])
+     @ (match Assign.from_lists ~vars:[mx, y; my, x] () with None -> [] | Some a -> [a])
   | Feat (mx, mf, my), Feat (x, f, y) ->
-     [Assign.from_lists ~vars:[mx, x; my, y] ~feats:[mf, f] ()]
+     (match Assign.from_lists ~vars:[mx, x; my, y] ~feats:[mf, f] () with None -> [] | Some a -> [a])
   | Abs (mx, mf), Abs (x, f) ->
-     [Assign.from_lists ~vars:[mx, x] ~feats:[mf, f] ()]
+     (match Assign.from_lists ~vars:[mx, x] ~feats:[mf, f] () with None -> [] | Some a -> [a])
   | Kind (mx, mk), Kind (x, k) ->
-     [Assign.from_lists ~vars:[mx, x] ~kinds:[mk, k] ()]
+     (match Assign.from_lists ~vars:[mx, x] ~kinds:[mk, k] () with None -> [] | Some a -> [a])
   | Fen (mx, mfs), Fen (x, fs) ->
-     [Assign.from_lists ~vars:[mx, x] ~feat_sets:[mfs, fs] ()]
+     (match Assign.from_lists ~vars:[mx, x] ~feat_sets:[mfs, fs] () with None -> [] | Some a -> [a])
   | Sim (mx, mfs, my), Sim (x, fs, y) ->
-     [Assign.from_lists ~vars:[mx, x; my, y] ~feat_sets:[mfs, fs] ();
-      Assign.from_lists ~vars:[mx, y; my, x] ~feat_sets:[mfs, fs] ()]
+     (match Assign.from_lists ~vars:[mx, x; my, y] ~feat_sets:[mfs, fs] () with None -> [] | Some a -> [a])
+     @ (match Assign.from_lists ~vars:[mx, y; my, x] ~feat_sets:[mfs, fs] () with None -> [] | Some a -> [a])
   | _ ->
      []
 
@@ -57,6 +57,10 @@ let rec match_literal_l pl ls =
      @ List.map (fun (affect, ls) -> (affect, l :: ls)) (match_literal_l pl ls)
 
 let%test _ =
+  let unwrap = function
+    | None -> failwith "unwrap"
+    | Some x -> x
+  in
   let mx = Metavar.fresh () in
   let mg = Metavar.fresh () in
   let x = Var.fresh () in
@@ -67,7 +71,7 @@ let%test _ =
     (Pos (Abs (mx, mg)))
     [Pos (Feat (x, f, y)); Pos (Abs (x, g))]
   =
-    [Assign.from_lists ~vars:[mx, x] ~feats:[mg, g] (),
+    [unwrap (Assign.from_lists ~vars:[mx, x] ~feats:[mg, g] ()),
      [Pos (Feat (x, f, y))]]
 
 let rec match_ pls ls =

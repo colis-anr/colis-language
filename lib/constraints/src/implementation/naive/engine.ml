@@ -14,7 +14,7 @@ let apply_rule_on_conj (name, rule) conj =
      )
   | Some [conj'] ->
      if Conj.equal conj' conj then
-       None
+       None (* FIXME: no, it does not work! *)
      else
        (
          Log.debug (fun m -> m "Rule %s applied" name);
