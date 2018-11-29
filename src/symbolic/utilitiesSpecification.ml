@@ -23,15 +23,22 @@ let outcome_to_bool = function
 
 type case = {
   outcome : outcome;
-  spec : Clause.t
+  spec : Clause.t;
+  descr : string;
 }
+
+let debug msg state =
+  let open Semantics__Buffers in
+  let str = "[DBG] "^msg in
+  let stdout = Stdout.(output str state.stdout |> newline) in
+  {state with stdout}
 
 (** Create the corresponding filesystem, update the state and create corresponding
     result **)
-let apply_clause_to_state state outcome root clause =
+let apply_clause_to_state state case root clause =
   let filesystem = {clause; root; cwd=state.filesystem.cwd} in
-  let state' = { state with filesystem } in
-  let result = outcome_to_bool outcome in
+  let state' = debug case.descr { state with filesystem } in
+  let result = outcome_to_bool case.outcome in
   state', result
 
 let apply_case_to_state state root case : (state * bool) list =
@@ -40,7 +47,7 @@ let apply_case_to_state state root case : (state * bool) list =
   (* Quantify over the old state root *)
   |> List.map (Clause.quantify_over state.filesystem.root)
   |> List.flatten
-  |> List.map (apply_clause_to_state state case.outcome root)
+  |> List.map (apply_clause_to_state state case root)
 
 type specifications = Path.t -> Var.t -> Var.t -> case list
 

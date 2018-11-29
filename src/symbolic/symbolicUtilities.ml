@@ -1,3 +1,4 @@
+open Format
 open Constraints
 open Clause
 open UtilitiesSpecification
@@ -62,20 +63,20 @@ let interp_echo : utility =
 (*********************************************************************************)
 
 let interp_touch1 path_str =
-  let path = Path.from_string path_str in
-  match Path.split_last path with
+  let p = Path.from_string path_str in
+  match Path.split_last p with
   | Some (q, comp) ->
     under_specifications @@ fun cwd root root' ->
     let noop_cases =
-      let hint = last_comp_as_hint ~root path in [
-      (* The dir "path" exists and has "feat". *)
-      { outcome = Success ;
+      let hint = last_comp_as_hint ~root p in [
+      { descr = asprintf "touch %a: path resolves" Path.pp p;
+        outcome = Success ;
         spec =
           exists ?hint @@ fun y ->
-          resolve root cwd path y &
+          resolve root cwd p y &
           eq root root' };
-      (* The dir "path" does not exist. *)
-      { outcome = Error;
+      { descr = asprintf "touch %a: parent path does not resolve" Path.pp p;
+        outcome = Error;
         spec =
           noresolve root cwd q &
           eq root root' };
@@ -86,10 +87,10 @@ let interp_touch1 path_str =
         noop_cases
       | Down f ->
         let create_file_case =
-          (* The dir "path" exists but does not have "feat". *)
           let hintx = last_comp_as_hint ~root q in
           let hinty = Feat.to_string f in
-          { outcome = Success;
+          { descr = asprintf "touch %a: create file" Path.pp p;
+            outcome = Success;
             spec =
               exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
               resolve root cwd q x &
@@ -118,18 +119,18 @@ let interp_touch : utility =
 (*********************************************************************************)
 
 let interp_mkdir1 path_str =
-  let path = Path.from_string path_str in
-  match Path.split_last path with
+  let p = Path.from_string path_str in
+  match Path.split_last p with
   | None ->
     error ()
   | Some (q, (Here|Up)) ->
-    error ~msg:"mkdir: file exists" () (* TODO *)
+    error ~msg:"mkdir: file exists" () (* CHECK *)
   | Some (q, Down f) ->
     under_specifications @@ fun cwd root root' ->
     let hintx = last_comp_as_hint ~root q in
     let hinty = Feat.to_string f in [
-      (* The dir "path" exists but does not have "feat". *)
-      { outcome = Success;
+      { descr = asprintf "mkdir %a: create directory" Path.pp p;
+        outcome = Success;
         spec =
           exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
           exists ~hint:hinty @@ fun y ->
@@ -142,23 +143,25 @@ let interp_mkdir1 path_str =
           feat x' f y &
           dir y &
           fen y Feat.Set.empty };
-      (* The dir "path" exists and has "feat". *)
-      { outcome = Error;
+      { descr = asprintf "mkdir %a: target already exists" Path.pp p;
+        outcome = Error;
         spec =
           exists ?hint:hintx @@ fun x ->
           resolve root cwd q x &
           dir x &
           nabs x f &
           eq root root' };
-      (* The "path" resolves to a file *)
-      { outcome = Error;
+      (* The path "q" resolves to a file *)
+      { descr = asprintf "mkdir %a: parent path is file" Path.pp p;
+        outcome = Error;
         spec =
           exists ?hint:hintx @@ fun x ->
           resolve root cwd q x &
           ndir x &
           eq root root' };
-      (* The dir "path" does not exist. *)
-      { outcome = Error;
+      (* The dir "p" does not exist. *)
+      { descr = asprintf "mkdir %a: parent path does not resolve" Path.pp p;
+        outcome = Error;
         spec =
           noresolve root cwd q &
           eq root root'};
@@ -175,17 +178,19 @@ let interp_mkdir : utility =
 (*********************************************************************************)
 
 let interp_test_e path_str =
-  let path = Path.from_string path_str in
+  let p = Path.from_string path_str in
   under_specifications @@ fun cwd root root' ->
-  let hintx = last_comp_as_hint ~root path in [
-    { outcome = Success;
+  let hintx = last_comp_as_hint ~root p in [
+    { descr = asprintf "test -e %a: path resolves" Path.pp p;
+      outcome = Success;
       spec =
         exists ?hint:hintx @@ fun x ->
-        resolve root cwd path x &
+        resolve root cwd p x &
         eq root root' };
-    { outcome = Error;
+    { descr = asprintf "test -e %a: path does not resolve" Path.pp p;
+      outcome = Error;
       spec =
-        noresolve root cwd path &
+        noresolve root cwd p &
         eq root root' };
   ]
 
