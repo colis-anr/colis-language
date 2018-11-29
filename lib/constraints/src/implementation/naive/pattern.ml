@@ -1,17 +1,5 @@
 open Constraints_common
 
-module List = struct
-  include List
-
-  let map_filter f l =
-    l
-    |> fold_left (fun l x -> match f x with None -> l | Some y -> y :: l) []
-    |> rev
-
-  let map_flatten f l =
-    map f l |> flatten
-end
-
 type atom =
   | Eq of Metavar.t * Metavar.t
   | Feat of Metavar.t * Metavar.t * Metavar.t
@@ -20,79 +8,65 @@ type atom =
   | Fen of Metavar.t * Metavar.t
   | Sim of Metavar.t * Metavar.t * Metavar.t
 
-let match_atom (pa : atom) (a : Atom.t) : Assign.t list =
+let match_atom (pa : atom) (a : Atom.t) : Assign.t option list =
   match pa, a with
   | Eq (mx, my), Eq (x, y) ->
-     (match Assign.from_lists ~vars:[mx, x; my, y] () with None -> [] | Some a -> [a])
-     @ (match Assign.from_lists ~vars:[mx, y; my, x] () with None -> [] | Some a -> [a])
+     [Assign.from_lists ~vars:[mx, x; my, y] ();
+      Assign.from_lists ~vars:[mx, y; my, x] ()]
   | Feat (mx, mf, my), Feat (x, f, y) ->
-     (match Assign.from_lists ~vars:[mx, x; my, y] ~feats:[mf, f] () with None -> [] | Some a -> [a])
+     [Assign.from_lists ~vars:[mx, x; my, y] ~feats:[mf, f] ()]
   | Abs (mx, mf), Abs (x, f) ->
-     (match Assign.from_lists ~vars:[mx, x] ~feats:[mf, f] () with None -> [] | Some a -> [a])
+     [Assign.from_lists ~vars:[mx, x] ~feats:[mf, f] ()]
   | Kind (mx, mk), Kind (x, k) ->
-     (match Assign.from_lists ~vars:[mx, x] ~kinds:[mk, k] () with None -> [] | Some a -> [a])
+     [Assign.from_lists ~vars:[mx, x] ~kinds:[mk, k] ()]
   | Fen (mx, mfs), Fen (x, fs) ->
-     (match Assign.from_lists ~vars:[mx, x] ~feat_sets:[mfs, fs] () with None -> [] | Some a -> [a])
+     [Assign.from_lists ~vars:[mx, x] ~feat_sets:[mfs, fs] ()]
   | Sim (mx, mfs, my), Sim (x, fs, y) ->
-     (match Assign.from_lists ~vars:[mx, x; my, y] ~feat_sets:[mfs, fs] () with None -> [] | Some a -> [a])
-     @ (match Assign.from_lists ~vars:[mx, y; my, x] ~feat_sets:[mfs, fs] () with None -> [] | Some a -> [a])
-  | _ ->
-     []
+     [Assign.from_lists ~vars:[mx, x; my, y] ~feat_sets:[mfs, fs] ();
+      Assign.from_lists ~vars:[mx, y; my, x] ~feat_sets:[mfs, fs] ()]
+  | _ -> []
+
+let match_atom pa a : Assign.t Seq.t =
+  match_atom pa a
+  |> Seq.from_list
+  |> Seq.filter_map (fun x -> x)
 
 type literal =
   | Pos of atom
   | Neg of atom
 
-let match_literal (pl : literal) (l : Literal.t) : Assign.t list =
+let match_literal (pl : literal) (l : Literal.t) : Assign.t Seq.t =
   match pl, l with
   | Pos pa, Pos a -> match_atom pa a
   | Neg pa, Neg a -> match_atom pa a
-  | _ -> []
+  | _ -> Seq.empty
 
 let rec match_literal_l pl ls =
   match ls with
-  | [] -> []
+  | [] -> Seq.empty
   | l :: ls ->
-     List.map (fun affect -> (affect, ls)) (match_literal pl l)
-     @ List.map (fun (affect, ls) -> (affect, l :: ls)) (match_literal_l pl ls)
-
-let%test _ =
-  let unwrap = function
-    | None -> failwith "unwrap"
-    | Some x -> x
-  in
-  let mx = Metavar.fresh () in
-  let mg = Metavar.fresh () in
-  let x = Var.fresh () in
-  let y = Var.fresh () in
-  let f = Feat.from_string "f" in
-  let g = Feat.from_string "g" in
-  match_literal_l
-    (Pos (Abs (mx, mg)))
-    [Pos (Feat (x, f, y)); Pos (Abs (x, g))]
-  =
-    [unwrap (Assign.from_lists ~vars:[mx, x] ~feats:[mg, g] ()),
-     [Pos (Feat (x, f, y))]]
+     Seq.concat
+       (Seq.map (fun a -> (a, ls)) (match_literal pl l))
+       (Seq.map (fun (a, ls) -> (a, l::ls)) (match_literal_l pl ls))
 
 let rec match_ pls ls =
   let open OptionMonad in
   match pls with
-  | [] -> [Assign.empty, ls]
+  | [] -> Seq.return (Assign.empty, Literal.Set.of_list ls)
   | pl :: pls' ->
      match_literal_l pl ls
-     |> List.map_flatten (fun (aff1, ls1) ->
+     |> Seq.flat_map
+          (fun (a1, ls1) ->
             match_ pls' ls1
-            |> List.map_filter (fun (aff2, ls2) ->
-                   Assign.merge aff1 aff2 >>= fun aff ->
-                   Some (aff, ls2)))
+            |> Seq.filter_map
+                 (fun  (a2, ls2) ->
+                   Assign.merge a1 a2 >>= fun a ->
+                   Some (a, ls2)))
 
-let find ?(pred=(fun _ _ -> true)) pls es ls =
-  Literal.Set.elements ls
-  |> match_ pls
-  |> List.find_opt (fun (aff, _) -> pred aff es)
-  |> function
-    | None -> None
-    | Some (aff, ls) -> Some (aff, es, Literal.Set.of_list ls)
-
-(* let mem ?pred pls es ls =
- *   find ?pred pls es ls <> None *)
+let find_all ?(pred=(fun _ _ -> true)) pls (es, ls) =
+  match_ pls (Literal.Set.elements ls)
+  |> Seq.filter_map (fun (a, c) ->
+         if pred a (es, c) then
+           Some (a, (es, c))
+         else
+           None)
