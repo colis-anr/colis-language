@@ -12,14 +12,7 @@ type literal =
   | Pos of atom
   | Neg of atom
 
-val find :
-  ?pred:(Assign.t -> Var.Set.t -> bool) ->
-  literal list ->
-  Var.Set.t -> Literal.Set.t ->
-  (Assign.t * Var.Set.t * Literal.Set.t) option
-
-(* val mem :
- *   ?pred:(Assign.t -> Var.Set.t -> bool) ->
- *   literal list ->
- *   Var.Set.t -> Literal.Set.t ->
- *   bool *)
+val find_all :
+  ?pred:(Assign.t -> Conj.t -> bool) ->
+  literal list -> Conj.t ->
+  (Assign.t * Conj.t) Seq.t
