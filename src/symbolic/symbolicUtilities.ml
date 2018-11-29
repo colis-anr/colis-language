@@ -63,7 +63,7 @@ let interp_touch : utility =
               dir x &
               abs x f &
               similar root root' cwd q x x' &
-              feat x f x' &
+              sim x (Feat.Set.singleton f) x' &
               dir x' &
               feat x' f y &
               reg y };
