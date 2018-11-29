@@ -14,7 +14,7 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
     | Some (_, Down f) ->
       Some (Feat.to_string f)
     | None -> (* Empty parent path => root *)
-      Var.hint root
+      Some (Var.hint root)
     | Some (_, (Here|Up)) ->
       None (* We can’t know (if last component in parent path is a symbolic link) *)
 
