@@ -381,7 +381,8 @@ let s_kind (es, c) =
     pat c
   >>= fun (aff, c) ->
   let x = Assign.var aff x in
-  Some [es, Pos (Fen (x, Feat.Set.empty)) & c]
+  let k = Assign.kind aff k in
+  Some [es, Pos (Fen (x, Feat.Set.empty)) & Pos (Kind (x, k)) & c]
 
 (* ========================================================================== *)
 (* ============================= [ All Rules ] ============================== *)
