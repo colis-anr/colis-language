@@ -147,21 +147,6 @@ let interp_mkdir1 path_str : utility =
           dir y &
           fen y Feat.Set.empty
         end;
-      success_case
-        ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
-        begin
-          exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
-          exists ~hint:hinty @@ fun y ->
-          resolve root cwd q x &
-          dir x &
-          abs x f &
-          similar root root' cwd q x x' &
-          sim x (Feat.Set.singleton f) x' &
-          dir x' &
-          feat x' f y &
-          dir y &
-          fen y Feat.Set.empty
-        end;
       error_case
         ~descr:(asprintf "mkdir %a: target already exists" Path.pp p)
         begin
