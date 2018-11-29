@@ -57,16 +57,15 @@ let interp_touch : utility =
           (* The dir "path" exists but does not have "feat". *)
           { outcome = Success;
             spec =
-              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
-              exists ~hint:hinty @@ fun y ->
+              exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
               resolve root cwd q x &
               dir x &
               abs x f &
               similar root root' cwd q x x' &
               sim x (Feat.Set.singleton f) x' &
               dir x' &
-              feat x' f y &
-              reg y };
+              feat x' f y' &
+              reg y' };
           (* The dir "path" exists and has "feat". *)
           { outcome = Success ;
             spec =
