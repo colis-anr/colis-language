@@ -114,21 +114,22 @@ let interp_mkdir : utility =
               feat x' f y &
               dir y &
               fen y Feat.Set.empty };
-          (* The dir "path" does not exist. *)
+          (* The dir "path" exists and has "feat". *)
           { outcome = Error;
             spec =
-              exists @@ fun x ->
+              exists ?hint:hintx @@ fun x ->
               resolve root cwd q x &
               dir x &
               nabs x f &
               eq root root' };
-          (* The dir "path" exists and has "feat". *)
+          (* The "path" resolves to a file *)
           { outcome = Error;
             spec =
-              exists @@ fun x ->
+              exists ?hint:hintx @@ fun x ->
               resolve root cwd q x &
               ndir x &
               eq root root' };
+          (* The dir "path" does not exist. *)
           { outcome = Error;
             spec =
               noresolve root cwd q &
