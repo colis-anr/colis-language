@@ -32,10 +32,18 @@ let interp_echo : utility =
     let stdout = Stdout.(output str sta.stdout |> newline) in
     [ {sta with stdout}, true ]
 
-let last_comp_as_hint p =
-  match Path.split_last p with
-  | Some (_, Down f) -> Some (Feat.to_string f)
-  | _ -> None
+(** Get the name of the last path component, if any, or of the hint root variable
+    otherwise. The result is useful as a hint for creating variables for resolving the
+    path. *)
+let last_comp_as_hint: root:Var.t -> Path.t -> string option =
+  fun ~root path ->
+    match Path.split_last path with
+    | Some (_, Down f) ->
+      Some (Feat.to_string f)
+    | None -> (* Empty parent path => root *)
+      Var.hint root
+    | Some (_, (Here|Up)) ->
+      None (* We can’t know (if last component in parent path is a symbolic link) *)
 
 let interp_touch : utility =
   function
@@ -43,14 +51,14 @@ let interp_touch : utility =
       let path = Path.from_string path_str in
       match Path.split_last path with
       | Some (q, Down f) ->
-        let hintx = last_comp_as_hint q in (* TODO if None extract from root *)
-        under_specs @@ fun cwd root root' -> [
+        under_specs @@ fun cwd root root' ->
+        let hintx = last_comp_as_hint ~root q in
+        let hinty = Feat.to_string f in [
           (* The dir "path" exists but does not have "feat". *)
           { outcome = Success;
             spec =
-              exists ?hint:hintx @@ fun x ->
-              exists ?hint:hintx @@ fun x' ->
-              exists ~hint:(Feat.to_string f) @@ fun y ->
+              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
+              exists ~hint:hinty @@ fun y ->
               resolve root cwd q x &
               dir x &
               abs x f &
@@ -89,14 +97,14 @@ let interp_mkdir : utility =
       | Some (q, (Here|Up)) ->
         error ~msg:"mkdir: file exists" () (* TODO *)
       | Some (q, Down f) ->
-        let hintx = last_comp_as_hint q in
         under_specs @@ fun cwd root root' ->
-        [ (* The dir "path" exists but does not have "feat". *)
+        let hintx = last_comp_as_hint ~root q in
+        let hinty = Feat.to_string f in [
+          (* The dir "path" exists but does not have "feat". *)
           { outcome = Success;
             spec =
-              exists ?hint:hintx @@ fun x ->
-              exists ?hint:hintx @@ fun x' ->
-              exists ~hint:(Feat.to_string f) @@ fun y ->
+              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
+              exists ~hint:hinty @@ fun y ->
               resolve root cwd q x &
               dir x &
               abs x f &
@@ -136,8 +144,8 @@ let interp_test_e : utility =
       | None ->
         error ()
       | Some (q, Down f) ->
-        let hintx = last_comp_as_hint q in
-        under_specs @@ fun cwd root root' -> [
+        under_specs @@ fun cwd root root' ->
+        let hintx = last_comp_as_hint ~root q in [
           { outcome = Success;
             spec =
               exists ?hint:hintx @@ fun x ->
