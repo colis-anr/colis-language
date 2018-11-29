@@ -15,11 +15,9 @@ module type S = sig
   val or_ : t -> t -> t
   (** The disjunction of two [t]. *)
 
-  val var : (Var.t -> t) -> t
-  val var2 : (Var.t -> Var.t -> t) -> t
-
   val exists : ?hint:string -> (Var.t -> t) -> t
   val exists2 : ?hint1:string -> ?hint2:string -> (Var.t -> Var.t -> t) -> t
+  val exists3 : ?hint1:string -> ?hint2:string -> ?hint3:string -> (Var.t -> Var.t -> Var.t -> t) -> t
 
   val eq : Var.t -> Var.t -> t
   val neq : Var.t -> Var.t -> t
@@ -110,6 +108,12 @@ module Make (I : Constraints_implementation.S) : S = struct
     exists ?hint:hint1 @@ fun x ->
     exists ?hint:hint2 @@ fun y ->
     f x y
+
+  let exists3 ?hint1 ?hint2 ?hint3 f =
+    exists ?hint:hint1 @@ fun x ->
+    exists ?hint:hint2 @@ fun y ->
+    exists ?hint:hint3 @@ fun z ->
+    f x y z
 
   let and_ r1 r2 = fun c ->
     c |> r1 |> List.map r2 |> List.flatten
