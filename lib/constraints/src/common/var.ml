@@ -2,6 +2,8 @@ type t =
   { id : int ;
     hint : string option }
 
+let hint v = v.hint
+
 let to_string v =
   let hint = match v.hint with None -> "?" | Some h -> h in
   let number =

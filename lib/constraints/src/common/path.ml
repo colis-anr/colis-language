@@ -10,6 +10,11 @@ let comp_from_string = function
   | "." -> Here
   | s -> Down (Feat.from_string s) (*FIXME: check validity*)
 
+let comp_to_string = function
+  | Up -> ".."
+  | Here -> "."
+  | Down f -> Feat.to_string f
+
 type rel = comp list
 
 let empty_rel = []
@@ -25,6 +30,10 @@ let rec split_last_rel = function
      match split_last_rel t with
      | None -> assert false
      | Some (t, e) -> Some (h::t, e)
+
+let to_string_rel r =
+  List.map comp_to_string r
+  |> String.concat "/"
 
 type t = Abs of rel | Rel of rel
 
@@ -42,6 +51,13 @@ let from_string s =
     | [] -> failwith "Path.from_string"
     | "" :: p -> Abs (List.map comp_from_string p)
     | p -> Rel (List.map comp_from_string p)
+
+let to_string = function
+  | Abs q -> "/" ^ to_string_rel q
+  | Rel q -> to_string_rel q
+
+let pp fmt q =
+  Format.fprintf fmt "%s" (to_string q)
 
 let rel = function
   | Abs q -> q
