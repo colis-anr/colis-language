@@ -61,6 +61,8 @@ module type S = sig
      might be empty when ([c] &and; [f]) is unsatisfiable. *)
 
   val pp_sat_conj : Format.formatter -> sat_conj -> unit
+
+  val quantify_over : Var.t -> sat_conj -> sat_conj list
 end
 
 module Make (I : Constraints_implementation.S) : S = struct
@@ -162,4 +164,6 @@ module Make (I : Constraints_implementation.S) : S = struct
     | Path.Rel q -> similar r r' Path.(normalize (concat cwd q)) z z'
 
   let pp_sat_conj = I.pp
+
+  let quantify_over = I.quantify_over
 end
