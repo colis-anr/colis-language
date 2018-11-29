@@ -71,7 +71,7 @@ let colis_from_string string =
 let pp_print_colis = ToColis.program
 
 let print_colis =
-  pp_print_colis (Format.formatter_of_out_channel stdout)
+  pp_print_colis Format.std_formatter
 
 let colis_to_string colis =
   let buf = Buffer.create 8 in
