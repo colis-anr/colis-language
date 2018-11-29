@@ -2,8 +2,7 @@ open Constraints
 open SymbolicInterpreter__Filesystem
 open SymbolicInterpreter__State
 
-type utility =
-  string list -> state -> (state * bool) list
+type utility = state -> (state * bool) list
 
 let print_line msg state =
   let open Semantics__Buffers in

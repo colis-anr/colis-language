@@ -5,6 +5,8 @@ open UtilitiesSpecification
 open Semantics__Buffers
 open SymbolicInterpreter__State
 
+type args = string list
+
 (** Get the name of the last path component, if any, or of the hint root variable
     otherwise. The result is useful as a hint for creating variables for resolving the
     path. *)
@@ -18,8 +20,8 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
     | Some (_, (Here|Up)) ->
       None (* We can’t know (if last component in parent path is a symbolic link) *)
 
-(** Create a singleton error_case case with optional message *)
-let error ?msg () : state -> (state * bool) list =
+(** Error utility with optional message *)
+let error ?msg () : utility =
   fun sta ->
     let sta' =
       match msg with
@@ -35,22 +37,22 @@ let error ?msg () : state -> (state * bool) list =
 (*                                     true/false                                *)
 (*********************************************************************************)
 
-let return result : state -> (state * bool) list =
+let return result : utility =
   fun sta -> [sta, result]
 
-let interp_true =
-  fun _args ->
+let interp_true: args -> utility =
+  fun _ ->
     return true
 
-let interp_false =
-  fun _args ->
+let interp_false: args -> utility =
+  fun _ ->
     return false
 
 (*********************************************************************************)
 (*                                        echo                                   *)
 (*********************************************************************************)
 
-let interp_echo : utility =
+let interp_echo: args -> utility =
   fun args sta ->
     let open Semantics__Buffers in
     let open SymbolicInterpreter__State in
@@ -62,9 +64,9 @@ let interp_echo : utility =
 (*                                        touch                                  *)
 (*********************************************************************************)
 
-let interp_touch1 path_str =
-  let p = Path.from_string path_str in
+let interp_touch1 path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
   match Path.split_last p with
   | None -> (* `touch ''` *)
     failure ~error_message:"cannot touch '': No such file or directory" ()
@@ -109,7 +111,7 @@ let interp_touch1 path_str =
     | Down f ->
       create_file_case f :: noop_cases
 
-let interp_touch : utility =
+let interp_touch: args -> utility =
   function
   | [arg] -> interp_touch1 arg
   | _ ->
@@ -119,9 +121,9 @@ let interp_touch : utility =
 (*                                        mkdir                                  *)
 (*********************************************************************************)
 
-let interp_mkdir1 path_str =
-  let p = Path.from_string path_str in
+let interp_mkdir1 path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
   match Path.split_last p with
   | None ->
     failure ()
@@ -185,7 +187,7 @@ let interp_mkdir1 path_str =
         end;
     ]
 
-let interp_mkdir : utility =
+let interp_mkdir: args -> utility =
   function
   | [] -> error ~msg:"mkdir: missing operand" ()
   | [arg] -> interp_mkdir1 arg
@@ -195,9 +197,9 @@ let interp_mkdir : utility =
 (*                                        test                                   *)
 (*********************************************************************************)
 
-let interp_test_e path_str =
-  let p = Path.from_string path_str in
+let interp_test_e path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
       ~descr:(asprintf "test -e %a: path resolves" Path.pp p)
@@ -214,7 +216,7 @@ let interp_test_e path_str =
       end;
   ]
 
-let interp_test : utility = function
+let interp_test: args -> utility = function
   | [] -> return false (* CHECK *)
   | ["-e"] -> return true
   | ["-e"; arg] -> interp_test_e arg
@@ -227,7 +229,7 @@ let interp_test : utility = function
 (*                         Dispatch interpretation of utilities                  *)
 (*********************************************************************************)
 
-let interp (name: string) : utility =
+let interp (name: string) : args -> utility =
   match name with
   | "true" -> interp_true
   | "false" -> interp_false
