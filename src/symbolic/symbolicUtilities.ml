@@ -65,48 +65,46 @@ let interp_echo : utility =
 let interp_touch1 path_str =
   let p = Path.from_string path_str in
   match Path.split_last p with
+  | None -> (* `touch ''` *)
+    error ~msg:"cannot touch '': No such file or directory" ()
   | Some (q, comp) ->
     under_specifications @@ fun cwd root root' ->
     let noop_cases =
       let hint = last_comp_as_hint ~root p in [
-      { descr = asprintf "touch %a: path resolves" Path.pp p;
-        outcome = Success ;
-        spec =
-          exists ?hint @@ fun y ->
-          resolve root cwd p y &
-          eq root root' };
-      { descr = asprintf "touch %a: parent path does not resolve" Path.pp p;
-        outcome = Error;
-        spec =
-          noresolve root cwd q &
-          eq root root' };
-    ]
+        { descr = asprintf "touch %a: path resolves" Path.pp p;
+          outcome = Success ;
+          spec =
+            exists ?hint @@ fun y ->
+            resolve root cwd p y &
+            eq root root' };
+        { descr = asprintf "touch %a: parent path does not resolve" Path.pp p;
+          outcome = Error;
+          spec =
+            noresolve root cwd q &
+            eq root root' };
+      ]
     in
-    begin match comp with
-      | Up | Here ->
-        noop_cases
-      | Down f ->
-        let create_file_case =
-          let hintx = last_comp_as_hint ~root q in
-          let hinty = Feat.to_string f in
-          { descr = asprintf "touch %a: create file" Path.pp p;
-            outcome = Success;
-            spec =
-              exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
-              resolve root cwd q x &
-              dir x &
-              abs x f &
-              similar root root' cwd q x x' &
-              sim x (Feat.Set.singleton f) x' &
-              dir x' &
-              feat x' f y' &
-              reg y' }
-        in
-        create_file_case :: noop_cases
-    end
-  | None ->
-    (* `touch ''` *)
-    error ~msg:"cannot touch '': No such file or directory" ()
+    let create_file_case f =
+      let hintx = last_comp_as_hint ~root q in
+      let hinty = Feat.to_string f in
+      { descr = asprintf "touch %a: create file" Path.pp p;
+        outcome = Success;
+        spec =
+          exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
+          resolve root cwd q x &
+          dir x &
+          abs x f &
+          similar root root' cwd q x x' &
+          sim x (Feat.Set.singleton f) x' &
+          dir x' &
+          feat x' f y' &
+          reg y' }
+    in
+    match comp with
+    | Up | Here ->
+      noop_cases
+    | Down f ->
+      create_file_case f :: noop_cases
 
 let interp_touch : utility =
   function
