@@ -9,11 +9,11 @@ module Language: sig
 end
 
 module Concrete: sig
-  module Arguments = Semantics__Concrete
+  module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
+  module Context = Semantics__Context
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
-  module Context = Semantics__Context
   module Env = Semantics__Env
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
@@ -22,6 +22,7 @@ module Concrete: sig
 end
 
 module Symbolic: sig
+  module Context = SymbolicInterpreter__Context
   module Filesystem = SymbolicInterpreter__Filesystem
   module State = SymbolicInterpreter__State
   module SymState = SymbolicInterpreter__SymState

@@ -9,7 +9,7 @@ module Language = struct
 end
 
 module Concrete = struct
-  module Arguments = Semantics__Concrete
+  module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
@@ -22,6 +22,7 @@ module Concrete = struct
 end
 
 module Symbolic = struct
+  module Context = SymbolicInterpreter__Context
   module Filesystem = SymbolicInterpreter__Filesystem
   module State = SymbolicInterpreter__State
   module SymState = SymbolicInterpreter__SymState
@@ -141,8 +142,8 @@ let run_symbolic ~argument0 ?(arguments=[]) colis =
   let stdin = Concrete.Stdin.empty in
   let stdout = Concrete.Stdout.empty in
   let input = { Concrete.Input.empty with argument0 } in
-  let context = { Concrete.Context.empty_context with arguments } in
   let open Symbolic in
+  let context = { Context.empty_context with arguments } in
   let states : State.state list =
     let open Constraints in
     let root = Var.fresh ~hint:"root" () in

@@ -36,9 +36,52 @@ module State
     with type filesystem = filesystem 
 end
 
+module Env
+  use syntax.Syntax
+  type t 'value
+  val constant empty: t 'value
+  val function get (env:t 'value) (id:identifier) (default:'value) : 'value
+  val function set (env:t 'value) (id:identifier) (value:'value) : t 'value
+  val function functional (env:t 'value) (default:'value) : identifier -> 'value
+end
+
+module Context
+  use option.Option
+  use list.List
+  use mystring.String
+  use syntax.Syntax
+  use Env
+
+  type var_env = Env.t string
+  type func_env = Env.t (option instruction)
+
+  type context = {
+    var_env: var_env;
+    func_env: func_env;
+    arguments: list string;
+    result: bool; (* previous result ($?) for input state, current result for output state *)
+  }
+
+  let constant empty_context = {
+    var_env = Env.empty; 
+    func_env = Env.empty;
+    arguments = Nil;
+    result = True;
+  }
+
+  use semantics.Context as C
+
+  let function contextx (c:context) : C.context = {
+    C.var_env = Env.functional c.var_env String.empty;
+    C.func_env = Env.functional c.func_env None;
+    C.arguments = c.arguments;
+    C.result = c.result;
+  }
+end
+
 module SymState
 
-  use semantics.Context
+  use Context
   use State
 
   type sym_state 'a = {
@@ -60,6 +103,7 @@ module Results
   use semantics.Input
   use semantics.Behaviour
   use semantics.Semantics
+  use Context
   use State
   use SymState
 
@@ -95,10 +139,10 @@ module Results
 
   let inject (inp:input) (stas:set (sym_state 'a)) : t 'a
     ensures { all result = stas }
-    ensures { forall s. mem s result.normal -> behaviour' inp (context s) = BNormal }
-    ensures { forall s. mem s result.exit -> behaviour' inp (context s) = BExit }
+    ensures { forall s. mem s result.normal -> behaviour' inp (contextx s.context) = BNormal }
+    ensures { forall s. mem s result.exit -> behaviour' inp (contextx s.context) = BExit }
   = let aux bhv = fun sta ->
-      match bhv, behaviour' inp (context sta) with
+      match bhv, behaviour' inp (contextx sta.context) with
       | BNormal, BNormal -> True
       | BExit, BExit -> True
       | _ -> False
@@ -120,7 +164,6 @@ module Interpreter
   use semantics.Env
   use semantics.Behaviour
   use semantics.Input
-  use semantics.Context
   use semantics.Buffers
   use semantics.Arguments
   use semantics.Semantics as Sem
@@ -128,6 +171,7 @@ module Interpreter
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset
   use State
+  use Context
   use SymState
   use Results as Rs
 
@@ -142,7 +186,7 @@ module Interpreter
       let sta' =
         let ctx' = {
           ctx with
-          var_env = ctx.var_env[var <- str];
+          var_env = Env.set ctx.var_env var str;
           result = True;
         }
         in {context = ctx'; state = sta; info = ()}
@@ -212,7 +256,7 @@ module Interpreter
 
     | ICallFunction id le ->
       let args, sta' = interp_list_expression inp ctx sta le in
-      match ctx.func_env id with
+      match Env.get ctx.func_env id None with
       | None ->
         let sta'' =
           let ctx' = {sta'.context with result = False} in
@@ -256,7 +300,7 @@ module Interpreter
         | Cons str strs' ->
           let stas' =
             let set_var sta =
-              let venv = sta.context.var_env[id <- str] in
+              let venv = Env.set sta.context.var_env id str in
               let ctx = {sta.context with var_env = venv} in
               {sta with context = ctx}
             in
@@ -402,7 +446,7 @@ module Interpreter
   with interp_string_expression ctx sta se : string diverges =
     match se with
     | SLiteral str -> str
-    | SVariable var -> ctx.var_env var
+    | SVariable var -> Env.get ctx.var_env var String.empty
     | SConcat se1 se2 ->
       let str1 = interp_string_expression ctx sta se1 in
       let str2 = interp_string_expression ctx sta se2 in
@@ -427,8 +471,16 @@ module Interpreter
            (filter (fun sta -> notb (xorb res sta.context.result))
               stas))
 
+  let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)
+    variant { defs }
+  = match defs with
+    | Nil -> fenv
+    | Cons (id, instr) defs' ->
+      interp_function_definitions (Env.set fenv id (Some instr))  defs'
+    end
+
   let interp_program inp ctx sta pro : (set state, set state) diverges =
-    let fenv = Sem.interp_function_definitions ctx.func_env pro.function_definitions in
+    let fenv = interp_function_definitions ctx.func_env pro.function_definitions in
     let res = interp_instruction inp {ctx with func_env = fenv} sta pro.instruction in
     let all_res = Rs.all res in
     only_states_with_result True all_res,
