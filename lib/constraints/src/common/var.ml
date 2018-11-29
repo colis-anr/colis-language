@@ -37,8 +37,8 @@ let fresh ?hint =
   incr free;
   { id = !free ; hint }
 
-let compare v1 v2 = Pervasives.compare v1.id v2.id
-let equal v1 v2 = compare v1 v2 = 0
+let compare = Pervasives.compare
+let equal = (=)
 
 module Self = struct
   type s = t
