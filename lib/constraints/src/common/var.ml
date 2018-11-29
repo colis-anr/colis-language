@@ -31,9 +31,9 @@ let to_string v =
 let pp fmt v =
   Format.pp_print_string fmt (to_string v)
 
-let fresh =
+let fresh ?hint =
   let free = ref 0 in
-  fun ?hint () ->
+  fun () ->
   incr free;
   { id = !free ; hint }
 
