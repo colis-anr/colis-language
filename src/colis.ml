@@ -163,5 +163,9 @@ let run_symbolic ~argument0 ?(arguments=[]) colis =
        List.iter (printf "@\n- @[%a@]" print_symbolic_state) (BatSet.to_list normals);
        printf "@\n";
        printf "* Failure states@\n";
-       List.iter (printf "@\n- @[%a@]" print_symbolic_state) (BatSet.to_list failures))
-    states
+       List.iter (printf "@\n- @[%a@]" print_symbolic_state) (BatSet.to_list failures);
+       printf "@\n";
+       printf "* Summary@\n@\n";
+       printf "- Success cases: %d@\n" (BatSet.cardinal normals);
+       printf "- Error cases: %d@\n" (BatSet.cardinal failures))
+    states;
