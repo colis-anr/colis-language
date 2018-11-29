@@ -1,4 +1,4 @@
-open Constraints_common
+open Constraints_common open OptionMonad
 
 type t =
   { vars : Var.t Metavar.Map.t ;
@@ -18,17 +18,23 @@ let empty =
     feat_sets = Metavar.Map.empty }
 
 let from_lists ?(vars=[]) ?(feats=[]) ?(kinds=[]) ?(feat_sets=[]) () =
-  let rec map_add_list l m =
+  let rec map_add_list equal l m =
     match l with
-    | [] -> m
-    | (hk, hv) :: t -> map_add_list t (Metavar.Map.add hk hv m)
+    | [] -> Some m
+    | (hk, hv) :: t ->
+       match Metavar.Map.find_opt hk m with
+       | None -> map_add_list equal t (Metavar.Map.add hk hv m)
+       | Some hv' ->
+          if equal hv hv' then
+            map_add_list equal t m
+          else
+            None
   in
-  { vars = map_add_list vars Metavar.Map.empty ;
-    feats = map_add_list feats Metavar.Map.empty ;
-    kinds = map_add_list kinds Metavar.Map.empty ;
-    feat_sets = map_add_list feat_sets Metavar.Map.empty }
-
-let (>>=) = OptionMonad.(>>=)
+  map_add_list Var.equal vars Metavar.Map.empty >>= fun vars ->
+  map_add_list Feat.equal feats Metavar.Map.empty >>= fun feats ->
+  map_add_list Kind.equal kinds Metavar.Map.empty >>= fun kinds ->
+  map_add_list Feat.Set.equal feat_sets Metavar.Map.empty >>= fun feat_sets ->
+  Some { vars ; feats ; kinds ; feat_sets }
 
 let map_distinct_union equal m1 m2 =
   try

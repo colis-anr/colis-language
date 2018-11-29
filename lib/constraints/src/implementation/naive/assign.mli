@@ -13,7 +13,8 @@ val from_lists :
   ?vars:(Metavar.t * Var.t) list ->
   ?feats:(Metavar.t * Feat.t) list ->
   ?kinds:(Metavar.t * Kind.t) list ->
-  ?feat_sets:(Metavar.t * Feat.Set.t) list -> unit -> t
+  ?feat_sets:(Metavar.t * Feat.Set.t) list ->
+  unit -> t option
 
 val merge : t -> t -> t option
 
