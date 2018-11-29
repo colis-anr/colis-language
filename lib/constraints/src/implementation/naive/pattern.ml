@@ -86,13 +86,13 @@ let rec match_ pls ls =
                    Assign.merge aff1 aff2 >>= fun aff ->
                    Some (aff, ls2)))
 
-let find ?(pred=(fun _ -> true)) pls ls =
+let find ?(pred=(fun _ _ -> true)) pls es ls =
   Literal.Set.elements ls
   |> match_ pls
-  |> List.find_opt (fun (aff, _) -> pred aff)
+  |> List.find_opt (fun (aff, _) -> pred aff es)
   |> function
     | None -> None
-    | Some (aff, ls) -> Some (aff, Literal.Set.of_list ls)
+    | Some (aff, ls) -> Some (aff, es, Literal.Set.of_list ls)
 
-let mem ?pred pls ls =
-  find ?pred pls ls <> None
+(* let mem ?pred pls es ls =
+ *   find ?pred pls es ls <> None *)

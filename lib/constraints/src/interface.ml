@@ -91,15 +91,6 @@ module Make (I : Constraints_implementation.S) : S = struct
   let sim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
   let nsim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
 
-  let var f = fun c ->
-    let x = Var.fresh () in
-    c |> f x
-
-  let var2 f =
-    var @@ fun x ->
-    var @@ fun y ->
-    f x y
-
   let exists ?hint f = fun c ->
     let x = Var.fresh ?hint () in
     c |> f x |> List.map (I.quantify_over x) |> List.flatten
