@@ -28,7 +28,7 @@ let error ?msg () : state -> (state * bool) list =
         {sta with stdout}
       | None -> sta
     in
-    [sta', false]
+    [ sta', false ]
 
 (*********************************************************************************)
 (*                                     true/false                                *)
@@ -64,39 +64,48 @@ let interp_echo : utility =
 let interp_touch1 path_str =
   let path = Path.from_string path_str in
   match Path.split_last path with
-  | Some (q, Down f) ->
-    under_specs @@ fun cwd root root' ->
-    let hintx = last_comp_as_hint ~root q in
-    let hinty = Feat.to_string f in [
-      (* The dir "path" exists but does not have "feat". *)
-      { outcome = Success;
-        spec =
-          exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
-          resolve root cwd q x &
-          dir x &
-          abs x f &
-          similar root root' cwd q x x' &
-          sim x (Feat.Set.singleton f) x' &
-          dir x' &
-          feat x' f y' &
-          reg y' };
+  | Some (q, comp) ->
+    under_specifications @@ fun cwd root root' ->
+    let noop_cases =
+      let hint = last_comp_as_hint ~root path in [
       (* The dir "path" exists and has "feat". *)
       { outcome = Success ;
         spec =
-          exists ~hint:(Feat.to_string f) @@ fun y ->
+          exists ?hint @@ fun y ->
           resolve root cwd path y &
           eq root root' };
       (* The dir "path" does not exist. *)
       { outcome = Error;
         spec =
           noresolve root cwd q &
-          eq root root' }
+          eq root root' };
     ]
+    in
+    begin match comp with
+      | Up | Here ->
+        noop_cases
+      | Down f ->
+        let create_file_case =
+          (* The dir "path" exists but does not have "feat". *)
+          let hintx = last_comp_as_hint ~root q in
+          let hinty = Feat.to_string f in
+          { outcome = Success;
+            spec =
+              exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
+              resolve root cwd q x &
+              dir x &
+              abs x f &
+              similar root root' cwd q x x' &
+              sim x (Feat.Set.singleton f) x' &
+              dir x' &
+              feat x' f y' &
+              reg y' }
+        in
+        create_file_case :: noop_cases
+    end
   | None ->
     (* `touch ''` *)
     error ~msg:"cannot touch '': No such file or directory" ()
-  | Some (_, (Up|Here)) ->
-    failwith "interp_touch: no specification"
 
 let interp_touch : utility =
   function
@@ -116,7 +125,7 @@ let interp_mkdir1 path_str =
   | Some (q, (Here|Up)) ->
     error ~msg:"mkdir: file exists" () (* TODO *)
   | Some (q, Down f) ->
-    under_specs @@ fun cwd root root' ->
+    under_specifications @@ fun cwd root root' ->
     let hintx = last_comp_as_hint ~root q in
     let hinty = Feat.to_string f in [
       (* The dir "path" exists but does not have "feat". *)
@@ -152,7 +161,8 @@ let interp_mkdir1 path_str =
       { outcome = Error;
         spec =
           noresolve root cwd q &
-          eq root root'} ]
+          eq root root'};
+    ]
 
 let interp_mkdir : utility =
   function
@@ -166,7 +176,7 @@ let interp_mkdir : utility =
 
 let interp_test_e path_str =
   let path = Path.from_string path_str in
-  under_specs @@ fun cwd root root' ->
+  under_specifications @@ fun cwd root root' ->
   let hintx = last_comp_as_hint ~root path in [
     { outcome = Success;
       spec =
@@ -176,7 +186,7 @@ let interp_test_e path_str =
     { outcome = Error;
       spec =
         noresolve root cwd path &
-        eq root root' }
+        eq root root' };
   ]
 
 let interp_test : utility = function
