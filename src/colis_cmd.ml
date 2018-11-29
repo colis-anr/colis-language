@@ -82,6 +82,9 @@ let main () =
     | Colis.ConversionError msg ->
        eprintf "Conversion error: %s@." msg;
        exit 3
+    | Sys_error msg ->
+      eprintf "System error: %s@." msg;
+      exit 4
   in
   let argument0 = file in
   let arguments = get_arguments () in
