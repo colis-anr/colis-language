@@ -64,7 +64,7 @@ let replace_var_in_literal_set x y =
 let (&) l s = Literal.Set.add l s
 
 let (x, y, z) = Metavar.fresh3 ()
-let (f, g) = Metavar.fresh2 ()
+let f = Metavar.fresh ()
 let (fs, gs) = Metavar.fresh2 ()
 let (k, l) = Metavar.fresh2 ()
 
@@ -374,20 +374,31 @@ let p_nsim (es, c) =
   let gs = Assign.feat_set aff gs in
   Some [es, Pos (Sim (x, fs, y)) & Neg (Sim (x, gs, z)) & Neg (Sim (y, gs, z)) & c]
 
+let s_kind (es, c) =
+  let pat = Pattern.[Pos (Kind (x, k))] in
+  Pattern.find
+    ~pred:(fun aff -> Assign.kind aff k <> Dir)
+    pat c
+  >>= fun (aff, c) ->
+  let x = Assign.var aff x in
+  Some [es, Pos (Fen (x, Feat.Set.empty)) & c]
+
 (* ========================================================================== *)
 (* ============================= [ All Rules ] ============================== *)
 (* ========================================================================== *)
 
-let all : (string * (Conj.t -> Conj.disj option)) list = [
+let all = [
     "C-Cycle",      c_cycle;
     "C-Feat-Abs",   c_feat_abs;
     "C-Feat-Fen",   c_feat_fen;
     "C-NEq-Refl",   c_neq_refl;
     "C-NSim-Refl",  c_nsim_refl;
+    "C-Kinds",      c_kinds;
     "S-Eq",         s_eq;
     "S-Feats",      s_feats;
     "S-Feats-Glob", s_feats_glob;
     "S-Sims",       s_sims;
+    "S-Kind",       s_kind;
     "P-Feats",      p_feat;
     "P-Abs",        p_abs;
     "P-Fen",        p_fen;
@@ -398,6 +409,7 @@ let all : (string * (Conj.t -> Conj.disj option)) list = [
     "R-NFen-Fen",   r_nfen_fen;
     "R-NSim-Sim",   r_nsim_sim;
     "R-NSim-Fen",   r_nsim_fen;
+    "R-NKind",      r_nkind;
     "E-NFen",       e_nfen;
     "E-NSim",       e_nsim;
     "P-NFen",       p_nfen;
