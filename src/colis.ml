@@ -90,29 +90,11 @@ let run ~argument0 ?(arguments=[]) colis =
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
 
-let pp_comp fmt = function
-  | Constraints.Path.Here -> Format.pp_print_string fmt "."
-  | Up -> Format.pp_print_string fmt ".."
-  | Down f -> Constraints.Feat.pp fmt f
-
-(* TODO replace with Path.pp *)
-let path_pp fmt path =
-  let rel =
-    match path with
-    | Constraints.Path.Abs rel ->
-      Format.pp_print_string fmt "/";
-      rel
-    | Rel rel ->
-      rel
-  in
-  let pp_sep fmt () = pp_print_string fmt "/" in
-  pp_print_list ~pp_sep pp_comp fmt rel
-
 let print_symbolic_filesystem fmt fs =
   let open SymbolicInterpreter__Filesystem in
   let open Constraints in
   fprintf fmt "root: %a@\n" Var.pp fs.root;
-  fprintf fmt "cwd: %a@\n" path_pp fs.cwd;
+  fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt sta =
