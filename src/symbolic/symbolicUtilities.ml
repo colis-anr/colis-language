@@ -173,4 +173,4 @@ let interp (name: string) : utility =
   | "test-e" -> interp_test_e
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
-  | _ -> fun _ -> error ~msg:("Unknown builtin: "^name) ()
+  | _ -> fun _ -> error ~msg:("Unknown utility: "^name) ()
