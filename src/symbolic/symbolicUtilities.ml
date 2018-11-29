@@ -140,24 +140,19 @@ let interp_mkdir : utility =
 let interp_test_e : utility =
   function
   | [path_str] -> begin
-      match path_split_last path_str with
-      | None ->
-        error ()
-      | Some (q, Down f) ->
-        under_specs @@ fun cwd root root' ->
-        let hintx = last_comp_as_hint ~root q in [
-          { outcome = Success;
-            spec =
-              exists ?hint:hintx @@ fun x ->
-              resolve root cwd q x &
-              eq root root' };
-          { outcome = Error;
-            spec =
-              noresolve root cwd q &
-              eq root root' }
-        ]
-      | Some (q, (Here|Up)) ->
-        failwith "interp_test_e: no specification"
+      let path = Path.from_string path_str in
+      under_specs @@ fun cwd root root' ->
+      let hintx = last_comp_as_hint ~root path in [
+        { outcome = Success;
+          spec =
+            exists ?hint:hintx @@ fun x ->
+            resolve root cwd path x &
+            eq root root' };
+        { outcome = Error;
+          spec =
+            noresolve root cwd path &
+            eq root root' }
+      ]
     end
   | _ ->
     error ~msg:"test -e: not exactly one argument" ()
