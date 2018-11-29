@@ -42,9 +42,9 @@ let apply_case_to_state state new_root case : (state * bool) list =
     (fun filesystem ->
        { state with filesystem }, outcome_to_bool case.outcome)
 
-type spec = Path.t -> Var.t -> Var.t -> case list
+type specifications = Path.t -> Var.t -> Var.t -> case list
 
-let under_specs : spec -> state -> (state * bool) list =
+let under_specifications : specifications -> state -> (state * bool) list =
   fun spec state ->
     let new_root = Var.fresh ~hint:(Var.to_string state.filesystem.root) () in
     List.map
