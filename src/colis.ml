@@ -1,16 +1,40 @@
 open Format
 
-module AST = Syntax__Syntax
-module ColisParser = ColisParser
-module ColisLexer = ColisLexer
-module FromShell = FromShell
+module Language = struct
+  module Nat = Syntax__Nat
+  module Syntax = Syntax__Syntax
+  module Parser = ColisParser
+  module Lexer = ColisLexer
+  module FromShell = FromShell
+end
+
+module Concrete = struct
+  module Arguments = Semantics__Concrete
+  module Behaviour = Semantics__Behaviour
+  module Stdin = Semantics__Buffers.Stdin
+  module Stdout = Semantics__Buffers.Stdout
+  module Context = Semantics__Context
+  module Env = Semantics__Env
+  module Input = Semantics__Input
+  module Semantics = Semantics__Semantics
+  module Filesystem = Interpreter__Filesystem
+  module Interpreter = Interpreter__Interpreter
+end
+
+module Symbolic = struct
+  module Filesystem = SymbolicInterpreter__Filesystem
+  module State = SymbolicInterpreter__State
+  module SymState = SymbolicInterpreter__SymState
+  module Results = SymbolicInterpreter__Results
+  module Interpreter = SymbolicInterpreter__Interpreter
+end
 
 (* CoLiS *)
 
 exception ParseError of string * Lexing.position
 exception ConversionError of string
 
-type colis = AST.program
+type colis = Language.Syntax.program
 
 let colis_from_lexbuf ?(filename="-") lexbuf =
   lexbuf.Lexing.lex_curr_p <-
@@ -81,25 +105,23 @@ let shell_to_colis shell =
 (* Interpret *)
 
 let run ~argument0 ?(arguments=[]) colis =
-  let open Interpreter__Interpreter in
-  let open Semantics__Buffers in
-  let input = { Semantics__Input.empty with argument0 } in
-  let state = empty_state () in
+  let open Concrete in
+  let input = { Input.empty with argument0 } in
+  let state = Interpreter.empty_state () in
   state.arguments := arguments;
-  interp_program input state colis;
+  Interpreter.interp_program input state colis;
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
 
 let print_symbolic_filesystem fmt fs =
-  let open SymbolicInterpreter__Filesystem in
   let open Constraints in
+  let open Symbolic.Filesystem in
   fprintf fmt "root: %a@\n" Var.pp fs.root;
   fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt sta =
-  let open SymbolicInterpreter__State in
-  let open Semantics__Buffers in
+  let open Symbolic.State in
   print_symbolic_filesystem fmt sta.filesystem;
   (* Print stdin *)
   if sta.stdin <> [] then begin
@@ -108,7 +130,7 @@ let print_symbolic_state fmt sta =
       (List.rev sta.stdin)
   end;
   (* Print stdout *)
-  if not (Stdout.is_empty sta.stdout) then begin
+  if not (Concrete.Stdout.is_empty sta.stdout) then begin
     fprintf fmt "stdout: |@\n";
     List.iter (fprintf fmt "  %s@\n")
       (List.rev @@ sta.stdout.lines);
@@ -116,22 +138,28 @@ let print_symbolic_state fmt sta =
   end
 
 let run_symbolic ~argument0 ?(arguments=[]) colis =
-  let module Input = Semantics__Input in
-  let module Filesystem = SymbolicInterpreter__Filesystem in
-  let module State = SymbolicInterpreter__State in
-  let module Context = Semantics__Context in
-  let open SymbolicInterpreter__Interpreter in
-  let open Semantics__Buffers in
-  let input = { Input.empty with argument0 } in
-  let state =
-    let filesystem =
-      let root = Constraints.Var.fresh ~hint:"root" () in
-      let clause = Constraints.Clause.true_ in
-      { Filesystem.root; clause; cwd = Constraints.Path.Abs [] }
-    in {State.filesystem; stdin = Stdin.empty; stdout = Stdout.empty} in
-  let context = { Context.empty_context with arguments } in
-  let normals, failures = interp_program input context state colis in
-  printf "* Success states@\n";
-  List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list normals);
-  printf "* Failure states@\n";
-  List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list failures)
+  let stdin = Concrete.Stdin.empty in
+  let stdout = Concrete.Stdout.empty in
+  let input = { Concrete.Input.empty with argument0 } in
+  let context = { Concrete.Context.empty_context with arguments } in
+  let open Symbolic in
+  let states : State.state list =
+    let open Constraints in
+    let root = Var.fresh ~hint:"root" () in
+    let cwd = Path.Abs [] in
+    let open Clause in
+    let spec = dir root in
+    add_to_sat_conj spec true_ |>
+    List.map (fun clause -> { Filesystem.root; clause; cwd }) |>
+    List.map (fun filesystem -> { State.filesystem; stdin; stdout })
+  in
+  List.iter
+    (fun state ->
+       let normals, failures = Interpreter.interp_program input context state colis in
+       printf "* Initial state";
+       printf "@\n- @[%a@]@\n" print_symbolic_state state;
+       printf "* Success states@\n";
+       List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list normals);
+       printf "* Failure states@\n";
+       List.iter (printf "@\n- @[%a@]@\n" print_symbolic_state) (BatSet.to_list failures))
+    states
