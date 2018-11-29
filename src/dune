@@ -8,7 +8,7 @@
  (public_name colis-language)
  (libraries colis-language.constraints zarith str ppx_deriving_yojson.runtime morsmall batteries)
  (modules :standard \ colis_cmd)
- (flags :standard -w -27))
+ (flags :standard -w -27 -w -49))
 
 (executable
  (name colis_cmd)

@@ -1,11 +1,35 @@
 (** {1 CoLiS-Language} *)
 
-module AST = Syntax__Syntax
-module ColisParser = ColisParser
-module ColisLexer = ColisLexer
-module FromShell = FromShell
+module Language: sig
+  module Nat = Syntax__Nat
+  module Syntax = Syntax__Syntax
+  module Parser = ColisParser
+  module Lexer = ColisLexer
+  module FromShell = FromShell
+end
 
-type colis = AST.program
+module Concrete: sig
+  module Arguments = Semantics__Concrete
+  module Behaviour = Semantics__Behaviour
+  module Stdin = Semantics__Buffers.Stdin
+  module Stdout = Semantics__Buffers.Stdout
+  module Context = Semantics__Context
+  module Env = Semantics__Env
+  module Input = Semantics__Input
+  module Semantics = Semantics__Semantics
+  module Filesystem = Interpreter__Filesystem
+  module Interpreter = Interpreter__Interpreter
+end
+
+module Symbolic: sig
+  module Filesystem = SymbolicInterpreter__Filesystem
+  module State = SymbolicInterpreter__State
+  module SymState = SymbolicInterpreter__SymState
+  module Results = SymbolicInterpreter__Results
+  module Interpreter = SymbolicInterpreter__Interpreter
+end
+
+type colis = Language.Syntax.program
 (** The abstract syntax of Colis programs. *)
 
 type shell = Morsmall.AST.program
