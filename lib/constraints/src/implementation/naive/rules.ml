@@ -109,6 +109,11 @@ let s_eq (es, c) =
   let y = Assign.var aff y in
   Some [Var.Set.remove x es, replace_var_in_literal_set x y c]
 
+let s_eq_refl (es, c) =
+  let pat = Pattern.[Pos (Eq (x, x))] in
+  Pattern.find pat c >>= fun (_, c) ->
+  Some [es, c]
+
 let s_feats (es, c) =
   let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
   Pattern.find
@@ -396,6 +401,7 @@ let all = [
     "C-NSim-Refl",  c_nsim_refl;
     "C-Kinds",      c_kinds;
     "S-Eq",         s_eq;
+    "S-Eq-Refl",    s_eq_refl;
     "S-Feats",      s_feats;
     "S-Feats-Glob", s_feats_glob;
     "S-Sims",       s_sims;
