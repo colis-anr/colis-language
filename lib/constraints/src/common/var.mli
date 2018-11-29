@@ -2,7 +2,7 @@ type t
 
 val fresh : ?hint:string -> unit -> t
 
-val hint : t -> string option
+val hint : t -> string
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
