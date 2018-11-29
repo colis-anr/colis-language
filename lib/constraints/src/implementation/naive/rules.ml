@@ -72,198 +72,227 @@ let c_cycle (_, c) =
   try ignore (accessibility c); None
   with Invalid_argument _ -> Some []
 
-let c_feat_abs (_, c) =
-  let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Abs (x, f))] in
-  Pattern.find pat c >>= fun _ -> Some []
+let make ~pat ?pred ~prod () (es, c) =
+  Pattern.find ?pred pat es c
+  >>= (fun (a, es, c) -> prod a es c)
 
-let c_feat_fen (_, c) =
-  let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Fen (x, fs))] in
-  Pattern.find
-    ~pred:(fun aff ->
-      not (Feat.Set.mem (Assign.feat aff f) (Assign.feat_set aff fs)))
-    pat c >>= fun _ -> Some []
+let clash _ _ _ = Some []
 
-let c_neq_refl (_, c) =
-  let pat = Pattern.[Neg (Eq (x, x))] in
-  Pattern.find pat c >>= fun _ -> Some []
+let c_feat_abs =
+  make
+    ~pat:[Pos (Feat (x, f, y)); Pos (Abs (x, f))]
+    ~prod:clash
+    ()
 
-let c_nsim_refl (_, c) =
-  let pat = Pattern.[Neg (Sim (x, fs, x))] in
-  Pattern.find pat c >>= fun _ -> Some []
+let c_feat_fen =
+  make
+    ~pat:[Pos (Feat (x, f, y)); Pos (Fen (x, fs))]
+    ~pred:(fun a _ -> not (Feat.Set.mem (Assign.feat a f) (Assign.feat_set a fs)))
+    ~prod:clash
+    ()
 
-let c_kinds (_, c) =
-  let pat = Pattern.[Pos (Kind (x, k)); Pos (Kind (x, l))] in
-  Pattern.find
-    ~pred:(fun aff -> Assign.kind aff k <> Assign.kind aff l)
-    pat c
-  >>= fun _ -> Some []
+let c_neq_refl =
+  make
+    ~pat:[Neg (Eq (x, x))]
+    ~prod:clash
+    ()
 
-let s_eq (es, c) =
-  let pat = Pattern.[Pos (Eq (x, y))] in
-  Pattern.find
-    ~pred:(fun aff -> Var.Set.mem (Assign.var aff x) es &&
-                        not (Var.equal (Assign.var aff x) (Assign.var aff y)))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  Some [Var.Set.remove x es, replace_var_in_literal_set x y c]
+let c_nsim_refl =
+  make
+    ~pat:[Neg (Sim (x, fs, x))]
+    ~prod:clash
+    ()
 
-let s_eq_refl (es, c) =
-  let pat = Pattern.[Pos (Eq (x, x))] in
-  Pattern.find pat c >>= fun (_, c) ->
-  Some [es, c]
+let c_kinds =
+  make
+    ~pat:[Pos (Kind (x, k)); Pos (Kind (x, l))]
+    ~pred:(fun a _ -> Assign.kind a k <> Assign.kind a l)
+    ~prod:clash
+    ()
 
-let s_feats (es, c) =
-  let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
-  Pattern.find
-    ~pred:(fun aff -> Var.Set.mem (Assign.var aff z) es &&
-                        not (Var.equal (Assign.var aff y) (Assign.var aff z)))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let z = Assign.var aff z in
-  let f = Assign.feat aff f in
-  Some [Var.Set.remove z es, Pos (Feat (x, f, y)) & replace_var_in_literal_set z y c]
+let s_eq =
+  make
+    ~pat:[Pos (Eq (x, y))]
+    ~pred:(fun a es -> Var.Set.mem (Assign.var a x) es &&
+                         not (Var.equal (Assign.var a x) (Assign.var a y)))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      Some [Var.Set.remove x es, replace_var_in_literal_set x y c])
+    ()
 
-let s_feats_glob (es, c) =
-  let pat = Pattern.[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))] in
-  Pattern.find
-    ~pred:(fun aff -> not (Var.Set.mem (Assign.var aff y) es && not (Var.Set.mem (Assign.var aff z) es)))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let z = Assign.var aff z in
-  let f = Assign.feat aff f in
-  Some [es, Pos (Eq (y, z)) & Pos (Feat (x, f, y)) & c]
+let s_eq_refl =
+  make
+    ~pat:[Pos (Eq (x, x))]
+    ~prod:(fun _ es c ->
+      Some [es, c])
+    ()
 
-let s_sims (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Sim (x, gs, y))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let hs = Feat.Set.inter (Assign.feat_set aff fs) (Assign.feat_set aff gs) in
-  Some [es, Pos (Sim (x, hs, y)) & c]
+let s_feats =
+  make
+    ~pat:[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))]
+    ~pred:(fun a es -> Var.Set.mem (Assign.var a z) es
+                       && not (Var.equal (Assign.var a y) (Assign.var a z)))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let z = Assign.var a z in
+      let f = Assign.feat a f in
+      Some [Var.Set.remove z es, Pos (Feat (x, f, y)) & replace_var_in_literal_set z y c])
+    ()
 
-let p_feat (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Feat (x, f, z))] in
-  Pattern.find
-    ~pred:(fun aff -> not (Feat.Set.mem (Assign.feat aff f) (Assign.feat_set aff fs)))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let z = Assign.var aff z in
-  let f = Assign.feat aff f in
-  let fs = Assign.feat_set aff fs in
-  Some [es, Pos (Sim (x, fs, y)) & Pos (Feat (x, f, z)) & Pos (Feat (y, f, z)) & c]
+let s_feats_glob =
+  make
+    ~pat:[Pos (Feat (x, f, y)); Pos (Feat (x, f, z))]
+    ~pred:(fun a es -> not (Var.Set.mem (Assign.var a y) es)
+                       && not (Var.Set.mem (Assign.var a z) es))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let z = Assign.var a z in
+      let f = Assign.feat a f in
+      Some [es, Pos (Eq (y, z)) & Pos (Feat (x, f, y)) & c])
+    ()
 
-let p_abs (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Abs (x, f))] in
-  Pattern.find
-    ~pred:(fun aff -> not (Feat.Set.mem (Assign.feat aff f) (Assign.feat_set aff fs)))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let f = Assign.feat aff f in
-  let fs = Assign.feat_set aff fs in
-  Some [es, Pos (Sim (x, fs, y)) & Pos (Abs (x, f)) & Pos (Abs (y, f)) & c]
+let s_sims =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Pos (Sim (x, gs, y))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let hs = Feat.Set.inter (Assign.feat_set a fs) (Assign.feat_set a gs) in
+      Some [es, Pos (Sim (x, hs, y)) & c])
+    ()
 
-let p_fen (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Fen (x, gs))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some [es, Pos (Sim (x, fs, y)) & Pos (Fen (x, gs)) & Pos (Fen (y, Feat.Set.union fs gs)) & c]
+let p_feat =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Pos (Feat (x, f, z))]
+    ~pred:(fun a _ -> not (Feat.Set.mem (Assign.feat a f) (Assign.feat_set a fs)))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let z = Assign.var a z in
+      let f = Assign.feat a f in
+      let fs = Assign.feat_set a fs in
+      Some [es, Pos (Sim (x, fs, y)) & Pos (Feat (x, f, z)) & Pos (Feat (y, f, z)) & c])
+    ()
 
-let p_sim (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Pos (Sim (x, gs, z))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let z = Assign.var aff z in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  let fgs = Feat.Set.union fs gs in
-  (* This rule has a really heavy side-condition *)
-  let hs =
-    Literal.Set.fold
-      (fun l hs ->
-        match l with
-        | Pos (Sim (_, hs', _)) ->
-           Some (
-               match hs with
-               | None -> hs'
-               | Some hs -> Feat.Set.inter hs hs'
-             )
-        | _ -> hs)
-      c
-      None
-  in
-  if match hs with
-     | None -> true
-     | Some hs -> not (Feat.Set.subset hs fgs)
-  then
-    (
-      Some [es, Pos (Sim (x, fs, y)) & Pos (Sim (x, gs, z)) & Pos (Sim (y, fgs, z)) & c]
+let p_abs =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Pos (Abs (x, f))]
+    ~pred:(fun a _ -> not (Feat.Set.mem (Assign.feat a f) (Assign.feat_set a fs)))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let f = Assign.feat a f in
+      let fs = Assign.feat_set a fs in
+      Some [es, Pos (Sim (x, fs, y)) & Pos (Abs (x, f)) & Pos (Abs (y, f)) & c])
+    ()
+
+let p_fen =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Pos (Fen (x, gs))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some [es, Pos (Sim (x, fs, y)) & Pos (Fen (x, gs)) & Pos (Fen (y, Feat.Set.union fs gs)) & c])
+    ()
+
+let p_sim =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Pos (Sim (x, gs, z))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let z = Assign.var a z in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      let fgs = Feat.Set.union fs gs in
+      (* This rule has a really heavy side-condition *)
+      let hs =
+        Literal.Set.fold
+          (fun l hs ->
+            match l with
+            | Pos (Sim (_, hs', _)) ->
+               Some (
+                   match hs with
+                   | None -> hs'
+                   | Some hs -> Feat.Set.inter hs hs'
+                 )
+            | _ -> hs)
+          c
+          None
+      in
+      if match hs with
+         | None -> true
+         | Some hs -> not (Feat.Set.subset hs fgs)
+      then
+        Some [es, Pos (Sim (x, fs, y)) & Pos (Sim (x, gs, z)) & Pos (Sim (y, fgs, z)) & c]
+      else
+        None)
+    ()
+
+let r_neq =
+  make
+    ~pat:[Neg (Eq (x, y))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      Some [es, Neg (Sim (x, Feat.Set.empty, y)) & c])
+    ()
+
+let r_nfeat =
+  make
+    ~pat:[Neg (Feat (x, f, y))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let f = Assign.feat a f in
+      Some [
+          (es, Pos (Abs (x, f)) & c);
+          let z = Var.fresh () in
+          (Var.Set.add z es, Pos (Feat (x, f, z)) & Neg (Sim (y, Feat.Set.empty, z)) & c)
+        ]
     )
-  else
-    None
+    ()
 
-let r_neq (es, c) =
-  let pat = Pattern.[Neg (Eq (x, y))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  Some [es, Neg (Sim (x, Feat.Set.empty, y)) & c]
+let r_nkind =
+  make
+    ~pat:[Neg (Kind (x, k))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let k = Assign.kind a k in
+      Some (
+          Kind.all
+          |> List.filter ((<>) k)
+          |> List.map
+               (fun k ->
+                 (es, Pos (Kind (x, k)) & c))
+        )
+    )
+    ()
 
-let r_nfeat (es, c) =
-  let pat = Pattern.[Neg (Feat (x, f, y))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let f = Assign.feat aff f in
-  Some [
-      (es, Pos (Abs (x, f)) & c);
+let r_nabs =
+  make
+    ~pat:[Neg (Abs (x, f))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let f = Assign.feat a f in
       let z = Var.fresh () in
-      (Var.Set.add z es, Pos (Feat (x, f, z)) & Neg (Sim (y, Feat.Set.empty, z)) & c)
-    ]
+      Some [Var.Set.add z es, Pos (Feat (x, f, z)) & c])
+    ()
 
-let r_nkind (es, c) =
-  let pat = Pattern.[Neg (Kind (x, k))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let k = Assign.kind aff k in
-  Some (
-      Kind.all
-      |> List.filter ((<>) k)
-      |> List.map
-           (fun k ->
-             (es, Pos (Kind (x, k)) & c))
-    )
-
-let r_nabs (es, c) =
-  let pat = Pattern.[Neg (Abs (x, f))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let f = Assign.feat aff f in
-  let z = Var.fresh () in
-  Some [Var.Set.add z es, Pos (Feat (x, f, z)) & c]
-
-let one_feature_in x fs (es, c) =
+let one_feature_in x fs es c =
   Feat.Set.elements fs
   |> List.map
        (fun f ->
          let z = Var.fresh () in
          (Var.Set.add z es, Pos (Feat (x, f, z)) & c))
 
-let one_difference_in x y fs (es, c) =
-  let difference_in x y f (es, c) =
+let one_difference_in x y fs es c =
+  let difference_in x y f es c =
     let z = Var.fresh () in
     let z' = Var.fresh () in
     [(Var.Set.add z' es, Pos (Abs (x, f)) & Pos (Feat (y, f, z')) & c) ;
@@ -273,120 +302,125 @@ let one_difference_in x y fs (es, c) =
   Feat.Set.elements fs
   |> List.map
        (fun f ->
-         difference_in x y f (es, c))
+         difference_in x y f es c)
   |> List.flatten
 
-let r_nfen_fen (es, c) =
-  let pat = Pattern.[Pos (Fen (x, fs)); Neg (Fen (x, gs))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some (
-      one_feature_in
-        x
-        (Feat.Set.diff fs gs)
-        (es, Pos (Fen (x, fs)) & c)
+let r_nfen_fen =
+  make
+    ~pat:[Pos (Fen (x, fs)); Neg (Fen (x, gs))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some (
+          one_feature_in
+            x (Feat.Set.diff fs gs)
+            es (Pos (Fen (x, fs)) & c)
+        )
     )
+    ()
 
-let r_nsim_sim (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Neg (Sim (x, gs, y))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some (
-      one_difference_in
-        x y
-        (Feat.Set.diff fs gs)
-        (es, Pos (Sim (x, fs, y)) & c)
+let r_nsim_sim =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Neg (Sim (x, gs, y))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some (
+          one_difference_in
+            x y (Feat.Set.diff fs gs)
+            es (Pos (Sim (x, fs, y)) & c)
+        )
     )
+    ()
 
-let r_nsim_fen (es, c) =
-  let pat = Pattern.[Pos (Fen (x, fs)); Neg (Sim (x, gs, y))] in
-  Pattern.find pat c >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some (
-      let c = Pos (Fen (x, fs)) & c in
-      (es, Neg (Fen (y, Feat.Set.union fs gs)) & c)
-      :: one_difference_in x y (Feat.Set.diff fs gs) (es, c)
+let r_nsim_fen =
+  make
+    ~pat:[Pos (Fen (x, fs)); Neg (Sim (x, gs, y))]
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some (
+          let c = Pos (Fen (x, fs)) & c in
+          (es, Neg (Fen (y, Feat.Set.union fs gs)) & c)
+          :: one_difference_in x y (Feat.Set.diff fs gs) es c
+        )
     )
+    ()
 
-let e_nfen (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Neg (Fen (x, gs))] in
-  Pattern.find
-    ~pred:(fun aff ->
-      not (Feat.Set.subset (Assign.feat_set aff fs) (Assign.feat_set aff gs)))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some (
-      let c = Pos (Sim (x, fs, y)) & c in
-      (es, Neg (Fen (x, Feat.Set.union fs gs)) & c)
-      :: one_feature_in x (Feat.Set.diff fs gs) (es, c)
+let e_nfen =
+  make
+    ~pat:Pattern.[Pos (Sim (x, fs, y)); Neg (Fen (x, gs))]
+    ~pred:(fun a _ -> not (Feat.Set.subset (Assign.feat_set a fs) (Assign.feat_set a gs)))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some (
+          let c = Pos (Sim (x, fs, y)) & c in
+          (es, Neg (Fen (x, Feat.Set.union fs gs)) & c)
+          :: one_feature_in x (Feat.Set.diff fs gs) es c
+        )
     )
+    ()
 
-let e_nsim (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Neg (Sim (x, gs, z))] in
-  Pattern.find
-    ~pred:(fun aff ->
-      not (Feat.Set.subset (Assign.feat_set aff fs) (Assign.feat_set aff gs)))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let z = Assign.var aff z in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some (
-      let c = Pos (Sim (x, fs, y)) & c in
-      (es, Neg (Sim (x, Feat.Set.union fs gs, z)) & c)
-      :: one_difference_in x z (Feat.Set.diff fs gs) (es, c)
+let e_nsim =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Neg (Sim (x, gs, z))]
+    ~pred:(fun a _ -> not (Feat.Set.subset (Assign.feat_set a fs) (Assign.feat_set a gs)))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let z = Assign.var a z in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some (
+          let c = Pos (Sim (x, fs, y)) & c in
+          (es, Neg (Sim (x, Feat.Set.union fs gs, z)) & c)
+          :: one_difference_in x z (Feat.Set.diff fs gs) es c
+        )
     )
+    ()
 
-let p_nfen (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Neg (Fen (x, gs))] in
-  Pattern.find
-    ~pred:(fun aff ->
-      Feat.Set.subset (Assign.feat_set aff fs) (Assign.feat_set aff gs))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some [es, Pos (Sim (x, fs, y)) & Neg (Fen (x, gs)) & Neg (Fen (y, gs)) & c]
+let p_nfen =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Neg (Fen (x, gs))]
+    ~pred:(fun a _ -> Feat.Set.subset (Assign.feat_set a fs) (Assign.feat_set a gs))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some [es, Pos (Sim (x, fs, y)) & Neg (Fen (x, gs)) & Neg (Fen (y, gs)) & c])
+    ()
 
-let p_nsim (es, c) =
-  let pat = Pattern.[Pos (Sim (x, fs, y)); Neg (Sim (x, gs, z))] in
-  Pattern.find
-    ~pred:(fun aff ->
-      Feat.Set.subset (Assign.feat_set aff fs) (Assign.feat_set aff gs))
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let y = Assign.var aff y in
-  let z = Assign.var aff z in
-  let fs = Assign.feat_set aff fs in
-  let gs = Assign.feat_set aff gs in
-  Some [es, Pos (Sim (x, fs, y)) & Neg (Sim (x, gs, z)) & Neg (Sim (y, gs, z)) & c]
+let p_nsim =
+  make
+    ~pat:[Pos (Sim (x, fs, y)); Neg (Sim (x, gs, z))]
+    ~pred:(fun a _ -> Feat.Set.subset (Assign.feat_set a fs) (Assign.feat_set a gs))
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let y = Assign.var a y in
+      let z = Assign.var a z in
+      let fs = Assign.feat_set a fs in
+      let gs = Assign.feat_set a gs in
+      Some [es, Pos (Sim (x, fs, y)) & Neg (Sim (x, gs, z)) & Neg (Sim (y, gs, z)) & c])
+    ()
 
-let s_kind (es, c) =
-  let pat = Pattern.[Pos (Kind (x, k))] in
-  Pattern.find
-    ~pred:(fun aff -> Assign.kind aff k <> Dir)
-    pat c
-  >>= fun (aff, c) ->
-  let x = Assign.var aff x in
-  let k = Assign.kind aff k in
-  Some [es, Pos (Fen (x, Feat.Set.empty)) & Pos (Kind (x, k)) & c]
+let s_kind =
+  make
+    ~pat:[Pos (Kind (x, k))]
+    ~pred:(fun a _ -> Assign.kind a k <> Dir)
+    ~prod:(fun a es c ->
+      let x = Assign.var a x in
+      let k = Assign.kind a k in
+      Some [es, Pos (Fen (x, Feat.Set.empty)) & Pos (Kind (x, k)) & c])
+    ()
 
 (* ========================================================================== *)
 (* ============================= [ All Rules ] ============================== *)
