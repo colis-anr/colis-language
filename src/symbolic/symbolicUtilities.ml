@@ -18,7 +18,7 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
     | Some (_, (Here|Up)) ->
       None (* We can’t know (if last component in parent path is a symbolic link) *)
 
-(** Create a singleton error case with optional message *)
+(** Create a singleton error_case case with optional message *)
 let error ?msg () : state -> (state * bool) list =
   fun sta ->
     let sta' =
@@ -64,32 +64,34 @@ let interp_echo : utility =
 
 let interp_touch1 path_str =
   let p = Path.from_string path_str in
+  under_specifications @@ fun ~cwd ~root ~root' ->
   match Path.split_last p with
   | None -> (* `touch ''` *)
-    error ~msg:"cannot touch '': No such file or directory" ()
+    failure ~error_message:"cannot touch '': No such file or directory" ()
   | Some (q, comp) ->
-    under_specifications @@ fun cwd root root' ->
     let noop_cases =
       let hint = last_comp_as_hint ~root p in [
-        { descr = asprintf "touch %a: path resolves" Path.pp p;
-          outcome = Success ;
-          spec =
+        success_case
+          ~descr:(asprintf "touch %a: path resolves" Path.pp p)
+          begin
             exists ?hint @@ fun y ->
             resolve root cwd p y &
-            eq root root' };
-        { descr = asprintf "touch %a: parent path does not resolve" Path.pp p;
-          outcome = Error;
-          spec =
+            eq root root'
+          end;
+        error_case
+          ~descr:(asprintf "touch %a: parent path does not resolve" Path.pp p)
+          begin
             noresolve root cwd q &
-            eq root root' };
+            eq root root';
+          end
       ]
     in
     let create_file_case f =
       let hintx = last_comp_as_hint ~root q in
       let hinty = Feat.to_string f in
-      { descr = asprintf "touch %a: create file" Path.pp p;
-        outcome = Success;
-        spec =
+      success_case
+        ~descr:(asprintf "touch %a: create file" Path.pp p)
+        begin
           exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
           resolve root cwd q x &
           dir x &
@@ -98,7 +100,8 @@ let interp_touch1 path_str =
           sim x (Feat.Set.singleton f) x' &
           dir x' &
           feat x' f y' &
-          reg y' }
+          reg y'
+        end
     in
     match comp with
     | Up | Here ->
@@ -118,18 +121,18 @@ let interp_touch : utility =
 
 let interp_mkdir1 path_str =
   let p = Path.from_string path_str in
+  under_specifications @@ fun ~cwd ~root ~root' ->
   match Path.split_last p with
   | None ->
-    error ()
+    failure ()
   | Some (q, (Here|Up)) ->
-    error ~msg:"mkdir: file exists" () (* CHECK *)
+    failure ~error_message:"mkdir: file exists" () (* CHECK *)
   | Some (q, Down f) ->
-    under_specifications @@ fun cwd root root' ->
     let hintx = last_comp_as_hint ~root q in
     let hinty = Feat.to_string f in [
-      { descr = asprintf "mkdir %a: create directory" Path.pp p;
-        outcome = Success;
-        spec =
+      success_case
+        ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
+        begin
           exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
           exists ~hint:hinty @@ fun y ->
           resolve root cwd q x &
@@ -140,29 +143,46 @@ let interp_mkdir1 path_str =
           dir x' &
           feat x' f y &
           dir y &
-          fen y Feat.Set.empty };
-      { descr = asprintf "mkdir %a: target already exists" Path.pp p;
-        outcome = Error;
-        spec =
+          fen y Feat.Set.empty
+        end;
+      success_case
+        ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
+        begin
+          exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
+          exists ~hint:hinty @@ fun y ->
+          resolve root cwd q x &
+          dir x &
+          abs x f &
+          similar root root' cwd q x x' &
+          sim x (Feat.Set.singleton f) x' &
+          dir x' &
+          feat x' f y &
+          dir y &
+          fen y Feat.Set.empty
+        end;
+      error_case
+        ~descr:(asprintf "mkdir %a: target already exists" Path.pp p)
+        begin
           exists ?hint:hintx @@ fun x ->
           resolve root cwd q x &
           dir x &
           nabs x f &
-          eq root root' };
-      (* The path "q" resolves to a file *)
-      { descr = asprintf "mkdir %a: parent path is file" Path.pp p;
-        outcome = Error;
-        spec =
+          eq root root'
+        end;
+      error_case
+        ~descr:(asprintf "mkdir %a: parent path is file" Path.pp p)
+        begin
           exists ?hint:hintx @@ fun x ->
           resolve root cwd q x &
           ndir x &
-          eq root root' };
-      (* The dir "p" does not exist. *)
-      { descr = asprintf "mkdir %a: parent path does not resolve" Path.pp p;
-        outcome = Error;
-        spec =
+          eq root root'
+        end;
+      error_case
+        ~descr:(asprintf "mkdir %a: parent path does not resolve" Path.pp p)
+        begin
           noresolve root cwd q &
-          eq root root'};
+          eq root root'
+        end;
     ]
 
 let interp_mkdir : utility =
@@ -177,19 +197,21 @@ let interp_mkdir : utility =
 
 let interp_test_e path_str =
   let p = Path.from_string path_str in
-  under_specifications @@ fun cwd root root' ->
+  under_specifications @@ fun ~cwd ~root ~root' ->
   let hintx = last_comp_as_hint ~root p in [
-    { descr = asprintf "test -e %a: path resolves" Path.pp p;
-      outcome = Success;
-      spec =
+    success_case
+      ~descr:(asprintf "test -e %a: path resolves" Path.pp p)
+      begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x &
-        eq root root' };
-    { descr = asprintf "test -e %a: path does not resolve" Path.pp p;
-      outcome = Error;
-      spec =
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -e %a: path does not resolve" Path.pp p)
+      begin
         noresolve root cwd p &
-        eq root root' };
+        eq root root'
+      end;
   ]
 
 let interp_test : utility = function
