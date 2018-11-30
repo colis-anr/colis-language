@@ -146,12 +146,11 @@ let run_symbolic ~argument0 ?(arguments=[]) colis =
   let context = { Context.empty_context with arguments } in
   let states : State.state list =
     let open Constraints in
-    let root = Var.fresh ~hint:"root" () in
+    let root = Var.fresh ~hint:"r" () in
     let cwd = Path.Abs [] in
-    let open Clause in
-    let spec = dir root in
-    add_to_sat_conj spec true_ |>
-    List.map (fun clause -> { Filesystem.root; clause; cwd }) |>
+    let spec = Clause.dir root in
+    Clause.add_to_sat_conj spec Clause.true_ |>
+    List.map (fun clause -> { Filesystem.root; root0=root; clause; cwd }) |>
     List.map (fun filesystem -> { State.filesystem; stdin; stdout })
   in
   List.iter

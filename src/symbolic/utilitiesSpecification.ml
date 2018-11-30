@@ -49,10 +49,16 @@ let failure ?error_message () = [{
     spec = Clause.(exists @@ fun v -> eq v v); (* is there a better way to write `true' ? *)
   }]
 
+let quantify_over_intermediate_root state conj =
+  if Var.equal state.filesystem.root0 state.filesystem.root then
+    [conj]
+  else
+    Clause.quantify_over state.filesystem.root conj
+
 (* Create the corresponding filesystem, update the state and create corresponding
     result **)
 let apply_clause_to_state state case root clause =
-  let filesystem = {clause; root; cwd=state.filesystem.cwd} in
+  let filesystem = {state.filesystem with clause; root} in
   let state' =
     { state with filesystem }
     |> print_error case.error_message
@@ -61,10 +67,9 @@ let apply_clause_to_state state case root clause =
   state', case.result
 
 let apply_case_to_state state root case : (state * bool) list =
-  (* Add the spec to the current clause *)
+  (* Add the case specification to the current clause *)
   Clause.add_to_sat_conj case.spec state.filesystem.clause
-  (* Quantify over the old state root *)
-  |> List.map (Clause.quantify_over state.filesystem.root)
+  |> List.map (quantify_over_intermediate_root state)
   |> List.flatten
   |> List.map (apply_clause_to_state state case root)
 
@@ -73,6 +78,5 @@ type specifications = cwd:Path.t -> root:Var.t -> root':Var.t -> case list
 let under_specifications : specifications -> state -> (state * bool) list =
   fun spec state ->
     let new_root = Var.fresh ~hint:(Var.to_string state.filesystem.root) () in
-    spec ~cwd:state.filesystem.cwd ~root:state.filesystem.root ~root':new_root
-    |> List.map (apply_case_to_state state new_root)
-    |> List.flatten
+    let cases = spec ~cwd:state.filesystem.cwd ~root:state.filesystem.root ~root':new_root in
+    List.map (apply_case_to_state state new_root) cases |> List.flatten
