@@ -3,6 +3,7 @@ open Constraints open Clause
 let x = Var.fresh ~hint:"x" ()
 let x' = Var.fresh ~hint:"x" ()
 let y = Var.fresh ~hint:"y" ()
+let z = Var.fresh ~hint:"z" ()
 
 let f = Feat.from_string "f"
 let g = Feat.from_string "g"
@@ -32,6 +33,26 @@ let tests =
       formula =
         nsim x Feat.Set.empty y & ndir x & ndir y
     } ;
+    {
+      expectation = Sat ;
+      formula =
+        sim1 x g y & fen x (Feat.Set.singleton f) & nfen y (Feat.Set.singleton f)
+    } ;
+    {
+      expectation = Unsat ;
+      formula =
+        sim x Feat.Set.empty y & feat x f y
+    } ;
+    {
+      expectation = Sat ;
+      formula =
+        fen x (Feat.Set.of_list [f; g]) & nsim x Feat.Set.empty y & abs y f & abs y g
+    } ;
+    {
+      expectation = Unsat ;
+      formula =
+        sim1 x f y & sim1 y g z & nsim x Feat.Set.empty z & empty z & abs x f & abs x g
+    }
   ]
 
 let src = Logs.Src.create "colis-language.constraints.test" ~doc:"Logging from the constraints' test engine"
