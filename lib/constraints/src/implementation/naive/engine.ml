@@ -53,6 +53,7 @@ let rec normalize limit d =
 let normalize ?(limit=50) (disj : Conj.disj) : Conj.disj =
   Log.debug (fun m -> m "Normalizing");
   let disj' = normalize limit disj in
+  Log.debug (fun m -> m "Normal form reached. Simplifying");
   let disj' =
     List.map
       (fun (es, c) ->
@@ -66,5 +67,5 @@ let normalize ?(limit=50) (disj : Conj.disj) : Conj.disj =
         (Var.Set.diff es xs, remove_literals_about_in_literal_set xs c))
       disj'
   in
-  Log.debug (fun m -> m "Normal form reached");
+  Log.debug (fun m -> m "%a" Conj.pp_disj disj');
   disj'
