@@ -126,7 +126,7 @@ let interp_mkdir1 path_str : utility =
   let p = Path.from_string path_str in
   match Path.split_last p with
   | None ->
-    failure ()
+    failure ~error_message:"mkdir: cannot create directory ''" ()
   | Some (q, (Here|Up)) ->
     failure ~error_message:"mkdir: file exists" () (* CHECK *)
   | Some (q, Down f) ->
