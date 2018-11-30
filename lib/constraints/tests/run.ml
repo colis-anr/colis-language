@@ -78,7 +78,7 @@ let run_tests () =
            )
       ),
       (i + 1))
-    (0, 0)
+    (0, 1)
     tests
   |> fst
 
