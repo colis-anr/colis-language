@@ -5,30 +5,29 @@ let (f, g) = Metavar.fresh2 ()
 let (fs, gs) = Metavar.fresh2 ()
 
 let apply_rule_on_disj (name, rule) disj =
-  let (changes, disj) =
-    List.fold_left
-      (fun (changes, disj) conj ->
-        match rule conj with
-        | None -> (changes, conj :: disj)
-        | Some disj' ->
-           Log.debug (fun m -> m "Rule %s applied" name);
-           (true, disj' @ disj))
-      (false, [])
-      disj
-  in
-  if changes then Some disj else None
+  let disj' = List.map rule disj in
+  if List.exists ((<>) None) disj' then
+    (
+      Log.debug (fun m -> m "Rule %s applied" name);
+      Some
+        (List.map2
+           (fun conj conj' ->
+             match conj' with
+             | None -> [conj]
+             | Some disj' -> disj')
+           disj disj'
+         |> List.flatten)
+    )
+  else
+    None
 
-let apply_rules_on_disj rules disj =
-  let (changes, disj) =
-    List.fold_left
-      (fun (changes, disj) rule ->
-        match apply_rule_on_disj rule disj with
-        | None -> (changes, disj)
-        | Some disj -> (true, disj))
-      (false, disj)
-      rules
-  in
-  if changes then Some disj else None
+let rec apply_rules_on_disj rules disj =
+  match rules with
+  | [] -> None
+  | rule :: rules ->
+     match apply_rule_on_disj rule disj with
+     | None -> apply_rules_on_disj rules disj
+     | Some disj' -> Some disj'
 
 let is_atom_about xs = function
   | Atom.Abs (a, _) | Kind (a, _) | Fen (a, _) ->
