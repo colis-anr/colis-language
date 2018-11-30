@@ -15,44 +15,24 @@ type test =
 
 let tests =
   [
-    {
-      expectation = Sat ;
-      formula =
-        exists ~hint:"y" @@ fun y' ->
-        feat x f y & nempty y
-        & feat x' f y' & fen y' (Feat.Set.singleton g)
-        & sim1 x g x'
-    } ;
-    {
-      expectation = Unsat ;
-      formula =
-        feat x f y & sim x Feat.Set.empty x' & nfeat x' f y
-    } ;
-    {
-      expectation = Unsat ;
-      formula =
-        nsim x Feat.Set.empty y & ndir x & ndir y
-    } ;
-    {
-      expectation = Sat ;
-      formula =
-        sim1 x g y & fen x (Feat.Set.singleton f) & nfen y (Feat.Set.singleton f)
-    } ;
-    {
-      expectation = Unsat ;
-      formula =
-        sim x Feat.Set.empty y & feat x f y
-    } ;
-    {
-      expectation = Sat ;
-      formula =
-        fen x (Feat.Set.of_list [f; g]) & nsim x Feat.Set.empty y & abs y f & abs y g
-    } ;
-    {
-      expectation = Unsat ;
-      formula =
-        sim1 x f y & sim1 y g z & nsim x Feat.Set.empty z & empty z & abs x f & abs x g
-    }
+    { expectation = Sat ;
+      formula = exists @@ fun y' -> feat x f y & nempty y & feat x' f y' & fen y' (Feat.Set.singleton g) & sim1 x g x' } ;
+    { expectation = Unsat ;
+      formula = feat x f y & sim x Feat.Set.empty x' & nfeat x' f y } ;
+    { expectation = Unsat ;
+      formula = nsim x Feat.Set.empty y & ndir x & ndir y } ;
+    { expectation = Sat ;
+      formula = sim1 x g y & fen x (Feat.Set.singleton f) & nfen y (Feat.Set.singleton f) } ;
+    { expectation = Unsat ;
+      formula = sim x Feat.Set.empty y & feat x f y } ;
+    { expectation = Sat ;
+      formula = fen x (Feat.Set.of_list [f; g]) & nsim x Feat.Set.empty y & abs y f & abs y g } ;
+    { expectation = Unsat ;
+      formula = sim1 x f y & sim1 y g z & nsim x Feat.Set.empty z & empty z & abs x f & abs x g } ;
+    { expectation = Unsat ;
+      formula = feat x f y & abs y f & exists @@ fun y' -> feat x f y' & feat y' f z } ;
+    { expectation = Sat ;
+      formula = sim1 x f y & nsim x Feat.Set.empty z & abs x f & abs z f & fen y (Feat.Set.singleton g) } ;
   ]
 
 let src = Logs.Src.create "colis-language.constraints.test" ~doc:"Logging from the constraints' test engine"
