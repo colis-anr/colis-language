@@ -33,6 +33,8 @@ let tests =
       formula = feat x f y & abs y f & exists @@ fun y' -> feat x f y' & feat y' f z } ;
     { expectation = Sat ;
       formula = sim1 x f y & nsim x Feat.Set.empty z & abs x f & abs z f & fen y (Feat.Set.singleton g) } ;
+    { expectation = Unsat ;
+      formula = fen x (Feat.Set.singleton f) & abs x f & nsim x Feat.Set.empty z & empty z } ;
   ]
 
 let src = Logs.Src.create "colis-language.constraints.test" ~doc:"Logging from the constraints' test engine"
