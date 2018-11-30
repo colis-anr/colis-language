@@ -27,6 +27,7 @@ module Filesystem
     root : variable;
     clause : clause;
     cwd : path;
+    root0 : variable;
   }
 end
 
