@@ -68,4 +68,8 @@ let normalize ?(limit=50) (disj : Disj.t) : Disj.t =
       disj'
   in
   Log.debug (fun m -> m "%a" Disj.pp disj');
+  List.iter
+    (fun conj' ->
+      Log.debug (fun m -> m "%a" (Conj.pp_as_dot ~name:"sdlkfj") conj'))
+    disj';
   disj'
