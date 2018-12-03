@@ -71,7 +71,7 @@ let interp_touch1 path_str : utility =
   | None -> (* `touch ''` *)
     failure ~error_message:"cannot touch '': No such file or directory" ()
   | Some (q, comp) ->
-    let noop_cases =
+    let common_cases =
       let hint = last_comp_as_hint ~root p in [
         success_case
           ~descr:(asprintf "touch %a: path resolves" Path.pp p)
@@ -88,28 +88,37 @@ let interp_touch1 path_str : utility =
           end
       ]
     in
-    let create_file_case f =
+    let feature_cases f =
       let hintx = last_comp_as_hint ~root q in
-      let hinty = Feat.to_string f in
-      success_case
-        ~descr:(asprintf "touch %a: create file" Path.pp p)
-        begin
-          exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
-          resolve root cwd q x &
-          dir x &
-          abs x f &
-          similar root root' cwd q x x' &
-          sim x (Feat.Set.singleton f) x' &
-          dir x' &
-          feat x' f y' &
-          reg y'
-        end
+      let hinty = Feat.to_string f in [
+        success_case
+          ~descr:(asprintf "touch %a: create file" Path.pp p)
+          begin
+            exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
+            resolve root cwd q x &
+            dir x &
+            abs x f &
+            similar root root' cwd q x x' &
+            sim x (Feat.Set.singleton f) x' &
+            dir x' &
+            feat x' f y' &
+            reg y'
+          end;
+        error_case
+          ~descr:(asprintf "touch %a: parent path is not directory" Path.pp p)
+          begin
+            exists ?hint:hintx @@ fun x ->
+            resolve root cwd q x &
+            ndir x &
+            eq root root'
+          end
+      ]
     in
     match comp with
     | Up | Here ->
-      noop_cases
+      common_cases
     | Down f ->
-      create_file_case f :: noop_cases
+      common_cases @ feature_cases f
 
 let interp_touch: args -> utility =
   function
