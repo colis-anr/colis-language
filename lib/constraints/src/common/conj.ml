@@ -9,7 +9,8 @@ let pp fmt (es, c) =
     | [] -> ()
     | v :: vs ->
        fpf fmt "∃ %a" Var.pp v;
-       List.iter (fpf fmt ", %a" Var.pp) vs
+       List.iter (fpf fmt ", %a" Var.pp) vs;
+       fpf fmt "⋅ "
   );
   (
     match Literal.Set.elements c with
