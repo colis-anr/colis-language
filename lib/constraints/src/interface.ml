@@ -138,7 +138,7 @@ module Make (I : Constraints_implementation.S) : S = struct
     match Path.split_first_rel q with
     | None -> (fun _ -> []) (* false *)
     | Some (Down f, q) -> or_ (abs x f) (exists (fun y -> feat x f y & (or_ (ndir y) (dir y & noresolve y (x::pi) q))))
-    | Some (Here, q) -> noresolve x [] q
+    | Some (Here, q) -> noresolve x pi q
     | Some (Up, q) ->
        match pi with
        | [] -> noresolve x [] q
