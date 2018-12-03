@@ -42,7 +42,7 @@ let remove_literals_about_in_literal_set xs =
   Literal.Set.filter (fun l -> not (is_literal_about xs l))
 
 let rec normalize limit d =
-  Log.debug (fun m -> m "%a" Conj.pp_disj d);
+  Log.debug (fun m -> m "%a" Disj.pp d);
   assert (limit >= 0);
   match apply_rules_on_disj Rules.all d with
   | None ->
@@ -50,7 +50,7 @@ let rec normalize limit d =
   | Some d ->
      normalize (limit-1) d
 
-let normalize ?(limit=50) (disj : Conj.disj) : Conj.disj =
+let normalize ?(limit=50) (disj : Disj.t) : Disj.t =
   Log.debug (fun m -> m "Normalizing");
   let disj' = normalize limit disj in
   Log.debug (fun m -> m "Normal form reached. Simplifying");
@@ -67,5 +67,5 @@ let normalize ?(limit=50) (disj : Conj.disj) : Conj.disj =
         (Var.Set.diff es xs, remove_literals_about_in_literal_set xs c))
       disj'
   in
-  Log.debug (fun m -> m "%a" Conj.pp_disj disj');
+  Log.debug (fun m -> m "%a" Disj.pp disj');
   disj'
