@@ -1,5 +1,3 @@
-let fpf = Format.fprintf
-
 type t =
   | Pos of Atom.t
   | Neg of Atom.t
@@ -7,7 +5,7 @@ type t =
 
 let pp fmt = function
   | Pos a -> Atom.pp fmt a
-  | Neg a -> fpf fmt "¬ %a" Atom.pp a
+  | Neg a -> Format.fprintf fmt "¬ %a" Atom.pp a
 
 module Self = struct
   type s = t
@@ -17,12 +15,4 @@ module Self = struct
   let equal = equal
 end
 
-module Set = struct
-  include Set.Make(Self)
-
-  let pp fmt fs =
-    match elements fs with
-    | [] -> ()
-    | f :: fs -> pp fmt f;
-                 List.iter (fpf fmt " ∧ %a" pp) fs
-end
+module Set = Set.Make(Self)
