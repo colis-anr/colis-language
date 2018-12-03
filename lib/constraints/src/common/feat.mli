@@ -14,4 +14,4 @@ module Set : sig
   val pp : Format.formatter -> t -> unit
 end
 
-module Map : (Map.S with type key = t)
+module Map : Map.S with type key = t
