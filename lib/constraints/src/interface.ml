@@ -124,11 +124,12 @@ module Make (I : Constraints_implementation.S) : S = struct
     | Some (Down f, q) ->
        exists ~hint:(Feat.to_string f) @@ fun y ->
        feat x f y & resolve_stack y (x :: pi) q z
-    | Some (Here, q) -> resolve_stack x pi q z
+    | Some (Here, q) ->
+       resolve_stack x pi q z
     | Some (Up, q) ->
        match pi with
        | [] -> resolve_stack x [] q z
-       | y::pi -> resolve_stack y pi q z
+       | y::pi -> dir x & resolve_stack y pi q z
 
   let resolve r cwd q z =
     match q with
@@ -136,22 +137,22 @@ module Make (I : Constraints_implementation.S) : S = struct
     | Path.Rel q -> resolve_stack r [] Path.(rel (concat cwd q)) z
 
   let rec noresolve_stack x pi q =
-    (* Invariant: dir(x). *)
     match Path.split_first_rel q with
     | None -> (fun _ -> []) (* false *)
     | Some (Down f, q) ->
        or_
-         (abs x f)
-         (exists ~hint:(Feat.to_string f) @@ fun y ->
-          feat x f y
+         (ndir x)
+         (dir x
           & (or_
-               (ndir y)
-               (dir y & noresolve_stack y (x::pi) q)))
-    | Some (Here, q) -> noresolve_stack x pi q
+               (abs x f)
+               (exists ~hint:(Feat.to_string f) @@ fun y ->
+                feat x f y & noresolve_stack y (x::pi) q)))
+    | Some (Here, q) ->
+       noresolve_stack x pi q
     | Some (Up, q) ->
        match pi with
        | [] -> noresolve_stack x [] q
-       | y::pi -> noresolve_stack y pi q
+       | y::pi -> or_ (ndir x) (noresolve_stack y pi q)
 
   let noresolve r cwd q =
     dir r
