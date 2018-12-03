@@ -118,50 +118,59 @@ module Make (I : Constraints_implementation.S) : S = struct
   let or_ r1 r2 = fun c ->
     (c |> r1) @ (c |> r2)
 
-  let rec resolve x pi q z =
+  let rec resolve_stack x pi q z =
     match Path.split_first_rel q with
     | None -> eq x z
-    | Some (Down f, q) -> exists (fun y -> feat x f y & resolve y (x :: pi) q z)
-    | Some (Here, q) -> resolve x pi q z
+    | Some (Down f, q) ->
+       exists @@ fun y ->
+       feat x f y & resolve_stack y (x :: pi) q z
+    | Some (Here, q) -> resolve_stack x pi q z
     | Some (Up, q) ->
        match pi with
-       | [] -> resolve x [] q z
-       | y::pi -> resolve y pi q z
+       | [] -> resolve_stack x [] q z
+       | y::pi -> resolve_stack y pi q z
 
   let resolve r cwd q z =
     match q with
-    | Path.Abs q -> resolve r [] q z
-    | Path.Rel q -> resolve r [] Path.(rel (concat cwd q)) z
+    | Path.Abs q -> resolve_stack r [] q z
+    | Path.Rel q -> resolve_stack r [] Path.(rel (concat cwd q)) z
 
-  let rec noresolve x pi q =
+  let rec noresolve_stack x pi q =
     (* Invariant: dir(x). *)
     match Path.split_first_rel q with
     | None -> (fun _ -> []) (* false *)
-    | Some (Down f, q) -> or_ (abs x f) (exists (fun y -> feat x f y & (or_ (ndir y) (dir y & noresolve y (x::pi) q))))
-    | Some (Here, q) -> noresolve x pi q
+    | Some (Down f, q) ->
+       or_
+         (abs x f)
+         (exists @@ fun y ->
+          feat x f y
+          & (or_
+               (ndir y)
+               (dir y & noresolve_stack y (x::pi) q)))
+    | Some (Here, q) -> noresolve_stack x pi q
     | Some (Up, q) ->
        match pi with
-       | [] -> noresolve x [] q
-       | y::pi -> noresolve y pi q
+       | [] -> noresolve_stack x [] q
+       | y::pi -> noresolve_stack y pi q
 
   let noresolve r cwd q =
     dir r
     & match q with
-      | Path.Abs q -> noresolve r [] q
-      | Path.Rel q -> noresolve r [] Path.(rel (concat cwd q))
+      | Path.Abs q -> noresolve_stack r [] q
+      | Path.Rel q -> noresolve_stack r [] Path.(rel (concat cwd q))
 
-  let rec similar x x' p z z' =
+  let rec similar_normal x x' p z z' =
     match p with
     | [] ->
        eq x z & eq x' z'
     | f::p ->
        exists2 @@ fun y y' ->
-       feat x f y & feat x' f y' & sim1 x f x' & similar y y' p z z'
+       feat x f y & feat x' f y' & sim1 x f x' & similar_normal y y' p z z'
 
   let similar r r' cwd q z z' =
     match q with
-    | Path.Abs q -> similar r r' Path.(normalize (Abs q)) z z'
-    | Path.Rel q -> similar r r' Path.(normalize (concat cwd q)) z z'
+    | Path.Abs q -> similar_normal r r' Path.(normalize (Abs q)) z z'
+    | Path.Rel q -> similar_normal r r' Path.(normalize (concat cwd q)) z z'
 
   let pp_sat_conj = I.pp
 
