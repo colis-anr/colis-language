@@ -122,7 +122,7 @@ module Make (I : Constraints_implementation.S) : S = struct
     match Path.split_first_rel q with
     | None -> eq x z
     | Some (Down f, q) ->
-       exists @@ fun y ->
+       exists ~hint:(Feat.to_string f) @@ fun y ->
        feat x f y & resolve_stack y (x :: pi) q z
     | Some (Here, q) -> resolve_stack x pi q z
     | Some (Up, q) ->
@@ -142,7 +142,7 @@ module Make (I : Constraints_implementation.S) : S = struct
     | Some (Down f, q) ->
        or_
          (abs x f)
-         (exists @@ fun y ->
+         (exists ~hint:(Feat.to_string f) @@ fun y ->
           feat x f y
           & (or_
                (ndir y)
