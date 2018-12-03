@@ -53,7 +53,11 @@ let rec normalize limit d =
 let normalize ?(limit=50) (disj : Disj.t) : Disj.t =
   Log.debug (fun m -> m "Normalizing");
   let disj' = normalize limit disj in
-  Log.debug (fun m -> m "Normal form reached. Simplifying");
+  Log.debug (fun m -> m "Normal form reached.");
+  disj'
+
+let simplify (disj : Disj.t) : Disj.t =
+  Log.debug (fun m -> m "Simplifying");
   let disj' =
     List.map
       (fun (es, c) ->
@@ -65,7 +69,7 @@ let normalize ?(limit=50) (disj : Disj.t) : Disj.t =
           |> Var.Set.of_list
         in
         (Var.Set.diff es xs, remove_literals_about_in_literal_set xs c))
-      disj'
+      disj
   in
   Log.debug (fun m -> m "%a" Disj.pp disj');
   List.iter

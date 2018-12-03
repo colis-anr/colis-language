@@ -4,8 +4,15 @@ type t = Conj.t
 
 let true_ = (Var.Set.empty, Literal.Set.empty)
 
-let quantify_over x (e, c) = Engine.normalize [Var.Set.add x e, c]
-let add l (e, c) = Engine.normalize [e, Literal.Set.add l c]
+let quantify_over x (e, c) =
+  (* FIXME, there should be a renaming somewhere... *)
+  [Var.Set.add x e, c]
+  |> Engine.normalize
+  |> Engine.simplify
+
+let add l (e, c) =
+  [e, Literal.Set.add l c]
+  |> Engine.normalize
 
 let eq x y = add (Pos (Eq (x, y)))
 let neq x y = add (Neg (Eq (x, y)))
