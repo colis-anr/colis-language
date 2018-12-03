@@ -5,8 +5,9 @@ type t = Conj.t
 let true_ = (Var.Set.empty, Literal.Set.empty)
 
 let quantify_over x (e, c) =
-  (* FIXME, there should be a renaming somewhere... *)
-  [Var.Set.add x e, c]
+  let x' = Var.fresh ~hint:(Var.hint x) () in
+  [Var.Set.add x' e,
+   Rules.replace_var_in_literal_set x x' c]
   |> Engine.normalize
   |> Engine.simplify
 
