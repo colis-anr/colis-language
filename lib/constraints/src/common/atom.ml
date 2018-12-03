@@ -5,8 +5,8 @@ type t =
   | Feat of Var.t * Feat.t * Var.t
   | Abs of Var.t * Feat.t
   | Kind of Var.t * Kind.t
-  | Fen of Var.t * Feat.Set.t
-  | Sim of Var.t * Feat.Set.t * Var.t
+  | Fen of Var.t * (Feat.Set.t [@printer pp_feat_set])
+  | Sim of Var.t * (Feat.Set.t [@printer pp_feat_set]) * Var.t
 [@@deriving ord]
 
 let compare_unordered_pair comp (x1, y1) (x2, y2) =

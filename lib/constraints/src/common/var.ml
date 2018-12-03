@@ -42,14 +42,5 @@ module Self = struct
   let compare = compare
 end
 
-module Set = struct
-  include Set.Make(Self)
-
-  let pp fmt fs =
-    match elements fs with
-    | [] -> ()
-    | f :: fs -> pp fmt f;
-                 List.iter (Format.fprintf fmt ", %a" pp) fs
-end
-
+module Set = Set.Make(Self)
 module Map = Map.Make(Self)

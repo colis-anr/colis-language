@@ -27,6 +27,7 @@ module Set = struct
        pp fmt f;
        List.iter (fpf fmt ", %a" pp) fs;
        fpf fmt "}"
+           (* FIXME: this is here because of Atom.pp that uses @@deriving. But this should move. *)
 end
 
 module Map = Map.Make(Self)
