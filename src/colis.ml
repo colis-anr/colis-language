@@ -138,24 +138,27 @@ let print_symbolic_state fmt sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let run_symbolic ~argument0 ?(arguments=[]) colis =
-  let stdin = Concrete.Stdin.empty in
-  let stdout = Concrete.Stdout.empty in
-  let input = { Concrete.Input.empty with argument0 } in
+let run_symbolic ~argument0 ?(arguments=[]) ?(fs_spec=FilesystemSpec.empty) colis =
   let open Symbolic in
-  let context = { Context.empty_context with arguments } in
   let states : State.state list =
     let open Constraints in
     let root = Var.fresh ~hint:"r" () in
+    let clause = FilesystemSpec.compile ~root fs_spec in
     let cwd = Path.Abs [] in
-    let spec = Clause.dir root in
-    Clause.add_to_sat_conj spec Clause.true_ |>
-    List.map (fun filesystem -> { State.filesystem; stdin; stdout })
-    let root0 = None in (* [Some root] to prevent pruning of the initial state *)
+    let root0 = None in (* [None] for pruning [root] while symbolic execution, [Some root] to prevent pruning the initial state but slower execution *)
+    Clause.(add_to_sat_conj clause true_) |>
     List.map (fun c -> {Filesystem.clause=c; root; root0; cwd}) |>
+    List.map
+      (fun filesystem -> {
+           State.filesystem;
+           stdin = Concrete.Stdin.empty;
+           stdout = Concrete.Stdout.empty;
+         })
   in
   List.iter
     (fun state ->
+       let input = { Concrete.Input.empty with argument0 } in
+       let context = { Context.empty_context with arguments } in
        let normals, failures = Interpreter.interp_program input context state colis in
        printf "* Initial state@\n";
        printf "@\n- @[%a@]@\n" print_symbolic_state state;

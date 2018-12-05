@@ -94,9 +94,10 @@ val run : argument0:string -> ?arguments:(string list) -> colis -> unit
   *)
 
 
-val run_symbolic : argument0:string -> ?arguments:(string list) -> colis -> unit
+val run_symbolic : argument0:string -> ?arguments:(string list) -> ?fs_spec:FilesystemSpec.spec -> colis -> unit
 (** Symbolically executes a Colis program.
 
     @param argument0 Value for argument zero (the interpreter or filename)
     @param arguments Other arguments
+    @param fs_spec Specification of the filesystem for the initial state
   *)
