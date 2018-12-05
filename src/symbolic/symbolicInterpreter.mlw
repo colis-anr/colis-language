@@ -19,15 +19,18 @@ end
 module Filesystem
 
   use list.List
+  use option.Option
   use Constraints
 
   (** A symbolic filesystem composed by a variable indicating root, constraints, and the
-  current working directory `cwd` as feature path *)
+      current working directory `cwd` as feature path. root₀ may refer to the initial root
+      variable. When provided it should not be pruned (“quantified over”) during symbolic
+      execution of utilities. *)
   type filesystem = {
     root : variable;
     clause : clause;
     cwd : path;
-    root0 : variable;
+    root0 : option variable;
   }
 end
 
