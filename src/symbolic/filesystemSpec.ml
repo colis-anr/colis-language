@@ -32,6 +32,9 @@ let simple : spec = [
     ];
   ];
   node "etc" [];
+  node "usr" [
+    node "lib" [];
+  ];
   node "var" [
     node "lib" [];
   ]
