@@ -150,8 +150,9 @@ let run_symbolic ~argument0 ?(arguments=[]) colis =
     let cwd = Path.Abs [] in
     let spec = Clause.dir root in
     Clause.add_to_sat_conj spec Clause.true_ |>
-    List.map (fun clause -> { Filesystem.root; root0=root; clause; cwd }) |>
     List.map (fun filesystem -> { State.filesystem; stdin; stdout })
+    let root0 = None in (* [Some root] to prevent pruning of the initial state *)
+    List.map (fun c -> {Filesystem.clause=c; root; root0; cwd}) |>
   in
   List.iter
     (fun state ->

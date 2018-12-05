@@ -50,7 +50,7 @@ let failure ?error_message () = [{
   }]
 
 let quantify_over_intermediate_root state conj =
-  if Var.equal state.filesystem.root0 state.filesystem.root then
+  if BatOption.eq ~eq:Var.equal state.filesystem.root0 (Some state.filesystem.root) then
     [conj]
   else
     Clause.quantify_over state.filesystem.root conj
