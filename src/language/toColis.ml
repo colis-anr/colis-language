@@ -101,4 +101,5 @@ and function_definition fmt (n, i) =
 
 and program fmt p =
   List.iter (function_definition fmt) p.function_definitions;
-  instruction fmt p.instruction
+  fprintf fmt "@[<v 2>begin@ %a@ end@]" sequence p.instruction
+
