@@ -7,6 +7,10 @@ let pp fmt = function
   | Pos a -> Atom.pp fmt a
   | Neg a -> Format.fprintf fmt "¬ %a" Atom.pp a
 
+let vars = function
+  | Pos a | Neg a ->
+     Atom.vars a
+
 module Self = struct
   type s = t
   type t = s

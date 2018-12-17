@@ -55,3 +55,7 @@ let pp fmt = function
      fpf fmt "%a[%a]" Var.pp x Feat.Set.pp fs
   | Sim (x, fs, y) ->
      fpf fmt "%a ~%a %a" Var.pp x Feat.Set.pp fs Var.pp y
+
+let vars = function
+  | Abs (x, _) | Kind (x, _) | Fen (x, _) -> Var.Set.singleton x
+  | Eq (x, y) | Feat (x, _, y) | Sim (x, _, y) -> Var.Set.(add x (singleton y))
