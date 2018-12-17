@@ -17,17 +17,20 @@ end
 module Set = struct
   include Set.Make(Self)
 
-  let pp fmt fs =
+  let pp_gen ~open_ ~close ~empty fmt fs =
     let fpf = Format.fprintf in
     match elements fs with
     | [] ->
-       fpf fmt "∅"
+       fpf fmt "%s" empty
     | f :: fs ->
-       fpf fmt "{";
+       fpf fmt "%s" open_;
        pp fmt f;
        List.iter (fpf fmt ", %a" pp) fs;
-       fpf fmt "}"
-           (* FIXME: this is here because of Atom.pp that uses @@deriving. But this should move. *)
+       fpf fmt "%s" close
+  (* FIXME: this is here because of Atom.pp that uses @@deriving. But this should move. *)
+
+  let pp fmt fs =
+    pp_gen ~open_:"{" ~close:"}" ~empty:"∅" fmt fs
 end
 
 module Map = Map.Make(Self)
