@@ -43,8 +43,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 let run_tests () =
   List.fold_left
     (fun (res, i) test ->
-      Log.info (fun m -> m "Running test %d (%s expected)."
-                           i
+      Log.info (fun m -> m "Running test %d (%s expected)." i
                            (match test.expectation with Sat -> "Sat" | _ -> "Unsat"));
       (
         match add_to_sat_conj test.formula true_, test.expectation with
