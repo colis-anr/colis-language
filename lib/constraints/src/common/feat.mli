@@ -11,6 +11,7 @@ val pp : Format.formatter -> t -> unit
 module Set : sig
   include Set.S with type elt = t
 
+  val pp_gen : open_:string -> close:string -> empty:string -> Format.formatter -> t -> unit
   val pp : Format.formatter -> t -> unit
 end
 

@@ -30,10 +30,12 @@ let pp_as_dot ~name fmt (es, c) =
     | Literal.Pos (Eq _) -> fpf fmt "="
     | Neg (Eq _) -> fpf fmt "≠"
     | Pos (Abs (_, f)) -> fpf fmt "[%a]↑" Feat.pp f
-    | Pos (Fen (_, fs)) -> fpf fmt "[%a]" Feat.Set.pp fs
-    | Neg (Fen (_, fs)) -> fpf fmt "¬[%a]" Feat.Set.pp fs
-    | Pos (Sim (_, fs, _)) -> fpf fmt "∼%a" Feat.Set.pp fs
-    | Neg (Sim (_, fs, _)) -> fpf fmt "≁%a" Feat.Set.pp fs
+    | Pos (Kind (_, k)) -> Kind.pp fmt k
+    | Neg (Kind (_, k)) -> fpf fmt "¬%a" Kind.pp k
+    | Pos (Fen (_, fs)) -> fpf fmt "[%a]" (Feat.Set.pp_gen ~open_:"" ~close:"" ~empty:"") fs
+    | Neg (Fen (_, fs)) -> fpf fmt "¬[%a]" (Feat.Set.pp_gen ~open_:"" ~close:"" ~empty:"") fs
+    | Pos (Sim (_, fs, _)) -> fpf fmt "∼%a" (Feat.Set.pp_gen ~open_:"\\{" ~close:"\\}" ~empty:"∅") fs
+    | Neg (Sim (_, fs, _)) -> fpf fmt "≁%a" (Feat.Set.pp_gen ~open_:"\\{" ~close:"\\}" ~empty:"∅") fs
     | _ -> failwith "pp_literal_no_var"
   in
 
@@ -50,7 +52,7 @@ let pp_as_dot ~name fmt (es, c) =
     Literal.Set.iter
       (fun l ->
         if is_literal_unary_about_var x l then
-          fpf fmt " | %a " pp_literal_no_var l)
+          fpf fmt " | %a" pp_literal_no_var l)
       c
   in
 
@@ -61,7 +63,7 @@ let pp_as_dot ~name fmt (es, c) =
   (* Print nodes and unary literals. *)
   Var.Set.iter
     (fun x ->
-      fpf fmt "%d [shape=record,label=\"%s%a%a\"];@\n"
+      fpf fmt "%d [shape=rectangle,label=\"%s%a%a\"];@\n"
         (hash x)
         (if Var.Set.mem x es then "∃" else "")
         Var.pp x pp_var_unary_attributes x)
