@@ -24,6 +24,7 @@ end
 module Symbolic = struct
   module Context = SymbolicInterpreter__Context
   module Filesystem = SymbolicInterpreter__Filesystem
+  module FilesystemSpec = FilesystemSpec
   module State = SymbolicInterpreter__State
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
@@ -121,9 +122,20 @@ let print_symbolic_filesystem fmt fs =
   fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
-let print_symbolic_state fmt sta =
+let _print_dot filename id clause =
+  let ch = open_out filename in
+  try
+    let fmt = formatter_of_out_channel ch in
+    Constraints.Conj.pp_as_dot ~name:id fmt clause;
+    close_out ch
+  with e ->
+    close_out ch;
+    raise e
+
+let print_symbolic_state _id fmt sta =
   let open Symbolic.State in
   print_symbolic_filesystem fmt sta.filesystem;
+  (* print_dot (sprintf "/tmp/%s.dot" id) id sta.filesystem.clause; *)
   (* Print stdin *)
   if sta.stdin <> [] then begin
     fprintf fmt "stdin: |@\n";
@@ -138,14 +150,14 @@ let print_symbolic_state fmt sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let run_symbolic ~argument0 ?(arguments=[]) ?(fs_spec=FilesystemSpec.empty) colis =
+let run_symbolic ~argument0 ?(arguments=[]) fs_spec colis =
   let open Symbolic in
   let states : State.state list =
     let open Constraints in
     let root = Var.fresh ~hint:"r" () in
     let clause = FilesystemSpec.compile ~root fs_spec in
     let cwd = Path.Abs [] in
-    let root0 = None in (* [None] for pruning [root] while symbolic execution, [Some root] to prevent pruning the initial state but slower execution *)
+    let root0 = Some root in (* [None] for pruning [root] while symbolic execution, [Some root] to prevent pruning the initial state but slower execution *)
     Clause.(add_to_sat_conj clause true_) |>
     List.map (fun c -> {Filesystem.clause=c; root; root0; cwd}) |>
     List.map
@@ -155,18 +167,22 @@ let run_symbolic ~argument0 ?(arguments=[]) ?(fs_spec=FilesystemSpec.empty) coli
            stdout = Concrete.Stdout.empty;
          })
   in
+  let print_state_record ctr label fmt =
+    let id : string = sprintf "%s-%d" label !ctr in
+    incr ctr; fprintf fmt "@\n- @[id: %s@\n%a@]" id (print_symbolic_state id)
+  in
   List.iter
     (fun state ->
        let input = { Concrete.Input.empty with argument0 } in
        let context = { Context.empty_context with arguments } in
        let normals, failures = Interpreter.interp_program input context state colis in
        printf "* Initial state@\n";
-       printf "@\n- @[%a@]@\n" print_symbolic_state state;
+       printf "%a@\n" (print_state_record (ref 0) "init") state;
        printf "* Success states@\n";
-       List.iter (printf "@\n- @[%a@]" print_symbolic_state) (BatSet.to_list normals);
+       List.iter (print_state_record (ref 1) "success" Format.std_formatter) (BatSet.to_list normals);
        printf "@\n";
        printf "* Failure states@\n";
-       List.iter (printf "@\n- @[%a@]" print_symbolic_state) (BatSet.to_list failures);
+       List.iter (print_state_record (ref 1) "failure" Format.std_formatter) (BatSet.to_list failures);
        printf "@\n";
        printf "* Summary@\n@\n";
        printf "- Success cases: %d@\n" (BatSet.cardinal normals);

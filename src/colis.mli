@@ -24,6 +24,7 @@ end
 module Symbolic: sig
   module Context = SymbolicInterpreter__Context
   module Filesystem = SymbolicInterpreter__Filesystem
+  module FilesystemSpec = FilesystemSpec
   module State = SymbolicInterpreter__State
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
@@ -94,7 +95,7 @@ val run : argument0:string -> ?arguments:(string list) -> colis -> unit
   *)
 
 
-val run_symbolic : argument0:string -> ?arguments:(string list) -> ?fs_spec:FilesystemSpec.spec -> colis -> unit
+val run_symbolic : argument0:string -> ?arguments:(string list) -> Symbolic.FilesystemSpec.t -> colis -> unit
 (** Symbolically executes a Colis program.
 
     @param argument0 Value for argument zero (the interpreter or filename)
