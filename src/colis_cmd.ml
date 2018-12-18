@@ -42,9 +42,21 @@ let get_file, get_arguments, set_file_or_argument =
     | None -> file := Some new_file_or_arg
     | Some _ -> args := new_file_or_arg :: !args)
 
+let get_symbolic_fs, set_symbolic_fs =
+  let fs_spec = ref Colis.Symbolic.FilesystemSpec.empty in
+  (fun () -> !fs_spec),
+  (fun str ->
+     let open Colis.Symbolic.FilesystemSpec in
+     match str with
+     | "empty" -> fs_spec := empty
+     | "simple" -> fs_spec := simple
+     | "fsh" -> fs_spec := fsh
+     | _ -> raise (Arg.Bad "only filesystems `empty', `simple', and `fsh' are known"))
+
 let speclist =
   [ "--run",          Arg.Unit (set_action Run),         " Concrete execution (default)";
     "--run-symbolic", Arg.Unit (set_action RunSymbolic), " Symbolic execution";
+    "--symbolic-fs",  Arg.String set_symbolic_fs,        " Name of the initial symbolic filesystem (default: empty)";
     "--print-colis",  Arg.Unit (set_action PrintColis),  " Print the CoLiS script";
     "--print-shell",  Arg.Unit (set_action PrintShell),  " Print the Shell script";
     "--realworld",    Arg.Set realworld,                 " Use system utilities in concrete execution";
@@ -95,7 +107,8 @@ let main () =
      )
   | RunSymbolic ->
      (
-      Colis.run_symbolic ~argument0 ~arguments program
+      let fs_spec = get_symbolic_fs () in
+      Colis.run_symbolic ~argument0 ~arguments fs_spec program
      )
   | PrintColis ->
      (

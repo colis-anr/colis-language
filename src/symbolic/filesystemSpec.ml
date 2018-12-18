@@ -1,6 +1,6 @@
 
-type spec = node list
-and node = Dir of string * spec
+type t = node list
+and node = Dir of string * t
 
 let node name children : node =
   Dir (name, children)
@@ -23,9 +23,9 @@ let compile ~root nodes =
   in
   clause
 
-let empty : spec = []
+let empty : t = []
 
-let simple : spec = [
+let simple : t = [
   node "usr" [
     node "local" [
       node "lib" [];
@@ -41,7 +41,7 @@ let simple : spec = [
 ]
 
 (* TODO to be extended to FSH 3.0? *)
-let fsh : spec = [
+let fsh : t = [
   node "bin" [];
   node "boot" [];
   node "dev" [];
