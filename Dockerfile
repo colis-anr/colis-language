@@ -17,21 +17,19 @@ RUN [ -z "$SWITCH" ] || opam switch create "$SWITCH"
 RUN sudo apt-get update && sudo apt-get install -yy -qq wget autoconf automake
 
 WORKDIR /home/opam/colis-language
-COPY . .
-RUN sudo chown -R opam .
+COPY colis-language.opam .
+RUN sudo chown opam colis-language.opam
 
 # The following and the `apt-get install` above could be accomplished by something like
 # `opam install --only-deps` if it was supported...
 
 # Extract pin-depends from opam file and pin them
 RUN opam show . -f pin-depends: 2>/dev/null \
-  | grep -A 50000 '^$' \
   | tr -s '[]"' ' ' \
   | xargs -n2 opam pin -n
 
 # Extract dependencies from opam file and install their dependencies
 RUN opam show . -f depends: \
-  | grep -A 50000 '^$' \
   | cut -d '"' -f 2 \
   | xargs opam depext --install
 
@@ -82,5 +80,7 @@ RUN eval $(opam env) \
 ## =============================== [ Build ] ================================ ##
 
 WORKDIR /home/opam/colis-language
+COPY . .
+RUN sudo chown -R opam .
 
 RUN eval $(opam env) && make ci
