@@ -167,9 +167,10 @@ let run_symbolic ~argument0 ?(arguments=[]) fs_spec colis =
            stdout = Concrete.Stdout.empty;
          })
   in
-  let print_state_record ctr label fmt =
-    let id : string = sprintf "%s-%d" label !ctr in
-    incr ctr; fprintf fmt "@\n- @[id: %s@\n%a@]" id (print_symbolic_state id)
+  let print_state_record ctr label fmt sta =
+    let id = sprintf "%s-%d" label !ctr in
+    incr ctr;
+    fprintf fmt "@\n- @[id: %s@\n%a@]" id (print_symbolic_state id) sta
   in
   List.iter
     (fun state ->
