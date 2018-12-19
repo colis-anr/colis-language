@@ -9,11 +9,11 @@ let print_line msg state =
   let stdout = Stdout.(output msg state.stdout |> newline) in
   {state with stdout}
 
-let print_debug msg state =
+let print_utility_trace msg state =
   if String.equal msg "" then
     state
   else
-    let msg = "[DBG] "^msg in
+    let msg = "[UTL] "^msg in
     print_line msg state
 
 let print_error msg state =
@@ -62,7 +62,7 @@ let apply_clause_to_state state case root clause =
   let state' =
     { state with filesystem }
     |> print_error case.error_message
-    |> print_debug case.descr
+    |> print_utility_trace case.descr
   in
   state', case.result
 
