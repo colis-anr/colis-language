@@ -53,26 +53,26 @@ ENV ALTERGO="alt-ergo.2.2.0"
 RUN eval $(opam env) \
   && wget -q -O "$CVC4" "http://cvc4.cs.stanford.edu/downloads/builds/x86_64-linux-opt/$CVC4-x86_64-linux-opt" \
   && chmod +x "$CVC4" \
-  && why3 config --add-prover cvc4 "$PWD/$CVC4"
+  && why3 config --add-prover cvc4 "$CVC4" "$PWD/$CVC4"
 
 # Install Z3 in provers $Z3
 RUN eval $(opam env) \
   && wget -q -O "$Z3.zip" "https://github.com/Z3Prover/z3/releases/download/$Z3/$Z3-x64-ubuntu-16.04.zip" \
   && unzip "$Z3.zip" \
   && mv "$Z3-x64-ubuntu-16.04" "$Z3" \
-  && why3 config --add-prover z3 "$PWD/$Z3/bin/z3"
+  && why3 config --add-prover z3 "$Z3" "$PWD/$Z3/bin/z3"
 
 # Install Eprover
 RUN eval $(opam env) \
   && wget -q -O E.tgz "http://wwwlehre.dhbw-stuttgart.de/~sschulz/WORK/E_DOWNLOAD/V_2.2/E.tgz" \
   && tar xf E.tgz \
   && ( cd E && ./configure && make ) \
-  && why3 config --add-prover eprover "$PWD/E/PROVER/eprover"
+  && why3 config --add-prover eprover "Eprover-2.2" "$PWD/E/PROVER/eprover"
 
 # Register Alt-ergo
 RUN eval $(opam env) \
   && opam depext -i "$ALTERGO" \
-  && why3 config --add-prover alt-ergo "$(which alt-ergo)"
+  && why3 config --add-prover alt-ergo "$ALTERGO" "$(which alt-ergo)"
 
 RUN eval $(opam env) \
   && why3 --list-provers
