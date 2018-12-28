@@ -1,4 +1,4 @@
-(** {1 CoLiS-Language} *)
+(** {2 CoLiS-Language} *)
 
 module Language: sig
   module Nat = Syntax__Nat
