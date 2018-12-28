@@ -5,7 +5,9 @@
 <prover id="0" name="Z3" version="4.6.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="1" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="2" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
-<file name="../interpreter.mlw" proved="true">
+<file proved="true">
+<path name=".."/>
+<path name="interpreter.mlw"/>
 <theory name="Interpreter" proved="true">
  <goal name="VC context" expl="VC for context" proved="true">
  <proof prover="2"><result status="valid" time="0.07"/></proof>
@@ -16,14 +18,11 @@
  <goal name="state_same" proved="true">
  <proof prover="2"><result status="valid" time="0.16"/></proof>
  </goal>
- <goal name="input_same" proved="true">
- <proof prover="2"><result status="valid" time="0.19"/></proof>
- </goal>
  <goal name="VC maybe_exit" expl="VC for maybe_exit" proved="true">
  <proof prover="2"><result status="valid" time="0.30"/></proof>
  </goal>
  <goal name="VC interp_utility" expl="VC for interp_utility" proved="true">
- <proof prover="2"><result status="valid" time="0.17"/></proof>
+ <proof prover="2"><result status="valid" time="0.31"/></proof>
  </goal>
  <goal name="VC shift_arguments" expl="VC for shift_arguments" proved="true">
  <proof prover="2"><result status="valid" time="0.37"/></proof>
@@ -31,40 +30,41 @@
  <goal name="VC interp_instruction" expl="VC for interp_instruction" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC interp_instruction.0" expl="assertion" proved="true">
-  <proof prover="2"><result status="valid" time="0.26"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.1" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.20"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.2" expl="assertion" proved="true">
-  <proof prover="2"><result status="valid" time="0.20"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.3" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.21"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.4" expl="assertion" proved="true">
-  <proof prover="2"><result status="valid" time="0.24"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.5" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.19"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.6" expl="assertion" proved="true">
   <proof prover="2"><result status="valid" time="0.22"/></proof>
   </goal>
-  <goal name="VC interp_instruction.7" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.25"/></proof>
+  <goal name="VC interp_instruction.1" expl="exceptional postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.05" steps="134"/></proof>
   </goal>
-  <goal name="VC interp_instruction.8" expl="assertion" proved="true">
+  <goal name="VC interp_instruction.2" expl="assertion" proved="true">
   <proof prover="2"><result status="valid" time="0.13"/></proof>
   </goal>
-  <goal name="VC interp_instruction.9" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.26"/></proof>
+  <goal name="VC interp_instruction.3" expl="exceptional postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.11" steps="83"/></proof>
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
-  <goal name="VC interp_instruction.10" expl="assertion" proved="true">
+  <goal name="VC interp_instruction.4" expl="assertion" proved="true">
   <proof prover="2"><result status="valid" time="0.19"/></proof>
   </goal>
-  <goal name="VC interp_instruction.11" expl="exceptional postcondition" proved="true">
+  <goal name="VC interp_instruction.5" expl="exceptional postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.20"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.6" expl="assertion" proved="true">
   <proof prover="2"><result status="valid" time="0.26"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.7" expl="exceptional postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.8" expl="assertion" proved="true">
+  <proof prover="2"><result status="valid" time="0.20"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.9" expl="exceptional postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.09" steps="83"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.10" expl="assertion" proved="true">
+  <proof prover="2"><result status="valid" time="0.24"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.11" expl="exceptional postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.18"/></proof>
   </goal>
   <goal name="VC interp_instruction.12" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.07"/></proof>
@@ -73,181 +73,191 @@
   <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_instruction.14" expl="postcondition" proved="true">
-  <transf name="case" proved="true" arg1="(contents (result sta) = True)">
+  <transf name="case" proved="true" arg1="(contents (result sta))">
    <goal name="VC interp_instruction.14.0" expl="true case (postcondition)" proved="true">
-   <transf name="apply" proved="true" arg1="eval_shift" arg2="with" arg3="(contents (arguments sta))">
-    <goal name="VC interp_instruction.14.0.0" expl="apply premises" proved="true">
-    <proof prover="2"><result status="valid" time="0.16"/></proof>
-    </goal>
-    <goal name="VC interp_instruction.14.0.1" expl="apply premises" proved="true">
-    <proof prover="2"><result status="valid" time="0.18"/></proof>
-    </goal>
-    <goal name="VC interp_instruction.14.0.2" expl="apply premises" proved="true">
-    <proof prover="2"><result status="valid" time="0.19"/></proof>
-    </goal>
-    <goal name="VC interp_instruction.14.0.3" expl="apply premises" proved="true">
-    <proof prover="2"><result status="valid" time="0.08"/></proof>
+   <transf name="subst_all" proved="true" >
+    <goal name="VC interp_instruction.14.0.0" expl="true case (postcondition)" proved="true">
+    <transf name="apply" proved="true" arg1="eval_shift" arg2="with" arg3="(arguments sta).contents">
+     <goal name="VC interp_instruction.14.0.0.0" expl="apply premises" proved="true">
+     <proof prover="2"><result status="valid" time="0.22"/></proof>
+     </goal>
+     <goal name="VC interp_instruction.14.0.0.1" expl="apply premises" proved="true">
+     <proof prover="2"><result status="valid" time="0.20"/></proof>
+     </goal>
+     <goal name="VC interp_instruction.14.0.0.2" expl="apply premises" proved="true">
+     <proof prover="2"><result status="valid" time="0.21"/></proof>
+     </goal>
+     <goal name="VC interp_instruction.14.0.0.3" expl="apply premises" proved="true">
+     <proof prover="2"><result status="valid" time="0.14"/></proof>
+     </goal>
+    </transf>
     </goal>
    </transf>
    </goal>
    <goal name="VC interp_instruction.14.1" expl="false case (postcondition)" proved="true">
-   <proof prover="2"><result status="valid" time="0.19"/></proof>
+   <proof prover="2"><result status="valid" time="0.18"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instruction.15" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.23"/></proof>
+  <proof prover="2"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC interp_instruction.16" expl="postcondition" proved="true">
-  <transf name="apply" proved="true" arg1="eval_assignment" arg2="with" arg3="str,b">
-   <goal name="VC interp_instruction.16.0" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.19"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.16.1" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.26"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.16.2" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.08"/></proof>
+  <transf name="subst_all" proved="true" >
+   <goal name="VC interp_instruction.16.0" expl="postcondition" proved="true">
+   <transf name="apply" proved="true" arg1="eval_assignment" arg2="with" arg3="str,(result sta).contents">
+    <goal name="VC interp_instruction.16.0.0" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.22"/></proof>
+    </goal>
+    <goal name="VC interp_instruction.16.0.1" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.28"/></proof>
+    </goal>
+    <goal name="VC interp_instruction.16.0.2" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.11"/></proof>
+    </goal>
+   </transf>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instruction.17" expl="exceptional postcondition" proved="true">
-  <transf name="apply" proved="true" arg1="eval_assignment" arg2="with" arg3="str,b">
-   <goal name="VC interp_instruction.17.0" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.17"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.17.1" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.41"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.17.2" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.08"/></proof>
+  <transf name="subst_all" proved="true" >
+   <goal name="VC interp_instruction.17.0" expl="exceptional postcondition" proved="true">
+   <transf name="apply" proved="true" arg1="eval_assignment" arg2="with" arg3="str,(result sta).contents">
+    <goal name="VC interp_instruction.17.0.0" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.20"/></proof>
+    </goal>
+    <goal name="VC interp_instruction.17.0.1" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.26"/></proof>
+    </goal>
+    <goal name="VC interp_instruction.17.0.2" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.09"/></proof>
+    </goal>
+   </transf>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instruction.18" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.13"/></proof>
+  <proof prover="2"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_instruction.19" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.15"/></proof>
   </goal>
   <goal name="VC interp_instruction.20" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.23"/></proof>
+  <proof prover="1"><result status="valid" time="0.19" steps="20"/></proof>
   </goal>
   <goal name="VC interp_instruction.21" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.15"/></proof>
   </goal>
   <goal name="VC interp_instruction.22" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.14"/></proof>
+  <proof prover="2"><result status="valid" time="0.21"/></proof>
   </goal>
   <goal name="VC interp_instruction.23" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.33"/></proof>
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instruction.24" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.28"/></proof>
+  <proof prover="2"><result status="valid" time="0.25"/></proof>
   </goal>
   <goal name="VC interp_instruction.25" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.32"/></proof>
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_instruction.26" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.34"/></proof>
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_instruction.27" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.38"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.28" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.26"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.29" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.43"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.30" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.05" steps="14"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.31" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.46"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.32" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.34"/></proof>
   </goal>
+  <goal name="VC interp_instruction.28" expl="exceptional postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.38"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.29" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.30" expl="exceptional postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.06" steps="16"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.31" expl="exceptional postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.32" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.24"/></proof>
+  </goal>
   <goal name="VC interp_instruction.33" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.19" steps="82"/></proof>
+  <proof prover="2"><result status="valid" time="0.23"/></proof>
   </goal>
   <goal name="VC interp_instruction.34" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.22" steps="82"/></proof>
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instruction.35" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.30"/></proof>
+  <proof prover="2"><result status="valid" time="0.41"/></proof>
   </goal>
   <goal name="VC interp_instruction.36" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.26"/></proof>
+  <proof prover="2"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC interp_instruction.37" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.26"/></proof>
+  <proof prover="1"><result status="valid" time="0.05" steps="22"/></proof>
   </goal>
   <goal name="VC interp_instruction.38" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.05" steps="14"/></proof>
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_instruction.39" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.08" steps="14"/></proof>
+  <proof prover="2"><result status="valid" time="0.19"/></proof>
   </goal>
   <goal name="VC interp_instruction.40" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.17"/></proof>
+  <proof prover="2"><result status="valid" time="0.33"/></proof>
   </goal>
   <goal name="VC interp_instruction.41" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.11" steps="16"/></proof>
-  <proof prover="2"><result status="valid" time="0.30"/></proof>
+  <proof prover="0"><result status="valid" time="0.08"/></proof>
   </goal>
   <goal name="VC interp_instruction.42" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.11" steps="16"/></proof>
-  <proof prover="2"><result status="valid" time="0.17"/></proof>
+  <proof prover="1"><result status="valid" time="0.11" steps="18"/></proof>
   </goal>
   <goal name="VC interp_instruction.43" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_instruction.44" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.41"/></proof>
+  <proof prover="0"><result status="valid" time="0.08"/></proof>
   </goal>
   <goal name="VC interp_instruction.45" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.38"/></proof>
+  <proof prover="2"><result status="valid" time="0.31"/></proof>
   </goal>
   <goal name="VC interp_instruction.46" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.40"/></proof>
+  <proof prover="2"><result status="valid" time="0.48"/></proof>
   </goal>
   <goal name="VC interp_instruction.47" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.43"/></proof>
+  <proof prover="0"><result status="valid" time="0.11"/></proof>
   </goal>
   <goal name="VC interp_instruction.48" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.44"/></proof>
+  <proof prover="2"><result status="valid" time="0.31"/></proof>
   </goal>
   <goal name="VC interp_instruction.49" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.41"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.50" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.38"/></proof>
-  </goal>
-  <goal name="VC interp_instruction.51" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.40"/></proof>
   </goal>
+  <goal name="VC interp_instruction.50" expl="exceptional postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
+  </goal>
+  <goal name="VC interp_instruction.51" expl="exceptional postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.39"/></proof>
+  </goal>
   <goal name="VC interp_instruction.52" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.45"/></proof>
+  <proof prover="2"><result status="valid" time="0.35"/></proof>
   </goal>
   <goal name="VC interp_instruction.53" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.91"/></proof>
+  <proof prover="2"><result status="valid" time="0.87"/></proof>
   </goal>
   <goal name="VC interp_instruction.54" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.60"/></proof>
+  <proof prover="2"><result status="valid" time="0.29"/></proof>
   </goal>
   <goal name="VC interp_instruction.55" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.62" steps="233"/></proof>
+  <proof prover="1"><result status="valid" time="0.50" steps="213"/></proof>
   </goal>
   <goal name="VC interp_instruction.56" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.54"/></proof>
+  <proof prover="2"><result status="valid" time="0.38"/></proof>
   </goal>
   <goal name="VC interp_instruction.57" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.16"/></proof>
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instruction.58" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.17"/></proof>
+  <proof prover="2"><result status="valid" time="0.22"/></proof>
   </goal>
   <goal name="VC interp_instruction.59" expl="loop invariant init" proved="true">
   <proof prover="2"><result status="valid" time="0.12"/></proof>
@@ -256,14 +266,14 @@
   <proof prover="2"><result status="valid" time="0.12"/></proof>
   </goal>
   <goal name="VC interp_instruction.61" expl="loop invariant preservation" proved="true">
-  <transf name="assert" proved="true" arg1="(eval_foreach1 True (input inp, ctx0, sta0) x3 (take i ss ++ Cons (nth i ss) Nil) x1 (state sta, context sta, BNormal) last_result)">
+  <transf name="assert" proved="true" arg1="(eval_foreach1 True (inp, ctx0, sta0) x3 (take i ss ++ Cons (nth i ss) Nil) x1 (state sta, context sta, BNormal) last_result)">
    <goal name="VC interp_instruction.61.0" expl="asserted formula" proved="true">
    <transf name="apply" proved="true" arg1="eval_foreach_last" arg2="with" arg3="last_result1,(context sta2),(state sta2)">
     <goal name="VC interp_instruction.61.0.0" expl="apply premises" proved="true">
     <proof prover="2"><result status="valid" time="0.09"/></proof>
     </goal>
     <goal name="VC interp_instruction.61.0.1" expl="apply premises" proved="true">
-    <proof prover="2" timelimit="20" memlimit="2500"><result status="valid" time="12.74"/></proof>
+    <proof prover="2" timelimit="120"><result status="valid" time="52.66"/></proof>
     </goal>
     <goal name="VC interp_instruction.61.0.2" expl="apply premises" proved="true">
     <proof prover="2"><result status="valid" time="0.16"/></proof>
@@ -271,108 +281,106 @@
    </transf>
    </goal>
    <goal name="VC interp_instruction.61.1" expl="loop invariant preservation" proved="true">
-   <proof prover="2"><result status="valid" time="0.38"/></proof>
+   <proof prover="2"><result status="valid" time="0.55"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instruction.62" expl="loop invariant preservation" proved="true">
-  <proof prover="2"><result status="valid" time="0.35"/></proof>
+  <proof prover="2" timelimit="10"><result status="valid" time="0.34"/></proof>
   </goal>
   <goal name="VC interp_instruction.63" expl="exceptional postcondition" proved="true">
-  <transf name="apply" proved="true" arg1="eval_foreach" arg2="with" arg3="(context sta),(state sta3),ss,(contents (result sta))">
-   <goal name="VC interp_instruction.63.0" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.09"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.63.1" expl="apply premises" proved="true">
-   <transf name="replace" proved="true" arg1="ss" arg2="(take i ss ++ Cons (nth i ss) (drop (i+1) ss))">
-    <goal name="VC interp_instruction.63.1.0" expl="apply premises" proved="true">
-    <transf name="apply" proved="true" arg1="eval_foreach_concat" arg2="with" arg3="last_result,(context sta2),(state sta2)">
-     <goal name="VC interp_instruction.63.1.0.0" expl="apply premises" proved="true">
-     <proof prover="2"><result status="valid" time="0.12"/></proof>
-     </goal>
-     <goal name="VC interp_instruction.63.1.0.1" expl="apply premises" proved="true">
-     <transf name="apply" proved="true" arg1="eval_foreach_abort" arg2="with" arg3="(nth i ss),(drop (i + 1) ss)">
-      <goal name="VC interp_instruction.63.1.0.1.0" expl="apply premises" proved="true">
-      <proof prover="2" timelimit="30"><result status="valid" time="9.85"/></proof>
+  <transf name="subst_all" proved="true" >
+   <goal name="VC interp_instruction.63.0" expl="exceptional postcondition" proved="true">
+   <transf name="apply" proved="true" arg1="eval_foreach" arg2="with" arg3="(context sta),(state sta3),ss,(contents (result sta))">
+    <goal name="VC interp_instruction.63.0.0" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.10"/></proof>
+    </goal>
+    <goal name="VC interp_instruction.63.0.1" expl="apply premises" proved="true">
+    <transf name="replace" proved="true" arg1="ss" arg2="(take i ss ++ Cons (nth i ss) (drop (i+1) ss))">
+     <goal name="VC interp_instruction.63.0.1.0" expl="apply premises" proved="true">
+     <transf name="apply" proved="true" arg1="eval_foreach_concat" arg2="with" arg3="last_result,(context sta2),(state sta2)">
+      <goal name="VC interp_instruction.63.0.1.0.0" expl="apply premises" proved="true">
+      <proof prover="2"><result status="valid" time="0.19"/></proof>
       </goal>
-      <goal name="VC interp_instruction.63.1.0.1.1" expl="apply premises" proved="true">
-      <proof prover="2"><result status="valid" time="0.10"/></proof>
-      </goal>
-      <goal name="VC interp_instruction.63.1.0.1.2" expl="apply premises" proved="true">
-      <proof prover="2"><result status="valid" time="0.10"/></proof>
-      </goal>
-      <goal name="VC interp_instruction.63.1.0.1.3" expl="apply premises" proved="true">
-      <proof prover="2"><result status="valid" time="0.16"/></proof>
+      <goal name="VC interp_instruction.63.0.1.0.1" expl="apply premises" proved="true">
+      <transf name="apply" proved="true" arg1="eval_foreach_abort" arg2="with" arg3="(nth i ss),(drop (i + 1) ss)">
+       <goal name="VC interp_instruction.63.0.1.0.1.0" expl="apply premises" proved="true">
+       <proof prover="2" timelimit="60"><result status="valid" time="39.55"/></proof>
+       </goal>
+       <goal name="VC interp_instruction.63.0.1.0.1.1" expl="apply premises" proved="true">
+       <proof prover="2"><result status="valid" time="0.15"/></proof>
+       </goal>
+       <goal name="VC interp_instruction.63.0.1.0.1.2" expl="apply premises" proved="true">
+       <proof prover="2"><result status="valid" time="0.09"/></proof>
+       </goal>
+       <goal name="VC interp_instruction.63.0.1.0.1.3" expl="apply premises" proved="true">
+       <proof prover="2"><result status="valid" time="0.16"/></proof>
+       </goal>
+      </transf>
       </goal>
      </transf>
      </goal>
+     <goal name="VC interp_instruction.63.0.1.1" expl="equality hypothesis" proved="true">
+     <proof prover="2"><result status="valid" time="0.25"/></proof>
+     </goal>
     </transf>
     </goal>
-    <goal name="VC interp_instruction.63.1.1" expl="equality hypothesis" proved="true">
-    <proof prover="2"><result status="valid" time="0.34"/></proof>
+    <goal name="VC interp_instruction.63.0.2" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.22"/></proof>
     </goal>
    </transf>
-   </goal>
-   <goal name="VC interp_instruction.63.2" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.34"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instruction.64" expl="exceptional postcondition" proved="true">
-  <transf name="apply" proved="true" arg1="eval_foreach" arg2="with" arg3="(context sta),(state sta3),ss,(contents (result sta))">
-   <goal name="VC interp_instruction.64.0" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.08"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.64.1" expl="apply premises" proved="true">
-   <transf name="replace" proved="true" arg1="ss" arg2="(take i ss ++ Cons (nth i ss) (drop (i+1) ss))">
-    <goal name="VC interp_instruction.64.1.0" expl="apply premises" proved="true">
-    <transf name="apply" proved="true" arg1="eval_foreach_concat" arg2="with" arg3="last_result,(context sta2),(state sta2)">
-     <goal name="VC interp_instruction.64.1.0.0" expl="apply premises" proved="true">
-     <proof prover="2"><result status="valid" time="0.12"/></proof>
-     </goal>
-     <goal name="VC interp_instruction.64.1.0.1" expl="apply premises" proved="true">
-     <transf name="apply" proved="true" arg1="eval_foreach_abort" arg2="with" arg3="(nth i ss),(drop (i + 1) ss)">
-      <goal name="VC interp_instruction.64.1.0.1.0" expl="apply premises" proved="true">
-      <proof prover="2" timelimit="30"><result status="valid" time="10.89"/></proof>
+  <transf name="subst_all" proved="true" >
+   <goal name="VC interp_instruction.64.0" expl="exceptional postcondition" proved="true">
+   <transf name="apply" proved="true" arg1="eval_foreach" arg2="with" arg3="(context sta),(state sta3),ss,(contents (result sta))">
+    <goal name="VC interp_instruction.64.0.0" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.11"/></proof>
+    </goal>
+    <goal name="VC interp_instruction.64.0.1" expl="apply premises" proved="true">
+    <transf name="replace" proved="true" arg1="ss" arg2="(take i ss ++ Cons (nth i ss) (drop (i+1) ss))">
+     <goal name="VC interp_instruction.64.0.1.0" expl="apply premises" proved="true">
+     <transf name="apply" proved="true" arg1="eval_foreach_concat" arg2="with" arg3="last_result,(context sta2),(state sta2)">
+      <goal name="VC interp_instruction.64.0.1.0.0" expl="apply premises" proved="true">
+      <proof prover="2"><result status="valid" time="0.14"/></proof>
       </goal>
-      <goal name="VC interp_instruction.64.1.0.1.1" expl="apply premises" proved="true">
-      <proof prover="2"><result status="valid" time="0.19"/></proof>
-      </goal>
-      <goal name="VC interp_instruction.64.1.0.1.2" expl="apply premises" proved="true">
-      <proof prover="2"><result status="valid" time="0.09"/></proof>
-      </goal>
-      <goal name="VC interp_instruction.64.1.0.1.3" expl="apply premises" proved="true">
-      <proof prover="2"><result status="valid" time="0.30"/></proof>
+      <goal name="VC interp_instruction.64.0.1.0.1" expl="apply premises" proved="true">
+      <transf name="apply" proved="true" arg1="eval_foreach_abort" arg2="with" arg3="(nth i ss),(drop (i + 1) ss)">
+       <goal name="VC interp_instruction.64.0.1.0.1.0" expl="apply premises" proved="true">
+       <proof prover="2" timelimit="60"><result status="valid" time="40.12"/></proof>
+       </goal>
+       <goal name="VC interp_instruction.64.0.1.0.1.1" expl="apply premises" proved="true">
+       <proof prover="2"><result status="valid" time="0.11"/></proof>
+       </goal>
+       <goal name="VC interp_instruction.64.0.1.0.1.2" expl="apply premises" proved="true">
+       <proof prover="2"><result status="valid" time="0.14"/></proof>
+       </goal>
+       <goal name="VC interp_instruction.64.0.1.0.1.3" expl="apply premises" proved="true">
+       <proof prover="2"><result status="valid" time="0.20"/></proof>
+       </goal>
+      </transf>
       </goal>
      </transf>
      </goal>
+     <goal name="VC interp_instruction.64.0.1.1" expl="equality hypothesis" proved="true">
+     <proof prover="2"><result status="valid" time="0.30"/></proof>
+     </goal>
     </transf>
     </goal>
-    <goal name="VC interp_instruction.64.1.1" expl="equality hypothesis" proved="true">
-    <proof prover="2"><result status="valid" time="0.28"/></proof>
+    <goal name="VC interp_instruction.64.0.2" expl="apply premises" proved="true">
+    <proof prover="2"><result status="valid" time="0.25"/></proof>
     </goal>
    </transf>
-   </goal>
-   <goal name="VC interp_instruction.64.2" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.25"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instruction.65" expl="unreachable point" proved="true">
-  <proof prover="1"><result status="valid" time="0.04" steps="34"/></proof>
+  <proof prover="1"><result status="valid" time="0.04" steps="36"/></proof>
   </goal>
   <goal name="VC interp_instruction.66" expl="postcondition" proved="true">
-  <transf name="apply" proved="true" arg1="eval_foreach" arg2="with" arg3="(context sta1),(state sta2),ss,last_result">
-   <goal name="VC interp_instruction.66.0" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.08"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.66.1" expl="apply premises" proved="true">
-   <proof prover="1"><result status="valid" time="0.15" steps="34"/></proof>
-   </goal>
-   <goal name="VC interp_instruction.66.2" expl="apply premises" proved="true">
-   <proof prover="2"><result status="valid" time="0.23"/></proof>
-   </goal>
-  </transf>
+  <proof prover="2"><result status="valid" time="0.37"/></proof>
   </goal>
   <goal name="VC interp_instruction.67" expl="VC for interp_instruction" proved="true">
   <proof prover="2"><result status="valid" time="0.26"/></proof>
@@ -381,22 +389,22 @@
   <proof prover="2"><result status="valid" time="0.08"/></proof>
   </goal>
   <goal name="VC interp_instruction.69" expl="loop invariant preservation" proved="true">
-  <proof prover="2"><result status="valid" time="0.40"/></proof>
+  <proof prover="2"><result status="valid" time="0.23"/></proof>
   </goal>
   <goal name="VC interp_instruction.70" expl="exceptional postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.27"/></proof>
+  <proof prover="0"><result status="valid" time="0.23"/></proof>
   </goal>
   <goal name="VC interp_instruction.71" expl="exceptional postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.26"/></proof>
+  <proof prover="0"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_instruction.72" expl="postcondition" proved="true">
-  <proof prover="0" timelimit="30"><result status="valid" time="0.25"/></proof>
+  <proof prover="0"><result status="valid" time="0.25"/></proof>
   </goal>
   <goal name="VC interp_instruction.73" expl="exceptional postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.11"/></proof>
+  <proof prover="0"><result status="valid" time="0.19"/></proof>
   </goal>
   <goal name="VC interp_instruction.74" expl="exceptional postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.23"/></proof>
+  <proof prover="0"><result status="valid" time="0.22"/></proof>
   </goal>
  </transf>
  </goal>
@@ -406,10 +414,10 @@
   <proof prover="2"><result status="valid" time="0.08"/></proof>
   </goal>
   <goal name="VC interp_str_expr.1" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.26"/></proof>
+  <proof prover="2"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_str_expr.2" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.07"/></proof>
+  <proof prover="2"><result status="valid" time="0.18"/></proof>
   </goal>
   <goal name="VC interp_str_expr.3" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.36"/></proof>
@@ -418,28 +426,28 @@
   <proof prover="2"><result status="valid" time="0.35"/></proof>
   </goal>
   <goal name="VC interp_str_expr.5" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.18"/></proof>
+  <proof prover="2"><result status="valid" time="0.07"/></proof>
   </goal>
   <goal name="VC interp_str_expr.6" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.30"/></proof>
+  <proof prover="2"><result status="valid" time="0.20"/></proof>
   </goal>
   <goal name="VC interp_str_expr.7" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.38"/></proof>
   </goal>
   <goal name="VC interp_str_expr.8" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.34"/></proof>
-  </goal>
-  <goal name="VC interp_str_expr.9" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
-  <goal name="VC interp_str_expr.10" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.37"/></proof>
-  </goal>
-  <goal name="VC interp_str_expr.11" expl="postcondition" proved="true">
+  <goal name="VC interp_str_expr.9" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.29"/></proof>
   </goal>
+  <goal name="VC interp_str_expr.10" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.23"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.11" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
+  </goal>
   <goal name="VC interp_str_expr.12" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.20"/></proof>
+  <proof prover="2"><result status="valid" time="0.27"/></proof>
   </goal>
   <goal name="VC interp_str_expr.13" expl="assertion" proved="true">
   <proof prover="2"><result status="valid" time="0.22"/></proof>
@@ -451,7 +459,7 @@
   <proof prover="2"><result status="valid" time="0.12"/></proof>
   </goal>
   <goal name="VC interp_str_expr.16" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.12"/></proof>
+  <proof prover="2"><result status="valid" time="0.15"/></proof>
   </goal>
  </transf>
  </goal>
@@ -461,19 +469,13 @@
  <goal name="VC interp_program" expl="VC for interp_program" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC interp_program.0" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.22"/></proof>
-  </goal>
-  <goal name="VC interp_program.1" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.50"/></proof>
-  </goal>
-  <goal name="VC interp_program.2" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.20"/></proof>
   </goal>
-  <goal name="VC interp_program.3" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.21"/></proof>
-  </goal>
-  <goal name="VC interp_program.4" expl="postcondition" proved="true">
+  <goal name="VC interp_program.1" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.19"/></proof>
+  </goal>
+  <goal name="VC interp_program.2" expl="postcondition" proved="true">
+  <proof prover="2"><result status="valid" time="0.21"/></proof>
   </goal>
  </transf>
  </goal>

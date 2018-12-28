@@ -650,6 +650,7 @@ module Semantics
   (* use Behaviour *)
 
   let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)
+    variant { defs }
     ensures { eval_function_definitions fenv defs result }
   = match defs with
     | Nil -> fenv
