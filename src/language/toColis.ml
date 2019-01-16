@@ -85,6 +85,8 @@ and instruction (fmt:formatter) (i:instruction) : unit =
      fprintf fmt "@[shift%s@]" n
   | IExport id ->
      fprintf fmt "@[export %s@]" id
+  | ICd arg ->
+     fprintf fmt "@[cd@ %a@]" string_expression arg
 
 and exitcode (fmt:formatter) (c:return_code) =
   match c with

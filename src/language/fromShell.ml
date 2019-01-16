@@ -348,8 +348,12 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        (* cd: not a special builtin (so it is handled after functions,
           but still deserves a special treatement *)
 
+       | "cd", [arg, C.DontSplit] ->
+          (e, C.ICd arg)
+       | "cd", [C.SLiteral "-", _] ->
+          raise (Unsupported "cd -")
        | "cd", _ ->
-          unsupported "cd"
+          unsupported "cd with multiple arguments"
 
        (* FIXME: functions *)
 

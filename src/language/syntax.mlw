@@ -74,6 +74,7 @@ module Syntax
     | IExit return_code                                (* exit r                         | exit r (see NOTES[Exit])         *)
     | IShift (option nat)                              (* shift n?                       | shift n?                         *)
     | IExport identifier                               (* export id                      | export id                        *)
+    | ICd string_expression                            (* cd sexpr                       | cd word                          *)
 
   with function_definition = (identifier, instruction) (* function id instr; | function id instr *)
 
