@@ -6,6 +6,15 @@
 open Semantics__State
 open Semantics__Buffers
 
+let unknown_utility ?(msg="command not found") ~name sta =
+  if !Options.fail_on_unknown_utilities then
+    raise (Errors.UnsupportedUtility name)
+  else
+    let str = name ^ ": " ^ msg in
+    let stdout = Stdout.(sta.stdout |> output str |> newline) in
+    {sta with stdout}, false
+
+
 let interp_utility : state -> string -> string list -> (state * bool) =
   fun sta name args ->
   match name with
@@ -45,10 +54,4 @@ let interp_utility : state -> string -> string list -> (state * bool) =
         let stdout = Stdout.(sta.stdout |> output str |> newline) in
         {sta with stdout}, false
      end
-  | _ ->
-     if !Options.fail_on_unknown_utilities then
-       raise (Errors.UnsupportedUtility name)
-     else
-       let str = name ^ ": command not found" in
-       let stdout = Stdout.(sta.stdout |> output str |> newline) in
-       {sta with stdout}, false
+  | _ -> unknown_utility ~name sta
