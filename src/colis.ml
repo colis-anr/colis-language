@@ -1,5 +1,8 @@
 open Format
 
+module Errors = Errors
+module Options = Options
+
 module Language = struct
   module Nat = Syntax__Nat
   module Syntax = Syntax__Syntax

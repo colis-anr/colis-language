@@ -1,5 +1,8 @@
 (** {2 CoLiS-Language} *)
 
+module Errors = Errors
+module Options = Options
+
 module Language: sig
   module Nat = Syntax__Nat
   module Syntax = Syntax__Syntax

@@ -16,8 +16,6 @@ let get_action, set_action =
     | None -> action := Some new_action
     | Some _ -> raise (Arg.Bad "only one action among --run, --run-symbolic, --print-colis and --print-shell can be specified"))
 
-let realworld = ref false
-
 let get_source, set_source =
   let source = ref None in
   (fun () ->
@@ -54,14 +52,16 @@ let get_symbolic_fs, set_symbolic_fs =
      | _ -> raise (Arg.Bad "only filesystems `empty', `simple', and `fsh' are known"))
 
 let speclist =
-  [ "--run",          Arg.Unit (set_action Run),         " Concrete execution (default)";
+  [ "--shell",        Arg.Unit (set_source Shell),       " Use the shell parser (default)";
+    "--colis",        Arg.Unit (set_source Colis),       " Use the colis parser" ;
+    "--run",          Arg.Unit (set_action Run),         " Concrete execution (default)";
     "--run-symbolic", Arg.Unit (set_action RunSymbolic), " Symbolic execution";
-    "--symbolic-fs",  Arg.String set_symbolic_fs,        " Name of the initial symbolic filesystem (default: empty)";
     "--print-colis",  Arg.Unit (set_action PrintColis),  " Print the CoLiS script";
     "--print-shell",  Arg.Unit (set_action PrintShell),  " Print the Shell script";
-    "--realworld",    Arg.Set realworld,                 " Use system utilities in concrete execution";
-    "--shell",        Arg.Unit (set_source Shell),       " Use the shell parser (default)";
-    "--colis",        Arg.Unit (set_source Colis),       " Use the colis parser" ]
+
+    "--symbolic-fs",  Arg.String set_symbolic_fs,        " Name of the initial symbolic filesystem (default: empty)";
+    "--realworld",    Arg.Set Colis.Options.realworld,                 " Use system utilities in concrete execution";
+    "--fail-on-unknown-utilities", Arg.Set Colis.Options.fail_on_unknown_utilities, " Unknown utilities kill the interpreter" ]
   |> Arg.align
 
 let usage =
@@ -73,8 +73,10 @@ let main () =
   (* Parse command line *)
 
   Arg.parse speclist set_file_or_argument usage;
-  if !realworld && get_action () <> Run then
+  if !Colis.Options.realworld && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
+  if !Colis.Options.fail_on_unknown_utilities && (get_action () <> Run && get_action () <> RunSymbolic) then
+    raise (Arg.Bad "--fail-on-unknown-utilities can only be specified with --run or --run-symbolic");
 
   (* Read input file *)
 
@@ -132,10 +134,10 @@ let () =
      eprintf "Conversion error: %s@." msg;
      exit 6
 
-  | Colis.Symbolic.Utilities.UnsupportedUtility name ->
+  | Colis.Errors.UnsupportedUtility name ->
      eprintf "Unsupported utility: %s@." name;
      exit 7
 
-  | Colis.Symbolic.Utilities.UnsupportedArgument (name, arg) ->
+  | Colis.Errors.UnsupportedArgument (name, arg) ->
      eprintf "Unsupported argument for `%s`: %s@." name arg;
      exit 8
