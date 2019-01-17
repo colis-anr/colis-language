@@ -1,0 +1,2 @@
+(ocamllex colisLexer)
+(menhir (flags --explain) (modules colisParser))
