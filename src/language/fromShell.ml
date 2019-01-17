@@ -3,6 +3,9 @@
 open Morsmall.AST
 let on_located = Morsmall.Location.on_located
 
+let unsupported feature =
+  raise (Errors.ConversionError ("unsupported feature: " ^ feature))
+
 (* Put CoLiS' syntax inside a 'C' module so that it doesn't clash with
    Morsmall. Add a constructor for concatenation of lists. *)
 
@@ -28,11 +31,6 @@ let list_fold_map (f : 'a -> 'b -> ('a * 'c)) (x : 'a) (l : 'b list) : ('a * 'c 
       (x', e' :: l'))
     (x, []) l
   |> fun (x, l) -> (x, List.rev l)
-
-(* Add an exception raised when there is a feature in the input Shell
-   script that is not supported. *)
-
-exception Unsupported of string (*FIXME: position*)
 
 (* Define the conversion environment. *)
 
@@ -69,11 +67,11 @@ module E = struct
 
   let check_legal_function_name e n =
     if List.mem n special_builtins then
-      raise (Unsupported "function definition shadowing a special builtin");
+      unsupported "function definition shadowing a special builtin";
     if SMap.mem n e.functions then
-      raise (Unsupported "function definition shadowing an other function");
+      unsupported "function definition shadowing an other function";
     if SSet.mem n e.names_called then
-      raise (Unsupported "function definition after a use of the same name")
+      unsupported "function definition after a use of the same name"
 
   let add_called e n =
     { e with names_called = SSet.add n e.names_called }
@@ -132,7 +130,7 @@ let unify_split_requirement_list =
 
 let rec word__to__name e = function
   | [Literal s] | [Name s] -> (e, s)
-  | _ -> raise (Unsupported "(word_to_name)")
+  | _ -> unsupported "(word_to_name)"
 
 and word'__to__name e word' =
   on_located_with_env word__to__name e word'
@@ -161,7 +159,7 @@ and word_component__to__string_expression_split_requirement e = function
      E.with_deeper e @@ fun e ->
      word_DoubleQuoted__to__string_expression_split_requirement e word
   | _ ->
-     raise (Unsupported "(word_component)")
+     unsupported "(word_component)"
 
 and word_component_DoubleQuoted__to__string_expression e = function
   | Literal s | Name s ->
@@ -174,7 +172,7 @@ and word_component_DoubleQuoted__to__string_expression e = function
      E.with_deeper e @@ fun e ->
      let (e, i) = command'_list__to__instruction e c's in
      (e, C.SSubshell i)
-  | _ -> raise (Unsupported "(word_component_DoubleQuoted)")
+  | _ -> unsupported "(word_component_DoubleQuoted)"
 
 and word__to__string_expression_split_requirement e w : (E.t * (C.string_expression * split_requirement)) =
   (* Note: the type annotation here is required because otherwise,
@@ -206,7 +204,7 @@ and word_list__to__list_expression e word_list =
       let (e, (se, sr)) = word__to__string_expression_split_requirement e w in
       (e, (se,
            match sr with
-           | Impossible -> raise (Unsupported "mixed words")
+           | Impossible -> unsupported "mixed words"
            | DoesntCare | NoSplit -> C.DontSplit
            | Split -> C.Split)))
     e
@@ -244,7 +242,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        (* Special builtins *)
 
        | ".", [C.SLiteral s, _] when s.[0] = '/' ->
-          raise (Unsupported "absolute source")
+          unsupported "absolute source"
 
        | "exit", [] | "exit", [C.SVariable "?", _] ->
           (e, C.(IExit RPrevious))
@@ -270,7 +268,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        (* All the other special builtins: unsupported *)
 
        | _ when List.mem name E.special_builtins ->
-          raise (Unsupported ("special builtin: " ^ name))
+          unsupported ("special builtin: " ^ name)
 
        | _ when E.is_function e name ->
           (e, C.ICallFunction (name, args))
@@ -279,7 +277,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
           but still deserves a special treatement *)
 
        | "cd", _ ->
-          raise (Unsupported "cd")
+          unsupported "cd"
 
        (* FIXME: functions *)
 
@@ -291,10 +289,10 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      |> fun (e, i) -> (E.add_called e name, i)
 
   | Simple (_::_, _::_) ->
-     raise (Unsupported "prefix assignments")
+     unsupported "prefix assignments"
 
   | Async _ ->
-     raise (Unsupported "asynchronous separator &")
+     unsupported "asynchronous separator &"
 
   | Seq (c1', c2') ->
      (* Warning: no E.with_deeper here. *)
@@ -331,7 +329,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      (e1, C.ISubshell i1)
 
   | For (_, None, _) ->
-     raise (Unsupported "for with no list")
+     unsupported "for with no list"
 
   | For (x, Some word_list, c1') ->
      E.with_deeper e @@ fun e ->
@@ -342,7 +340,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      more, we have to be carefull because c1' also happens after itself. *)
 
   | Case _ ->
-     raise (Unsupported "case")
+     unsupported "case"
 
   | If (c1', c2', None) ->
      E.with_deeper e @@ fun e ->
@@ -382,7 +380,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      (e, redirection__to__instruction e command)
 
   | HereDocument _ ->
-     raise (Unsupported ("here document"))
+     unsupported ("here document")
 
 and command'__to__instruction env command' =
   on_located_with_env command__to__instruction env command'
@@ -417,7 +415,7 @@ and redirection__to__instruction e = function
        C.INoOutput (snd (command__to__instruction e (flush_redirections'_to_1 command')))
      )
 
-  | _ -> raise (Unsupported ("other redirections"))
+  | _ -> unsupported ("other redirections")
 
 and command'_list__to__instruction e = function
   | [] ->

@@ -1,5 +1,8 @@
 (** {2 CoLiS-Language} *)
 
+module Errors = Errors
+module Options = Options
+
 module Language: sig
   module Nat = Syntax__Nat
   module Syntax = Syntax__Syntax
@@ -29,6 +32,7 @@ module Symbolic: sig
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
+  module Utilities = SymbolicUtilities
 end
 
 type colis = Language.Syntax.program
@@ -39,28 +43,26 @@ type shell = Morsmall.AST.program
 
 (** {2 Parsing} *)
 
-exception ParseError of string * Lexing.position
-
 val colis_from_channel : ?filename:string -> in_channel -> colis
 (** Reads Colis syntax from a channel and returns the corresponding AST.
 
-    @raises {!ParseError} *)
+    @raises {!Errors.ParseError} *)
 
 val colis_from_file : string -> colis
 (** Reads Colis syntax from a file and returns the corresponding AST.
 
-    @raises {!ParseError} *)
+    @raises {!Errors.ParseError} *)
 
 val colis_from_string : string -> colis
 (** Reads Colis syntax from a string and returns the corresponding AST.
 
-    @raises {!ParseError} *)
+    @raises {!Errors.ParseError} *)
 
 val shell_from_file : string -> shell
 (** Reads a Shell file and returns the corresponding AST. This is a
     wrapper around Morsmall.parse_file.
 
-    @raises {!ParseError} *)
+    @raises {!Errors.ParseError} *)
 
 (** {2 Printing} *)
 
@@ -78,12 +80,10 @@ val pp_print_colis : Format.formatter -> colis -> unit
 
 (** {2 Converting} *)
 
-exception ConversionError of string
-
 val shell_to_colis : shell -> colis
 (** Converts a Shell program to a Colis program.
 
-    @raises {!ConversionError} *)
+    @raises {!Errors.ConversionError} *)
 
 (** {2 Interpreting} *)
 
@@ -93,7 +93,6 @@ val run : argument0:string -> ?arguments:(string list) -> colis -> unit
     @param argument0 Value for argument zero (the interpreter or filename)
     @param arguments Other arguments
   *)
-
 
 val run_symbolic : argument0:string -> ?arguments:(string list) -> Symbolic.FilesystemSpec.t -> colis -> unit
 (** Symbolically executes a Colis program.

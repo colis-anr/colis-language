@@ -5,6 +5,8 @@ open UtilitiesSpecification
 open Semantics__Buffers
 open SymbolicInterpreter__State
 
+
+
 type args = string list
 
 (** Get the name of the last path component, if any, or of the hint root variable
@@ -32,6 +34,20 @@ let error ?msg () : utility =
       | None -> sta
     in
     [ sta', false ]
+
+(** Wrapper around [error] in case of unknown utility. *)
+let unknown_utility ?(msg="Unknown utility") ~name () =
+  if !Options.fail_on_unknown_utilities then
+    raise (Errors.UnsupportedUtility name)
+  else
+    error ~msg:(msg ^ ": " ^ name) ()
+
+(** Wrapper around [error] in case of unknown argument. *)
+let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
+  if !Options.fail_on_unknown_utilities then
+    raise (Errors.UnsupportedArgument (name, arg))
+  else
+    error ~msg:(msg ^ ": " ^ arg) ()
 
 (*********************************************************************************)
 (*                                     true/false                                *)
@@ -136,7 +152,7 @@ let interp_mkdir1 path_str : utility =
   match Path.split_last p with
   | None ->
     failure ~error_message:"mkdir: cannot create directory ''" ()
-  | Some (q, (Here|Up)) ->
+  | Some (_q, (Here|Up)) ->
     failure ~error_message:"mkdir: file exists" () (* CHECK *)
   | Some (q, Down f) ->
     let hintx = last_comp_as_hint ~root q in
@@ -216,8 +232,7 @@ let interp_test: args -> utility = function
   | ["-e"; arg] -> interp_test_e arg
   | "-e" :: _ -> error ~msg:"test: too many arguments" ()
   | [_] -> return true (* CHECK *)
-  | flag :: _ -> error ~msg:("test: unknown condition: "^flag) ()
-
+  | arg :: _ -> unknown_argument ~msg:"test: unknown condition" ~name:"test" ~arg ()
 
 (*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)
@@ -231,6 +246,4 @@ let interp (name: string) : args -> utility =
   | "test" -> interp_test
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
-  | _ ->
-    fun _args ->
-      error ~msg:("Unknown utility: "^name) ()
+  | _ -> fun _args -> unknown_utility ~name ()

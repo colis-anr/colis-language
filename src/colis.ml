@@ -1,5 +1,8 @@
 open Format
 
+module Errors = Errors
+module Options = Options
+
 module Language = struct
   module Nat = Syntax__Nat
   module Syntax = Syntax__Syntax
@@ -29,12 +32,10 @@ module Symbolic = struct
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
+  module Utilities = SymbolicUtilities
 end
 
 (* CoLiS *)
-
-exception ParseError of string * Lexing.position
-exception ConversionError of string
 
 type colis = Language.Syntax.program
 
@@ -47,17 +48,22 @@ let colis_from_lexbuf ?(filename="-") lexbuf =
   with
   | ColisLexer.LexerError s ->
     let pos = lexbuf.Lexing.lex_curr_p in
-    raise (ParseError (s, pos))
+    raise (Errors.ParseError (s, pos))
   | ColisParser.Error ->
     let pos = lexbuf.Lexing.lex_curr_p in
-    raise (ParseError ("", pos))
+    raise (Errors.ParseError ("", pos))
 
 let colis_from_channel ?(filename="-") channel =
   let lexbuf = Lexing.from_channel channel in
   colis_from_lexbuf ~filename lexbuf
 
 let colis_from_file filename =
-  let ic = open_in filename in
+  let ic =
+    try
+      open_in filename
+    with
+      Sys_error msg -> raise (Errors.FileError msg)
+  in
   try
     let colis = colis_from_channel ~filename ic in
     close_in ic;
@@ -94,15 +100,11 @@ let shell_from_file file =
   try
     Morsmall.parse_file file
   with
-    Morsmall.SyntaxError pos ->
-    raise (ParseError ("", pos))
+  | Sys_error msg -> raise (Errors.FileError msg)
+  | Morsmall.SyntaxError pos -> raise (Errors.ParseError ("", pos))
 
 let shell_to_colis shell =
-  try
-    FromShell.program__to__program shell
-  with
-    FromShell.Unsupported feat ->
-    raise (ConversionError ("unsupported feature: " ^ feat))
+  FromShell.program__to__program shell
 
 (* Interpret *)
 

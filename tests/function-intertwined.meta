@@ -6,4 +6,4 @@ output:
   stdout: ""
   stderr: |
     Conversion error: unsupported feature: function definition after a use of the same name
-  return_code: 3
+  return_code: 6
