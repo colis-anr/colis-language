@@ -29,6 +29,7 @@ module Symbolic = struct
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
+  module Utilities = SymbolicUtilities
 end
 
 (* CoLiS *)

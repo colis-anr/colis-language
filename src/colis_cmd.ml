@@ -131,3 +131,11 @@ let () =
   | Colis.ConversionError msg ->
      eprintf "Conversion error: %s@." msg;
      exit 6
+
+  | Colis.Symbolic.Utilities.UnsupportedUtility name ->
+     eprintf "Unsupported utility: %s@." name;
+     exit 7
+
+  | Colis.Symbolic.Utilities.UnsupportedArgument (name, arg) ->
+     eprintf "Unsupported argument for `%s`: %s@." name arg;
+     exit 8

@@ -5,6 +5,9 @@ open UtilitiesSpecification
 open Semantics__Buffers
 open SymbolicInterpreter__State
 
+exception UnsupportedUtility of string
+exception UnsupportedArgument of string * string
+
 type args = string list
 
 (** Get the name of the last path component, if any, or of the hint root variable
@@ -136,7 +139,7 @@ let interp_mkdir1 path_str : utility =
   match Path.split_last p with
   | None ->
     failure ~error_message:"mkdir: cannot create directory ''" ()
-  | Some (q, (Here|Up)) ->
+  | Some (_q, (Here|Up)) ->
     failure ~error_message:"mkdir: file exists" () (* CHECK *)
   | Some (q, Down f) ->
     let hintx = last_comp_as_hint ~root q in
@@ -216,7 +219,7 @@ let interp_test: args -> utility = function
   | ["-e"; arg] -> interp_test_e arg
   | "-e" :: _ -> error ~msg:"test: too many arguments" ()
   | [_] -> return true (* CHECK *)
-  | flag :: _ -> error ~msg:("test: unknown condition: "^flag) ()
+  | flag :: _ -> raise (UnsupportedArgument ("test", flag))
 
 
 (*********************************************************************************)
@@ -231,6 +234,4 @@ let interp (name: string) : args -> utility =
   | "test" -> interp_test
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
-  | _ ->
-    fun _args ->
-      error ~msg:("Unknown utility: "^name) ()
+  | _ -> fun _args -> raise (UnsupportedUtility name)
