@@ -30,3 +30,20 @@ output:
   stderr: <a string>
   return_code: <an integer>
 ```
+
+## Return Codes
+
+The tool uses different return codes for different kind of errors.
+
+| Code | Meaning
+|------|---------
+|   0  | Success
+|   1  | Success of the concrete execution ending up on a failure
+|   2  | Unhandled/unexpected OCaml exception
+|   3  | Error in command-line parsing
+|   4  | Error while reading input file
+|   5  | Error in parsing (Shell or CoLiS)
+|   6  | Error in conversion
+|   7  | Unsupported utility
+|   8  | Unsupported option for a supported utility
+|   9  | Error in pretty-printing (Shell or CoLiS)
