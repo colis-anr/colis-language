@@ -1,8 +1,5 @@
 (include_subdirs unqualified)
 
-(ocamllex colisLexer)
-(menhir (flags --explain) (modules colisParser))
-
 (library
  (name colis)
  (public_name colis-language)
