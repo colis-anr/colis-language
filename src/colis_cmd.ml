@@ -103,6 +103,8 @@ let main () =
      exit 9 (* FIXME *)
 
 let () =
+  let open Colis.Errors in
+
   try
     main ();
     exit 0
@@ -115,12 +117,12 @@ let () =
      exit 3
 
   (* Error while reading file. *)
-  | Colis.FileError msg ->
+  | FileError msg ->
      eprintf "File error: %s@." msg;
      exit 4
 
   (* Error in parsing (shell or colis). *)
-  | Colis.ParseError (msg, pos) ->
+  | ParseError (msg, pos) ->
      let print_position fmt pos =
        let open Lexing in
        fprintf fmt "%s:%d:%d" pos.pos_fname
@@ -130,14 +132,14 @@ let () =
      exit 5
 
   (* Conversion error. *)
-  | Colis.ConversionError msg ->
+  | ConversionError msg ->
      eprintf "Conversion error: %s@." msg;
      exit 6
 
-  | Colis.Errors.UnsupportedUtility name ->
+  | UnsupportedUtility name ->
      eprintf "Unsupported utility: %s@." name;
      exit 7
 
-  | Colis.Errors.UnsupportedArgument (name, arg) ->
+  | UnsupportedArgument (name, arg) ->
      eprintf "Unsupported argument for `%s`: %s@." name arg;
      exit 8

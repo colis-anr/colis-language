@@ -37,10 +37,6 @@ end
 
 (* CoLiS *)
 
-exception FileError of string
-exception ParseError of string * Lexing.position
-exception ConversionError of string
-
 type colis = Language.Syntax.program
 
 let colis_from_lexbuf ?(filename="-") lexbuf =
@@ -52,10 +48,10 @@ let colis_from_lexbuf ?(filename="-") lexbuf =
   with
   | ColisLexer.LexerError s ->
     let pos = lexbuf.Lexing.lex_curr_p in
-    raise (ParseError (s, pos))
+    raise (Errors.ParseError (s, pos))
   | ColisParser.Error ->
     let pos = lexbuf.Lexing.lex_curr_p in
-    raise (ParseError ("", pos))
+    raise (Errors.ParseError ("", pos))
 
 let colis_from_channel ?(filename="-") channel =
   let lexbuf = Lexing.from_channel channel in
@@ -66,7 +62,7 @@ let colis_from_file filename =
     try
       open_in filename
     with
-      Sys_error msg -> raise (FileError msg)
+      Sys_error msg -> raise (Errors.FileError msg)
   in
   try
     let colis = colis_from_channel ~filename ic in
@@ -104,15 +100,11 @@ let shell_from_file file =
   try
     Morsmall.parse_file file
   with
-  | Sys_error msg -> raise (FileError msg)
-  | Morsmall.SyntaxError pos -> raise (ParseError ("", pos))
+  | Sys_error msg -> raise (Errors.FileError msg)
+  | Morsmall.SyntaxError pos -> raise (Errors.ParseError ("", pos))
 
 let shell_to_colis shell =
-  try
-    FromShell.program__to__program shell
-  with
-    FromShell.Unsupported feat ->
-    raise (ConversionError ("unsupported feature: " ^ feat))
+  FromShell.program__to__program shell
 
 (* Interpret *)
 
