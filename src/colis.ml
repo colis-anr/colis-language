@@ -33,6 +33,7 @@ end
 
 (* CoLiS *)
 
+exception FileError of string
 exception ParseError of string * Lexing.position
 exception ConversionError of string
 
@@ -57,7 +58,12 @@ let colis_from_channel ?(filename="-") channel =
   colis_from_lexbuf ~filename lexbuf
 
 let colis_from_file filename =
-  let ic = open_in filename in
+  let ic =
+    try
+      open_in filename
+    with
+      Sys_error msg -> raise (FileError msg)
+  in
   try
     let colis = colis_from_channel ~filename ic in
     close_in ic;
@@ -94,8 +100,8 @@ let shell_from_file file =
   try
     Morsmall.parse_file file
   with
-    Morsmall.SyntaxError pos ->
-    raise (ParseError ("", pos))
+  | Sys_error msg -> raise (FileError msg)
+  | Morsmall.SyntaxError pos -> raise (ParseError ("", pos))
 
 let shell_to_colis shell =
   try

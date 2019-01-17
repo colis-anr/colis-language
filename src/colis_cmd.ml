@@ -70,62 +70,64 @@ let usage =
     Sys.argv.(0)
 
 let main () =
+  (* Parse command line *)
+
   Arg.parse speclist set_file_or_argument usage;
   if !realworld && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
 
+  (* Read input file *)
+
   let file = get_file () in
-  let from_file =
-    match get_source () with
-    | Colis -> Colis.colis_from_file
-    | Shell -> Colis.(shell_from_file ||> shell_to_colis)
-  in
   let program =
-    try from_file file
-    with
-    | Colis.ParseError (msg, pos) ->
-       let print_position fmt pos =
-         let open Lexing in
-         fprintf fmt "%s:%d:%d" pos.pos_fname
-           pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
-       in
-       eprintf "Syntax error at %a%s@." print_position pos (if msg = "" then "" else ": "^msg);
-       exit 2
-    | Colis.ConversionError msg ->
-       eprintf "Conversion error: %s@." msg;
-       exit 3
-    | Sys_error msg ->
-      eprintf "System error: %s@." msg;
-      exit 4
+    (match get_source () with
+     | Colis -> Colis.colis_from_file
+     | Shell -> Colis.(shell_from_file ||> shell_to_colis))
+      file
   in
+
   let argument0 = file in
   let arguments = get_arguments () in
   match get_action () with
   | Run ->
-     (
-      Colis.run ~argument0 ~arguments program
-     )
+     Colis.run ~argument0 ~arguments program
   | RunSymbolic ->
-     (
-      let fs_spec = get_symbolic_fs () in
-      Colis.run_symbolic ~argument0 ~arguments fs_spec program
-     )
+     let fs_spec = get_symbolic_fs () in
+     Colis.run_symbolic ~argument0 ~arguments fs_spec program
   | PrintColis ->
-     (
-       Colis.print_colis program;
-       exit 0
-     )
+     Colis.print_colis program;
   | PrintShell ->
-     (
-       eprintf "Printing Shell is not supported yet.@.";
-       exit 3
-     )
+     eprintf "Printing Shell is not supported yet.@.";
+     exit 9 (* FIXME *)
 
 let () =
   try
-    main ()
+    main ();
+    exit 0
   with
-    Arg.Bad msg ->
-    eprintf "Error: %s@." msg;
-    Arg.usage speclist usage;
-    exit 3
+
+  (* Error in command line parsing. *)
+  | Arg.Bad msg ->
+     eprintf "Error in command line parsing: %s@." msg;
+     Arg.usage speclist usage;
+     exit 3
+
+  (* Error while reading file. *)
+  | Colis.FileError msg ->
+     eprintf "File error: %s@." msg;
+     exit 4
+
+  (* Error in parsing (shell or colis). *)
+  | Colis.ParseError (msg, pos) ->
+     let print_position fmt pos =
+       let open Lexing in
+       fprintf fmt "%s:%d:%d" pos.pos_fname
+         pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+     in
+     eprintf "Syntax error at %a%s@." print_position pos (if msg = "" then "" else ": "^msg);
+     exit 5
+
+  (* Conversion error. *)
+  | Colis.ConversionError msg ->
+     eprintf "Conversion error: %s@." msg;
+     exit 6
