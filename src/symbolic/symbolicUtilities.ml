@@ -234,6 +234,20 @@ let interp_test: args -> utility = function
   | [_] -> return true (* CHECK *)
   | arg :: _ -> unknown_argument ~msg:"test: unknown condition" ~name:"test" ~arg ()
 
+let but_last_opt l =
+  let rec but_last_opt acc = function
+    | [] -> None
+    | [e] -> Some (List.rev acc, e)
+    | h :: q -> but_last_opt (h :: acc) q
+  in
+  but_last_opt [] l
+
+let interp_bracket (args : args) : utility =
+  match but_last_opt args with
+  | Some (args, "]") -> interp_test args
+  | _ ->
+     error ~msg:"[: missing ]" ()
+
 (*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)
 (*********************************************************************************)
@@ -244,6 +258,7 @@ let interp (name: string) : args -> utility =
   | "false" -> interp_false
   | "echo" -> interp_echo
   | "test" -> interp_test
+  | "[" -> interp_bracket
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
   | _ -> fun _args -> unknown_utility ~name ()
