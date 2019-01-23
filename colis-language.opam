@@ -43,3 +43,7 @@ depends: [
   "why3"                   {= "dev" & (build | with-test)}
   "zarith"
 ]
+
+build: [
+  ["make"]
+]
