@@ -20,6 +20,7 @@ module Interpreter
   use bool.Bool
   use map.MapExt
   use int.Int
+  use ref.Refint
 
   use auxiliaries.Auxiliaries
   use mystring.String
@@ -332,19 +333,21 @@ module Interpreter
       sta.result := !last_result
 
     | IWhile ins1 ins2 ->
-      let last_result = ref True in
       let ghost sta0 = state sta in
       let ghost ctx0 = context sta in
+      let ctr = ref loop_boundary in
+      let last_result = ref True in
       while (
+        (if !ctr = 0 then raise EExit else decr ctr);
         interp_instruction {inp with under_condition=True} sta ins1;
         !(sta.result)
       ) do
         invariant { forall sta1 ctx1 bhv1 b1.
-          eval_while !last_result
+          eval_while !ctr !last_result
             (inp, context sta, state sta)
             ins1 ins2
             (sta1, ctx1, bhv1) b1 ->
-          eval_while True
+          eval_while !ctr True
             (inp, ctx0, sta0)
             ins1 ins2
             (sta1, ctx1, bhv1) b1
