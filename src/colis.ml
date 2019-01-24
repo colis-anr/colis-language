@@ -157,9 +157,8 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let run_symbolic ~argument0 ?(arguments=[]) fs_spec colis =
+let run_symbolic ~prune_init_state fs_spec ~argument0 ?(arguments=[]) colis =
   let open Symbolic in
-  let prune_init_state = false in
   let clause_to_state root clause =
     let cwd = Constraints.Path.Abs [] in
     let root0 = if prune_init_state then None else Some root in
