@@ -49,6 +49,9 @@ module Fset
   val function map (f: 'a -> 'b) (s: set 'a) : set 'b
     ensures { result = map f s }
 
+  val function bind (f: 'a -> set 'b) (s: set 'a) : set 'b
+    ensures { result = fold union (map f s) empty }
+
   val function to_list (s: set 'a) : list 'a
     ensures { forall x. mem x s <-> Mem.mem x result }
 
