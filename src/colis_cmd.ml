@@ -40,6 +40,8 @@ let get_file, get_arguments, set_file_or_argument =
     | None -> file := Some new_file_or_arg
     | Some _ -> args := new_file_or_arg :: !args)
 
+let prune_init_state = ref false
+
 let get_symbolic_fs, set_symbolic_fs =
   let fs_spec = ref Colis.Symbolic.FilesystemSpec.empty in
   (fun () -> !fs_spec),
@@ -60,7 +62,8 @@ let speclist =
     "--print-shell",  Arg.Unit (set_action PrintShell),  " Print the Shell script";
 
     "--symbolic-fs",  Arg.String set_symbolic_fs,        " Name of the initial symbolic filesystem (default: empty)";
-    "--realworld",    Arg.Set Colis.Options.realworld,                 " Use system utilities in concrete execution";
+    "--prune-init-state",  Arg.Set prune_init_state,     " Prune the initial state in symbolic execution";
+    "--realworld",    Arg.Set Colis.Options.realworld,   " Use system utilities in concrete execution";
     "--fail-on-unknown-utilities", Arg.Set Colis.Options.fail_on_unknown_utilities, " Unknown utilities kill the interpreter" ]
   |> Arg.align
 
@@ -77,6 +80,8 @@ let main () =
     raise (Arg.Bad "--realworld can only be specified with --run");
   if !Colis.Options.fail_on_unknown_utilities && (get_action () <> Run && get_action () <> RunSymbolic) then
     raise (Arg.Bad "--fail-on-unknown-utilities can only be specified with --run or --run-symbolic");
+  if !prune_init_state && get_action () <> RunSymbolic then
+    raise (Arg.Bad "--prune-init-state can only be specified with --run-symbolic");
 
   (* Read input file *)
 
@@ -95,7 +100,7 @@ let main () =
      Colis.run ~argument0 ~arguments program
   | RunSymbolic ->
      let fs_spec = get_symbolic_fs () in
-     Colis.run_symbolic ~argument0 ~arguments fs_spec program
+     Colis.run_symbolic ~prune_init_state:!prune_init_state fs_spec ~argument0 ~arguments program
   | PrintColis ->
      Colis.print_colis program;
   | PrintShell ->
