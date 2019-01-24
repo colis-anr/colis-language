@@ -124,6 +124,16 @@ let print_symbolic_filesystem fmt fs =
   fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
+let _print_dot filename id clause =
+  let ch = open_out filename in
+  try
+    let fmt = formatter_of_out_channel ch in
+    Constraints.Conj.pp_as_dot ~name:id fmt clause;
+    close_out ch
+  with e ->
+    close_out ch;
+    raise e
+
 let print_symbolic_state fmt ?id sta =
   let open Symbolic.State in
   begin match id with
