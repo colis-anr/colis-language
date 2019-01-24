@@ -338,6 +338,9 @@ end
 
 module Semantics
 
+  let constant loop_boundary = 5 (* Let’s start easy *)
+
+  use int.Int
   use list.List
   use list.Append
   use option.Option
@@ -522,7 +525,7 @@ module Semantics
 
   | eval_while: forall inp ctx ctx' sta sta' ins1 ins2 bhv b.
     (* The behaviour of empty while-loops is `BNormal True` *)
-    eval_while True (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) b ->
+    eval_while loop_boundary True (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) b ->
     let ctx'' = with_result b ctx' in
     eval_instruction (inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx'', bhv)
 
@@ -530,36 +533,47 @@ module Semantics
 
       http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_04_09
    *)
-  with eval_while bool (input, context, state) instruction instruction (state, context, behaviour) bool =
+  with eval_while int bool (input, context, state) instruction instruction (state, context, behaviour) bool =
+
+  (** loop boundary *)
+  | eval_while_diverge:  forall ctr b inp ctx sta ins1 ins2.
+    ctr = 0 ->
+    let sta' = sta in
+    let ctx' = ctx in
+    eval_while ctr b (inp, ctx, sta) ins1 ins2 (sta', ctx', BExit) False
 
   (** while-condition is false *)
-  | eval_while_false: forall b inp ctx ctx1 sta sta1 ins1 ins2.
+  | eval_while_false: forall ctr b inp ctx ctx1 sta sta1 ins1 ins2.
+    ctr > 0 ->
     eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     ctx1.result = False ->
     let ctx1' = with_result b ctx1 in
     let b' = b in
-    eval_while b (inp, ctx, sta) ins1 ins2 (sta1, ctx1', BNormal) b'
+    eval_while ctr b (inp, ctx, sta) ins1 ins2 (sta1, ctx1', BNormal) b'
 
   (** while-condition true, body normal, and loop again *)
-  | eval_while_true_loop: forall b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
+  | eval_while_true_loop: forall ctr b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
+    ctr > 0 ->
     eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     ctx1.result = True ->
     eval_instruction (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
-    eval_while ctx2.result (inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) b3 ->
-    eval_while b (inp, ctx, sta) ins1 ins2 (sta3, ctx3, bhv3) b3
+    eval_while (ctr-1) ctx2.result (inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) b3 ->
+    eval_while ctr b (inp, ctx, sta) ins1 ins2 (sta3, ctx3, bhv3) b3
 
   (** while-condition is not normal *)
-  | eval_while_transmit: forall bhv inp ctx ctx1 sta sta1 ins1 ins2 bhv1.
+  | eval_while_transmit: forall ctr b inp ctx ctx1 sta sta1 ins1 ins2 bhv1.
+    ctr > 0 ->
     eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
     match bhv1 with BExit | BReturn -> true | BNormal -> false end ->
-    eval_while bhv (inp, ctx, sta) ins1 ins2 (sta1, ctx1, bhv1) ctx1.result
+    eval_while ctr b (inp, ctx, sta) ins1 ins2 (sta1, ctx1, bhv1) ctx1.result
 
   (** while-condition true but while-body not normal *)
-  | eval_while_true_transmit: forall bhv inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv2.
+  | eval_while_true_transmit: forall ctr bhv inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv2.
+    ctr > 0 ->
     eval_instruction ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     eval_instruction (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
     match bhv2 with BExit | BReturn -> true | BNormal -> false end ->
-    eval_while bhv (inp, ctx, sta) ins1 ins2 (sta2, ctx2, bhv2) ctx2.result
+    eval_while ctr bhv (inp, ctx, sta) ins1 ins2 (sta2, ctx2, bhv2) ctx2.result
 
   (** Semantics of the for loop
 
