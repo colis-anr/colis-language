@@ -19,7 +19,6 @@ authors: [
 maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 
 pin-depends: [
-  [ "morsmall.dev" "git+https://github.com/colis-anr/morsmall.git" ]
   [ "why3.dev"     "git+https://gitlab.inria.fr/why3/why3.git#abb9c24b" ]
 ]
 
@@ -34,7 +33,7 @@ depends: [
   "batteries"
   "camlzip"                {build | with-test}
   "logs"
-  "morsmall"               {= "dev"}
+  "morsmall"
   "ocaml"                  {build & >= "4.05"}
   "odoc"                   {with-doc}
   "ppx_deriving"           {build}
