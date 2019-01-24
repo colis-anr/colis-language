@@ -124,20 +124,15 @@ let print_symbolic_filesystem fmt fs =
   fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
-let _print_dot filename id clause =
-  let ch = open_out filename in
-  try
-    let fmt = formatter_of_out_channel ch in
-    Constraints.Conj.pp_as_dot ~name:id fmt clause;
-    close_out ch
-  with e ->
-    close_out ch;
-    raise e
-
-let print_symbolic_state _id fmt sta =
+let print_symbolic_state fmt ?id sta =
   let open Symbolic.State in
+  begin match id with
+    | Some id ->
+      fprintf fmt "id: %s@\n" id;
+      (* print_dot (sprintf "/tmp/%s.dot" id) id sta.filesystem.clause; *)
+    | None -> ()
+  end;
   print_symbolic_filesystem fmt sta.filesystem;
-  (* print_dot (sprintf "/tmp/%s.dot" id) id sta.filesystem.clause; *)
   (* Print stdin *)
   if sta.stdin <> [] then begin
     fprintf fmt "stdin: |@\n";
@@ -154,40 +149,47 @@ let print_symbolic_state _id fmt sta =
 
 let run_symbolic ~argument0 ?(arguments=[]) fs_spec colis =
   let open Symbolic in
-  let states : State.state list =
-    let open Constraints in
-    let root = Var.fresh ~hint:"r" () in
-    let clause = FilesystemSpec.compile ~root fs_spec in
-    let cwd = Path.Abs [] in
-    let root0 = Some root in (* [None] for pruning [root] while symbolic execution, [Some root] to prevent pruning the initial state but slower execution *)
-    Clause.(add_to_sat_conj clause true_) |>
-    List.map (fun c -> {Filesystem.clause=c; root; root0; cwd}) |>
-    List.map
-      (fun filesystem -> {
-           State.filesystem;
-           stdin = Concrete.Stdin.empty;
-           stdout = Concrete.Stdout.empty;
-         })
+  let prune_init_state = false in
+  let clause_to_state root clause =
+    let cwd = Constraints.Path.Abs [] in
+    let root0 = if prune_init_state then None else Some root in
+    let filesystem = {Filesystem.clause; cwd; root; root0} in
+    let stdin = Concrete.Stdin.empty in
+    let stdout = Concrete.Stdout.empty in
+    {State.filesystem; stdin; stdout}
   in
-  let print_state_record ctr label fmt sta =
+  let run_in_state state =
+    let input = { Concrete.Input.empty with argument0 } in
+    let context = { Context.empty_context with arguments } in
+    let normals, errors = Interpreter.interp_program input context state colis in
+    state, normals, errors
+  in
+  let res =
+    let open Constraints in
+    let root = Constraints.Var.fresh ~hint:"r" () in
+    let clause = FilesystemSpec.compile ~root fs_spec in
+    Clause.(add_to_sat_conj clause true_) |>
+    List.map (clause_to_state root) |>
+    List.map run_in_state
+  in
+  let print_symbolic_state label ctr fmt sta =
     let id = sprintf "%s-%d" label !ctr in
     incr ctr;
-    fprintf fmt "@\n- @[id: %s@\n%a@]" id (print_symbolic_state id) sta
+    fprintf fmt "- @[%a@]@\n" (print_symbolic_state ~id) sta
   in
   List.iter
-    (fun state ->
-       let input = { Concrete.Input.empty with argument0 } in
-       let context = { Context.empty_context with arguments } in
-       let normals, failures = Interpreter.interp_program input context state colis in
+    (fun (init, normals, errors) ->
        printf "* Initial state@\n";
-       printf "%a@\n" (print_state_record (ref 0) "init") state;
+       printf "%a@\n" (print_symbolic_state "init" (ref 0)) init;
        printf "* Success states@\n";
-       List.iter (print_state_record (ref 1) "success" Format.std_formatter) (BatSet.to_list normals);
+       List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) (BatSet.to_list normals);
        printf "@\n";
        printf "* Failure states@\n";
-       List.iter (print_state_record (ref 1) "failure" Format.std_formatter) (BatSet.to_list failures);
+       List.iter (print_symbolic_state "failure" (ref 1) Format.std_formatter) (BatSet.to_list errors);
        printf "@\n";
        printf "* Summary@\n@\n";
        printf "- Success cases: %d@\n" (BatSet.cardinal normals);
-       printf "- Error cases: %d@\n" (BatSet.cardinal failures))
-    states;
+       printf "- Error cases: %d@\n" (BatSet.cardinal errors))
+    res;
+  let no_errors = List.exists (fun (_, _, errs) -> BatSet.is_empty errs) res in
+  exit (if no_errors then 0 else 1)
