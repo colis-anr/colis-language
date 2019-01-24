@@ -26,6 +26,7 @@ module symbolicAuxiliaries.Fset
   syntax val map "BatSet.map %1 %2"
   syntax val fold "BatSet.fold %1 %2 %3"
   syntax val filter "BatSet.filter %1 %2"
+  syntax val bind "BatSet.fold BatSet.union (BatSet.map %1 %2) BatSet.empty"
   syntax val partition "BatSet.partition %1 %2"
   syntax val to_list "BatSet.elements %1"
   syntax val of_list "BatSet.of_list %1"
