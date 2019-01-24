@@ -171,6 +171,7 @@ module Interpreter
 
   use bool.Bool
   use option.Option
+  use int.Int
   use list.List
   use list.Append
   use mystring.String
@@ -362,26 +363,32 @@ module Interpreter
         (loop_res (Fset.to_list res))
 
     | IWhile ins1 ins2 ->
-      let rec aux (stas: set (sym_state bool)) : Rs.t unit =
-        let res1_normal, res1_other =
-          Rs.separate_normal
-            (interp_instr_bool' {inp with under_condition=True} stas ins1)
-        in
-        let res1_true, res1_false =
-          Fset.partition (fun sta -> sta.context.result) res1_normal
-        in
-        let res2_normal, res2_other =
-          Rs.separate_normal
-            (interp_instr_bool' inp res1_true ins2)
-        in
-        let res1_false' = Rs.({empty with normal=res1_false}) in
-        Rs.(union
-             (map (with_data ())
-               (union res2_other
-                 (union res1_false' res1_other)))
-             (aux res2_normal))
+      let rec interp_while ctr (stas: set (sym_state bool)) : Rs.t unit =
+        if ctr = 0 then
+          Rs.(map (with_data ()) {empty with exit = stas})
+        else
+          let res1_normal, res1_other =
+            Rs.separate_normal
+              (interp_instr_bool' cnf {inp with under_condition=True} stas ins1)
+          in
+          let res1_true, res1_false =
+            Fset.partition (fun sta -> sta.context.result) res1_normal
+          in
+          let res2_normal, res2_other =
+            Rs.separate_normal
+              (interp_instr_bool' inp res1_true ins2)
+          in
+          let res3 = interp_while (ctr-1) res2_normal in
+          Rs.(let others =
+                let res1_false' = {empty with normal=res1_false} in
+                map (with_data ())
+                  (union res1_other
+                    (union res1_false' res2_other))
+              in
+              union res3 others)
       in
-      aux (Fset.singleton ({context=ctx; state=sta; data=True}))
+      interp_while Sem.loop_boundary
+        (Fset.singleton ({context=ctx; state=sta; data=True}))
 
     | IPipe ins1 ins2 ->
       let stas1 = (* Behaviour in ins1 is ignored *)
