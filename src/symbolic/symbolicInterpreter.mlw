@@ -125,34 +125,41 @@ module Results
     normal: set (sym_state 'a);
     exit: set (sym_state 'a);
     return_: set (sym_state 'a);
+    failure: set (sym_state 'a);
   }
 
   let constant empty = {
     normal = Fset.empty;
     exit = Fset.empty;
     return_ = Fset.empty;
+    failure = Fset.empty;
   }
 
   let separate_normal res =
     res.normal, {res with normal = Fset.empty}
 
+  let separate_non_failure res =
+    union res.normal (union res.exit res.return_), res.failure
+
+  let function all_states res =
+    union res.normal (union res.exit (union res.return_ res.failure))
+
   let map f res = {
     normal = Fset.map f res.normal;
     exit = Fset.map f res.exit;
     return_ = Fset.map f res.return_;
+    failure = Fset.map f res.failure;
   }
 
   let union res1 res2 = Fset.({
     normal  = union res1.normal  res2.normal;
     exit    = union res1.exit    res2.exit;
     return_ = union res1.return_ res2.return_;
+    failure = union res1.failure res2.failure;
   })
 
-  let function all res =
-    union res.normal (union res.exit res.return_)
-
   let inject (inp:input) (stas:set (sym_state 'a)) : t 'a
-    ensures { all result = stas }
+    ensures { all_states result = stas }
     ensures { forall s. mem s result.normal -> behaviour' inp (contextx s.context) = BNormal }
     ensures { forall s. mem s result.exit -> behaviour' inp (contextx s.context) = BExit }
   = let aux bhv = fun sta ->
@@ -162,9 +169,9 @@ module Results
       | _ -> False
       end
     in
-    {normal = Fset.filter (aux BNormal) stas;
-     exit = Fset.filter (aux BExit) stas;
-     return_ = Fset.empty}
+    {empty with
+     normal = Fset.filter (aux BNormal) stas;
+     exit = Fset.filter (aux BExit) stas}
 end
 
 module Interpreter
@@ -176,13 +183,14 @@ module Interpreter
   use list.Append
   use mystring.String
   use syntax.Syntax
+  use auxiliaries.Auxiliaries
   use semantics.Env
   use semantics.Behaviour
   use semantics.Input
+  use semantics.Config
   use semantics.Buffers
   use semantics.Arguments
   use semantics.Semantics as Sem
-  use auxiliaries.Auxiliaries
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset
   use State
@@ -193,13 +201,12 @@ module Interpreter
   (* Implemented in OCaml *)
   val function interp_utility identifier (list string) state : set (state, bool)
 
-  let rec interp_instr (inp:input) (ctx:context) (sta:state) (ins:instruction)
-    : Rs.t unit
-    diverges
+  let rec interp_instruction (cnf:config) (inp:input) (ctx:context) (sta:state) (ins:instruction)
+  : Rs.t unit diverges
   = match ins with
 
     | IAssignment var se ->
-      let res = interp_str_expr True inp ctx sta se in
+      let res = interp_str_expr True cnf inp ctx sta se in
       let aux arg =
         let sta', result, str = arg in
         let ctx' = {
@@ -215,18 +222,18 @@ module Interpreter
     | ISequence ins1 ins2 ->
       let res1_normal, res1_other =
         Rs.separate_normal 
-          (interp_instr inp ctx sta ins1)
+          (interp_instr cnf inp ctx sta ins1)
       in
-      let res2 = interp_instr_unit' inp res1_normal ins2 in
+      let res2 = interp_instr_unit' cnf inp res1_normal ins2 in
       Rs.union res2 res1_other
 
     | ISubshell ins ->
-      let res = interp_instr inp ctx sta ins in
-      let stas = Rs.all res in
-      Rs.inject inp stas
+      let res = interp_instr inp cnf ctx sta ins in
+      let stas, stas_failure = Rs.separate_non_failure res in
+      Rs.(union (inject inp stas) {empty with failure = stas_failure})
 
     | INot ins ->
-      let res = interp_instr inp ctx sta ins in
+      let res = interp_instr cnf inp ctx sta ins in
       let flip_result sta =
         let res' = notb sta.context.result in
         let ctx = {sta.context with result = res'} in
@@ -235,20 +242,25 @@ module Interpreter
       Rs.({
         normal = Fset.map (fun xyz -> flip_result xyz) res.normal;
         return_ = Fset.map (fun xyz -> flip_result xyz) res.return_;
-        exit = res.exit})
+        exit = res.exit;
+        failure = res.failure;
+      })
 
     | INoOutput ins -> 
-      let res = interp_instr inp ctx sta ins in
+      let res = interp_instr cnf inp ctx sta ins in
       let reset_output sta =
         let sta' = {sta.state with stdout = sta.state.stdout} in
         {sta with state = sta'}
       in
-      Rs.({normal = Fset.map (fun xyz -> reset_output xyz) res.normal;
-           exit = Fset.map (fun xyz -> reset_output xyz) res.exit;
-           return_ = Fset.map (fun xyz -> reset_output xyz) res.return_})
+      Rs.({
+        normal = Fset.map (fun xyz -> reset_output xyz) res.normal;
+        exit = Fset.map (fun xyz -> reset_output xyz) res.exit;
+        return_ = Fset.map (fun xyz -> reset_output xyz) res.return_})
+        failure = res.failure;
+      })
 
     | IIf ins1 ins2 ins3 ->
-      let res1 = interp_instr {inp with under_condition=True} ctx sta ins1 in
+      let res1 = interp_instr cnf {inp with under_condition=True} ctx sta ins1 in
       let res1_normal, res1_other = Rs.separate_normal res1 in
       let res2 =
         let res1_true, res1_false =
@@ -257,13 +269,13 @@ module Interpreter
             res1_normal
         in
         Rs.union
-          (interp_instr_unit' inp res1_true ins2)
-          (interp_instr_unit' inp res1_false ins3)
+          (interp_instr_unit' cnf inp res1_true ins2)
+          (interp_instr_unit' cnf inp res1_false ins3)
       in
       Rs.union res2 res1_other
 
     | ICallUtility id le ->
-      let res = interp_list_expr inp ctx sta le in
+      let res = interp_list_expr cnf inp ctx sta le in
       let stas' : set (state, bool) = 
         let aux arg : set (state, bool) =
           let sta', args = arg in
@@ -282,7 +294,7 @@ module Interpreter
       Rs.inject inp sym_stas
 
     | ICallFunction id le ->
-      let res = interp_list_expr inp ctx sta le in
+      let res = interp_list_expr cnf inp ctx sta le in
       match Env.get ctx.func_env id None with
       | Some ins ->
         let rec loop_res (res:list (state, list string)) : Rs.t unit =
@@ -292,14 +304,16 @@ module Interpreter
             let inp1 = {inp with argument0 = identifier_to_string id} in
             let ctx1 = {ctx with arguments = args} in
             Rs.union
-              (interp_instr inp1 ctx1 sta1 ins)
+              (interp_instr cnf inp1 ctx1 sta1 ins)
               (loop_res res')
           end
         in
         let res2 = loop_res (Fset.to_list res) in
-        Rs.({normal = union res2.normal res2.return_;
-             exit = res2.exit;
-             return_ = Fset.empty})
+        Rs.({
+          res2 with
+          normal = union res2.normal res2.return_;
+          return_ = Fset.empty;
+        })
       | None ->
         let mk_sym_state (arg:(state,list string)) =
           let sta', _ = arg in
@@ -322,7 +336,7 @@ module Interpreter
       end
 
     | IForeach id le ins ->
-      let res : set (state, list string) = interp_list_expr inp ctx sta le in
+      let res : set (state, list string) = interp_list_expr cnf inp ctx sta le in
       let rec interp_foreach b ctx sta ss : Rs.t bool =
         match ss with
         | Nil ->
@@ -365,18 +379,18 @@ module Interpreter
     | IWhile ins1 ins2 ->
       let rec interp_while ctr (stas: set (sym_state bool)) : Rs.t unit =
         if ctr = 0 then
-          Rs.(map (with_data ()) {empty with exit = stas})
+          Rs.({empty with failure = stas})
         else
-          let res1_normal, res1_other =
+          let res1_normal, res1_abort =
             Rs.separate_normal
               (interp_instr_bool' cnf {inp with under_condition=True} stas ins1)
           in
           let res1_true, res1_false =
             Fset.partition (fun sta -> sta.context.result) res1_normal
           in
-          let res2_normal, res2_other =
+          let res2_normal, res2_abort =
             Rs.separate_normal
-              (interp_instr_bool' inp res1_true ins2)
+              (interp_instruction_bool' cnf inp res1_true ins2)
           in
           let res3 = interp_while (ctr-1) res2_normal in
           Rs.(let others =
@@ -387,14 +401,14 @@ module Interpreter
               in
               union res3 others)
       in
-      interp_while Sem.loop_boundary
-        (Fset.singleton ({context=ctx; state=sta; data=True}))
+      interp_while cnf.loop_boundary
+        (Fset.singleton ({context=ctx; state=sta; info=True}))
 
     | IPipe ins1 ins2 ->
-      let stas1 = (* Behaviour in ins1 is ignored *)
-        Rs.all
-         (let sta' = {sta with stdout = Stdout.empty} in
-          interp_instr inp ctx sta' ins1)
+      let stas1, stas1_failure =
+        let sta' = {sta with stdout = Stdout.empty} in
+        Rs.separate_non_failure
+          (interp_instr cnf inp ctx sta' ins1)
       in
       let res2 =
         let stas1' =
@@ -404,17 +418,19 @@ module Interpreter
               stdout = sta.stdout;
               stdin = Stdout.to_stdin sta1.state.stdout
             } in
-            {context=ctx; state=sta'; data=sta1.state.stdin}
+            {state=sta'; context=ctx; data=sta1.state.stdin}
           in
           Fset.map (fun xyz -> prepare xyz) stas1
         in
-        interp_instr_stdin' inp stas1' ins2
+        interp_instr_stdin' cnf inp stas1' ins2
       in
       let revise sta2 =
         let sta2' = {sta2.state with stdin = sta2.data} in
         {state = sta2'; context = ctx; data=()}
       in
-      Rs.map (fun xyz -> revise xyz) res2
+      Rs.(union
+            (map (fun xyz -> revise xyz) res2)
+            {empty with failure = stas1_failure})
 
     | IExit code ->
       let r =
@@ -426,7 +442,7 @@ module Interpreter
       in
       let sta =
         let ctx' = {ctx with result = r} in
-        {context = ctx'; state = sta; data=()}
+        {state = sta; context = ctx'; data=()}
       in
       Rs.({empty with exit = Fset.singleton sta})
 
@@ -440,7 +456,7 @@ module Interpreter
       in
       let sta =
         let ctx' = {ctx with result = r} in
-        {context = ctx'; state = sta; data=()}
+        {state = sta; context = ctx'; data=()}
       in
       Rs.({empty with return_ = Fset.singleton sta})
     end
@@ -448,49 +464,49 @@ module Interpreter
   (* Monomorphic version of `interp_instr' : input -> set (sym_state 'a) -> Rs.t 'a`
      to work around bug https://gitlab.inria.fr/why3/why3/issues/240 *)
 
-  with interp_instr_unit' (inp:input) (stas: set (sym_state unit)) (ins:instruction) : Rs.t unit diverges =
+  with interp_instr_unit' (cnf:config) (inp:input) (stas: set (sym_state unit)) (ins:instruction) : Rs.t unit diverges =
     (* Cannot fold `stas` because `interp_instr` may not terminate *)
     let rec aux (stas: list (sym_state unit)) : Rs.t unit =
       match stas with
       | Nil ->
         Rs.empty
       | Cons sta stas' -> 
-        let res = interp_instr inp sta.context sta.state ins in
+        let res = interp_instr cnf inp sta.context sta.state ins in
         let res' = Rs.map (with_data sta.data) res in
         Rs.union res' (aux stas')
       end
     in
     aux (Fset.to_list stas)
 
-  with interp_instr_bool' (inp:input) (stas: set (sym_state bool)) (ins:instruction) : Rs.t bool diverges =
+  with interp_instr_bool' (cnf:config) (inp:input) (stas: set (sym_state bool)) (ins:instruction) : Rs.t bool diverges =
     (* Cannot fold `stas` because `interp_instr` may not terminate *)
     let rec aux (stas: list (sym_state bool)) : Rs.t bool =
       match stas with
       | Nil ->
         Rs.empty
       | Cons sta stas' -> 
-        let res = interp_instr inp sta.context sta.state ins in
+        let res = interp_instr cnf inp sta.context sta.state ins in
         let res' = Rs.map (with_data sta.data) res in
         Rs.union res' (aux stas')
       end
     in
     aux (Fset.to_list stas)
 
-  with interp_instr_stdin' (inp:input) (stas: set (sym_state stdin)) (ins:instruction) : Rs.t stdin diverges =
+  with interp_instr_stdin' (cnf:config) (inp:input) (stas: set (sym_state stdin)) (ins:instruction) : Rs.t stdin diverges =
     (* Cannot fold `stas` because `interp_instr` may not terminate *)
     let rec aux (stas: list (sym_state stdin)) : Rs.t stdin =
       match stas with
       | Nil ->
         Rs.empty
       | Cons sta stas' -> 
-        let res = interp_instr inp sta.context sta.state ins in
+        let res = interp_instr cnf inp sta.context sta.state ins in
         let res' = Rs.map (with_data sta.data) res in
         Rs.union res' (aux stas')
       end
     in
     aux (Fset.to_list stas)
 
-  with interp_str_expr (b:bool) (inp:input) (ctx:context) (sta:state) (se:string_expression)
+  with interp_str_expr (b:bool) (cnf:config) (inp:input) (ctx:context) (sta:state) (se:string_expression)
     : set (state, bool, string)
     diverges
   = match se with
@@ -516,13 +532,13 @@ module Interpreter
       in
       Fset.map (fun xyz -> aux xyz) stas
     | SConcat se1 se2 ->
-      let res1 = interp_str_expr b inp ctx sta se1 in
+      let res1 = interp_str_expr b cnf inp ctx sta se1 in
       let rec aux (res1: list (state, bool, string)) : set (state, bool, string) =
         match res1 with
         | Nil ->
           empty
         | Cons (sta1, b1, str1) res1' -> 
-          let stas = interp_str_expr b1 inp ctx sta1 se2 in
+          let stas = interp_str_expr b1 cnf inp ctx sta1 se2 in
           let concat t3 =
             let sta2, b2, str2 = t3 in
             sta2, b2, str1^str2
@@ -535,7 +551,7 @@ module Interpreter
       aux (Fset.to_list res1)
     end
 
-  with interp_list_expr (inp:input) (ctx:context) (sta:state) (le:list_expression)
+  with interp_list_expr (cnf:config) (inp:input) (ctx:context) (sta:state) (le:list_expression)
     : set (state, list string)
     diverges
   = match le with
@@ -573,10 +589,14 @@ module Interpreter
       interp_function_definitions (Env.set fenv id (Some instr))  defs'
     end
 
-  let interp_program inp ctx sta pro : (set state, set state) diverges =
+  let interp_program cnf inp ctx sta pro : (set state, set state, set state) diverges =
     let fenv = interp_function_definitions ctx.func_env pro.function_definitions in
-    let res = interp_instr inp {ctx with func_env = fenv} sta pro.instruction in
-    let all_res = Rs.all res in
-    only_states_with_result True all_res,
-    only_states_with_result False all_res
+    let res = interp_instr cnf inp {ctx with func_env = fenv} sta pro.instruction in
+      let ctx' = {ctx with func_env = fenv} in
+      Rs.separate_non_failure
+        (interp_instruction cnf inp ctx' sta pro.instruction)
+    in
+    (only_states_with_result True stas,
+     only_states_with_result False stas,
+     Fset.map (fun sta -> sta.state) stas_failure)
 end
