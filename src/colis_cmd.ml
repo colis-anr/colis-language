@@ -41,6 +41,8 @@ let get_file, get_arguments, set_file_or_argument =
     | Some _ -> args := new_file_or_arg :: !args)
 
 let prune_init_state = ref false
+let while_loop_boundary = ref 10
+
 
 let get_symbolic_fs, set_symbolic_fs =
   let fs_spec = ref Colis.Symbolic.FilesystemSpec.empty in
@@ -54,19 +56,22 @@ let get_symbolic_fs, set_symbolic_fs =
      | _ -> raise (Arg.Bad "only filesystems `empty', `simple', and `fsh' are known"))
 
 let speclist =
-  [ "--shell",        Arg.Unit (set_source Shell),       " Use the shell parser (default)";
-    "--colis",        Arg.Unit (set_source Colis),       " Use the colis parser" ;
-    "--run",          Arg.Unit (set_action Run),         " Concrete execution (default)";
-    "--run-symbolic", Arg.Unit (set_action RunSymbolic), " Symbolic execution";
-    "--print-colis",  Arg.Unit (set_action PrintColis),  " Print the CoLiS script";
-    "--print-shell",  Arg.Unit (set_action PrintShell),  " Print the Shell script";
+  let open Colis.Options in
+  Arg.(align [
+    "--run",                       Unit (set_action Run),         " Concrete execution (default)";
+    "--run-symbolic",              Unit (set_action RunSymbolic), " Symbolic execution";
+    "--shell",                     Unit (set_source Shell),       " Use the shell parser (default)";
+    "--colis",                     Unit (set_source Colis),       " Use the colis parser" ;
+    "--print-colis",               Unit (set_action PrintColis),  " Print the CoLiS script";
+    "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
+    "--realworld",                 Set realworld,                 " Use system utilities in concrete execution";
 
-    "--symbolic-fs",  Arg.String set_symbolic_fs,        " Name of the initial symbolic filesystem (default: empty)";
-    "--prune-init-state",  Arg.Set prune_init_state,     " Prune the initial state in symbolic execution";
-    "--real-world",    Arg.Set Colis.Options.real_world,   " Use system utilities in concrete execution";
-    "--fail-on-unknown-utilities", Arg.Set Colis.Options.fail_on_unknown_utilities, " Unknown utilities kill the interpreter" ;
-    "--external-sources", Arg.Set_string Colis.Options.external_sources, "DIR Import absolute sources from DIR" ]
-  |> Arg.align
+    "--symbolic-fs",               String set_symbolic_fs,        " Name of the initial symbolic filesystem in symbolic execution (default: empty)";
+    "--prune-init-state",          Set prune_init_state,          sprintf " Prune the initial state in symbolic execution (default: %s)" (if !prune_init_state then "prune" else "don’t prune");
+    "--while-loop-boundary",       Int ((:=) loop_boundary),      sprintf " Boundary for symbolic execution of while loops (default: %d)" !while_loop_boundary;
+    "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
+    "--external-sources",          Set_string external_sources,   "DIR Import absolute sources from DIR" ]
+  ])
 
 let usage =
   sprintf
@@ -101,7 +106,11 @@ let main () =
      Colis.run ~argument0 ~arguments program
   | RunSymbolic ->
      let fs_spec = get_symbolic_fs () in
-     Colis.run_symbolic ~prune_init_state:!prune_init_state fs_spec ~argument0 ~arguments program
+     Colis.run_symbolic
+       ~prune_init_state:!prune_init_state
+       ~while_loop_boundary:!while_loop_boundary
+       ~fs_spec
+       ~argument0 ~arguments program
   | PrintColis ->
      Colis.print_colis program;
   | PrintShell ->

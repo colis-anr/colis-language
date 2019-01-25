@@ -104,12 +104,14 @@ let run ~argument0 ?(arguments=[]) colis =
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
   try
-    let cnf = Z.minus_one in (* Don’t break while loops *)
+    let cnf = Z.minus_one in
     Interpreter.interp_program cnf input state colis;
     print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
     exit (if !(state.result) then 0 else 1)
   with Interpreter.EFailure ->
-    assert false (* The counter in the interpretation of while loops decreases and will never hit zero *)
+    (* With a loop boundary of -1, the counter in the interpretation of while loops
+       decreases and will never hit zero *)
+    assert false
 
 let print_symbolic_filesystem fmt fs =
   let open Constraints in
@@ -151,9 +153,8 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let run_symbolic ~prune_init_state ~while_loop_boundary fs_spec ~argument0 ?(arguments=[]) colis =
+let run_symbolic ~prune_init_state ~while_loop_boundary ~fs_spec ~argument0 ?(arguments=[]) colis =
   let open Symbolic in
-  let cnf = while_loop_boundary in
   let clause_to_state root clause =
     let cwd = Constraints.Path.Abs [] in
     let root0 = if prune_init_state then None else Some root in
@@ -162,11 +163,11 @@ let run_symbolic ~prune_init_state ~while_loop_boundary fs_spec ~argument0 ?(arg
     let stdout = Concrete.Stdout.empty in
     {State.filesystem; stdin; stdout}
   in
-  let run_in_state state =
-    let input = { Concrete.Input.empty with argument0 } in
-    let context = { Context.empty_context with arguments } in
-    let normals, errors, failures = Interpreter.interp_program input context state colis in
-    state, normals, errors, failures
+  let run_in_state sta =
+    let inp = { Concrete.Input.empty with argument0 } in
+    let ctx = { Context.empty_context with arguments } in
+    let cnf = Z.of_int while_loop_boundary in
+    sta, Interpreter.interp_program cnf inp ctx sta colis
   in
   let res =
     let open Constraints in
@@ -182,21 +183,27 @@ let run_symbolic ~prune_init_state ~while_loop_boundary fs_spec ~argument0 ?(arg
     fprintf fmt "- @[%a@]@\n" (print_symbolic_state ~id) sta
   in
   List.iter
-    (fun (init, normals, errors, failures) ->
+    (fun (init, (normals, errors, failures)) ->
        printf "* Initial state@\n";
        printf "%a@\n" (print_symbolic_state "init" (ref 0)) init;
        printf "* Success states@\n";
        List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) (BatSet.to_list normals);
        printf "@\n";
        printf "* Error states@\n";
-       List.iter (print_state_record (ref 1) "error" Format.std_formatter) (BatSet.to_list errors);
+       List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) (BatSet.to_list errors);
        printf "@\n";
        printf "* Failure states@\n";
-       List.iter (print_symbolic_state "failure" (ref 1) Format.std_formatter) (BatSet.to_list errors);
+       List.iter (print_symbolic_state "failure" (ref 1) Format.std_formatter) (BatSet.to_list failures);
        printf "@\n";
        printf "* Summary@\n@\n";
        printf "- Success cases: %d@\n" (BatSet.cardinal normals);
-       printf "- Error cases: %d@\n" (BatSet.cardinal errors))
+       printf "- Error cases: %d@\n" (BatSet.cardinal errors);
+       printf "- Failure cases: %d@\n" (BatSet.cardinal failures))
     res;
-  let allright = List.forall BatSet.(fun (_, _, errs, fails) -> is_empty errs && is_empty fails) res in
-  exit (if allright then 0 else 1)
+  (* Exit 1 if there is any error result *)
+  if List.exists BatSet.(fun (_, (_, errs, _)) -> not (is_empty errs)) res
+  then exit 1;
+  (* Exit 10 if there is any failure result *)
+  if List.exists BatSet.(fun (_, (_, _, fails)) -> not (is_empty fails)) res
+  then exit 10;
+  exit 0
