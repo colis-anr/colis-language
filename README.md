@@ -47,3 +47,4 @@ The tool uses different return codes for different kind of errors.
 |   7  | Unsupported utility
 |   8  | Unsupported option for a supported utility
 |   9  | Error in pretty-printing (Shell or CoLiS)
+|  10  | Failure in symbolic execution (while loop boundary reached)
