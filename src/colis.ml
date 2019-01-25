@@ -185,16 +185,19 @@ let run_symbolic ~prune_init_state ~while_loop_boundary ~fs_spec ~argument0 ?(ar
   List.iter
     (fun (init, (normals, errors, failures)) ->
        printf "* Initial state@\n";
-       printf "%a@\n" (print_symbolic_state "init" (ref 0)) init;
-       printf "* Success states@\n";
-       List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) (BatSet.to_list normals);
-       printf "@\n";
-       printf "* Error states@\n";
-       List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) (BatSet.to_list errors);
-       printf "@\n";
-       printf "* Failure states@\n";
-       List.iter (print_symbolic_state "failure" (ref 1) Format.std_formatter) (BatSet.to_list failures);
-       printf "@\n";
+       print_symbolic_state "init" (ref 0) std_formatter init;
+       if not (BatSet.is_empty normals) then begin
+         printf "* Success states@\n";
+         List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) (BatSet.to_list normals);
+       end;
+       if not (BatSet.is_empty errors) then begin
+         printf "* Error states@\n";
+         List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) (BatSet.to_list errors);
+       end;
+       if not (BatSet.is_empty failures) then begin
+         printf "* Failure states@\n";
+         List.iter (print_symbolic_state "failure" (ref 1) Format.std_formatter) (BatSet.to_list failures);
+       end;
        printf "* Summary@\n@\n";
        printf "- Success cases: %d@\n" (BatSet.cardinal normals);
        printf "- Error cases: %d@\n" (BatSet.cardinal errors);
