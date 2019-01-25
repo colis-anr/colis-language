@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# argument 1: a directory
+# runs the symbolic execution on each *.sh file in the directory, and
+# leaves in the same directory a report per file.
+
+outsuffix=colisout
+calldir=$PWD
+colis=$calldir/bin/colis
+cd ${1?directory argument missing}
+rm *.$outsuffix
+for f in *.sh; do
+    outfile="$f"."$outsuffix"
+    if file "$f" | grep -q "ELF"; then
+	echo "skipped: ELF" > "$outfile"
+	continue
+    fi
+    if head -1 "$f" | egrep -q "^#!/usr/bin/perl|^#!/bin/bash"; then
+	echo "skipped: other script interpreter" > "$outfile"
+	continue
+    fi
+    $colis --run-symbolic "$f" > "$outfile"
+    exitcode=$?
+    echo "\n* Exit code:" $exitcode >> "$outfile"
+done    
