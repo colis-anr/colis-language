@@ -411,6 +411,12 @@ module Semantics
     interp_utility {sta with stdout=Stdout.empty} name args = (sta', b) ->
     interp_utility sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
+  let function split sp str =
+    match sp with
+    | DontSplit -> Cons str Nil
+    | Split -> String.split_on_default_ifs str
+    end
+
   (** Evaluation of a instruction i with input I, context C and state S resulting in an
       state S', context C', and behaviour b:
 
@@ -472,7 +478,7 @@ module Semantics
 
   | eval_subshell_failure: forall cnf inp sta sta' ctx ctx' ins.
     eval_instruction (cnf, inp, ctx, sta) ins (sta', ctx', BFailure) ->
-    eval_instruction (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx, BFailure)
+    eval_instruction (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx', BFailure)
 
   | eval_not: forall cnf inp ctx ctx' sta sta' ins bhv.
     (bhv = BNormal \/ bhv = BReturn) ->
@@ -582,7 +588,7 @@ module Semantics
     ctr = 0 ->
     let sta' = sta in
     let ctx' = ctx in
-    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta', ctx, BFailure) b
+    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta', ctx', BFailure) b
 
   (** Condition is false *)
   | eval_while_false: forall cnf ctr b inp ctx ctx1 sta sta1 ins1 ins2.
@@ -708,7 +714,7 @@ module Semantics
 
     | eval_list_expr_cons: forall cnf inp ctx sta sta1 sta2 se sp es s b1 l2.
       eval_str_expr True (cnf, inp, ctx, sta) se (sta1, Some (s, b1)) ->
-      let l1 = match sp with Split -> String.split_on_default_ifs s | DontSplit -> Cons s Nil end in
+      let l1 = split sp s in
       eval_list_expr (cnf, inp, ctx, sta1) es (sta2, Some l2) ->
       let l3 = l1 ++ l2 in
       eval_list_expr (cnf, inp, ctx, sta) (Cons (se, sp) es) (sta2, Some l3)
