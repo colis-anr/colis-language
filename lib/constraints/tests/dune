@@ -1,6 +1,6 @@
 (executable
  (name run)
- (libraries colis-language.constraints logs.fmt))
+ (libraries colis-language.constraints))
 
 (alias
  (name runtest)
