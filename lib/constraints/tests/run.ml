@@ -37,9 +37,6 @@ let tests =
       formula = fen x (Feat.Set.singleton f) & abs x f & nsim x Feat.Set.empty z & empty z } ;
   ]
 
-let src = Logs.Src.create "colis-language.constraints.test" ~doc:"Logging from the constraints' test engine"
-module Log = (val Logs.src_log src : Logs.LOG)
-
 let run_tests () =
   List.fold_left
     (fun (res, i) test ->
@@ -64,8 +61,6 @@ let run_tests () =
   |> fst
 
 let () =
-  Logs.(set_reporter (Logs_fmt.reporter ()));
-  Logs.(set_level (Some Debug));
   let res = run_tests () in
   let total = List.length tests in
   Format.eprintf "TESTS PASSED: %d / %d@." res total;

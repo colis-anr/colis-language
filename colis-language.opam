@@ -33,7 +33,6 @@ depexts: [
 depends: [
   "batteries"
   "camlzip"                {build | with-test}
-  "logs"
   "morsmall"               {= "dev"}
   "ocaml"                  {build & >= "4.05"}
   "odoc"                   {with-doc}
