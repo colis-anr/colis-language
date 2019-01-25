@@ -29,4 +29,4 @@ val simple : t
    Standard}.
 
     Incomplete. *)
-val fsh : t
+val fhs : t

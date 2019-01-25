@@ -40,8 +40,8 @@ let simple : t = [
   ]
 ]
 
-(* TODO to be extended to FSH 3.0? *)
-let fsh : t = [
+(* TODO extended to FSH 3.0 *)
+let fhs : t = [
   node "bin" [];
   node "boot" [];
   node "dev" [];

@@ -52,7 +52,7 @@ let get_symbolic_fs, set_symbolic_fs =
      match str with
      | "empty" -> fs_spec := empty
      | "simple" -> fs_spec := simple
-     | "fsh" -> fs_spec := fsh
+     | "fhs" -> fs_spec := fhs
      | _ -> raise (Arg.Bad "only filesystems `empty', `simple', and `fsh' are known"))
 
 let speclist =
