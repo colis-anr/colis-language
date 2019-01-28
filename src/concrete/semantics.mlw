@@ -457,7 +457,8 @@ module Semantics
 
   | eval_assignment_failure: forall cnf inp ctx sta sta' id e.
     eval_str_expr True (cnf, inp, ctx, sta) e (sta', None) ->
-    eval_instruction (cnf, inp, ctx, sta) (IAssignment id e) (sta', ctx, BFailure)
+    let ctx' = ctx in
+    eval_instruction (cnf, inp, ctx, sta) (IAssignment id e) (sta', ctx', BFailure)
   
   | eval_sequence_normal: forall cnf inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 bhv2.
     eval_instruction (cnf, inp, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
@@ -478,7 +479,8 @@ module Semantics
 
   | eval_subshell_failure: forall cnf inp sta sta' ctx ctx' ins.
     eval_instruction (cnf, inp, ctx, sta) ins (sta', ctx', BFailure) ->
-    eval_instruction (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx', BFailure)
+    let ctx'' = with_result ctx'.result ctx in
+    eval_instruction (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx'', BFailure)
 
   | eval_not: forall cnf inp ctx ctx' sta sta' ins bhv.
     (bhv = BNormal \/ bhv = BReturn) ->
@@ -526,7 +528,9 @@ module Semantics
 
   | eval_pipe_failure: forall cnf inp ctx ctx1 sta sta1 ins1 ins2.
     eval_instruction (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, BFailure) -> 
-    eval_instruction (cnf, inp, ctx, sta) (IPipe ins1 ins2) (sta1, ctx, BFailure)
+    let sta1' = {sta1 with stdout = sta.stdout} in
+    let ctx' = ctx in
+    eval_instruction (cnf, inp, ctx, sta) (IPipe ins1 ins2) (sta1', ctx', BFailure)
   
   | eval_call_utility: forall cnf inp ctx sta sta' sta'' id es ss b.
     eval_list_expr (cnf, inp, ctx, sta) es (sta', Some ss) ->
@@ -539,6 +543,26 @@ module Semantics
     eval_list_expr (cnf, inp, ctx, sta) es (sta', None) ->
     eval_instruction (cnf, inp, ctx, sta) (ICallUtility id es) (sta', ctx, BFailure)
 
+  | eval_call_function_args_failure: forall cnf inp ctx sta sta1 id es.
+    eval_list_expr (cnf, inp, ctx, sta) es (sta1, None) ->
+    eval_instruction (cnf, inp, ctx, sta) (ICallFunction id es) (sta1, ctx, BFailure)
+
+  | eval_call_function_not_found: forall cnf inp ctx sta sta' id es ss.
+    eval_list_expr (cnf, inp, ctx, sta) es (sta', ss) ->
+    ctx.func_env id = None ->
+    let ctx' = with_result False ctx in
+    let bhv = behaviour' inp ctx' in
+    eval_instruction (cnf, inp, ctx, sta) (ICallFunction id es) (sta', ctx', bhv)
+
+  | eval_call_function_failure: forall cnf inp ctx ctx2 sta sta1 sta2 id es args ins.
+    eval_list_expr (cnf, inp, ctx, sta) es (sta1, Some args) ->
+    ctx.func_env id = Some ins ->
+    let inp1 = { inp with argument0 = identifier_to_string id } in
+    let ctx1 = { ctx with arguments = args } in
+    eval_instruction (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, BFailure) ->
+    let ctx' = with_result ctx2.result ctx in
+    eval_instruction (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', BFailure)
+
   | eval_call_function: forall cnf inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
     bhv <> BFailure ->
     eval_list_expr (cnf, inp, ctx, sta) es (sta1, Some args) ->
@@ -549,17 +573,6 @@ module Semantics
     let bhv' = match bhv with BReturn -> BNormal | bhv -> bhv end in
     let ctx' = with_result ctx2.result ctx in
     eval_instruction (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', bhv')
-
-  | eval_call_function_failure: forall cnf inp ctx sta sta1 id es.
-    eval_list_expr (cnf, inp, ctx, sta) es (sta1, None) ->
-    eval_instruction (cnf, inp, ctx, sta) (ICallFunction id es) (sta1, ctx, BFailure)
-
-  | eval_call_function_not_found: forall cnf inp ctx sta sta' id es ss.
-    eval_list_expr (cnf, inp, ctx, sta) es (sta', ss) ->
-    ctx.func_env id = None ->
-    let ctx' = with_result False ctx in
-    let bhv = behaviour' inp ctx' in
-    eval_instruction (cnf, inp, ctx, sta) (ICallFunction id es) (sta', ctx', bhv)
   
   | eval_foreach: forall cnf inp ctx ctx' sta sta' sta'' id es ins ss bhv b.
     eval_list_expr (cnf, inp, ctx, sta) es (sta', Some ss) -> 
@@ -571,11 +584,15 @@ module Semantics
     eval_list_expr (cnf, inp, ctx, sta) es (sta', None) -> 
     eval_instruction (cnf, inp, ctx, sta) (IForeach id es ins) (sta', ctx, BFailure)
 
-  | eval_while: forall cnf inp ctx ctx' sta sta' ins1 ins2 bhv b.
-    (* The behaviour of empty while-loops is `BNormal True` *)
-    eval_while cnf.loop_boundary True (cnf, inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) b ->
+  | eval_while: forall cnf inp ctx ctx' sta sta' ins1 ins2 b.
+    eval_while 0 True (cnf, inp, ctx, sta) ins1 ins2 (sta', ctx', BNormal) b ->
     let ctx'' = with_result b ctx' in
-    eval_instruction (cnf, inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx'', bhv)
+    eval_instruction (cnf, inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx'', BNormal)
+
+  | eval_while_abort: forall cnf inp ctx ctx' sta sta' ins1 ins2 bhv b.
+    bhv <> BNormal ->
+    eval_while 0 True (cnf, inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) b ->
+    eval_instruction (cnf, inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx', bhv)
 
   (** Semantics of the while loop.
 
@@ -584,44 +601,44 @@ module Semantics
   with eval_while int bool (config, input, context, state) instruction instruction (state, context, behaviour) bool =
 
   (** Loop boundary *)
-  | eval_while_loop_boundary: forall cnf ctr b inp ctx sta ins1 ins2.
-    ctr = 0 ->
+  | eval_while_boundary: forall cnf ctr b inp ctx sta ins1 ins2.
+    ctr = cnf.loop_boundary ->
     let sta' = sta in
     let ctx' = ctx in
     eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta', ctx', BFailure) b
 
-  (** Condition is false *)
-  | eval_while_false: forall cnf ctr b inp ctx ctx1 sta sta1 ins1 ins2.
-    ctr > 0 ->
-    ctx1.result = False ->
-    eval_instruction (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-    let ctx1' = with_result b ctx1 in
-    let b' = b in
-    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta1, ctx1', BNormal) b'
-
-  (** Condition true, body normal, and loop again *)
-  | eval_while_true_loop: forall cnf ctr b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
-    ctr > 0 ->
-    ctx1.result = True ->
-    eval_instruction (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-    eval_instruction (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
-    eval_while (ctr-1) ctx2.result (cnf, inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) b3 ->
-    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta3, ctx3, bhv3) b3
-
   (** Condition is not normal *)
   | eval_while_abort_condition: forall cnf ctr b inp ctx ctx1 sta sta1 ins1 ins2 bhv1.
-    ctr > 0 ->
+    ctr < cnf.loop_boundary ->
     bhv1 <> BNormal ->
     eval_instruction (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
-    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta1, ctx1, bhv1) ctx1.result
+    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta1, ctx1, bhv1) b
+
+  (** Condition is false *)
+  | eval_while_false: forall cnf ctr b inp ctx ctx1 sta sta1 ins1 ins2.
+    ctr < cnf.loop_boundary ->
+    ctx1.result = False ->
+    eval_instruction (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    let b' = b in
+    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta1, ctx1, BNormal) b'
 
   (** Condition true but while-body not normal *)
-  | eval_while_abort_body: forall cnf ctr bhv inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 bhv2.
-    ctr > 0 ->
+  | eval_while_abort_body: forall cnf ctr b bhv2 inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2.
+    ctr < cnf.loop_boundary ->
     bhv2 <> BNormal ->
     eval_instruction (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     eval_instruction (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
-    eval_while ctr bhv (cnf, inp, ctx, sta) ins1 ins2 (sta2, ctx2, bhv2) ctx2.result
+    let b' = b in
+    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta2, ctx2, bhv2) b'
+
+  (** Condition true, body normal, and loop again *)
+  | eval_while_loop: forall cnf ctr b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
+    ctr < cnf.loop_boundary ->
+    ctx1.result = True ->
+    eval_instruction (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    eval_instruction (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
+    eval_while (ctr+1) ctx2.result (cnf, inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) b3 ->
+    eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta3, ctx3, bhv3) b3
 
   (** Semantics of the for loop
 
@@ -684,7 +701,8 @@ module Semantics
 
   | eval_str_subshell_failure: forall cnf b inp ctx ctx1 sta sta1 ins.
     eval_instruction (cnf, inp, ctx, { sta with stdout = Stdout.empty }) ins (sta1, ctx1, BFailure) ->
-    eval_str_expr b (cnf, inp, ctx, sta) (SSubshell ins) (sta1, None)
+    let sta1' = { sta1 with stdout = sta.stdout } in
+    eval_str_expr b (cnf, inp, ctx, sta) (SSubshell ins) (sta1', None)
 
   | eval_str_concat : forall cnf b b1 b2 inp ctx sta sta1 sta2 e1 e2 str1 str2.
     eval_str_expr b (cnf, inp, ctx, sta) e1 (sta1, Some (str1, b1)) ->

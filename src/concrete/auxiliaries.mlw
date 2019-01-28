@@ -55,7 +55,7 @@ module TakeDrop
 
   lemma take_nth_drop: forall l: list 'a, i.
     0 <= i < length l ->
-    l = take i l ++ (Cons (NthNoOpt.nth i l) (drop (i+1) l))
+    l = take i l ++ Cons (NthNoOpt.nth i l) (drop (i+1) l)
 
   lemma take_nth: forall l: list 'a, i.
     0 <= i < length l - 1 ->
