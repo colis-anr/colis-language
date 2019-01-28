@@ -103,15 +103,13 @@ let run ~argument0 ?(arguments=[]) colis =
   let input = { Input.empty with argument0 } in
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
-  try
-    let cnf = Z.minus_one in
-    Interpreter.interp_program cnf input state colis;
-    print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
-    exit (if !(state.result) then 0 else 1)
-  with Interpreter.EFailure ->
-    (* With a loop boundary of -1, the counter in the interpretation of while loops
-       decreases and will never hit zero *)
-    assert false
+  (* The loop counter for the interpretation of while loops starts at zero, increases, and
+     fails when it hits the loop limit. Thus, a program execution with a negative loop
+     limit will never display a failure behaviour (i.e. exception). *)
+  let loop_limit = Z.minus_one in
+  Interpreter.interp_program loop_limit input state colis;
+  print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
+  exit (if !(state.result) then 0 else 1)
 
 let print_symbolic_filesystem fmt fs =
   let open Constraints in

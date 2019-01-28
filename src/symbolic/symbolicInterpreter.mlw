@@ -1,5 +1,5 @@
-(* NOTE: Why3 exports a higher-order call `f g` to f (g ())` -- as a workaround, such
-   calls are written as `f (fun x -> g x)` below. *)
+(* NOTE: Due to bug #257, Why3 exports a higher-order call `f g` to f (g ())` -- as a
+   workaround, such calls are written as `f (fun x -> g x)` below. *)
 
 module Constraints
 
