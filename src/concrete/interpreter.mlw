@@ -341,25 +341,28 @@ module Interpreter
     | IWhile ins1 ins2 ->
       let ghost sta0 = state sta in
       let ghost ctx0 = context sta in
-      let ctr = ref cnf.loop_boundary in
+      let ctr = ref 0 in
       let last_result = ref True in
       while (
-        (if !ctr = 0 then raise EFailure else decr ctr);
+        (if !ctr = cnf.loop_boundary then raise EFailure);
         interp_instruction cnf {inp with under_condition=True} sta ins1;
         !(sta.result)
       ) do
-        invariant { forall sta1 ctx1 bhv1 b1.
+        invariant { 0 <= !ctr <= cnf.loop_boundary }
+        invariant { forall sta1 ctx1 b1 bhv.
           eval_while !ctr !last_result
             (cnf, inp, context sta, state sta)
             ins1 ins2
-            (sta1, ctx1, bhv1) b1 ->
-          eval_while !ctr True
+            (sta1, ctx1, bhv) b1 ->
+          eval_while 0 True
             (cnf, inp, ctx0, sta0)
             ins1 ins2
-            (sta1, ctx1, bhv1) b1
+            (sta1, ctx1, bhv) b1
         }
+        assert { !ctr < cnf.loop_boundary };
         interp_instruction cnf inp sta ins2;
         last_result := !(sta.result);
+        incr ctr
       done;
       sta.result := !last_result
     end
