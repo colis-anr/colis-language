@@ -417,18 +417,17 @@ and redirection__to__instruction e = function
 
   | _ -> unsupported ("other redirections")
 
-and command'_list__to__instruction e = function
+and command'_list__to__instruction env = function
   | [] ->
-     (e, C.itrue)
-  | c's ->
-     let (e, is) = list_fold_map command'__to__instruction E.empty c's in
-     (e, C.isequence_l is)
+     (env, C.itrue)
+  | command'_list ->
+     let (env, instruction_list) = list_fold_map command'__to__instruction env command'_list in
+     (env, C.isequence_l instruction_list)
 
 and program__to__program : program -> C.program = function
   | [] ->
      { C.function_definitions = [];
        instruction = C.itrue }
-  | c's ->
-     let (e, i) = command'_list__to__instruction E.empty c's in
-     { C.function_definitions = E.get_functions e ;
-       instruction = i }
+  | command'_list ->
+     let (env, instruction) = command'_list__to__instruction E.empty command'_list in
+     { C.function_definitions = E.get_functions env ; instruction }
