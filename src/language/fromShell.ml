@@ -22,6 +22,8 @@ module C = struct
 
   let itrue = ICallUtility ("true", [])
   let ifalse = ICallUtility ("false", [])
+
+  let ior (i1, i2) = IIf (i1, itrue, i2)
 end
 
 let list_fold_map (f : 'a -> 'b -> ('a * 'c)) (x : 'a) (l : 'b list) : ('a * 'c list) =
@@ -310,7 +312,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      E.with_deeper e @@ fun e ->
      let (e1, i1) = command'__to__instruction e  c1' in
      let (e2, i2) = command'__to__instruction e1 c2' in
-     (e2, C.IIf (i1, C.itrue, i2))
+     (e2, C.ior (i1, i2))
 
   | Not c1' ->
      E.with_deeper e @@ fun e ->
@@ -339,8 +341,11 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
   (* FIXME: with only functions and topevel, it's alright. If we put
      more, we have to be carefull because c1' also happens after itself. *)
 
-  | Case _ ->
-     unsupported "case"
+  | Case (word, case_item'_list) ->
+     let fresh_var = "fresh_" ^ (string_of_int (Random.int 10000000)) in
+     let (e0, sexpr) = word__to__string_expression e word in
+     let (e1, instruction) = case_item'_list__to__if_sequence fresh_var e0 case_item'_list in
+     (e1, C.(ISequence (IAssignment (fresh_var, sexpr), instruction)))
 
   | If (c1', c2', None) ->
      E.with_deeper e @@ fun e ->
@@ -355,7 +360,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      let (_ , i3) = command'__to__instruction e1 c3' in (* Warning: it's e1! *)
      (e2, C.IIf (i1, i2, i3))
   (* FIXME: with only functions and topevel, it's alright. If we put
-     more, we have to be carefull about merging e2 and e3. *)
+     more, we have to be careful about merging e2 and e3. *)
 
   | While (c1', c2') ->
      E.with_deeper e @@ fun e ->
@@ -363,7 +368,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      let (e2, i2) = command'__to__instruction e1 c2' in
      (e2, C.IWhile (i1, i2))
   (* FIXME: with only functions and topevel, it's alright. If we put
-     more, we have to be carefull because c1' also happens after c2',
+     more, we have to be careful because c1' also happens after c2',
      etc. *)
 
   | Until (c1', c2') ->
@@ -384,6 +389,41 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
 
 and command'__to__instruction env command' =
   on_located_with_env command__to__instruction env command'
+
+and case_item'_list__to__if_sequence fresh_var env = function
+  | [] -> assert false
+
+  | [{value=({value=[[GlobAny | Literal "*"]];_}, command'_option);_}] ->
+     (* When the last case_item is "* )", it's the "else" part of our
+        if sequence. FIXME: When Morbig is fixed, remove the [Literal
+        "*"] part. *)
+     command'_option__to__instruction env command'_option
+
+  | case_item' :: case_item'_list ->
+     let (pattern', command'_option) = case_item'.value in
+     let (env0, instruction0) = pattern'__to__instruction fresh_var env pattern' in
+     let (env1, instruction1) = command'_option__to__instruction env0 command'_option in
+     let (_   , instruction2) = case_item'_list__to__if_sequence fresh_var env0 case_item'_list in  (* Warning: it's env0! *)
+     (env1, C.IIf (instruction0, instruction1, instruction2))
+(* FIXME: with only functions and topevel, it's alright. If we put
+     more, we have to be careful about merging env1 and env2. *)
+
+and command'_option__to__instruction env = function
+  | None -> (env, C.itrue)
+  | Some command' -> command'__to__instruction env command'
+
+and pattern__to__instruction fresh_var pattern =
+  List.fold_left
+    (fun instruction -> function
+      | [Name word | Literal word] when not (String.contains word '*') -> (* FIXME: when Morbig is fixed, remove this guard. *)
+         C.(ior (instruction, ICallUtility ("test", [(SVariable fresh_var, DontSplit); (SLiteral "=", DontSplit); (SLiteral word, DontSplit)])))
+      | _ ->
+         unsupported "case when non-literal patterns")
+    C.ifalse
+    pattern
+
+and pattern'__to__instruction fresh_var env pattern' =
+  (env, on_located (pattern__to__instruction fresh_var) pattern')
 
 and redirection__to__instruction e = function
   (* >=2 redirected to /dev/null. Since they don't have any impact on
