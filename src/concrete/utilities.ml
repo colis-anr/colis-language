@@ -14,6 +14,19 @@ let unknown_utility ?(msg="command not found") ~name sta =
     let stdout = Stdout.(sta.stdout |> output str |> newline) in
     {sta with stdout}, false
 
+let unknown_argument ?(msg="Unknown argument") ~name ~arg sta =
+  if !Options.fail_on_unknown_utilities then
+    raise (Errors.UnsupportedArgument (name, arg))
+  else
+    let str = name ^ ": " ^ msg ^ ": " ^ arg in
+    let stdout = Stdout.(sta.stdout |> output str |> newline) in
+    {sta with stdout}, false
+
+let test (sta : state) : string list -> (state * bool) = function
+  | [sa; "="; sb] ->
+     (sta, sa = sb)
+  | _ ->
+     unknown_argument ~name:"test" ~arg:"" sta
 
 let interp_utility : state -> string -> string list -> (state * bool) =
   fun sta name args ->
@@ -33,6 +46,7 @@ let interp_utility : state -> string -> string list -> (state * bool) =
      sta, true
   | "false" ->
      sta, false
+  | "test" -> test sta args
   | "grep" -> (* Just for testing stdin/stdout handling *)
      begin match args with
      | [word] ->
