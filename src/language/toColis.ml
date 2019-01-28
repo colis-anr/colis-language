@@ -41,7 +41,7 @@ and instruction (fmt:formatter) (i:instruction) : unit =
   | IAssignment(s,e) ->
      fprintf fmt "@[<hv 2>%s :=@ %a@]" s string_expression e
   | ISequence(i1,i2) ->
-     fprintf fmt "@[<v 2>begin@ %a ;@ %a@ end@]" instruction i1 sequence i2
+     fprintf fmt "@[<v 2>begin@ %a ;@ %a@ end@]" sequence i1 sequence i2
   | ISubshell i ->
      fprintf fmt "@[process@ %a@]" instruction i
   | IIf(c,i1,ICallUtility("true", [])) ->
@@ -87,7 +87,7 @@ and exitcode (fmt:formatter) (c:return_code) =
 and sequence (fmt:formatter) (i:instruction) : unit =
   match i with
   | ISequence(i1,i2) ->
-     fprintf fmt "@[<v 0>%a ;@ %a@]" instruction i1 sequence i2
+     fprintf fmt "@[<v 0>%a ;@ %a@]" sequence i1 sequence i2
   | _ -> instruction fmt i
 
 and pipe (fmt:formatter) (i:instruction) : unit =
@@ -102,4 +102,3 @@ and function_definition fmt (n, i) =
 and program fmt p =
   List.iter (function_definition fmt) p.function_definitions;
   fprintf fmt "@[<v 2>begin@ %a@ end@]" sequence p.instruction
-
