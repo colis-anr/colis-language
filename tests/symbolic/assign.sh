@@ -13,10 +13,3 @@ fi
 x=a$(false)$(true)
 echo "4-$x"
 
-failure () {
-    while true; do
-        echo > /dev/null
-    done
-}
-x=a$(failure)$(true)
-echo "5-$x"
