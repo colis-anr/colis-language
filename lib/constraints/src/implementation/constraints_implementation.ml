@@ -29,6 +29,7 @@ module type S = sig
   val quantify_over : Var.t -> t -> t list
 
   val pp : Format.formatter -> t -> unit
+  val pp_as_dot : name:string -> Format.formatter -> t -> unit
 end
 
 module Dummy = (Dummy : S)

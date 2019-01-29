@@ -26,3 +26,4 @@ let nsim _ _ _ () = [()]
 let quantify_over _ () = [()]
 
 let pp _ _ = ()
+let pp_as_dot ~name _ _ = ignore name
