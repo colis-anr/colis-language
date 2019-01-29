@@ -37,8 +37,10 @@ The tool uses different return codes for different kind of errors.
 
 | Code | Meaning
 |------|---------
-|   0  | Success
-|   1  | Success of the concrete execution ending up on a failure
+|   0  | In concrete execution: Execution resulted in success
+|   0  | In symbolic execution: Only success states found
+|   1  | In concrete execution: Execution resulted in error
+|   1  | In symbolic execution: At least one error state found
 |   2  | Unhandled/unexpected OCaml exception
 |   3  | Error in command-line parsing
 |   4  | Error while reading input file
@@ -47,4 +49,4 @@ The tool uses different return codes for different kind of errors.
 |   7  | Unsupported utility
 |   8  | Unsupported option for a supported utility
 |   9  | Error in pretty-printing (Shell or CoLiS)
-|  10  | Failure in symbolic execution (while loop boundary reached)
+|  10  | In symbolic execution: No error states found, but maximum number of loop iterations reached for some state
