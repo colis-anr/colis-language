@@ -263,6 +263,32 @@ let interp_test_d path_str : utility =
       end;
   ]
 
+let interp_test_f path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "test -f %a: path resolves to a regular file" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & reg x &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -f %a: path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -f %a: path resolves but not to a regular file" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & nreg x &
+        eq root root'
+      end;
+  ]
+
 let interp_test ~bracket (args : string list) : utility =
   Morsmall_utilities.TestParser.(
     let name = "test" in
@@ -272,6 +298,7 @@ let interp_test ~bracket (args : string list) : utility =
     match parse ~bracket args with
     | Unary("-e",arg) -> interp_test_e arg
     | Unary("-d",arg) -> interp_test_d arg
+    | Unary("-f",arg) -> interp_test_f arg
     | Unary(op,_) ->
        let msg = msg "unary operator" in
        unknown_argument ~msg ~name ~arg:op ()
