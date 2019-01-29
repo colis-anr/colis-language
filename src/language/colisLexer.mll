@@ -2,7 +2,42 @@
 {
 open ColisParser        (* The type token is defined in colis_parser.mli *)
 exception LexerError of string
+
+let reserved_words =
+  [ "arg",      ARG ;
+    "begin",    BEGIN ;
+    "call",     CALL ;
+    "do",       DO ;
+    "done",     DONE ;
+    "else",     ELSE ;
+    "embed",    EMBED ;
+    "end",      END ;
+    "epip",     EPIP ;
+    "exit",     EXIT ;
+    "failure",  FAILURE ;
+    "function", FUNCTION ;
+    "fi",       FI ;
+    "for",      FOR ;
+    "if",       IF ;
+    "in",       IN ;
+    "into",     INTO ;
+    "not",      NOT ;
+    "nooutput", NOOUTPUT ;
+    "pipe",     PIPE ;
+    "previous", PREVIOUS ;
+    "process",  PROCESS ;
+    "return",   RETURN ;
+    "shift",    SHIFT ;
+    "split",    SPLIT ;
+    "success",  SUCCESS ;
+    "then",     THEN ;
+    "while",    WHILE ]
+
+let promote_reserved_words word =
+  try List.assoc word reserved_words
+  with Not_found -> IDENTIFIER word
 }
+
 let lalpha = ['a'-'z' '_']
 let ualpha = ['A'-'Z']
 let alpha = lalpha | ualpha
@@ -13,34 +48,6 @@ rule token = parse
   | "(*"                                { comment 1 lexbuf }
   | "*)"                                { raise (LexerError ("mismatched *)")) }
   | ":="                                { ASSTRING }
-  | "arg"                               { ARG }
-  | "begin"                             { BEGIN }
-  | "call"                              { CALL }
-  | "do"                                { DO }
-  | "done"                              { DONE }
-  | "else"                              { ELSE }
-  | "embed"                             { EMBED }
-  | "end"                               { END }
-  | "epip"                              { EPIP }
-  | "exit"                              { EXIT }
-  | "failure"                           { FAILURE }
-  | "function"                          { FUNCTION }
-  | "fi"                                { FI }
-  | "for"                               { FOR }
-  | "if"                                { IF }
-  | "in"                                { IN }
-  | "into"                              { INTO }
-  | "not"                               { NOT }
-  | "nooutput"                          { NOOUTPUT }
-  | "pipe"                              { PIPE }
-  | "previous"                          { PREVIOUS }
-  | "process"                           { PROCESS }
-  | "return"                            { RETURN }
-  | "shift"                             { SHIFT }
-  | "split"                             { SPLIT }
-  | "success"                           { SUCCESS }
-  | "then"                              { THEN }
-  | "while"                             { WHILE }
   | '{'                                 { LBRACE }
   | '}'                                 { RBRACE }
   | '('                                 { LPAREN }
@@ -50,7 +57,7 @@ rule token = parse
   | ']'                                 { RBRACKET }
   | '\''                                { let b = Buffer.create 10 in string b lexbuf }
   | '\n'                                { Lexing.new_line lexbuf; token lexbuf }
-  | (alpha (alpha | digit | '_')* as s) { IDENTIFIER (s) }
+  | (alpha (alpha | digit | '_')* as s) { promote_reserved_words s }
   | (digit+ as s)                       { NAT (Z.of_string s) }
   | ['\t' ' ']                          { token lexbuf }     (* skip tab and blank*)
   | _ as c                              { raise (LexerError ("unknown character '" ^ String.make 1 c ^ "'")) }

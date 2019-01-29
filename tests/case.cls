@@ -1,5 +1,5 @@
 function f begin
-  case_var := arg 1
+  case_var := arg 1 ;
   if
     if
       if false then
@@ -30,8 +30,8 @@ function f begin
 end
 
 begin
-  call f [ 'upgrade' ]
-  call f [ 'clean' ]
-  call f [ 'cleana' ]
+  call f [ 'upgrade' ] ;
+  call f [ 'clean' ] ;
+  call f [ 'cleana' ] ;
   call f [ 'shproutz' ]
 end

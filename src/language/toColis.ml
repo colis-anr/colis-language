@@ -41,37 +41,37 @@ and instruction (fmt:formatter) (i:instruction) : unit =
   | IAssignment(s,e) ->
      fprintf fmt "@[<hv 2>%s :=@ %a@]" s string_expression e
   | ISequence(i1,i2) ->
-     fprintf fmt "@[<v 2>begin@ %a ;@ %a@ end@]" sequence i1 sequence i2
+     fprintf fmt "@[<v 2>begin@ %a ;@ %a@]@ end" sequence i1 sequence i2
   | ISubshell i ->
      fprintf fmt "@[process@ %a@]" instruction i
   | IIf(c,i1,ICallUtility("true", [])) ->
-     fprintf fmt "@[<hv 2>if %a@ then %a@ fi@]"
+     fprintf fmt "@[@[<hv 2>if %a@]@ @[<hv 2>then %a@]@ fi@]"
              instruction c instruction i1
   | IIf(c,i1,i2) ->
-     fprintf fmt "@[<hv 2>if %a@ then %a@ else %a@ fi@]"
+     fprintf fmt "@[@[<hv 2>if %a@]@ @[<hv 2>then %a@]@ @[<hv 2>else %a@]@ fi@]"
              instruction c instruction i1 instruction i2
   | INot i1 ->
      fprintf fmt "@[<hv 2>not %a@]" instruction i1
   | IPipe(i1,i2) ->
-     fprintf fmt "@[<v 0>pipe@ %a@ into %a@ epip@]" instruction i1 pipe i2
+     fprintf fmt "@[@[<v 0>pipe@ %a@ into %a@]@ epip@]" instruction i1 pipe i2
   | IWhile(i1,i2) ->
-     fprintf fmt "@[<hv 2>while %a@ do %a@ done@]"
+     fprintf fmt "@[@[<hv 2>while %a@ do %a@]@ done@]"
              instruction i1 instruction i2
   | INoOutput i1 ->
-     fprintf fmt "@[<hv 2>nooutput %a@]" instruction i1
+     fprintf fmt "@[@[<hv 2>nooutput %a@]@]" instruction i1
   | IForeach(id,le,i1) ->
-     fprintf fmt "@[<hv 2>for %s@ in %a@ do %a@ done@]"
+     fprintf fmt "@[@[<hv 2>for %s@ in %a@ do %a@]@ done@]"
              id lexpr le instruction i1
   | ICallUtility(s,[]) ->
-     fprintf fmt "%s" s
+     fprintf fmt "@[<h>%s@]" s
   | ICallUtility(s,args) ->
-     fprintf fmt "@[%s@ %a@]" s lexpr args
+     fprintf fmt "@[<h>%s@ %a@]" s lexpr args
   | ICallFunction(s,[]) ->
-     fprintf fmt "call %s" s
+     fprintf fmt "@[<h>call %s@]" s
   | ICallFunction(s,args) ->
-     fprintf fmt "@[call %s@ %a@]" s lexpr args
+     fprintf fmt "@[<h>call %s %a@]" s lexpr args
   | IExit c ->
-     fprintf fmt "@[exit@ %a@]" exitcode c
+     fprintf fmt "@[<h>exit %a@]" exitcode c
   | IReturn c ->
      fprintf fmt "@[return@ %a@]" exitcode c
   | IShift bn ->
@@ -101,4 +101,4 @@ and function_definition fmt (n, i) =
 
 and program fmt p =
   List.iter (function_definition fmt) p.function_definitions;
-  fprintf fmt "@[<v 2>begin@ %a@ end@]" sequence p.instruction
+  fprintf fmt "@[@[<v 2>begin@ %a@]@ end@]" sequence p.instruction
