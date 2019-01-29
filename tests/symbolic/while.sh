@@ -1,8 +1,5 @@
-# Don’t know how to test a bounded while loop otherwise
-i=3
-p=/x
-while test $i -ne 0; do
-    i=$(($i-1))
-    mkdir $p
+p=/
+while test "$p" != "/x/x/x/x/x" ; do
     p=$p/x
+    mkdir $p
 done
