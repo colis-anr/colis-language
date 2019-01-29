@@ -207,6 +207,17 @@ let interp_mkdir: args -> utility =
 (*                                        test                                   *)
 (*********************************************************************************)
 
+let interp_test_parse_error args : utility =
+  under_specifications @@ fun ~cwd:_ ~root ~root' ->
+  [
+    let descr = "test: parse error in `" ^ (String.concat " " args) ^ "`" in
+    error_case
+      ~descr
+      begin
+        eq root root'
+      end;
+  ]
+
 let interp_test_e path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
   let p = Path.from_string path_str in
@@ -258,8 +269,7 @@ let interp_test ~bracket (args : string list) : utility =
     let msg what =
       "unsupported " ^ what ^ " in `" ^ (String.concat " " args) ^"`"
     in
-    let e = parse ~bracket args in
-    match e with
+    match parse ~bracket args with
     | Unary("-e",arg) -> interp_test_e arg
     | Unary("-d",arg) -> interp_test_d arg
     | Unary(op,_) ->
@@ -280,16 +290,9 @@ let interp_test ~bracket (args : string list) : utility =
     | Single arg ->
        let msg = msg "single argument" in
        unknown_argument ~msg ~name ~arg ()
+    | exception Parse_error ->
+       interp_test_parse_error args
   )
-(*
-  match args with
-  | [] -> return false (* CHECK *)
-  | ["-e"] -> return true
-  | ["-e"; arg] -> interp_test_e arg
-  | "-e" :: _ -> error ~msg:"test: too many arguments" ()
-  | [_] -> return true (* CHECK *)
-  | arg :: _ -> unknown_argument ~msg:"test: unknown condition" ~name:"test" ~arg ()
- *)
 
 
 (*********************************************************************************)
