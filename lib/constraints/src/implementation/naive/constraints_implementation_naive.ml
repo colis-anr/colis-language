@@ -31,3 +31,4 @@ let sim x fs y = add (Pos (Sim (x, fs, y)))
 let nsim x fs y = add (Neg (Sim (x, fs, y)))
 
 let pp = Conj.pp
+let pp_as_dot = Conj.pp_as_dot
