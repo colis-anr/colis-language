@@ -226,27 +226,44 @@ let interp_test_e path_str : utility =
       end;
   ]
 
-let interp_test: args -> utility = function
+let interp_test ~bracket (args : string list) : utility =
+  Morsmall_utilities.TestParser.(
+    let name = "test" in
+    let msg what =
+      "unsupported " ^ what ^ " in `" ^ (String.concat " " args) ^"`"
+    in
+    let e = parse ~bracket args in
+    match e with
+    | Unary("-e",arg) -> interp_test_e arg
+    | Unary(op,_) ->
+       let msg = msg "unary operator" in
+       unknown_argument ~msg ~name ~arg:op ()
+    | And(_e1,_e2) ->
+       let msg = msg "conjunction operator" in
+       unknown_argument ~msg ~name ~arg:"-a" ()
+    | Or(_e1,_e2) ->
+       let msg = msg "disjunction operator" in
+       unknown_argument ~msg ~name ~arg:"-o" ()
+    | Not(_e1) ->
+       let msg = msg "negation operator" in
+       unknown_argument ~msg ~name ~arg:"!" ()
+    | Binary (op,_e1,_e2) ->
+       let msg = msg "binary operator" in
+       unknown_argument ~msg ~name ~arg:op ()
+    | Single arg ->
+       let msg = msg "single argument" in
+       unknown_argument ~msg ~name ~arg ()
+  )
+(*
+  match args with
   | [] -> return false (* CHECK *)
   | ["-e"] -> return true
   | ["-e"; arg] -> interp_test_e arg
   | "-e" :: _ -> error ~msg:"test: too many arguments" ()
   | [_] -> return true (* CHECK *)
   | arg :: _ -> unknown_argument ~msg:"test: unknown condition" ~name:"test" ~arg ()
+ *)
 
-let but_last_opt l =
-  let rec but_last_opt acc = function
-    | [] -> None
-    | [e] -> Some (List.rev acc, e)
-    | h :: q -> but_last_opt (h :: acc) q
-  in
-  but_last_opt [] l
-
-let interp_bracket (args : args) : utility =
-  match but_last_opt args with
-  | Some (args, "]") -> interp_test args
-  | _ ->
-     error ~msg:"[: missing ]" ()
 
 (*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)
@@ -257,8 +274,8 @@ let interp (name: string) : args -> utility =
   | "true" -> interp_true
   | "false" -> interp_false
   | "echo" -> interp_echo
-  | "test" -> interp_test
-  | "[" -> interp_bracket
+  | "test" -> interp_test ~bracket:false
+  | "[" -> interp_test ~bracket:true
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
   | _ -> fun _args -> unknown_utility ~name ()
