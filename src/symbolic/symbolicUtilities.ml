@@ -226,6 +226,32 @@ let interp_test_e path_str : utility =
       end;
   ]
 
+let interp_test_d path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "test -d %a: path resolves to a dir" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & dir x &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -d %a: path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -d %a: path resolves but not to a dir" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & ndir x &
+        eq root root'
+      end;
+  ]
+
 let interp_test ~bracket (args : string list) : utility =
   Morsmall_utilities.TestParser.(
     let name = "test" in
@@ -235,6 +261,7 @@ let interp_test ~bracket (args : string list) : utility =
     let e = parse ~bracket args in
     match e with
     | Unary("-e",arg) -> interp_test_e arg
+    | Unary("-d",arg) -> interp_test_d arg
     | Unary(op,_) ->
        let msg = msg "unary operator" in
        unknown_argument ~msg ~name ~arg:op ()
