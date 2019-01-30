@@ -206,6 +206,28 @@ let interp_mkdir: args -> utility =
 (*                                        test                                   *)
 (*********************************************************************************)
 
+let interp_test_parse_error args : utility =
+  under_specifications @@ fun ~cwd:_ ~root ~root' ->
+  [
+    let descr = "test: parse error in `" ^ (String.concat " " args) ^ "`" in
+    error_case
+      ~descr
+      begin
+        eq root root'
+      end;
+  ]
+
+let interp_test_empty () : utility =
+  under_specifications @@ fun ~cwd:_ ~root ~root' ->
+  [
+    let descr = "test: empty expression" in
+    error_case
+      ~descr
+      begin
+        eq root root'
+      end;
+  ]
+
 let interp_test_e path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
   let p = Path.from_string path_str in
@@ -225,27 +247,95 @@ let interp_test_e path_str : utility =
       end;
   ]
 
-let interp_test: args -> utility = function
-  | [] -> return false (* CHECK *)
-  | ["-e"] -> return true
-  | ["-e"; arg] -> interp_test_e arg
-  | "-e" :: _ -> error ~msg:"test: too many arguments" ()
-  | [_] -> return true (* CHECK *)
-  | arg :: _ -> unknown_argument ~msg:"test: unknown condition" ~name:"test" ~arg ()
+let interp_test_d path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "test -d %a: path resolves to a dir" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & dir x &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -d %a: path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -d %a: path resolves but not to a dir" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & ndir x &
+        eq root root'
+      end;
+  ]
 
-let but_last_opt l =
-  let rec but_last_opt acc = function
-    | [] -> None
-    | [e] -> Some (List.rev acc, e)
-    | h :: q -> but_last_opt (h :: acc) q
-  in
-  but_last_opt [] l
+let interp_test_f path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "test -f %a: path resolves to a regular file" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & reg x &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -f %a: path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -f %a: path resolves but not to a regular file" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & nreg x &
+        eq root root'
+      end;
+  ]
 
-let interp_bracket (args : args) : utility =
-  match but_last_opt args with
-  | Some (args, "]") -> interp_test args
-  | _ ->
-     error ~msg:"[: missing ]" ()
+let interp_test ~bracket (args : string list) : utility =
+  Morsmall_utilities.TestParser.(
+    let name = "test" in
+    let msg what =
+      "unsupported " ^ what ^ " in `" ^ (String.concat " " args) ^"`"
+    in
+    match parse ~bracket args with
+    | None -> interp_test_empty ()
+    | Some e ->
+       begin
+       match e with
+       | Unary("-e",arg) -> interp_test_e arg
+       | Unary("-d",arg) -> interp_test_d arg
+       | Unary("-f",arg) -> interp_test_f arg
+       | Unary(op,_) ->
+          let msg = msg "unary operator" in
+          unknown_argument ~msg ~name ~arg:op ()
+       | And(_e1,_e2) ->
+          let msg = msg "conjunction operator" in
+          unknown_argument ~msg ~name ~arg:"-a" ()
+       | Or(_e1,_e2) ->
+          let msg = msg "disjunction operator" in
+          unknown_argument ~msg ~name ~arg:"-o" ()
+       | Not(_e1) ->
+          let msg = msg "negation operator" in
+          unknown_argument ~msg ~name ~arg:"!" ()
+       | Binary (op,_e1,_e2) ->
+          let msg = msg "binary operator" in
+          unknown_argument ~msg ~name ~arg:op ()
+       | Single arg ->
+          let msg = msg "single argument" in
+          unknown_argument ~msg ~name ~arg ()
+       end
+    | exception Parse_error ->
+       interp_test_parse_error args
+  )
+
 
 (*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)
@@ -256,8 +346,8 @@ let interp (name: string) : args -> utility =
   | "true" -> interp_true
   | "false" -> interp_false
   | "echo" -> interp_echo
-  | "test" -> interp_test
-  | "[" -> interp_bracket
+  | "test" -> interp_test ~bracket:false
+  | "[" -> interp_test ~bracket:true
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
   | _ -> fun _args -> unknown_utility ~name ()

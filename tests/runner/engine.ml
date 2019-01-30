@@ -7,10 +7,13 @@ let run_test filename : (unit, string) Result.result =
 
   (* Load .meta file *)
 
-  let meta =
-    Meta.load_from_file
-      (Filename.concat !Options.directory ((Filename.remove_extension filename) ^ ".meta"))
-  in
+  begin
+    try
+      Ok (Meta.load_from_file
+            (Filename.concat !Options.directory ((Filename.remove_extension filename) ^ ".meta")))
+    with Sys_error _ -> Error ("Meta file missing for `" ^ filename ^ "`")
+  end
+  >>= fun meta ->
 
   (* Build command line *)
 
@@ -39,8 +42,8 @@ let run_test filename : (unit, string) Result.result =
      Error
        (Format.sprintf
           "wrong stdout\n  expected:\n%s\n  got:\n%s"
-          (indent meta.output.stdout)
-          (indent stdout_content)))
+          (indent (String.escaped meta.output.stdout))
+          (indent (String.escaped stdout_content))))
 
   (* Check stderr *)
 
