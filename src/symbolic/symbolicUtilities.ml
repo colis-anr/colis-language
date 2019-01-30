@@ -218,6 +218,17 @@ let interp_test_parse_error args : utility =
       end;
   ]
 
+let interp_test_empty () : utility =
+  under_specifications @@ fun ~cwd:_ ~root ~root' ->
+  [
+    let descr = "test: empty expression" in
+    error_case
+      ~descr
+      begin
+        eq root root'
+      end;
+  ]
+
 let interp_test_e path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
   let p = Path.from_string path_str in
@@ -296,27 +307,32 @@ let interp_test ~bracket (args : string list) : utility =
       "unsupported " ^ what ^ " in `" ^ (String.concat " " args) ^"`"
     in
     match parse ~bracket args with
-    | Unary("-e",arg) -> interp_test_e arg
-    | Unary("-d",arg) -> interp_test_d arg
-    | Unary("-f",arg) -> interp_test_f arg
-    | Unary(op,_) ->
-       let msg = msg "unary operator" in
-       unknown_argument ~msg ~name ~arg:op ()
-    | And(_e1,_e2) ->
-       let msg = msg "conjunction operator" in
-       unknown_argument ~msg ~name ~arg:"-a" ()
-    | Or(_e1,_e2) ->
-       let msg = msg "disjunction operator" in
-       unknown_argument ~msg ~name ~arg:"-o" ()
-    | Not(_e1) ->
-       let msg = msg "negation operator" in
-       unknown_argument ~msg ~name ~arg:"!" ()
-    | Binary (op,_e1,_e2) ->
-       let msg = msg "binary operator" in
-       unknown_argument ~msg ~name ~arg:op ()
-    | Single arg ->
-       let msg = msg "single argument" in
-       unknown_argument ~msg ~name ~arg ()
+    | None -> interp_test_empty ()
+    | Some e ->
+       begin
+       match e with
+       | Unary("-e",arg) -> interp_test_e arg
+       | Unary("-d",arg) -> interp_test_d arg
+       | Unary("-f",arg) -> interp_test_f arg
+       | Unary(op,_) ->
+          let msg = msg "unary operator" in
+          unknown_argument ~msg ~name ~arg:op ()
+       | And(_e1,_e2) ->
+          let msg = msg "conjunction operator" in
+          unknown_argument ~msg ~name ~arg:"-a" ()
+       | Or(_e1,_e2) ->
+          let msg = msg "disjunction operator" in
+          unknown_argument ~msg ~name ~arg:"-o" ()
+       | Not(_e1) ->
+          let msg = msg "negation operator" in
+          unknown_argument ~msg ~name ~arg:"!" ()
+       | Binary (op,_e1,_e2) ->
+          let msg = msg "binary operator" in
+          unknown_argument ~msg ~name ~arg:op ()
+       | Single arg ->
+          let msg = msg "single argument" in
+          unknown_argument ~msg ~name ~arg ()
+       end
     | exception Parse_error ->
        interp_test_parse_error args
   )
