@@ -139,8 +139,7 @@ let interp_touch1 path_str : utility =
 let interp_touch: args -> utility =
   function
   | [arg] -> interp_touch1 arg
-  | _ ->
-    failwith "not yet implemented: interp_touch with multiple arguments"
+  | _ -> unknown_argument ~msg:"multiple arguments"  ~name:"touch" ~arg:"" ()
 
 (*********************************************************************************)
 (*                                        mkdir                                  *)
@@ -201,7 +200,7 @@ let interp_mkdir: args -> utility =
   function
   | [] -> error ~msg:"mkdir: missing operand" ()
   | [arg] -> interp_mkdir1 arg
-  | _ -> failwith "not implemented: mkdir with multiple arguments"
+  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"mkdir" ~arg:"" ()
 
 (*********************************************************************************)
 (*                                        test                                   *)
