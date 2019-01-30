@@ -399,6 +399,12 @@ and case_item'_list__to__if_sequence fresh_var env = function
         "*"] part. *)
      command'_option__to__instruction env command'_option
 
+  | [case_item'] ->
+     let (pattern', command'_option) = case_item'.value in
+     let (env0, instruction0) = pattern'__to__instruction fresh_var env pattern' in
+     let (env1, instruction1) = command'_option__to__instruction env0 command'_option in
+     (env1, C.IIf (instruction0, instruction1, C.itrue))
+
   | case_item' :: case_item'_list ->
      let (pattern', command'_option) = case_item'.value in
      let (env0, instruction0) = pattern'__to__instruction fresh_var env pattern' in
