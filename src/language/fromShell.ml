@@ -131,7 +131,7 @@ let unify_split_requirement_list =
    functions X'__to__Y take a located type in Morsmall.C. *)
 
 let rec word__to__name e = function
-  | [Literal s] | [Name s] -> (e, s)
+  | [Literal s] -> (e, s)
   | _ -> unsupported "(word_to_name)"
 
 and word'__to__name e word' =
@@ -147,7 +147,7 @@ and word'__to__name e word' =
 and word_component__to__string_expression_split_requirement e = function
   | Literal s when List.exists (String.contains s) E.ifs ->
      (e, (C.SLiteral s, NoSplit))
-  | Literal s | Name s ->
+  | Literal s ->
      (e, (C.SLiteral s, DoesntCare))
   | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, (C.SArgument (Z.of_int (int_of_string name)), Split))
@@ -164,7 +164,7 @@ and word_component__to__string_expression_split_requirement e = function
      unsupported "(word_component)"
 
 and word_component_DoubleQuoted__to__string_expression e = function
-  | Literal s | Name s ->
+  | Literal s ->
      (e, C.SLiteral s)
   | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, C.SArgument (Z.of_int (int_of_string name)))
@@ -428,7 +428,7 @@ and command'_option__to__instruction env = function
 and pattern__to__instruction fresh_var pattern =
   List.fold_left
     (fun instruction -> function
-      | [Name word | Literal word] when not (String.contains word '*') -> (* FIXME: when Morbig is fixed, remove this guard. *)
+      | [Literal word] when not (String.contains word '*') -> (* FIXME: when Morbig is fixed, remove this guard. *)
          C.(ior (instruction, ICallUtility ("test", [(SVariable fresh_var, DontSplit); (SLiteral "=", DontSplit); (SLiteral word, DontSplit)])))
       | _ ->
          unsupported "case when non-literal patterns")
