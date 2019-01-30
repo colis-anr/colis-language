@@ -1,0 +1,12 @@
+input:
+  stdin: ""
+  arguments: []
+
+output:
+  stdout: |
+    test: Unknown argument: 
+    /bin does not exist
+    [: command not found
+    /home does not exist
+  stderr: ""
+  return_code: 0
