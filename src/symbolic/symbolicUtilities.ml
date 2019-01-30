@@ -300,9 +300,7 @@ let interp_test_f path_str : utility =
 let interp_test ~bracket (args : string list) : utility =
   Morsmall_utilities.TestParser.(
     let name = "test" in
-    let msg what =
-      "unsupported " ^ what ^ " in `" ^ (String.concat " " args) ^"`"
-    in
+    let msg what = "unsupported " ^ what in
     match parse ~bracket args with
     | None -> interp_test_empty ()
     | Some e ->
