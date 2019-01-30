@@ -142,10 +142,10 @@ let () =
      eprintf "Conversion error: %s@." msg;
      exit 6
 
-  | UnsupportedUtility name ->
-     eprintf "Unsupported utility: %s@." name;
+  | UnsupportedUtility (name, msg) ->
+     eprintf "%s: %s@." name msg;
      exit 7
 
-  | UnsupportedArgument (name, arg) ->
-     eprintf "Unsupported argument for `%s`: %s@." name arg;
+  | UnsupportedArgument (name, msg, arg) ->
+     eprintf "%s: %s: %s@." name msg arg;
      exit 8

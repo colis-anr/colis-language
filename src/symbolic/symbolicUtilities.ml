@@ -5,8 +5,6 @@ open UtilitiesSpecification
 open Semantics__Buffers
 open SymbolicInterpreter__State
 
-
-
 type args = string list
 
 (** Get the name of the last path component, if any, or of the hint root variable
@@ -38,14 +36,14 @@ let error ?msg () : utility =
 (** Wrapper around [error] in case of unknown utility. *)
 let unknown_utility ?(msg="Unknown utility") ~name () =
   if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedUtility name)
+    raise (Errors.UnsupportedUtility (name, msg))
   else
     error ~msg:(msg ^ ": " ^ name) ()
 
 (** Wrapper around [error] in case of unknown argument. *)
 let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
   if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedArgument (name, arg))
+    raise (Errors.UnsupportedArgument (name, msg, arg))
   else
     error ~msg:(msg ^ ": " ^ arg) ()
 
@@ -335,7 +333,6 @@ let interp_test ~bracket (args : string list) : utility =
     | exception Parse_error ->
        interp_test_parse_error args
   )
-
 
 (*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)

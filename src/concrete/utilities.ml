@@ -8,7 +8,7 @@ open Semantics__Buffers
 
 let unknown_utility ?(msg="command not found") ~name sta =
   if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedUtility name)
+    raise (Errors.UnsupportedUtility (name, msg))
   else
     let str = name ^ ": " ^ msg in
     let stdout = Stdout.(sta.stdout |> output str |> newline) in
@@ -16,7 +16,7 @@ let unknown_utility ?(msg="command not found") ~name sta =
 
 let unknown_argument ?(msg="Unknown argument") ~name ~arg sta =
   if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedArgument (name, arg))
+    raise (Errors.UnsupportedArgument (name, msg, arg))
   else
     let str = name ^ ": " ^ msg ^ ": " ^ arg in
     let stdout = Stdout.(sta.stdout |> output str |> newline) in
