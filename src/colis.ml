@@ -35,11 +35,11 @@ module Symbolic = struct
   module Utilities = SymbolicUtilities
 end
 
-(* CoLiS *)
+(* Parsers *)
 
 type colis = Language.Syntax.program
 
-let colis_from_lexbuf ?(filename="-") lexbuf =
+let parse_colis_lexbuf ?(filename="-") lexbuf =
   lexbuf.Lexing.lex_curr_p <-
     { lexbuf.Lexing.lex_curr_p
       with Lexing.pos_fname = filename };
@@ -53,11 +53,11 @@ let colis_from_lexbuf ?(filename="-") lexbuf =
     let pos = lexbuf.Lexing.lex_curr_p in
     raise (Errors.ParseError ("", pos))
 
-let colis_from_channel ?(filename="-") channel =
+let parse_colis_channel ?(filename="-") channel =
   let lexbuf = Lexing.from_channel channel in
-  colis_from_lexbuf ~filename lexbuf
+  parse_colis_lexbuf ~filename lexbuf
 
-let colis_from_file filename =
+let parse_colis_file filename =
   let ic =
     try
       open_in filename
@@ -65,15 +65,19 @@ let colis_from_file filename =
       Sys_error msg -> raise (Errors.FileError msg)
   in
   try
-    let colis = colis_from_channel ~filename ic in
+    let colis = parse_colis_channel ~filename ic in
     close_in ic;
     colis
   with
     exn -> close_in ic; raise exn
 
-let colis_from_string string =
+let parse_colis_string string =
   let lexbuf = Lexing.from_string string in
-  colis_from_lexbuf lexbuf
+  parse_colis_lexbuf lexbuf
+
+let parse_shell_file = FromShell.parse_file
+
+(* Printers *)
 
 let pp_print_colis = ToColis.program
 
@@ -91,20 +95,6 @@ let colis_to_file filename colis =
   let fmt = Format.formatter_of_out_channel ochan in
   pp_print_colis fmt colis;
   close_out ochan
-
-(* Shell *)
-
-type shell = Morsmall.AST.program
-
-let shell_from_file file =
-  try
-    Morsmall.parse_file file
-  with
-  | Sys_error msg -> raise (Errors.FileError msg)
-  | Morsmall.SyntaxError pos -> raise (Errors.ParseError ("", pos))
-
-let shell_to_colis shell =
-  FromShell.program__to__program shell
 
 (* Interpret *)
 
