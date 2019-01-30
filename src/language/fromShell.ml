@@ -246,8 +246,11 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        | ".", [C.SLiteral s, _] when s.[0] = '/' ->
           (
             match !Options.external_sources with
-            | "" -> unsupported "absolute source without --external-sources"
-            | prefix -> parse_file_in_env e (Filename.concat prefix s)
+            | "" -> unsupported "absolute source without external sources"
+            | prefix ->
+               try parse_file_in_env e (Filename.concat prefix s)
+               with Errors.FileError _ ->
+                 raise (Errors.ConversionError "absolute source where external source could not be read")
           )
 
        | "exit", [] | "exit", [C.SVariable "?", _] ->
