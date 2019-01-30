@@ -63,8 +63,9 @@ let speclist =
 
     "--symbolic-fs",  Arg.String set_symbolic_fs,        " Name of the initial symbolic filesystem (default: empty)";
     "--prune-init-state",  Arg.Set prune_init_state,     " Prune the initial state in symbolic execution";
-    "--realworld",    Arg.Set Colis.Options.realworld,   " Use system utilities in concrete execution";
-    "--fail-on-unknown-utilities", Arg.Set Colis.Options.fail_on_unknown_utilities, " Unknown utilities kill the interpreter" ]
+    "--real-world",    Arg.Set Colis.Options.real_world,   " Use system utilities in concrete execution";
+    "--fail-on-unknown-utilities", Arg.Set Colis.Options.fail_on_unknown_utilities, " Unknown utilities kill the interpreter" ;
+    "--external-sources", Arg.Set_string Colis.Options.external_sources, "DIR Import absolute sources from DIR" ]
   |> Arg.align
 
 let usage =
@@ -76,7 +77,7 @@ let main () =
   (* Parse command line *)
 
   Arg.parse speclist set_file_or_argument usage;
-  if !Colis.Options.realworld && get_action () <> Run then
+  if !Colis.Options.real_world && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
   if !Colis.Options.fail_on_unknown_utilities && (get_action () <> Run && get_action () <> RunSymbolic) then
     raise (Arg.Bad "--fail-on-unknown-utilities can only be specified with --run or --run-symbolic");
@@ -88,8 +89,8 @@ let main () =
   let file = get_file () in
   let program =
     (match get_source () with
-     | Colis -> Colis.colis_from_file
-     | Shell -> Colis.(shell_from_file ||> shell_to_colis))
+     | Colis -> Colis.parse_colis_file
+     | Shell -> Colis.parse_shell_file)
       file
   in
 

@@ -244,7 +244,11 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        (* Special builtins *)
 
        | ".", [C.SLiteral s, _] when s.[0] = '/' ->
-          unsupported "absolute source"
+          (
+            match !Options.external_sources with
+            | "" -> unsupported "absolute source without --external-sources"
+            | prefix -> parse_file_in_env e (Filename.concat prefix s)
+          )
 
        | "exit", [] | "exit", [C.SVariable "?", _] ->
           (e, C.(IExit RPrevious))
@@ -470,10 +474,21 @@ and command'_list__to__instruction env = function
      let (env, instruction_list) = list_fold_map command'__to__instruction env command'_list in
      (env, C.isequence_l instruction_list)
 
-and program__to__program : program -> C.program = function
-  | [] ->
-     { C.function_definitions = [];
-       instruction = C.itrue }
-  | command'_list ->
-     let (env, instruction) = command'_list__to__instruction E.empty command'_list in
-     { C.function_definitions = E.get_functions env ; instruction }
+and parse_file_in_env env file =
+  try
+    Morsmall.parse_file file
+    |> command'_list__to__instruction env
+  with
+  | Sys_error msg -> raise (Errors.FileError msg)
+  | Morsmall.SyntaxError pos -> raise (Errors.ParseError ("", pos))
+
+let env_instruction__to__program (env, instruction) =
+  { C.function_definitions = E.get_functions env ; instruction }
+
+let program__to__program (command'_list : program) : C.program =
+  command'_list__to__instruction E.empty command'_list
+  |> env_instruction__to__program
+
+let parse_file file =
+  parse_file_in_env E.empty file
+  |> env_instruction__to__program
