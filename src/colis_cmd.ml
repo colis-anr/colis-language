@@ -41,8 +41,7 @@ let get_file, get_arguments, set_file_or_argument =
     | Some _ -> args := new_file_or_arg :: !args)
 
 let prune_init_state = ref false
-let while_loop_boundary = ref 10
-
+let loop_limit = ref 10
 
 let get_symbolic_fs, set_symbolic_fs =
   let fs_spec = ref Colis.Symbolic.FilesystemSpec.empty in
@@ -56,26 +55,29 @@ let get_symbolic_fs, set_symbolic_fs =
      | _ -> raise (Arg.Bad "only filesystems `empty', `simple', and `fsh' are known"))
 
 let speclist =
+  let open Arg in
   let open Colis.Options in
-  Arg.(align [
+  align [
     "--run",                       Unit (set_action Run),         " Concrete execution (default)";
     "--run-symbolic",              Unit (set_action RunSymbolic), " Symbolic execution";
     "--shell",                     Unit (set_source Shell),       " Use the shell parser (default)";
     "--colis",                     Unit (set_source Colis),       " Use the colis parser" ;
+    "--external-sources",          Set_string external_sources,   "DIR Import absolute sources from DIR";
     "--print-colis",               Unit (set_action PrintColis),  " Print the CoLiS script";
     "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
-    "--realworld",                 Set realworld,                 " Use system utilities in concrete execution";
-
-    "--symbolic-fs",               String set_symbolic_fs,        " Name of the initial symbolic filesystem in symbolic execution (default: empty)";
-    "--prune-init-state",          Set prune_init_state,          sprintf " Prune the initial state in symbolic execution (default: %s)" (if !prune_init_state then "prune" else "don’t prune");
-    "--while-loop-boundary",       Int ((:=) loop_boundary),      sprintf " Boundary for symbolic execution of while loops (default: %d)" !while_loop_boundary;
+    "--realworld",                 Set real_world,                 " Use system utilities in concrete execution";
+    "--symbolic-fs",               String set_symbolic_fs,        " Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
+    "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
+    "--loop-limit",                Int ((:=) loop_limit),         sprintf " Boundary for symbolic execution of while loops (default: %d)" !loop_limit;
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
-    "--external-sources",          Set_string external_sources,   "DIR Import absolute sources from DIR" ]
-  ])
+  ]
 
 let usage =
   sprintf
-    "Usage: %s [--run [--realworld] | --run-symbolic | --print-colis | --print-shell] [--shell | --colis] FILE [ARGS]"
+    ("Usage: %s [--run <run-options> | --run-symbolic <symbolic-run-options> | --print-colis | --print-shell] <parsing-options> FILE [ARGS]\n"^^
+     "       <run-options>: [--realworld |  --fail-on-unknown-utilities]\n"^^
+     "       <symbolic-run-options>: [--symbolic-fs <fs>] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities]\n"^^
+     "       <parsing-options>: [--shell [--external-sources DIR] | --colis]")
     Sys.argv.(0)
 
 let main () =
@@ -108,7 +110,7 @@ let main () =
      let fs_spec = get_symbolic_fs () in
      Colis.run_symbolic
        ~prune_init_state:!prune_init_state
-       ~while_loop_boundary:!while_loop_boundary
+       ~loop_limit:!loop_limit
        ~fs_spec
        ~argument0 ~arguments program
   | PrintColis ->
