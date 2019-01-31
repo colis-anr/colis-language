@@ -58,7 +58,7 @@ let pp_as_dot ~name fmt (es, c) =
 
   let hash = Hashtbl.hash in
 
-  fpf fmt "@[<h 2>digraph %s {@\n" name;
+  fpf fmt "@[<h 2>digraph %S {@\n" name;
 
   (* Print nodes and unary literals. *)
   Var.Set.iter
