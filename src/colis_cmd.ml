@@ -69,6 +69,7 @@ let speclist =
     "--symbolic-fs",               String set_symbolic_fs,        " Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
     "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
     "--loop-limit",                Int ((:=) loop_limit),         sprintf " Boundary for symbolic execution of while loops (default: %d)" !loop_limit;
+    "--print-states",              String ((:=)print_states_dir), "DIR Print dot files for symbolic states";
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
   ]
 
@@ -76,7 +77,7 @@ let usage =
   sprintf
     ("Usage: %s [--run <run-options> | --run-symbolic <symbolic-run-options> | --print-colis | --print-shell] <parsing-options> FILE [ARGS]\n"^^
      "       <run-options>: [--realworld |  --fail-on-unknown-utilities]\n"^^
-     "       <symbolic-run-options>: [--symbolic-fs <fs>] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities]\n"^^
+     "       <symbolic-run-options>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities] [--print-states DIR]\n"^^
      "       <parsing-options>: [--shell [--external-sources DIR] | --colis]")
     Sys.argv.(0)
 
