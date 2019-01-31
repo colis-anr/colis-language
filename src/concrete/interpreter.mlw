@@ -105,10 +105,10 @@ module Interpreter
 
   let maybe_exit (inp:input) (sta:state) : unit
     returns { () ->
-      behaviour' inp (context sta) = BNormal
+      behaviour inp !(sta.result) = BNormal
     }
     raises { EExit ->
-      behaviour' inp (context sta) = BExit
+      behaviour inp !(sta.result) = BExit
     }
   = if andb (strict inp.under_condition) (notb !(sta.result)) then
       raise EExit
@@ -118,11 +118,11 @@ module Interpreter
   let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
     returns { () -> 
       interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
-      behaviour' inp (context sta) = BNormal
+      behaviour inp !(sta.result) = BNormal
     }
     raises { EExit -> 
       interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
-      behaviour' inp (context sta) = BExit
+      behaviour inp !(sta.result) = BExit
     }
   = let sta', b = interp_utility (state sta) id args in
     sta.filesystem := sta'.S.filesystem;

@@ -40,18 +40,29 @@ module Behaviour
     | BFailure (** Uncatchable error behaviour without correspondance to Shell behaviour.
                    Return value is undefined. Raised when crossing the boundary in while-loops. *)
 
-  let function behaviour under_condition res
-    returns {
-      | BNormal ->
-        under_condition = True \/ res = True
-      | BExit ->
-        under_condition = False /\ res = False
-      | BReturn | BFailure ->
-        false
-    }
-  = if andb (strict under_condition) (notb res)
-    then BExit
-    else BNormal
+  let function eq_behaviour bhv1 bhv2
+    ensures { result <-> bhv1 = bhv2 }
+  = match bhv1, bhv2 with
+    | BNormal, BNormal
+    | BExit, BExit 
+    | BReturn, BReturn
+    | BFailure, BFailure ->  True
+    | _ -> False
+    end
+
+  (* let function behaviour (under_condition res:bool) : behaviour *)
+  (*   ensures { result = BNormal \/ result = BExit } *)
+  (*   returns { *)
+  (*     | BNormal -> *)
+  (*       under_condition = True \/ res = True *)
+  (*     | BExit -> *)
+  (*       under_condition = False /\ res = False *)
+  (*     | BReturn | BFailure -> *)
+  (*       false *)
+  (*   } *)
+  (* = if andb (strict under_condition) (notb res) *)
+  (*   then BExit *)
+  (*   else BNormal *)
 end
 
 (** {2 Stdin and stdout buffers} *)
@@ -312,9 +323,9 @@ module Arguments
     end
 
   let rec function shift_arguments (n: int) (args: list string) : option (list string)
-    requires { n >= 0 }
+    requires { 0 <= n }
     variant { args }
-    ensures { result = None <-> n > length args }
+    ensures { result = None <-> length args < n }
   = if n = 0 then
       Some args
     else
@@ -383,16 +394,19 @@ module Semantics
     | RPrevious -> previous
     end
 
-  let function behaviour' (inp:input) (ctx:context) : behaviour
+  let function behaviour (inp:input) (result:bool) : behaviour
+    ensures { result = BNormal \/ result = BExit }
     returns {
       | BNormal ->
-        inp.under_condition = True \/ ctx.result = True
+        inp.under_condition = True \/ result = True
       | BExit ->
-        inp.under_condition = False /\ ctx.result = False
+        inp.under_condition = False /\ result = False
       | BReturn | BFailure ->
         false
     }
-  = behaviour inp.under_condition ctx.result
+  = if andb (strict inp.under_condition) (notb result)
+    then BExit
+    else BNormal
 
   let function with_result ret ctx =
     ensures { result.result = ret }
@@ -429,33 +443,39 @@ module Semantics
   inductive eval_instruction (config, input, context, state) instruction (state, context, behaviour) =
 
   | eval_exit: forall cnf inp ctx sta c.
-    let b = bool_of_return_code c ctx.result in
-    let ctx' = with_result b ctx in
-    eval_instruction (cnf, inp, ctx, sta) (IExit c) (sta, ctx', BExit)
+    let ctx' =
+      let b = bool_of_return_code c ctx.result in
+      with_result b ctx
+    in
+    let sta' = sta in
+    eval_instruction (cnf, inp, ctx, sta) (IExit c) (sta', ctx', BExit)
 
   | eval_return: forall cnf inp ctx sta c.
-    let b = bool_of_return_code c ctx.result in
-    let ctx' = with_result b ctx in
-    eval_instruction (cnf, inp, ctx, sta) (IReturn c) (sta, ctx', BReturn)
+    let ctx' =
+      let b = bool_of_return_code c ctx.result in
+      with_result b ctx
+    in
+    let sta' = sta in
+    eval_instruction (cnf, inp, ctx, sta) (IReturn c) (sta', ctx', BReturn)
 
   | eval_shift: forall cnf inp ctx sta bn args.
     Some args = shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments ->
     let sta' = sta in
     let ctx' = with_result True { ctx with arguments = args } in
-    let bhv = behaviour' inp ctx' in
+    let bhv = behaviour inp ctx'.result in
     eval_instruction (cnf, inp, ctx, sta) (IShift bn) (sta', ctx', bhv)
 
   | eval_shift_error: forall cnf inp ctx sta bn.
     None = shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments ->
     let sta' = sta in
     let ctx' = with_result False ctx in
-    let bhv = behaviour' inp ctx' in
+    let bhv = behaviour inp ctx'.result in
     eval_instruction (cnf, inp, ctx, sta) (IShift bn) (sta', ctx', bhv)
 
   | eval_assignment: forall cnf inp ctx sta sta' id e s b.
     eval_str_expr True (cnf, inp, ctx, sta) e (sta', Some (s, b)) ->
     let ctx' = with_result b { ctx with var_env = ctx.var_env[id <- s] } in
-    let bhv = behaviour' inp ctx' in
+    let bhv = behaviour inp ctx'.result in
     eval_instruction (cnf, inp, ctx, sta) (IAssignment id e) (sta', ctx', bhv)
 
   | eval_assignment_failure: forall cnf inp ctx sta sta' id e.
@@ -463,7 +483,7 @@ module Semantics
     let ctx' = ctx in
     eval_instruction (cnf, inp, ctx, sta) (IAssignment id e) (sta', ctx', BFailure)
   
-  | eval_sequence_normal: forall cnf inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 bhv2.
+  | eval_sequence: forall cnf inp sta sta1 sta2 ins1 ins2 ctx ctx1 ctx2 bhv2.
     eval_instruction (cnf, inp, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     eval_instruction (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
     eval_instruction (cnf, inp, ctx, sta) (ISequence ins1 ins2) (sta2, ctx2, bhv2)
@@ -477,7 +497,7 @@ module Semantics
     bhv <> BFailure ->
     eval_instruction (cnf, inp, ctx, sta) ins (sta', {ctx'' with result = b}, bhv) ->
     let ctx' = with_result b ctx in
-    let bhv' = behaviour' inp ctx'' in
+    let bhv' = behaviour inp ctx''.result in
     eval_instruction (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx', bhv')
 
   | eval_subshell_failure: forall cnf inp sta sta' ctx ctx' ins.
@@ -543,7 +563,7 @@ module Semantics
     eval_list_expr (cnf, inp, ctx, sta) es (sta', Some ss) ->
     (sta'', b) = interp_utility sta' id ss ->
     let ctx' = with_result b ctx in
-    let bhv = behaviour' inp ctx' in
+    let bhv = behaviour inp ctx'.result in
     eval_instruction (cnf, inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)
 
   | eval_call_function_args_failure: forall cnf inp ctx sta sta1 id es.
@@ -554,7 +574,7 @@ module Semantics
     eval_list_expr (cnf, inp, ctx, sta) es (sta', ss) ->
     ctx.func_env id = None ->
     let ctx' = with_result False ctx in
-    let bhv = behaviour' inp ctx' in
+    let bhv = behaviour inp ctx'.result in
     eval_instruction (cnf, inp, ctx, sta) (ICallFunction id es) (sta', ctx', bhv)
 
   | eval_call_function_failure: forall cnf inp ctx ctx2 sta sta1 sta2 id es args ins.
