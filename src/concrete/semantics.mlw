@@ -776,6 +776,23 @@ module Semantics
       eval_function_definitions e[id <- Some ins] defs e' ->
       eval_function_definitions e (Cons (id, ins) defs) e'
 
+  let rec lemma no_while_failure (ctr n:int) (cnf:config) (ins1 ins2:instruction)
+    requires { 0 <= ctr <= n }
+    requires { cnf.loop_limit = None }
+    variant { n - ctr }
+    ensures {
+      (forall inp ctx ctx' sta sta' bhv.
+       eval_instruction (cnf, inp, ctx, sta) ins1 (sta', ctx', bhv) ->
+       bhv <> BFailure) ->
+      (forall inp ctx ctx' sta sta' bhv.
+       eval_instruction (cnf, inp, ctx, sta) ins2 (sta', ctx', bhv) ->
+       bhv <> BFailure) ->
+      forall inp ctx ctx' sta sta' b b' bhv.
+      eval_while ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) n b' ->
+      bhv <> BFailure
+    }
+  = if n = ctr then () else no_while_failure (ctr+1) n cnf ins1 ins2
+
   let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)
     variant { defs }
     ensures { eval_function_definitions fenv defs result }
