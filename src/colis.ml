@@ -160,8 +160,7 @@ let run_symbolic ~prune_init_state ~loop_limit ~fs_spec ~argument0 ?(arguments=[
   let run_in_state sta =
     let inp = { Concrete.Input.empty with argument0 } in
     let ctx = { Context.empty_context with arguments } in
-    let cnf = Z.of_int loop_limit in
-    sta, Interpreter.interp_program cnf inp ctx sta colis
+    sta, Interpreter.interp_program (Z.of_int loop_limit) inp ctx sta colis
   in
   let res =
     let open Constraints in

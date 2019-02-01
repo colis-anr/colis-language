@@ -226,7 +226,8 @@ module Interpreter
     aux empty empty (Fset.to_list opt_stas)
 
   let rec interp_instr (cnf:config) (inp:input) (ctx:context) (sta:state) (ins:instruction)
-  : Rs.t unit diverges
+    : Rs.t unit
+    requires { cnf.loop_limit <> None }
   = match ins with
 
     | IAssignment var se ->
@@ -443,8 +444,9 @@ module Interpreter
            (Rs.failures ctx lst_res_failures))
 
     | IWhile ins1 ins2 ->
+      let loop_limit = match cnf.loop_limit with Some n -> n | None -> absurd end in
       let rec interp_while ctr (stas: set (sym_state bool)) : Rs.t unit =
-        if ctr = 0 then
+        if ctr = loop_limit then
           Rs.(map (with_data ())
                 {empty with failure = stas})
         else
@@ -459,7 +461,7 @@ module Interpreter
             Rs.separate_normal
               (interp_instr_bool' cnf inp res1_true ins2)
           in
-          let res3 = interp_while (ctr-1) res2_normal in
+          let res3 = interp_while (ctr+1) res2_normal in
           let others =
             let res1_false' = Rs.({empty with normal=res1_false}) in
             Rs.(map (with_data ())
@@ -468,8 +470,7 @@ module Interpreter
           in
           Rs.union res3 others
       in
-      interp_while cnf.loop_boundary
-        (Fset.singleton ({state=sta; context=ctx; data=True}))
+      interp_while 0 (Fset.singleton ({state=sta; context=ctx; data=True}))
 
     | IPipe ins1 ins2 ->
       let stas1, stas1_failure =
@@ -532,7 +533,7 @@ module Interpreter
   (* Monomorphic version of `interp_instr' : input -> set (sym_state 'a) -> Rs.t 'a`
      to work around bug https://gitlab.inria.fr/why3/why3/issues/240 *)
 
-  with interp_instr_unit' (cnf:config) (inp:input) (stas: set (sym_state unit)) (ins:instruction) : Rs.t unit diverges =
+  with interp_instr_unit' (cnf:config) (inp:input) (stas: set (sym_state unit)) (ins:instruction) : Rs.t unit diverges requires { cnf.loop_limit <> None } =
     (* Cannot fold `stas` because `interp_instr` may not terminate *)
     let rec aux (stas: list (sym_state unit)) : Rs.t unit =
       match stas with
@@ -546,7 +547,7 @@ module Interpreter
     in
     aux (Fset.to_list stas)
 
-  with interp_instr_bool' (cnf:config) (inp:input) (stas: set (sym_state bool)) (ins:instruction) : Rs.t bool diverges =
+  with interp_instr_bool' (cnf:config) (inp:input) (stas: set (sym_state bool)) (ins:instruction) : Rs.t bool diverges requires { cnf.loop_limit <> None } =
     (* Cannot fold `stas` because `interp_instr` may not terminate *)
     let rec aux (stas: list (sym_state bool)) : Rs.t bool =
       match stas with
@@ -560,7 +561,7 @@ module Interpreter
     in
     aux (Fset.to_list stas)
 
-  with interp_instr_stdin' (cnf:config) (inp:input) (stas: set (sym_state stdin)) (ins:instruction) : Rs.t stdin diverges =
+  with interp_instr_stdin' (cnf:config) (inp:input) (stas: set (sym_state stdin)) (ins:instruction) : Rs.t stdin diverges requires { cnf.loop_limit <> None } =
     (* Cannot fold `stas` because `interp_instr` may not terminate *)
     let rec aux (stas: list (sym_state stdin)) : Rs.t stdin =
       match stas with
@@ -576,7 +577,7 @@ module Interpreter
 
   with interp_str_expr (b:bool) (cnf:config) (inp:input) (ctx:context) (sta:state) (se:string_expression)
     : set (state, option (bool, string))
-    diverges
+    diverges requires { cnf.loop_limit <> None }
   = match se with
     | SLiteral str ->
       singleton (sta, Some (b, str))
@@ -630,7 +631,7 @@ module Interpreter
 
   with interp_list_expr (cnf:config) (inp:input) (ctx:context) (sta:state) (le:list_expression)
     : set (state, option (list string))
-    diverges
+    diverges requires { cnf.loop_limit <> None }
   = match le with
     | Nil ->
       singleton (sta, Some Nil)
@@ -685,7 +686,8 @@ module Interpreter
       (filter (fun sta -> notb (xorb res sta.context.result))
         stas)
 
-  let interp_program cnf inp ctx sta pro : (set state, set state, set state) diverges =
+  let interp_program loop_limit inp ctx sta pro : (set state, set state, set state) diverges =
+    let cnf = {loop_limit = Some loop_limit} in
     let stas, stas_failure =
       let fenv = interp_function_definitions ctx.func_env pro.function_definitions in
       let ctx' = {ctx with func_env = fenv} in
