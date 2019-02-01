@@ -103,11 +103,7 @@ let run ~argument0 ?(arguments=[]) colis =
   let input = { Input.empty with argument0 } in
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
-  (* The loop counter for the interpretation of while loops starts at zero, increases, and
-     fails when it hits the loop limit. Thus, a program execution with a negative loop
-     limit will never display a failure behaviour (i.e. exception). *)
-  let loop_limit = Z.minus_one in
-  Interpreter.interp_program loop_limit input state colis;
+  Interpreter.interp_program input state colis;
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
 
