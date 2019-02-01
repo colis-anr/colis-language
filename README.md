@@ -46,7 +46,7 @@ The tool uses different return codes for different kind of errors.
 |   4  | Error while reading input file
 |   5  | Error in parsing (Shell or CoLiS)
 |   6  | Error in conversion
-|   7  | Unsupported utility
-|   8  | Unsupported option for a supported utility
+|   7  | Unsupported utility (only with option --fail-on-unknown-utility)
+|   8  | Unsupported option for a supported utility (only with option --fail-on-unknown-utility)
 |   9  | Error in pretty-printing (Shell or CoLiS)
 |  10  | In symbolic execution: No error states found, but maximum number of loop iterations reached for some state
