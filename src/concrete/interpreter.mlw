@@ -165,7 +165,10 @@ module Interpreter
 
   (** {3 The interpretation of statements} *)
 
-  let rec interp_instruction (cnf:config) (inp:input) (sta:state) (ins:instruction) : unit
+  (** We don’t implement loop boundaries in the concrete interpreter *)
+  let constant cnf = {loop_limit = None}
+
+  let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
     returns { () ->
       eval_instruction (cnf, inp, context (old sta), state (old sta))
@@ -178,10 +181,6 @@ module Interpreter
     raises { EExit ->
       eval_instruction (cnf, inp, context (old sta), state (old sta))
         ins (state sta, context sta, BExit)
-    }
-    raises { EFailure ->
-      eval_instruction (cnf, inp, context (old sta), state (old sta))
-        ins (state sta, context sta, BFailure)
     }
   = label L in match ins with
 
@@ -210,14 +209,14 @@ module Interpreter
       (* case !(sta.result); apply eval_shift with (contents (arguments sta)) *)
 
     | IAssignment id se ->
-      let str, b = interp_str_expr cnf True inp sta se in
+      let str, b = interp_str_expr True inp sta se in
       sta.var_env := !(sta.var_env)[id <- str];
       sta.result := b;
       maybe_exit inp sta
 
     | ISequence ins1 ins2 ->
-      interp_instruction cnf inp sta ins1;
-      interp_instruction cnf inp sta ins2
+      interp_instruction inp sta ins1;
+      interp_instruction inp sta ins2
 
     | ISubshell ins ->
       let sta' = {
@@ -226,7 +225,7 @@ module Interpreter
         arguments = ref !(sta.arguments);
       } in
       try
-        interp_instruction cnf inp sta' ins
+        interp_instruction inp sta' ins
       with
         | EExit -> ()
         | EReturn -> ()
@@ -235,7 +234,7 @@ module Interpreter
 
     | INot ins ->
       try
-        interp_instruction cnf { inp with under_condition=True } sta ins;
+        interp_instruction { inp with under_condition=True } sta ins;
         sta.result := notb !(sta.result)
       with
         | EReturn ->
@@ -244,15 +243,15 @@ module Interpreter
       end;
 
     | IIf ins1 ins2 ins3 ->
-      interp_instruction cnf {inp with under_condition=True} sta ins1;
+      interp_instruction {inp with under_condition=True} sta ins1;
       if !(sta.result) then
-        interp_instruction cnf inp sta ins2
+        interp_instruction inp sta ins2
       else
-        interp_instruction cnf inp sta ins3
+        interp_instruction inp sta ins3
 
     | INoOutput ins ->
       let sta' = {sta with stdout = ref !(sta.stdout)} in
-      interp_instruction cnf inp sta' ins
+      interp_instruction inp sta' ins
 
     | IPipe ins1 ins2 ->
       (* A state for interpreting ins1 *)
@@ -266,7 +265,7 @@ module Interpreter
         result = ref !(sta.result);
       } in
       try
-        interp_instruction cnf inp sta1 ins1;
+        interp_instruction inp sta1 ins1;
       with
         | EExit _ -> ()
         | EReturn _ -> ()
@@ -278,14 +277,14 @@ module Interpreter
         var_env = ref !(sta.var_env);
         arguments = ref !(sta.arguments);
       } in
-      interp_instruction cnf inp sta2 ins2
+      interp_instruction inp sta2 ins2
 
     | ICallUtility name le ->
-      let args = interp_list_expr cnf inp sta le in
+      let args = interp_list_expr inp sta le in
       interp_utility inp sta name args
 
     | ICallFunction id le ->
-      let args = interp_list_expr cnf inp sta le in
+      let args = interp_list_expr inp sta le in
       match sta.func_env id with
       | Some ins ->
         try
@@ -295,7 +294,7 @@ module Interpreter
             arguments = ref args;
             var_env = ref !(sta.var_env)
           } in
-          interp_instruction cnf inp' sta' ins
+          interp_instruction inp' sta' ins
         with
           EReturn -> ()
         end
@@ -305,7 +304,7 @@ module Interpreter
       end
 
     | IForeach id le ins ->
-      let ss = interp_list_expr cnf inp sta le in
+      let ss = interp_list_expr inp sta le in
       let last_result = ref True in (* See NOTES[Previous in for-loop] *)
       let ghost sta0 = state sta in
       let ghost ctx0 = context sta in
@@ -330,7 +329,7 @@ module Interpreter
         match nth i ss with
         | Some s ->
           sta.var_env := !(sta.var_env)[id <- s];
-          interp_instruction cnf inp sta ins;
+          interp_instruction inp sta ins;
           last_result := !(sta.result);
         | None ->
           absurd
@@ -344,39 +343,32 @@ module Interpreter
       let ctr = ref 0 in
       let last_result = ref True in
       while (
-        (if !ctr = cnf.loop_boundary then raise EFailure);
-        interp_instruction cnf {inp with under_condition=True} sta ins1;
+        interp_instruction {inp with under_condition=True} sta ins1;
         !(sta.result)
       ) do
-        invariant { 0 <= !ctr <= cnf.loop_boundary }
-        invariant { forall sta1 ctx1 b1 bhv.
+        invariant { forall sta1 ctx1 b1 bhv n.
           eval_while !ctr !last_result
             (cnf, inp, context sta, state sta)
             ins1 ins2
-            (sta1, ctx1, bhv) b1 ->
+            (sta1, ctx1, bhv) n b1 ->
           eval_while 0 True
             (cnf, inp, ctx0, sta0)
             ins1 ins2
-            (sta1, ctx1, bhv) b1
+            (sta1, ctx1, bhv) n b1
         }
-        assert { !ctr < cnf.loop_boundary };
-        interp_instruction cnf inp sta ins2;
+        interp_instruction inp sta ins2;
         last_result := !(sta.result);
         incr ctr
       done;
       sta.result := !last_result
     end
 
-  with interp_str_expr (cnf:config) (b:bool) (inp:input) (sta:state) (se:string_expression) : (string, bool)
+  with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (string, bool)
     diverges
     ensures { context sta = context (old sta) }
     returns { s, b' ->
       eval_str_expr b (cnf, inp, context (old sta), state (old sta))
         se (state sta, Some (s, b'))
-    }
-    raises { EFailure ->
-      eval_str_expr b (cnf, inp, context (old sta), state (old sta))
-        se (state sta, None)
     }
   = match se with
 
@@ -398,7 +390,7 @@ module Interpreter
         arguments = ref !(sta.arguments);
       } in
       try
-        interp_instruction cnf inp sta' ins
+        interp_instruction inp sta' ins
       with
         | EExit -> ()
         | EReturn -> ()
@@ -406,48 +398,40 @@ module Interpreter
       Stdout.to_string !(sta'.stdout), !(sta'.result)
 
     | SConcat se1 se2 ->
-      label L1 in let s1, b1 = interp_str_expr cnf b inp sta se1 in
+      label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
       assert { eval_str_expr b (cnf, inp, context sta, state sta at L1) se1 (state sta, Some (s1, b1)) };
-      label L2 in let s2, b2 = interp_str_expr cnf b1 inp sta se2 in
+      label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
       assert { eval_str_expr b1 (cnf, inp, context sta, state sta at L2) se2 (state sta, Some (s2, b2)) };
       s1^s2, b2
     end
 
-  with interp_list_expr (cnf:config) (inp:input) (sta:state) (le:list_expression) : list string
+  with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
     diverges
     ensures { context sta = context (old sta) }
     returns { ss ->
       eval_list_expr (cnf, inp, context (old sta), state (old sta))
         le (state sta, Some ss)
     }
-    raises { EFailure ->
-      eval_list_expr (cnf, inp, context (old sta), state (old sta))
-        le (state sta, None)
-    }
   = match le with
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
-      let s, _ = interp_str_expr cnf True inp sta se in
+      let s, _ = interp_str_expr True inp sta se in
       let l1 = split sp s in
-      let l2 = interp_list_expr cnf inp sta le_rest in
+      let l2 = interp_list_expr inp sta le_rest in
       l1 ++ l2
     end
 
   use list.FoldLeft
 
-  let interp_program cnf inp sta pro
+  let interp_program inp sta pro
     diverges
     returns { () ->
       eval_program (cnf, inp, context (old sta), state (old sta))
         pro (state sta, Some !(sta.result))
     }
-    raises { EFailure ->
-      eval_program (cnf, inp, context (old sta), state (old sta))
-        pro (state sta, None)
-    }
   = try
       let fenv = interp_function_definitions sta.func_env pro.function_definitions in
-      interp_instruction cnf inp { sta with func_env = fenv } pro.instruction
+      interp_instruction inp { sta with func_env = fenv } pro.instruction
     with
       | EExit -> ()
       | EReturn -> ()
