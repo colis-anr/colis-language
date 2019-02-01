@@ -193,13 +193,13 @@ let run_symbolic ~prune_init_state ~loop_limit ~fs_spec ~argument0 ?(arguments=[
          List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) (BatSet.to_list errors);
        end;
        if not (BatSet.is_empty failures) then begin
-         printf "* Failure states@\n";
-         List.iter (print_symbolic_state "failure" (ref 1) Format.std_formatter) (BatSet.to_list failures);
+         printf "* Incomplete symbolic execution@\n";
+         List.iter (print_symbolic_state "notcovered" (ref 1) Format.std_formatter) (BatSet.to_list failures);
        end;
        printf "* Summary@\n@\n";
        printf "- Success cases: %d@\n" (BatSet.cardinal normals);
        printf "- Error cases: %d@\n" (BatSet.cardinal errors);
-       printf "- Failure cases: %d@\n" (BatSet.cardinal failures))
+       printf "- Incomplete symbolic execution: %d@\n" (BatSet.cardinal failures))
     res;
   (* Exit 1 if there is any error result *)
   if List.exists BatSet.(fun (_, (_, errs, _)) -> not (is_empty errs)) res
