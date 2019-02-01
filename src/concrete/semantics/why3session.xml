@@ -263,10 +263,10 @@
    </transf>
    </goal>
    <goal name="VC eval_foreach_last.0.1" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.15"/></proof>
+   <proof prover="1"><result status="valid" time="0.18"/></proof>
    </goal>
    <goal name="VC eval_foreach_last.0.2" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.18"/></proof>
+   <proof prover="1"><result status="valid" time="0.15"/></proof>
    </goal>
   </transf>
   </goal>
