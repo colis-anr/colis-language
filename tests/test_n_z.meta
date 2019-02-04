@@ -1,0 +1,16 @@
+input:
+  stdin: ""
+  arguments: []
+
+output:
+  stdout: |
+    test: Unknown argument: 
+    string '' do not pass the -n test
+    test: Unknown argument: 
+    string '' do not pass the -z test
+    test: Unknown argument: 
+    string 'a' do not pass the -n test
+    test: Unknown argument: 
+    string 'a' do not pass the -z test
+  stderr: ""
+  return_code: 0
