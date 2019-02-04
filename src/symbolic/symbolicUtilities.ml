@@ -335,6 +335,25 @@ let interp_test_z str : utility =
       end
     ]
 
+let interp_test_string_equal s1 s2 : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  if s1 = s2 then
+    [
+      success_case
+        ~descr:(asprintf "test '%s' = '%s': strings are equal" s1 s2)
+      begin
+        eq root root'
+      end
+    ]
+  else
+    [
+      error_case
+        ~descr:(asprintf "test '%s' = '%s': string are not equal" s1 s2)
+      begin
+        eq root root'
+      end
+    ]
+
 let interp_test ~bracket (args : string list) : utility =
   Morsmall_utilities.TestParser.(
     let name = "test" in
@@ -349,6 +368,7 @@ let interp_test ~bracket (args : string list) : utility =
        | Unary("-f",arg) -> interp_test_f arg
        | Unary("-n",arg) -> interp_test_n arg
        | Unary("-z",arg) -> interp_test_z arg
+       | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
        | Unary(op,_) ->
           let msg = msg "unary operator" in
           unknown_argument ~msg ~name ~arg:op ()
