@@ -66,10 +66,10 @@ let speclist =
     "--print-colis",               Unit (set_action PrintColis),  " Print the CoLiS script";
     "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
     "--realworld",                 Set real_world,                 " Use system utilities in concrete execution";
-    "--symbolic-fs",               String set_symbolic_fs,        " Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
+    "--symbolic-fs",               String set_symbolic_fs,        "FS Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
     "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
-    "--loop-limit",                Int ((:=) loop_limit),         sprintf " Boundary for symbolic execution of while loops (default: %d)" !loop_limit;
-    "--print-states",              String ((:=)print_states_dir), "DIR Print dot files for symbolic states";
+    "--loop-limit",                Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
+    "--print-states",              String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
   ]
 
