@@ -297,6 +297,44 @@ let interp_test_f path_str : utility =
       end;
   ]
 
+let interp_test_n str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  if str = "" then
+    [
+      error_case
+        ~descr:(asprintf "test -n '%s': string is empty" str)
+      begin
+        eq root root'
+      end
+    ]
+  else
+    [
+      success_case
+        ~descr:(asprintf "test -n '%s': string is non-empty" str)
+      begin
+        eq root root'
+      end
+    ]
+
+let interp_test_z str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  if str = "" then
+    [
+      success_case
+        ~descr:(asprintf "test -z '%s': string is empty" str)
+      begin
+        eq root root'
+      end
+    ]
+  else
+    [
+      error_case
+        ~descr:(asprintf "test -z '%s': string is non-empty" str)
+      begin
+        eq root root'
+      end
+    ]
+
 let interp_test ~bracket (args : string list) : utility =
   Morsmall_utilities.TestParser.(
     let name = "test" in
@@ -309,6 +347,8 @@ let interp_test ~bracket (args : string list) : utility =
        | Unary("-e",arg) -> interp_test_e arg
        | Unary("-d",arg) -> interp_test_d arg
        | Unary("-f",arg) -> interp_test_f arg
+       | Unary("-n",arg) -> interp_test_n arg
+       | Unary("-z",arg) -> interp_test_z arg
        | Unary(op,_) ->
           let msg = msg "unary operator" in
           unknown_argument ~msg ~name ~arg:op ()
