@@ -40,7 +40,7 @@ end
 module State
   use Filesystem
   clone export semantics.AbstractState
-    with type filesystem = filesystem 
+    with type filesystem = filesystem
 end
 
 module Env
@@ -70,7 +70,7 @@ module Context
   }
 
   let constant empty_context = {
-    var_env = Env.empty; 
+    var_env = Env.empty;
     func_env = Env.empty;
     arguments = Nil;
     result = True;
@@ -204,7 +204,7 @@ module Interpreter
   use Results as Rs
 
   (* Implemented in OCaml *)
-  val function interp_utility identifier (list string) state : set (state, bool)
+  val function interp_utility identifier var_env (list string) state : set (state, bool)
 
   let separate_options (opt_stas: set (state, option 'a))
     : (results: set (state, 'a), failures: set state)
@@ -254,7 +254,7 @@ module Interpreter
 
     | ISequence ins1 ins2 ->
       let res1_normal, res1_other =
-        Rs.separate_normal 
+        Rs.separate_normal
           (interp_instr cnf inp ctx sta ins1)
       in
       let res2 = interp_instr_unit' cnf inp res1_normal ins2 in
@@ -289,7 +289,7 @@ module Interpreter
         failure = res.failure;
       })
 
-    | INoOutput ins -> 
+    | INoOutput ins ->
       let reset_output sta' =
         let sta'' = {sta'.state with stdout = sta.stdout} in
         {sta' with
@@ -321,7 +321,7 @@ module Interpreter
       let res' =
         let call_utility arg =
           let sta', args = arg in
-          interp_utility id args sta'
+          interp_utility id ctx.var_env args sta' (*FIXME: export?*)
         in
         let for_call_result arg =
           let sta'', b = arg in
@@ -515,7 +515,7 @@ module Interpreter
       in
       Rs.({empty with exit = Fset.singleton sta})
 
-    | IReturn code -> 
+    | IReturn code ->
       let r =
         match code with
         | RPrevious -> ctx.result
@@ -539,7 +539,7 @@ module Interpreter
       match stas with
       | Nil ->
         Rs.empty
-      | Cons sta stas' -> 
+      | Cons sta stas' ->
         let res = interp_instr cnf inp sta.context sta.state ins in
         let res' = Rs.map (with_data sta.data) res in
         Rs.union res' (aux stas')
@@ -553,7 +553,7 @@ module Interpreter
       match stas with
       | Nil ->
         Rs.empty
-      | Cons sta stas' -> 
+      | Cons sta stas' ->
         let res = interp_instr cnf inp sta.context sta.state ins in
         let res' = Rs.map (with_data sta.data) res in
         Rs.union res' (aux stas')
@@ -567,7 +567,7 @@ module Interpreter
       match stas with
       | Nil ->
         Rs.empty
-      | Cons sta stas' -> 
+      | Cons sta stas' ->
         let res = interp_instr cnf inp sta.context sta.state ins in
         let res' = Rs.map (with_data sta.data) res in
         Rs.union res' (aux stas')
@@ -611,7 +611,7 @@ module Interpreter
         | Cons (sta1, None) res1' ->
           Fset.add (sta1, None)
             (for_res1 res1')
-        | Cons (sta1, Some (b1, str1)) res1' -> 
+        | Cons (sta1, Some (b1, str1)) res1' ->
           let stas = interp_str_expr b1 cnf inp ctx sta1 se2 in
           let concat arg =
             match arg with

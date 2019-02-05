@@ -5,6 +5,7 @@ open UtilitiesSpecification
 open Semantics__Buffers
 open SymbolicInterpreter__State
 
+type env = (string * string) list
 type args = string list
 
 (** Get the name of the last path component, if any, or of the hint root variable
@@ -396,7 +397,7 @@ let interp_test ~bracket (args : string list) : utility =
 (*                         Dispatch interpretation of utilities                  *)
 (*********************************************************************************)
 
-let interp (name: string) : args -> utility =
+let interp (name: string) (_env: (string * string) list) : args -> utility =
   match name with
   | "true" -> interp_true
   | "false" -> interp_false
