@@ -1,0 +1,12 @@
+input:
+  stdin: ""
+  arguments: []
+
+output:
+  stdout: |
+    test: Unknown argument: 
+    /bin/ls does not exist or is not executable
+    test: Unknown argument: 
+    /etc/passwd does not exist or is not executable
+  stderr: ""
+  return_code: 0

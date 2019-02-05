@@ -297,6 +297,32 @@ let interp_test_f path_str : utility =
       end;
   ]
 
+let interp_test_x path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "test -x %a: path resolves to an executable (overapprox to -e)" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & (* no way to constraint "x" mode *)
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -x %a: path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -x %a: path resolves but not to an executable (overapprox to -e)" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x &  (* no way to constraint no "x" mode *)
+        eq root root'
+      end;
+  ]
+
 let interp_test_n str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
   if str = "" then
@@ -354,6 +380,25 @@ let interp_test_string_equal s1 s2 : utility =
       end
     ]
 
+let interp_test_string_notequal s1 s2 : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  if s1 <> s2 then
+    [
+      success_case
+        ~descr:(asprintf "test '%s' != '%s': strings are not equal" s1 s2)
+      begin
+        eq root root'
+      end
+    ]
+  else
+    [
+      error_case
+        ~descr:(asprintf "test '%s' != '%s': string are equal" s1 s2)
+      begin
+        eq root root'
+      end
+    ]
+
 let interp_test ~bracket (args : string list) : utility =
   Morsmall_utilities.TestParser.(
     let name = "test" in
@@ -366,9 +411,11 @@ let interp_test ~bracket (args : string list) : utility =
        | Unary("-e",arg) -> interp_test_e arg
        | Unary("-d",arg) -> interp_test_d arg
        | Unary("-f",arg) -> interp_test_f arg
+       | Unary("-x",arg) -> interp_test_x arg
        | Unary("-n",arg) -> interp_test_n arg
        | Unary("-z",arg) -> interp_test_z arg
        | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
+       | Binary ("!=",a1,a2) -> interp_test_string_notequal a1 a2
        | Unary(op,_) ->
           let msg = msg "unary operator" in
           unknown_argument ~msg ~name ~arg:op ()
