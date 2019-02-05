@@ -25,6 +25,8 @@ let unknown_argument ?(msg="Unknown argument") ~name ~arg sta =
 let test (sta : state) : string list -> (state * bool) = function
   | [sa; "="; sb] ->
      (sta, sa = sb)
+  | [sa; "!="; sb] ->
+     (sta, sa <> sb)
   | _ ->
      unknown_argument ~name:"test" ~arg:"" sta
 

@@ -7,5 +7,10 @@ for s in '' 'a' 'bc'; do
        else
            echo "strings '$s' and '$t' do not pass the '=' test"
        fi
+       if test "$s" != "$t" ; then
+           echo "strings '$s' and '$t' pass the '!=' test"
+       else
+           echo "strings '$s' and '$t' do not pass the '!=' test"
+       fi
    done
 done
