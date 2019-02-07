@@ -453,6 +453,39 @@ let interp_test ~bracket (args : string list) : utility =
      interp_test_parse_error args
 
 (*********************************************************************************)
+(*                                   which                                       *)
+(*********************************************************************************)
+
+let interp_which (args: string list) : utility =
+  match args with
+  | [] ->
+     under_specifications @@ fun ~cwd ~root ~root' ->
+       [
+         error_case
+           ~descr:(asprintf "which without argument (returns 1)")
+           begin
+             eq root root'
+           end
+       ]
+  | [p] ->
+     under_specifications @@ fun ~cwd ~root ~root' ->
+       [
+         success_case
+           ~descr:(asprintf "which '%s': assuming command is found" p)
+           begin
+             eq root root'
+           end
+       ;
+         error_case
+           ~descr:(asprintf "which '%s': assuming command is not found" p)
+           begin
+             eq root root'
+           end
+       ]
+  | p :: _ ->
+     unknown_argument ~msg:"more than one argument" ~name:"which" ~arg:p ()
+
+(*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)
 (*********************************************************************************)
 
@@ -465,4 +498,5 @@ let interp (name: string) : args -> utility =
   | "[" -> interp_test ~bracket:true
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
+  | "which" -> interp_which
   | _ -> fun _args -> unknown_utility ~name ()
