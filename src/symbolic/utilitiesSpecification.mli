@@ -9,10 +9,10 @@ type utility = state -> (state * bool) list
 type case
 
 (** A success case **)
-val success_case: descr:string -> Clause.t -> case
+val success_case: descr:string -> ?output:string -> Clause.t -> case
 
 (** An error case **)
-val error_case: descr:string -> ?error_message:string -> Clause.t -> case
+val error_case: descr:string -> ?output:string -> ?error_message:string -> Clause.t -> case
 
 (** A singleton error case with optional error message *)
 val failure: ?error_message:string -> unit -> case list

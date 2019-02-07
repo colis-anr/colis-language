@@ -19,6 +19,8 @@ module type S = sig
   val exists2 : ?hint1:string -> ?hint2:string -> (Var.t -> Var.t -> t) -> t
   val exists3 : ?hint1:string -> ?hint2:string -> ?hint3:string -> (Var.t -> Var.t -> Var.t -> t) -> t
 
+  val true_ : t
+
   val eq : Var.t -> Var.t -> t
   val neq : Var.t -> Var.t -> t
   val feat : Var.t -> Feat.t -> Var.t -> t
@@ -51,7 +53,7 @@ module type S = sig
   type sat_conj
   (** Abstract type for satisfiable conjunctions. *)
 
-  val true_ : sat_conj
+  val true_sat_conj : sat_conj
   (** The empty conjunction, true. *)
 
   val add_to_sat_conj : t -> sat_conj -> sat_conj list
@@ -68,10 +70,11 @@ end
 
 module Make (I : Constraints_implementation.S) : S = struct
   type sat_conj = I.t
-  let true_ = I.true_
+  let true_sat_conj = I.true_
 
   type t = sat_conj -> sat_conj list
 
+  let true_ x = [x]
   let eq = I.eq
   let neq = I.neq
   let feat = I.feat

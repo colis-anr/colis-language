@@ -166,7 +166,7 @@ let run_symbolic ~prune_init_state ~loop_limit ~fs_spec ~argument0 ?(arguments=[
     let open Constraints in
     let root = Constraints.Var.fresh ~hint:"r" () in
     let clause = FilesystemSpec.compile ~root fs_spec in
-    Clause.(add_to_sat_conj clause true_) |>
+    Clause.(add_to_sat_conj clause true_sat_conj) |>
     List.map (clause_to_state root) |>
     List.map run_in_state
   in
