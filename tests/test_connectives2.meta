@@ -1,0 +1,14 @@
+input:
+  stdin: ""
+  arguments: []
+
+output:
+  stdout: |
+    test: Unknown argument: 
+    false
+    test: Unknown argument: 
+    false
+    test: Unknown argument: 
+    false
+  stderr: ""
+  return_code: 0
