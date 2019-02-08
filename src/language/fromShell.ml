@@ -13,7 +13,7 @@ module C = struct
   include Syntax__Syntax
 
   let sconcat_l = function
-    | [] -> failwith "sconcat_l"
+    | [] -> SLiteral ""
     | s :: ss -> List.fold_left (fun s1 s2 -> SConcat (s1, s2)) s ss
 
   let isequence_l = function
