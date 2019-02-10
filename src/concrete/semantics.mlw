@@ -262,10 +262,7 @@ module Context
   use Env
 
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
-      subprocesses)
-
-      Will contain also the function environment one functions are added to the language
-   *)
+      subprocesses) *)
 
   (* A variable environment *)
   type var_env = env string
