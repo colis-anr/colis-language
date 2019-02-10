@@ -2,9 +2,9 @@
 <!DOCTYPE why3session PUBLIC "-//Why3//proof session v5//EN"
 "http://why3.lri.fr/why3session.dtd">
 <why3session shape_version="5">
-<prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
-<prover id="1" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
-<prover id="2" name="Z3" version="4.6.0" timelimit="1" steplimit="0" memlimit="1000"/>
+<prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="10" memlimit="1000"/>
+<prover id="1" name="CVC4" version="1.6" timelimit="1" memlimit="1000"/>
+<prover id="2" name="Z3" version="4.6.0" timelimit="1" memlimit="1000"/>
 <file proved="true">
 <path name=".."/>
 <path name="semantics.mlw"/>
@@ -132,7 +132,7 @@
     <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.0.2" expl="postcondition" proved="true">
-    <proof prover="0"><result status="valid" time="0.00" steps="12"/></proof>
+    <proof prover="0" steplimit="12"><result status="valid" time="0.00" steps="12"/></proof>
     </goal>
    </transf>
    </goal>
@@ -154,19 +154,19 @@
  </transf>
  </goal>
  <goal name="shift_arguments_0" proved="true">
- <proof prover="0"><result status="valid" time="0.00" steps="2"/></proof>
+ <proof prover="0" steplimit="2"><result status="valid" time="0.00" steps="2"/></proof>
  </goal>
  <goal name="shift_arguments_cons_some" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="shift_arguments_cons_some.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.01" steps="159"/></proof>
+  <proof prover="0" steplimit="159"><result status="valid" time="0.01" steps="159"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="shift_arguments_cons_none" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="shift_arguments_cons_none.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.01" steps="86"/></proof>
+  <proof prover="0" steplimit="86"><result status="valid" time="0.01" steps="86"/></proof>
   <proof prover="1"><result status="valid" time="0.08"/></proof>
   </goal>
  </transf>
@@ -211,7 +211,7 @@
  <proof prover="1"><result status="valid" time="0.26"/></proof>
  </goal>
  <goal name="VC eval_foreach_concat" expl="VC for eval_foreach_concat" proved="true">
- <proof prover="1"><result status="valid" time="0.47"/></proof>
+ <proof prover="1"><result status="valid" time="0.31"/></proof>
  </goal>
  <goal name="VC eval_foreach_last" expl="VC for eval_foreach_last" proved="true">
  <transf name="split_vc" proved="true" >
@@ -220,26 +220,26 @@
    <goal name="VC eval_foreach_last.0.0" expl="postcondition" proved="true">
    <transf name="destruct_term_subst" proved="true" arg1="bhv2">
     <goal name="VC eval_foreach_last.0.0.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33"/></proof>
+    <proof prover="1"><result status="valid" time="0.35"/></proof>
     </goal>
     <goal name="VC eval_foreach_last.0.0.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.20"/></proof>
+    <proof prover="1"><result status="valid" time="0.19"/></proof>
     </goal>
     <goal name="VC eval_foreach_last.0.0.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.20"/></proof>
+    <proof prover="1"><result status="valid" time="0.19"/></proof>
     </goal>
     <goal name="VC eval_foreach_last.0.0.3" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
      <goal name="VC eval_foreach_last.0.0.3.0" expl="postcondition" proved="true">
      <transf name="apply" proved="true" arg1="eval_foreach_step" arg2="with" arg3="ctx2,sta2,s,(Nil:list string)">
       <goal name="VC eval_foreach_last.0.0.3.0.0" expl="apply premises" proved="true">
-      <proof prover="1"><result status="valid" time="0.24"/></proof>
+      <proof prover="1"><result status="valid" time="0.18"/></proof>
       </goal>
       <goal name="VC eval_foreach_last.0.0.3.0.1" expl="apply premises" proved="true">
-      <proof prover="1"><result status="valid" time="0.20"/></proof>
+      <proof prover="1"><result status="valid" time="0.14"/></proof>
       </goal>
       <goal name="VC eval_foreach_last.0.0.3.0.2" expl="apply premises" proved="true">
-      <proof prover="1"><result status="valid" time="0.19"/></proof>
+      <proof prover="1"><result status="valid" time="0.15"/></proof>
       </goal>
      </transf>
      </goal>
@@ -248,15 +248,15 @@
    </transf>
    </goal>
    <goal name="VC eval_foreach_last.0.1" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.18"/></proof>
+   <proof prover="1"><result status="valid" time="0.17"/></proof>
    </goal>
    <goal name="VC eval_foreach_last.0.2" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.15"/></proof>
+   <proof prover="1"><result status="valid" time="0.14"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC eval_foreach_last.1" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.43"/></proof>
+  <proof prover="1"><result status="valid" time="0.37"/></proof>
   </goal>
  </transf>
  </goal>
