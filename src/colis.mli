@@ -85,5 +85,5 @@ val run : argument0:string -> ?arguments:(string list) -> colis -> unit
     @param arguments Other arguments
   *)
 
-val run_symbolic : prune_init_state:bool -> loop_limit:int -> fs_spec:Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> colis -> unit
+val run_symbolic : prune_init_state:bool -> loop_limit:int -> stack_size:int -> fs_spec:Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> colis -> unit
 (** Symbolically executes a Colis program. *)
