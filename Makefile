@@ -31,7 +31,7 @@ test: build
 	dune runtest
 
 # Do everything for continuous integration
-ci: build doc test replay-proofs install uninstall clean
+everything: build doc test replay-proofs install uninstall clean
 
 ## Extract Why3 to OCaml
 

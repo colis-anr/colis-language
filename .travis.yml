@@ -11,9 +11,20 @@ env:
   - TAG=4.06
   - TAG=4.05
 
-script:
-  - docker build
-      --build-arg "TAG=$TAG"
-      --build-arg "SWITCH=$SWITCH"
-      --tag colisanr/colis-language:$TRAVIS_BRANCH
-      .
+jobs:
+  include:
+    - stage: build
+      script: docker build
+        --tag colisanr/colis-language@build:$TRAVIS_BRANCH
+        --build-arg "TAG=$TAG"
+        --build-arg "SWITCH=$SWITCH"
+        --build-arg "MAKEARG=$MAKEARG"
+        --file "$DOCKERFILE"
+        .
+    - stage: everything
+      if: $TAG = 4.07
+      script: docker build
+        --tag colisanr/colis-language@everything:$TRAVIS_BRANCH
+        --build-arg "BUILDIMAGE=colisanr/colis-language@build:$TRAVIS_BRANCH"
+        --file "$DOCKERFILE.everything"
+        .
