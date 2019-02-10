@@ -56,6 +56,19 @@ let get_symbolic_fs, set_symbolic_fs =
      | "fhs" -> fs_spec := fhs
      | _ -> raise (Arg.Bad "only filesystems `empty', `simple', and `fsh' are known"))
 
+let set_var, get_vars =
+  let vars = ref [] in
+  let set str =
+    try
+      let ix = String.index str '=' in
+      let var = String.sub str 0 ix in
+      let val_ = String.sub str (ix+1) (String.length str-ix-1) in
+      vars := (var, val_) :: !vars
+    with Not_found ->
+      raise (Arg.Bad "Variables have to be defined as VAR=VAL")
+  in
+  set, (fun () -> List.rev !vars)
+
 let speclist =
   let open Arg in
   let open Colis.Options in
@@ -67,22 +80,24 @@ let speclist =
     "--external-sources",          Set_string external_sources,   "DIR Import absolute sources from DIR";
     "--print-colis",               Unit (set_action PrintColis),  " Print the CoLiS script";
     "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
-    "--realworld",                 Set real_world,                 " Use system utilities in concrete execution";
+    "--var",                       String set_var,                " VAR=VAL Set variable VAR to VAL in the interpreter";
+    "--realworld",                 Set real_world,                " Use system utilities in concrete execution";
     "--symbolic-fs",               String set_symbolic_fs,        "FS Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
     "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
     "--loop-limit",                Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
     "--stack-size",                Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
     "--print-states",              String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
-    "--",                          Rest add_argument,             "ARG... Pass argument (starting with a dash) to the CoLiS interpreter";
+    "--",                          Rest add_argument,             "ARG... Pass all further arguments directory to the CoLiS interpreter";
   ]
 
 let usage =
   sprintf
-    ("Usage: %s [--run <run-options> | --run-symbolic <symbolic-run-options> | --print-colis | --print-shell] <parsing-options> FILE [--] [ARG...]\n"^^
-     "       <run-options>: [--realworld |  --fail-on-unknown-utilities]\n"^^
-     "       <symbolic-run-options>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities] [--print-states DIR]\n"^^
-     "       <parsing-options>: [--shell [--external-sources DIR] | --colis]")
+    ("Usage: %s <action> <syntax-opts> [--var VAR=VAL ...] FILE [--] [ARG...]\n"^^
+     "       <action>: [--run <concrete-opts> | --run-symbolic <symbolic-opts> | --print-colis | --print-shell]\n"^^
+     "       <concrete-opts>: [--realworld |  --fail-on-unknown-utilities]\n"^^
+     "       <symbolic-opts>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities] [--print-states DIR]\n"^^
+     "       <syntax-opts>: [--shell [--external-sources DIR] | --colis]")
     Sys.argv.(0)
 
 let main () =
@@ -108,9 +123,10 @@ let main () =
 
   let argument0 = file in
   let arguments = get_arguments () in
+  let vars = get_vars () in
   match get_action () with
   | Run ->
-     Colis.run ~argument0 ~arguments program
+     Colis.run ~argument0 ~arguments ~vars program
   | RunSymbolic ->
      let config = {
        Colis.fs_spec = get_symbolic_fs ();
@@ -118,7 +134,7 @@ let main () =
        loop_limit = !loop_limit;
        stack_size = !stack_size;
      } in
-     Colis.run_symbolic config ~argument0 ~arguments program
+     Colis.run_symbolic config ~argument0 ~arguments ~vars program
   | PrintColis ->
      Colis.print_colis program;
   | PrintShell ->
