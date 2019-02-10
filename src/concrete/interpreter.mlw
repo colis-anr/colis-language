@@ -166,20 +166,20 @@ module Interpreter
   (** {3 The interpretation of statements} *)
 
   (** We don’t implement loop boundaries in the concrete interpreter *)
-  let constant cnf = {loop_limit = None}
+  let constant cnf = {loop_limit = None; stack_size = None}
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
     returns { () ->
-      eval_instruction (cnf, inp, context (old sta), state (old sta))
+      eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
         ins (state sta, context sta, BNormal)
     }
     raises { EReturn ->
-      eval_instruction (cnf, inp, context (old sta), state (old sta))
+      eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
         ins (state sta, context sta, BReturn)
     }
     raises { EExit ->
-      eval_instruction (cnf, inp, context (old sta), state (old sta))
+      eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
         ins (state sta, context sta, BExit)
     }
   = label L in match ins with
@@ -310,18 +310,18 @@ module Interpreter
       let ghost ctx0 = context sta in
       for i = 0 to length ss - 1 do
         invariant {
-          eval_foreach True
+          eval_foreach 0 True
             (cnf, inp, ctx0, sta0)
             id (take i ss) ins
             (state sta, context sta, BNormal)
             !last_result
         }
         invariant { forall sta1, ctx1, bhv1, b1.
-          eval_foreach !last_result
+          eval_foreach 0 !last_result
             (cnf, inp, context sta, state sta)
             id (drop i ss) ins
             (sta1, ctx1, bhv1) b1 ->
-          eval_foreach True
+          eval_foreach 0 True
             (cnf, inp, ctx0, sta0)
             id ss ins
             (sta1, ctx1, bhv1) b1
@@ -347,11 +347,11 @@ module Interpreter
         !(sta.result)
       ) do
         invariant { forall sta1 ctx1 b1 bhv n.
-          eval_while !ctr !last_result
+          eval_while 0 !ctr !last_result
             (cnf, inp, context sta, state sta)
             ins1 ins2
             (sta1, ctx1, bhv) n b1 ->
-          eval_while 0 True
+          eval_while 0 0 True
             (cnf, inp, ctx0, sta0)
             ins1 ins2
             (sta1, ctx1, bhv) n b1
@@ -367,7 +367,7 @@ module Interpreter
     diverges
     ensures { context sta = context (old sta) }
     returns { s, b' ->
-      eval_str_expr b (cnf, inp, context (old sta), state (old sta))
+      eval_str_expr 0 b (cnf, inp, context (old sta), state (old sta))
         se (state sta, Some (s, b'))
     }
   = match se with
@@ -399,9 +399,9 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr b (cnf, inp, context sta, state sta at L1) se1 (state sta, Some (s1, b1)) };
+      assert { eval_str_expr 0 b (cnf, inp, context sta, state sta at L1) se1 (state sta, Some (s1, b1)) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr b1 (cnf, inp, context sta, state sta at L2) se2 (state sta, Some (s2, b2)) };
+      assert { eval_str_expr 0 b1 (cnf, inp, context sta, state sta at L2) se2 (state sta, Some (s2, b2)) };
       s1^s2, b2
     end
 
@@ -409,7 +409,7 @@ module Interpreter
     diverges
     ensures { context sta = context (old sta) }
     returns { ss ->
-      eval_list_expr (cnf, inp, context (old sta), state (old sta))
+      eval_list_expr 0 (cnf, inp, context (old sta), state (old sta))
         le (state sta, Some ss)
     }
   = match le with
