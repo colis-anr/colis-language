@@ -149,7 +149,7 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let run_symbolic ~prune_init_state ~loop_limit ~fs_spec ~argument0 ?(arguments=[]) colis =
+let run_symbolic ~prune_init_state ~loop_limit ~stack_size ~fs_spec ~argument0 ?(arguments=[]) colis =
   let open Symbolic in
   let clause_to_state root clause =
     let cwd = Constraints.Path.Abs [] in
@@ -162,7 +162,9 @@ let run_symbolic ~prune_init_state ~loop_limit ~fs_spec ~argument0 ?(arguments=[
   let run_in_state sta =
     let inp = { Concrete.Input.empty with argument0 } in
     let ctx = { Context.empty_context with arguments } in
-    sta, Interpreter.interp_program (Z.of_int loop_limit) inp ctx sta colis
+    let loop_limit = Z.of_int loop_limit in
+    let stack_size = Z.of_int stack_size in
+    sta, Interpreter.interp_program loop_limit stack_size inp ctx sta colis
   in
   let res =
     let open Constraints in
