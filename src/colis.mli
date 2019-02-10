@@ -78,7 +78,7 @@ val pp_print_colis : Format.formatter -> colis -> unit
 
 (** {2 Interpreting} *)
 
-val run : argument0:string -> ?arguments:(string list) -> colis -> unit
+val run : argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Runs a Colis program.
 
     @param argument0 Value for argument zero (the interpreter or filename)
@@ -96,5 +96,5 @@ type symbolic_config = {
   (** Maximum height of the call stack in symbolic execution *)
 }
 
-val run_symbolic : symbolic_config -> argument0:string -> ?arguments:(string list) -> colis -> unit
+val run_symbolic : symbolic_config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Symbolically executes a Colis program. *)
