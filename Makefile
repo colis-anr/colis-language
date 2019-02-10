@@ -3,8 +3,8 @@ replay-concrete-proofs=$(patsubst %, replay-concrete-proof-%, auxiliaries semant
 replay-symbolic-proofs=$(patsubst %, replay-symbolic-proof-%, symbolicInterpreter)
 
 .PHONY: ci build test doc clean install uninstall \
-  extract-why3 clean-why3 \
-  replay-proofs $(replay-concrete-proofs) $(replay-symbolic-proofs) \
+  extract-why3 clean-why3 replay-proofs \
+  $(replay-concrete-proofs) $(replay-symbolic-proofs) \
 
 build: extract-why3
 	dune build @install
@@ -61,3 +61,8 @@ $(replay-concrete-proofs): replay-concrete-proof-%: src/concrete/%.mlw src/concr
 	why3 replay --use-steps \
 		-L src/language -L src/concrete \
 		src/concrete/$*
+
+$(replay-symbolic-proofs): replay-symbolic-proof-%: src/symbolic/%.mlw src/symbolic/%/why3session.xml
+	why3 replay --use-steps \
+		-L src/language -L src/concrete -L src/symbolic \
+		src/symbolic/$*
