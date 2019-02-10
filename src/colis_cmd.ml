@@ -27,7 +27,7 @@ let get_source, set_source =
     | None -> source := Some new_source
     | Some _ -> raise (Arg.Bad "only one source among --colis and --shell can be specified"))
 
-let get_file, get_arguments, set_file_or_argument =
+let get_file, get_arguments, set_file_or_argument, add_argument =
   let file = ref None in
   let args = ref [] in
   (fun () ->
@@ -38,7 +38,8 @@ let get_file, get_arguments, set_file_or_argument =
   (fun new_file_or_arg ->
     match !file with
     | None -> file := Some new_file_or_arg
-    | Some _ -> args := new_file_or_arg :: !args)
+    | Some _ -> args := new_file_or_arg :: !args),
+  (fun arg -> args := arg :: !args)
 
 let prune_init_state = ref false
 let loop_limit = ref 10
@@ -73,11 +74,12 @@ let speclist =
     "--stack-size",                Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
     "--print-states",              String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
+    "--",                          Rest add_argument,             "ARG... Pass argument (starting with a dash) to the CoLiS interpreter";
   ]
 
 let usage =
   sprintf
-    ("Usage: %s [--run <run-options> | --run-symbolic <symbolic-run-options> | --print-colis | --print-shell] <parsing-options> FILE [ARGS]\n"^^
+    ("Usage: %s [--run <run-options> | --run-symbolic <symbolic-run-options> | --print-colis | --print-shell] <parsing-options> FILE [--] [ARG...]\n"^^
      "       <run-options>: [--realworld |  --fail-on-unknown-utilities]\n"^^
      "       <symbolic-run-options>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities] [--print-states DIR]\n"^^
      "       <parsing-options>: [--shell [--external-sources DIR] | --colis]")
