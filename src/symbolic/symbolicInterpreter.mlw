@@ -49,82 +49,18 @@ module State
   }
 end
 
-module Env
 
-  use option.Option
-  use map.Map
-  use syntax.Syntax
 
-  exception Not_found
 
-  type t 'value = abstract { map: map identifier (option 'value) }
 
-  val constant empty: t 'value
-    ensures { forall id. result.map id = None  }
 
-  val get (env:t 'value) (id:identifier) : 'value
-    raises { Not_found -> env.map id = None }
 
-  val set (env:t 'value) (id:identifier) (value:'value) : t 'value
-    ensures { result.map id = Some value }
-    ensures { forall id'. id' <> id -> result.map id' = env.map id' }
 
-  let function functional_default (env:t 'value) (default:'value) : identifier -> 'value =
-    fun id ->
-      try get env id
-      with Not_found -> default
-      end
 
-  let function functional_opt (env:t 'value) : identifier -> option 'value =
-    fun id ->
-      try Some (get env id)
-      with Not_found -> None
-      end
-end
-
-module Context
-  use option.Option
-  use list.List
-  use mystring.String
-  use syntax.Syntax
-  use Env
-
-  type var_env = Env.t string
-  type func_env = Env.t instruction
-
-  type context = {
-    var_env: var_env;
-    func_env: func_env;
-    arguments: list string;
-    result: bool; (* previous result ($?) for input state, current result for output state *)
-  }
-
-  let constant empty_context = {
-    var_env = Env.empty; 
-    func_env = Env.empty;
-    arguments = Nil;
-    result = True;
-  }
-
-  let function with_result ret ctx =
-    ensures { result.result = ret }
-    ensures { result.var_env = ctx.var_env }
-    ensures { result.func_env = ctx.func_env }
-    ensures { result.arguments = ctx.arguments }
-    { ctx with result = ret }
-
-  use semantics.Context as C
-  let function sem_context (c:context) : C.context = {
-    C.var_env = Env.functional_default c.var_env String.empty;
-    C.func_env = Env.functional_opt c.func_env;
-    C.arguments = c.arguments;
-    C.result = c.result;
-  }
-end
 
 module SymState
 
-  use Context
+  use semantics.Context
   use State
 
   type sym_state 'a = {
@@ -146,7 +82,7 @@ module Results
   use semantics.Input
   use semantics.Behaviour
   use semantics.Semantics
-  use Context
+  use semantics.Context
   use State
   use SymState
 
@@ -239,11 +175,12 @@ module Interpreter
   use semantics.Config
   use semantics.Buffers
   use semantics.Arguments
+  use semantics.State as SemState
   use semantics.Semantics as Sem
+  use semantics.Context
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset
   use State
-  use Context
   use SymState
   use Results as Rs
 
