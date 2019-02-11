@@ -114,11 +114,11 @@ let print_symbolic_filesystem fmt fs =
   fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
-let _print_dot filename id clause =
+let print_dot filename id clause =
   let ch = open_out filename in
   try
     let fmt = formatter_of_out_channel ch in
-    Constraints.Conj.pp_as_dot ~name:id fmt clause;
+    Constraints.Clause.pp_sat_conj_as_dot ~name:id fmt clause;
     close_out ch
   with e ->
     close_out ch;
@@ -129,7 +129,9 @@ let print_symbolic_state fmt ?id sta =
   begin match id with
     | Some id ->
       fprintf fmt "id: %s@\n" id;
-      (* print_dot (sprintf "/tmp/%s.dot" id) id sta.filesystem.clause; *)
+      if !Options.print_states_dir <> "" then
+        let filename = sprintf "%s/%s.dot" !Options.print_states_dir id in
+        print_dot filename id sta.filesystem.clause;
     | None -> ()
   end;
   print_symbolic_filesystem fmt sta.filesystem;
