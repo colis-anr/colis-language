@@ -149,11 +149,18 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let run_symbolic ~prune_init_state ~loop_limit ~stack_size ~fs_spec ~argument0 ?(arguments=[]) colis =
+type symbolic_config = {
+  fs_spec: Symbolic.FilesystemSpec.t;
+  prune_init_state: bool;
+  loop_limit: int;
+  stack_size: int;
+}
+
+let run_symbolic config ~argument0 ?(arguments=[]) colis =
   let open Symbolic in
   let clause_to_state root clause =
     let cwd = Constraints.Path.Abs [] in
-    let root0 = if prune_init_state then None else Some root in
+    let root0 = if config.prune_init_state then None else Some root in
     let filesystem = {Filesystem.clause; cwd; root; root0} in
     let stdin = Concrete.Stdin.empty in
     let stdout = Concrete.Stdout.empty in
@@ -162,14 +169,14 @@ let run_symbolic ~prune_init_state ~loop_limit ~stack_size ~fs_spec ~argument0 ?
   let run_in_state sta =
     let inp = { Concrete.Input.empty with argument0 } in
     let ctx = { Context.empty_context with arguments } in
-    let loop_limit = Z.of_int loop_limit in
-    let stack_size = Z.of_int stack_size in
+    let loop_limit = Z.of_int config.loop_limit in
+    let stack_size = Z.of_int config.stack_size in
     sta, Interpreter.interp_program loop_limit stack_size inp ctx sta colis
   in
   let res =
     let open Constraints in
     let root = Constraints.Var.fresh ~hint:"r" () in
-    let clause = FilesystemSpec.compile ~root fs_spec in
+    let clause = FilesystemSpec.compile ~root config.fs_spec in
     Clause.(add_to_sat_conj clause true_) |>
     List.map (clause_to_state root) |>
     List.map run_in_state
