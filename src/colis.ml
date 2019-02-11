@@ -17,7 +17,10 @@ module Concrete = struct
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
   module Context = Semantics__Context
-  module Env = Semantics__Env
+  module Env = struct
+    include Semantics__Env
+    let update = mixfix_lblsmnrb
+  end
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
   module Filesystem = Interpreter__Filesystem
@@ -101,7 +104,7 @@ let colis_to_file filename colis =
 let mk_concrete_var_env =
   let open Concrete.Env in
   List.fold_left
-    (fun env (var, val_) -> mixfix_lblsmnrb env var val_)
+    (fun env (var, val_) -> update env var val_)
     (empty_env "")
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
