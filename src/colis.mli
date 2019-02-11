@@ -85,5 +85,16 @@ val run : argument0:string -> ?arguments:(string list) -> colis -> unit
     @param arguments Other arguments
   *)
 
-val run_symbolic : prune_init_state:bool -> loop_limit:int -> fs_spec:Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> colis -> unit
+type symbolic_config = {
+  fs_spec: Symbolic.FilesystemSpec.t;
+  (** Specifitation of the filesystem to start the symbolic execution *)
+  prune_init_state: bool;
+  (** Prune the initial symbolic state during symbolic execution for a faster execution *)
+  loop_limit: int;
+  (** Maximum number of iterations of while loops in symbolic execution *)
+  stack_size: int;
+  (** Maximum height of the call stack in symbolic execution *)
+}
+
+val run_symbolic : symbolic_config -> argument0:string -> ?arguments:(string list) -> colis -> unit
 (** Symbolically executes a Colis program. *)

@@ -298,6 +298,32 @@ let interp_test_f path_str : utility =
       end;
   ]
 
+let interp_test_x path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "test -x %a: path resolves to an executable (overapprox to -e)" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & (* no way to constraint "x" mode *)
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -x %a: path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "test -x %a: path resolves but not to an executable (overapprox to -e)" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x &  (* no way to constraint no "x" mode *)
+        eq root root'
+      end;
+  ]
+
 let interp_test_n str : utility =
   under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
   if str = "" then
@@ -355,43 +381,77 @@ let interp_test_string_equal s1 s2 : utility =
       end
     ]
 
-let interp_test ~bracket _env (args : string list) : utility =
+let interp_test_string_notequal s1 s2 : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  if s1 <> s2 then
+    [
+      success_case
+        ~descr:(asprintf "test '%s' != '%s': strings are not equal" s1 s2)
+      begin
+        eq root root'
+      end
+    ]
+  else
+    [
+      error_case
+        ~descr:(asprintf "test '%s' != '%s': string are equal" s1 s2)
+      begin
+        eq root root'
+      end
+    ]
+
+let interp_test_neg (u:utility) : utility = fun st ->
+  List.map (fun (s,b) -> (s, not b)) (u st)
+
+let interp_test_and (u1:utility) (u2:utility) : utility = fun st ->
+  List.flatten
+    (List.map
+       (fun (s1,b1) ->
+         List.map (fun (s2,b2) -> (s2, b1 && b2)) (u2 s1))
+       (u1 st))
+
+let interp_test_or (u1:utility) (u2:utility) : utility = fun st ->
+  List.flatten
+    (List.map
+       (fun (s1,b1) ->
+         List.map (fun (s2,b2) -> (s2, b1 || b2)) (u2 s1))
+       (u1 st))
+
+let rec interp_test_expr e : utility =
+  let name = "test" in
+  let msg what = "unsupported " ^ what in
   Morsmall_utilities.TestParser.(
-    let name = "test" in
-    let msg what = "unsupported " ^ what in
-    match parse ~bracket args with
-    | None -> interp_test_empty ()
-    | Some e ->
-       begin
-       match e with
-       | Unary("-e",arg) -> interp_test_e arg
-       | Unary("-d",arg) -> interp_test_d arg
-       | Unary("-f",arg) -> interp_test_f arg
-       | Unary("-n",arg) -> interp_test_n arg
-       | Unary("-z",arg) -> interp_test_z arg
-       | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
-       | Unary(op,_) ->
-          let msg = msg "unary operator" in
-          unknown_argument ~msg ~name ~arg:op ()
-       | And(_e1,_e2) ->
-          let msg = msg "conjunction operator" in
-          unknown_argument ~msg ~name ~arg:"-a" ()
-       | Or(_e1,_e2) ->
-          let msg = msg "disjunction operator" in
-          unknown_argument ~msg ~name ~arg:"-o" ()
-       | Not(_e1) ->
-          let msg = msg "negation operator" in
-          unknown_argument ~msg ~name ~arg:"!" ()
-       | Binary (op,_e1,_e2) ->
-          let msg = msg "binary operator" in
-          unknown_argument ~msg ~name ~arg:op ()
-       | Single arg ->
-          let msg = msg "single argument" in
-          unknown_argument ~msg ~name ~arg ()
-       end
-    | exception Parse_error ->
-       interp_test_parse_error args
+  match e with
+  | Unary("-e",arg) -> interp_test_e arg
+  | Unary("-d",arg) -> interp_test_d arg
+  | Unary("-f",arg) -> interp_test_f arg
+  | Unary("-x",arg) -> interp_test_x arg
+  | Unary("-n",arg) -> interp_test_n arg
+  | Unary("-z",arg) -> interp_test_z arg
+  | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
+  | Binary ("!=",a1,a2) -> interp_test_string_notequal a1 a2
+  | Unary(op,_) ->
+     let msg = msg "unary operator" in
+     unknown_argument ~msg ~name ~arg:op ()
+  | And(e1,e2) ->
+     interp_test_and (interp_test_expr e1) (interp_test_expr e2)
+  | Or(e1,e2) ->
+     interp_test_or (interp_test_expr e1) (interp_test_expr e2)
+  | Not(e1) -> interp_test_neg (interp_test_expr e1)
+  | Binary (op,_e1,_e2) ->
+     let msg = msg "binary operator" in
+     unknown_argument ~msg ~name ~arg:op ()
+  | Single arg ->
+     let msg = msg "single argument" in
+     unknown_argument ~msg ~name ~arg ()
   )
+
+let interp_test ~bracket _env (args : string list) : utility =
+  match Morsmall_utilities.TestParser.parse ~bracket args with
+  | None -> interp_test_empty ()
+  | Some e -> interp_test_expr e
+  | exception Morsmall_utilities.TestParser.Parse_error ->
+     interp_test_parse_error args
 
 (*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)

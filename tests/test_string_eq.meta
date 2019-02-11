@@ -5,13 +5,22 @@ input:
 output:
   stdout: |
      strings '' and '' pass the '=' test
+     strings '' and '' do not pass the '!=' test
      strings '' and 'a' do not pass the '=' test
+     strings '' and 'a' pass the '!=' test
      strings '' and 'bc' do not pass the '=' test
+     strings '' and 'bc' pass the '!=' test
      strings 'a' and '' do not pass the '=' test
+     strings 'a' and '' pass the '!=' test
      strings 'a' and 'a' pass the '=' test
+     strings 'a' and 'a' do not pass the '!=' test
      strings 'a' and 'bc' do not pass the '=' test
+     strings 'a' and 'bc' pass the '!=' test
      strings 'bc' and '' do not pass the '=' test
+     strings 'bc' and '' pass the '!=' test
      strings 'bc' and 'a' do not pass the '=' test
+     strings 'bc' and 'a' pass the '!=' test
      strings 'bc' and 'bc' pass the '=' test
+     strings 'bc' and 'bc' do not pass the '!=' test
   stderr: ""
   return_code: 0

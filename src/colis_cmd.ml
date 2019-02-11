@@ -42,6 +42,7 @@ let get_file, get_arguments, set_file_or_argument =
 
 let prune_init_state = ref false
 let loop_limit = ref 10
+let stack_size = ref 10
 
 let get_symbolic_fs, set_symbolic_fs =
   let fs_spec = ref Colis.Symbolic.FilesystemSpec.empty in
@@ -66,9 +67,11 @@ let speclist =
     "--print-colis",               Unit (set_action PrintColis),  " Print the CoLiS script";
     "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
     "--realworld",                 Set real_world,                 " Use system utilities in concrete execution";
-    "--symbolic-fs",               String set_symbolic_fs,        " Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
+    "--symbolic-fs",               String set_symbolic_fs,        "FS Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
     "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
-    "--loop-limit",                Int ((:=) loop_limit),         sprintf " Boundary for symbolic execution of while loops (default: %d)" !loop_limit;
+    "--loop-limit",                Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
+    "--stack-size",                Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
+    "--print-states",              String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
   ]
 
@@ -76,7 +79,7 @@ let usage =
   sprintf
     ("Usage: %s [--run <run-options> | --run-symbolic <symbolic-run-options> | --print-colis | --print-shell] <parsing-options> FILE [ARGS]\n"^^
      "       <run-options>: [--realworld |  --fail-on-unknown-utilities]\n"^^
-     "       <symbolic-run-options>: [--symbolic-fs <fs>] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities]\n"^^
+     "       <symbolic-run-options>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities] [--print-states DIR]\n"^^
      "       <parsing-options>: [--shell [--external-sources DIR] | --colis]")
     Sys.argv.(0)
 
@@ -107,12 +110,13 @@ let main () =
   | Run ->
      Colis.run ~argument0 ~arguments program
   | RunSymbolic ->
-     let fs_spec = get_symbolic_fs () in
-     Colis.run_symbolic
-       ~prune_init_state:!prune_init_state
-       ~loop_limit:!loop_limit
-       ~fs_spec
-       ~argument0 ~arguments program
+     let config = {
+       Colis.fs_spec = get_symbolic_fs ();
+       prune_init_state = !prune_init_state;
+       loop_limit = !loop_limit;
+       stack_size = !stack_size;
+     } in
+     Colis.run_symbolic config ~argument0 ~arguments program
   | PrintColis ->
      Colis.print_colis program;
   | PrintShell ->
