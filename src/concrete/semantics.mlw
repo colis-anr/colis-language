@@ -798,9 +798,8 @@ module Semantics
 
     | eval_list_expr_cons: forall stk cnf inp ctx sta sta1 sta2 se sp es s b1 l2.
       eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (s, b1)) ->
-      let l1 = split sp s in
       eval_list_expr stk (cnf, inp, ctx, sta1) es (sta2, Some l2) ->
-      let l3 = l1 ++ l2 in
+      let l3 = split sp s ++ l2 in
       eval_list_expr stk (cnf, inp, ctx, sta) (Cons (se, sp) es) (sta2, Some l3)
 
   (** Evaluation of a program. It outputs in a boolean value *)
