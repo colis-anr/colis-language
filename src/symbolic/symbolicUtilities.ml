@@ -485,6 +485,33 @@ let _interp_which_naive (args: string list) : utility =
   | p :: _ ->
      unknown_argument ~msg:"more than one argument" ~name:"which" ~arg:p ()
 
+let interp_test_regular_and_x path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "which '%a': path resolves to a regular executable (overapprox to -f)" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & reg x & (* no way to constraint "x" mode *)
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "which '%a': path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "which '%a': path resolves but not to regular executable)" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & (* no way to constraint no "x" mode *)
+        eq root root'
+      end;
+  ]
+
+
 let rec search_as_which_in_path (path:string list) arg : utility =
   match path with
   | [] ->
@@ -497,7 +524,7 @@ let rec search_as_which_in_path (path:string list) arg : utility =
            end
        ]
   | p :: rem ->
-     let u1 = interp_test_x ~name:"which" (p ^ "/" ^ arg) in
+     let u1 = interp_test_regular_and_x (p ^ "/" ^ arg) in
      let u2 = search_as_which_in_path rem arg in
      fun st ->
      List.flatten
@@ -507,13 +534,13 @@ let rec search_as_which_in_path (path:string list) arg : utility =
 
 let search_as_which (path:string list) arg : utility =
   match Path.from_string arg with
-  | Abs _ -> interp_test_x ~name:"which" arg
+  | Abs _ -> interp_test_regular_and_x arg
   | Rel [] -> assert false
   | Rel [_] -> search_as_which_in_path path arg
   | Rel r ->
      fun st ->
      let a = Path.concat st.filesystem.cwd r in
-     interp_test_x ~name:"which" (Path.to_string a) st
+     interp_test_regular_and_x (Path.to_string a) st
 
 
 let interp_which_full (* envPATH:string *) (args:string list) : utility =
