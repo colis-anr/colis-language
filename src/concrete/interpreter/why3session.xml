@@ -3,7 +3,7 @@
 "http://why3.lri.fr/why3session.dtd">
 <why3session shape_version="5">
 <prover id="0" name="Z3" version="4.6.0" timelimit="1" steplimit="1" memlimit="1000"/>
-<prover id="1" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="62" memlimit="1000"/>
+<prover id="1" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="2" name="CVC4" version="1.6" timelimit="1" steplimit="1" memlimit="1000"/>
 <file proved="true">
 <path name=".."/>
@@ -48,7 +48,7 @@
   <proof prover="2"><result status="valid" time="0.19"/></proof>
   </goal>
   <goal name="VC interp_instruction.5" expl="exceptional postcondition" proved="true">
-  <proof prover="1" steplimit="53"><result status="valid" time="0.14" steps="53"/></proof>
+  <proof prover="1"><result status="valid" time="0.14" steps="53"/></proof>
   </goal>
   <goal name="VC interp_instruction.6" expl="assertion" proved="true">
   <proof prover="2"><result status="valid" time="0.26"/></proof>
@@ -139,13 +139,13 @@
   </transf>
   </goal>
   <goal name="VC interp_instruction.18" expl="postcondition" proved="true">
-  <proof prover="1" timelimit="20" steplimit="22" memlimit="2500"><result status="valid" time="0.18" steps="22"/></proof>
+  <proof prover="1" timelimit="20" memlimit="2500"><result status="valid" time="0.18" steps="22"/></proof>
   </goal>
   <goal name="VC interp_instruction.19" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.20"/></proof>
   </goal>
   <goal name="VC interp_instruction.20" expl="exceptional postcondition" proved="true">
-  <proof prover="1" steplimit="22"><result status="valid" time="0.06" steps="22"/></proof>
+  <proof prover="1"><result status="valid" time="0.06" steps="22"/></proof>
   </goal>
   <goal name="VC interp_instruction.21" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.30"/></proof>
@@ -256,10 +256,10 @@
   <proof prover="2"><result status="valid" time="0.43"/></proof>
   </goal>
   <goal name="VC interp_instruction.57" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="117"><result status="valid" time="0.16" steps="117"/></proof>
+  <proof prover="1"><result status="valid" time="0.16" steps="117"/></proof>
   </goal>
   <goal name="VC interp_instruction.58" expl="exceptional postcondition" proved="true">
-  <proof prover="1" steplimit="114"><result status="valid" time="0.13" steps="114"/></proof>
+  <proof prover="1"><result status="valid" time="0.13" steps="114"/></proof>
   </goal>
   <goal name="VC interp_instruction.59" expl="loop invariant init" proved="true">
   <proof prover="2"><result status="valid" time="0.15"/></proof>
@@ -417,7 +417,7 @@
   <proof prover="2"><result status="valid" time="0.09"/></proof>
   </goal>
   <goal name="VC interp_instruction.69" expl="loop invariant preservation" proved="true">
-  <proof prover="1" steplimit="1072"><result status="valid" time="1.24" steps="1072"/></proof>
+  <proof prover="1"><result status="valid" time="1.24" steps="1072"/></proof>
   </goal>
   <goal name="VC interp_instruction.70" expl="exceptional postcondition" proved="true">
   <transf name="subst_all" proved="true" >
@@ -427,7 +427,7 @@
     <proof prover="2"><result status="valid" time="0.29"/></proof>
     </goal>
     <goal name="VC interp_instruction.70.0.1" expl="apply premises" proved="true">
-    <proof prover="2"><result status="valid" time="0.19"/></proof>
+    <proof prover="2"><result status="valid" time="0.35"/></proof>
     </goal>
    </transf>
    </goal>
