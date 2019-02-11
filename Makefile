@@ -4,7 +4,7 @@ replay-symbolic-proofs=$(patsubst %, replay-symbolic-proof-%, symbolicInterprete
 
 .PHONY: ci build test doc clean install uninstall \
   extract-why3 clean-why3 replay-proofs \
-  $(replay-concrete-proofs) $(replay-symbolic-proofs) \
+  $(replay-concrete-proofs) $(replay-symbolic-proofs)
 
 build: extract-why3
 	dune build @install
