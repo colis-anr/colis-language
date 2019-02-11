@@ -297,25 +297,25 @@ let interp_test_f path_str : utility =
       end;
   ]
 
-let interp_test_x path_str : utility =
+let interp_test_x ?(name="test -x") path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
-      ~descr:(asprintf "test -x %a: path resolves to an executable (overapprox to -e)" Path.pp p)
+      ~descr:(asprintf "%s '%a': path resolves to an executable (overapprox to -e)" name Path.pp p)
       begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & (* no way to constraint "x" mode *)
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "test -x %a: path does not resolve" Path.pp p)
+      ~descr:(asprintf "%s '%a': path does not resolve" name Path.pp p)
       begin
         noresolve root cwd p &
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "test -x %a: path resolves but not to an executable (overapprox to -e)" Path.pp p)
+      ~descr:(asprintf "%s '%a': path resolves but not to an executable (overapprox to -e)" name Path.pp p)
       begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x &  (* no way to constraint no "x" mode *)
@@ -456,7 +456,7 @@ let interp_test ~bracket (args : string list) : utility =
 (*                                   which                                       *)
 (*********************************************************************************)
 
-let interp_which (args: string list) : utility =
+let _interp_which_naive (args: string list) : utility =
   match args with
   | [] ->
      under_specifications @@ fun ~cwd ~root ~root' ->
@@ -485,6 +485,64 @@ let interp_which (args: string list) : utility =
   | p :: _ ->
      unknown_argument ~msg:"more than one argument" ~name:"which" ~arg:p ()
 
+let rec search_as_which_in_path (path:string list) arg : utility =
+  match path with
+  | [] ->
+     under_specifications @@ fun ~cwd:_ ~root ~root' ->
+       [
+         error_case
+           ~descr:(asprintf "which: `%s` not found in PATH" arg)
+           begin
+             eq root root'
+           end
+       ]
+  | p :: rem ->
+     let u1 = interp_test_x ~name:"which" (p ^ "/" ^ arg) in
+     let u2 = search_as_which_in_path rem arg in
+     fun st ->
+     List.flatten
+       (List.map
+          (function (s1,b1) as x -> if b1 then [x] else u2 s1)
+          (u1 st))
+
+let search_as_which (path:string list) arg : utility =
+  match Path.from_string arg with
+  | Abs _ -> interp_test_x ~name:"which" arg
+  | Rel [] -> assert false
+  | Rel [_] -> search_as_which_in_path path arg
+  | Rel r ->
+     fun st ->
+     let a = Path.concat st.filesystem.cwd r in
+     interp_test_x ~name:"which" (Path.to_string a) st
+
+
+let interp_which_full (* envPATH:string *) (args:string list) : utility =
+  match args with
+  | [] ->
+     under_specifications @@ fun ~cwd ~root ~root' ->
+       [
+         error_case
+           ~descr:(asprintf "which without argument (returns 1)")
+           begin
+             eq root root'
+           end
+       ]
+  | ["-a"] ->
+     unknown_argument ~msg:"option `-a`" ~name:"which" ~arg:"-a" ()
+  | _ ->
+     (* FIXME     let path = String.split_on_char ':' envPATH in *)
+     let path = [ "/usr/sbin" ; "/usr/bin" ; "/sbin" ; "/bin" (* ; "/usr/games" *) ] in
+     let rec aux args =
+       match args with
+       | [] -> assert false
+       | [a] -> search_as_which path a
+       | a :: rem ->
+          interp_test_and (search_as_which path a) (aux rem)
+     in
+     aux args
+
+
+
 (*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)
 (*********************************************************************************)
@@ -498,5 +556,5 @@ let interp (name: string) : args -> utility =
   | "[" -> interp_test ~bracket:true
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
-  | "which" -> interp_which
+  | "which" -> interp_which_full
   | _ -> fun _args -> unknown_utility ~name ()
