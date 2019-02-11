@@ -1,10 +1,10 @@
 open Constraints
-open SymbolicInterpreter__State
 open Semantics__Buffers
+open SymbolicInterpreter__State
 
 (** A utility transforms a symbolic states into a list of symbol states with boolean
    results *)
-type utility = state -> (state * bool) list
+type utility = state -> (bool state_result) list
 
 (** A case in the specification is either a success or an error *)
 type case
@@ -13,10 +13,10 @@ type case
 val success_case: descr:string -> ?stdout:Stdout.t -> Clause.t -> case
 
 (** An error case **)
-val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Clause.t -> case
+val error_case: descr:string -> ?stdout:Stdout.t -> Clause.t -> case
 
-(** A singleton error case with optional error message *)
-val failure: ?error_message:string -> unit -> case list
+(** A failure case **)
+val failure_case: descr:string -> ?stdout:Stdout.t -> Clause.t -> case
 
 (** The specifications of a utility are a list of cases that depend on the current working
    directory, the old root variable, and a new root variable *)

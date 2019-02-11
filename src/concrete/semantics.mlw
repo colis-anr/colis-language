@@ -248,6 +248,13 @@ module AbstractState
     stdin: stdin;
     stdout: stdout;
   }
+
+  (** `Result` represents a valid result in CoLiS, and `Incomplete` represents an
+      incompleteness of the CoLiS interpreter. *)
+  type result 'a = Result 'a | Incomplete
+
+  (** Many functions return combinations of a state with a result. *)
+  type state_result 'a = (state, result 'a)
 end
 
 module Filesystem
@@ -424,8 +431,7 @@ module Semantics
 
       It acts upon the input and irreversable state, and returns a stdout, a behaviour
       (True/False), and another irreversable state, see also NOTES[Callees] *)
-  val function interp_utility state identifier (list string) :
-    (state, bool)
+  val function interp_utility state identifier (list string) : state_result bool
 
   axiom interp_utility_extends_output : forall sta sta' name args b.
     interp_utility {sta with stdout=Stdout.empty} name args = (sta', b) ->
@@ -566,10 +572,17 @@ module Semantics
   | eval_call_utility: forall stk cnf inp ctx sta sta' sta'' id es ss b.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
     (* Utilities don’t increase the stack, as long they do not generate instructions *)
-    (sta'', b) = interp_utility sta' id ss ->
+    (sta'', Result b) = interp_utility sta' id ss ->
     let ctx' = with_result b ctx in
     let bhv = behaviour inp ctx'.result in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)
+  
+  | eval_call_utility_failure: forall stk cnf inp ctx sta sta' sta'' id es ss.
+    eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
+    (* Utilities don’t increase the stack, as long they do not generate instructions *)
+    (sta'', Incomplete) = interp_utility sta' id ss ->
+    let ctx' = ctx in
+    eval_instruction stk (cnf, inp, ctx, sta) (ICallUtility id es) (sta'', ctx', BFailure)
 
   | eval_call_function_args_failure: forall stk cnf inp ctx sta sta1 id es.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, None) ->
@@ -780,12 +793,12 @@ module Semantics
     | eval_list_expr_nil: forall stk cnf inp ctx sta.
       eval_list_expr stk (cnf, inp, ctx, sta) Nil (sta, Some Nil)
 
-    (* Failure in the head string expression *)
+    (* Incomplete in the head string expression *)
     | eval_list_expr_failure_head: forall stk cnf inp ctx sta sta1 se sp es.
       eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, None) ->
       eval_list_expr stk (cnf, inp, ctx, sta) (Cons (se, sp) es) (sta1, None)
 
-    (* Failure in some tail string expression *)
+    (* Incomplete in some tail string expression *)
     | eval_list_expr_failure_tail: forall stk cnf inp ctx sta sta1 sta2 se sp es s b1.
       eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (s, b1)) ->
       eval_list_expr stk (cnf, inp, ctx, sta1) es (sta2, None) ->

@@ -2,7 +2,6 @@ open Format
 open Constraints
 open Clause
 open UtilitiesSpecification
-open Semantics__Buffers
 open SymbolicInterpreter__State
 
 type env = (string * string) list
@@ -21,32 +20,38 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
     | Some (_, (Here|Up)) ->
       None (* We can’t know (if last component in parent path is a symbolic link) *)
 
-(** Error utility with optional message *)
-let error ?msg () : utility =
-  fun sta ->
-    let sta' =
-      match msg with
-      | Some msg ->
-        let str = "[ERR] "^msg in
-        let stdout = Stdout.(output str sta.stdout |> newline) in
-        {sta with stdout}
-      | None -> sta
-    in
-    [ sta', false ]
-
 (** Wrapper around [error] in case of unknown utility. *)
-let unknown_utility ?(msg="Unknown utility") ~name () =
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedUtility (name, msg))
-  else
-    error ~msg:(msg ^ ": " ^ name) ()
+let unknown_utility name =
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' -> [
+    let descr = sprintf "Utility %s not found" name in
+    error_case ~descr Clause.(eq root root')
+  ]
 
 (** Wrapper around [error] in case of unknown argument. *)
-let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedArgument (name, msg, arg))
-  else
-    error ~msg:(msg ^ ": " ^ arg) ()
+let unknown_argument name arg =
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' -> [
+    let descr = sprintf "Invalid argument for utility %s: %s" name arg in
+    error_case ~descr Clause.(eq root root')
+  ]
+
+(** Wrapper around [error] in case of known but unimplemented utility. *)
+let unimplemented_utility name =
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' -> [
+    let descr = sprintf "Utility %s not implemented" name in
+    failure_case ~descr Clause.(eq root root')
+  ]
+
+(** Wrapper around [error] in case of known but unimplemented argument. *)
+let unimplemented_argument name arg =
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' -> [
+    let descr = sprintf "Argument for utility %s not implemented: %s" name arg in
+    failure_case ~descr Clause.(eq root root')
+  ]
+
+let error_utility ~descr ?stdout () =
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' -> [
+    error_case ~descr ?stdout Clause.(eq root root')
+  ]
 
 (*********************************************************************************)
 (*                                     true/false                                *)
@@ -57,11 +62,11 @@ let return result : utility =
 
 let interp_true : env -> args -> utility =
   fun _ _ ->
-    return true
+    return (Result true)
 
 let interp_false : env -> args -> utility =
   fun _ _ ->
-    return false
+    return (Result false)
 
 (*********************************************************************************)
 (*                                        echo                                   *)
@@ -73,7 +78,7 @@ let interp_echo : env -> args -> utility =
     let open SymbolicInterpreter__State in
     let str = String.concat " " args in
     let stdout = Stdout.(output str sta.stdout |> newline) in
-    [ {sta with stdout}, true ]
+    [ {sta with stdout}, Result true ]
 
 (*********************************************************************************)
 (*                                        touch                                  *)
@@ -84,7 +89,7 @@ let interp_touch1 path_str : utility =
   let p = Path.from_string path_str in
   match Path.split_last p with
   | None -> (* `touch ''` *)
-    failure ~error_message:"cannot touch '': No such file or directory" ()
+    [error_case ~descr:"cannot touch '': No such file or directory" Clause.(eq root root')]
   | Some (q, comp) ->
     let common_cases =
       let hint = last_comp_as_hint ~root p in [
@@ -138,7 +143,7 @@ let interp_touch1 path_str : utility =
 let interp_touch : env -> args -> utility =
   fun _ -> function
   | [arg] -> interp_touch1 arg
-  | _ -> unknown_argument ~msg:"multiple arguments"  ~name:"touch" ~arg:"" ()
+  | _ -> unimplemented_utility "touch with multiple arguments"
 
 (*********************************************************************************)
 (*                                        mkdir                                  *)
@@ -149,9 +154,9 @@ let interp_mkdir1 path_str : utility =
   let p = Path.from_string path_str in
   match Path.split_last p with
   | None ->
-    failure ~error_message:"mkdir: cannot create directory ''" ()
+    [error_case ~descr:"mkdir: cannot create directory ''" Clause.(eq root root')]
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"mkdir: file exists" () (* CHECK *)
+    [error_case ~descr:"mkdir: file exists" Clause.(eq root root') (* CHECK *)]
   | Some (q, Down f) ->
     let hintx = last_comp_as_hint ~root q in
     let hinty = Feat.to_string f in [
@@ -197,9 +202,9 @@ let interp_mkdir1 path_str : utility =
 
 let interp_mkdir : env -> args -> utility =
   fun _ -> function
-  | [] -> error ~msg:"mkdir: missing operand" ()
+  | [] -> error_utility ~descr:"mkdir: missing operand" ()
   | [arg] -> interp_mkdir1 arg
-  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"mkdir" ~arg:"" ()
+  | _ -> unimplemented_utility "mkdir with multiple arguments"
 
 (*********************************************************************************)
 (*                                        test                                   *)
@@ -401,49 +406,70 @@ let interp_test_string_notequal s1 s2 : utility =
     ]
 
 let interp_test_neg (u:utility) : utility = fun st ->
-  List.map (fun (s,b) -> (s, not b)) (u st)
+  List.map
+    (function
+      | (s, Result b) -> (s, Result (not b))
+      | (s,Incomplete) -> (s,Incomplete))
+    (u st)
 
 let interp_test_and (u1:utility) (u2:utility) : utility = fun st ->
   List.flatten
     (List.map
-       (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 && b2)) (u2 s1))
+       (function
+         | (s1,Result b1) ->
+           List.map
+             (function
+               | (s2, Result b2) -> s2, Result (b1 && b2)
+               | (s2, Incomplete) -> s2, Incomplete)
+             (u2 s1)
+         | (s1, Incomplete) -> [s1, Incomplete])
        (u1 st))
 
 let interp_test_or (u1:utility) (u2:utility) : utility = fun st ->
   List.flatten
     (List.map
-       (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 || b2)) (u2 s1))
+       (function
+         | (s1, Result b1) ->
+           List.map
+             (function
+               | (s2, Result b2) -> s2, Result (b1 || b2)
+               | (s2, Incomplete) -> s2, Incomplete)
+             (u2 s1)
+         | (s1, Incomplete) -> [s1, Incomplete])
        (u1 st))
+
+let test_known_unary_operators = ["-b"; "-c"; "-d"; "-e"; "-f"; "-g"; "-h"; "-L"; "-n"; "-p"; "-r"; "-S"; "-s"; "-t"; "-u"; "-w"; "-x"; "-z"]
+let test_known_binary_operators = ["=="; "!="; "-e"; "-n"; "-g"; "-g"; "-l"; "-l"]
 
 let rec interp_test_expr e : utility =
   let name = "test" in
-  let msg what = "unsupported " ^ what in
   Morsmall_utilities.TestParser.(
   match e with
+  | And(e1,e2) ->
+    interp_test_and (interp_test_expr e1) (interp_test_expr e2)
+  | Or(e1,e2) ->
+    interp_test_or (interp_test_expr e1) (interp_test_expr e2)
+  | Not(e1) -> interp_test_neg (interp_test_expr e1)
   | Unary("-e",arg) -> interp_test_e arg
   | Unary("-d",arg) -> interp_test_d arg
   | Unary("-f",arg) -> interp_test_f arg
   | Unary("-x",arg) -> interp_test_x arg
   | Unary("-n",arg) -> interp_test_n arg
   | Unary("-z",arg) -> interp_test_z arg
+  | Unary(op, _) ->
+    if List.mem op test_known_unary_operators then
+      unimplemented_argument "test (unary operator)" op
+    else
+      unknown_argument "test (unary operator)" op
   | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
   | Binary ("!=",a1,a2) -> interp_test_string_notequal a1 a2
-  | Unary(op,_) ->
-     let msg = msg "unary operator" in
-     unknown_argument ~msg ~name ~arg:op ()
-  | And(e1,e2) ->
-     interp_test_and (interp_test_expr e1) (interp_test_expr e2)
-  | Or(e1,e2) ->
-     interp_test_or (interp_test_expr e1) (interp_test_expr e2)
-  | Not(e1) -> interp_test_neg (interp_test_expr e1)
   | Binary (op,_e1,_e2) ->
-     let msg = msg "binary operator" in
-     unknown_argument ~msg ~name ~arg:op ()
+    if  List.mem op test_known_binary_operators then
+      unimplemented_argument name op
+    else
+      unknown_argument name op
   | Single arg ->
-     let msg = msg "single argument" in
-     unknown_argument ~msg ~name ~arg ()
+     unimplemented_argument "test (single argument)" ""
   )
 
 let interp_test ~bracket _env (args : string list) : utility =
@@ -466,4 +492,10 @@ let interp (name: string) : env -> args -> utility =
   | "[" -> interp_test ~bracket:true
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
-  | _ -> fun _env _args -> unknown_utility ~name ()
+  | _ ->
+    fun _ _ ->
+      if List.mem name Utilities.known_utilities then
+        unimplemented_utility name
+      else
+        unknown_utility name
+

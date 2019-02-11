@@ -117,19 +117,25 @@ module Interpreter
 
   let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
     returns { () -> 
-      interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      interp_utility (old state sta) id args = (state sta, S.Result !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
     raises { EExit -> 
-      interp_utility (old state sta) id args = (state sta, !(sta.result)) /\
+      interp_utility (old state sta) id args = (state sta, S.Result !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
-  = let sta', b = interp_utility (state sta) id args in
-    sta.filesystem := sta'.S.filesystem;
+    raises { EFailure -> true }
+  = let sta', res = interp_utility (state sta) id args in
     sta.stdin := sta'.S.stdin;
     sta.stdout := sta'.S.stdout;
-    sta.result := b;
-    maybe_exit inp sta
+    match res with
+    | S.Ok b ->
+      sta.filesystem := sta'.S.filesystem;
+      sta.result := b;
+      maybe_exit inp sta
+    | S.Failure ->
+      raise EFailure
+    end
 
   use semantics.Arguments
 
@@ -182,6 +188,7 @@ module Interpreter
       eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
         ins (state sta, context sta, BExit)
     }
+    raises { EFailure -> true }
   = label L in match ins with
 
     | IExit code ->
@@ -370,6 +377,7 @@ module Interpreter
       eval_str_expr 0 b (cnf, inp, context (old sta), state (old sta))
         se (state sta, Some (s, b'))
     }
+    raises { EFailure -> true }
   = match se with
 
     | SLiteral s ->
@@ -412,6 +420,7 @@ module Interpreter
       eval_list_expr 0 (cnf, inp, context (old sta), state (old sta))
         le (state sta, Some ss)
     }
+    raises { EFailure -> true }
   = match le with
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
@@ -429,6 +438,7 @@ module Interpreter
       eval_program (cnf, inp, context (old sta), state (old sta))
         pro (state sta, Some !(sta.result))
     }
+    raises { EFailure -> true }
   = try
       let fenv = interp_function_definitions sta.func_env pro.function_definitions in
       interp_instruction inp { sta with func_env = fenv } pro.instruction

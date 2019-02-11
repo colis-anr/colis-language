@@ -103,9 +103,15 @@ let run ~argument0 ?(arguments=[]) colis =
   let input = { Input.empty with argument0 } in
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
-  Interpreter.interp_program input state colis;
+  let code =
+    try
+      Interpreter.interp_program input state colis;
+      if !(state.result) then 0 else 1
+    with Interpreter.EFailure ->
+      10
+  in
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
-  exit (if !(state.result) then 0 else 1)
+  exit code
 
 let print_symbolic_filesystem fmt fs =
   let open Constraints in
