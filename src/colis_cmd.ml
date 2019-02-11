@@ -88,7 +88,7 @@ let speclist =
     "--stack-size",                Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
     "--print-states",              String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
-    "--",                          Rest add_argument,             "ARG... Pass all further arguments directory to the CoLiS interpreter";
+    "--",                          Rest add_argument,             "ARG... Pass all further arguments directly to the CoLiS interpreter";
   ]
 
 let usage =
