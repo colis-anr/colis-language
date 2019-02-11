@@ -103,18 +103,19 @@ let colis_to_file filename colis =
 
 (* Interpret *)
 
-let mk_concrete_var_env =
-  let open Concrete.Env in
+let mk_var_env =
+  let open Semantics.Env in
   List.fold_left
-    (fun env (var, val_) -> update env var val_)
+    (fun env (var, val_) -> mixfix_lblsmnrb env var val_)
     (empty_env "")
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
+  let open Semantics in
   let open Concrete in
   let input = { Input.empty with argument0 } in
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
-  state.var_env := mk_concrete_var_env vars;
+  state.var_env := mk_var_env vars;
   Interpreter.interp_program input state colis;
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
@@ -168,10 +169,8 @@ type symbolic_config = {
   stack_size: int;
 }
 
-let mk_symbolic_var_env vars =
-  BatMap.of_enum (BatList.enum vars)
-
 let run_symbolic config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
+  let open Semantics in
   let open Symbolic in
   let clause_to_state root clause =
     let cwd = Constraints.Path.Abs [] in
@@ -186,7 +185,7 @@ let run_symbolic config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
     let loop_limit = Z.of_int config.loop_limit in
     let stack_size = Z.of_int config.stack_size in
     let ctx =
-      let var_env = mk_symbolic_var_env vars in
+      let var_env = mk_var_env vars in
       { Context.empty_context with arguments; var_env } in
     sta, Interpreter.interp_program loop_limit stack_size inp ctx sta colis
   in

@@ -11,6 +11,9 @@ module Env
   let function empty_env default =
     fun _ -> default (* Cannot use map.Const because Map__Const is not extracted... *)
 
+  let function ([]) (e:env 'a) (id:identifier) : 'a =
+    Map.(e[id])
+
   let function ([<-]) (e:env 'a) (id:identifier) (value:'a) : identifier -> 'a
     ensures { result[id] = value }
     ensures { forall id'. id' <> id -> result[id'] = e[id'] }
@@ -300,6 +303,13 @@ module Context
     arguments = Nil;
     result = True;
   }
+
+  let function with_result (res:bool) (ctx:context) : context =
+    ensures { result.var_env = ctx.var_env }
+    ensures { result.func_env = ctx.func_env }
+    ensures { result.arguments = ctx.arguments }
+    ensures { result.result = res }
+    { ctx with result = res }
 end
 
 (** {2 Argument lists} *)
@@ -410,13 +420,6 @@ module Semantics
   = if andb (strict inp.under_condition) (notb result)
     then BExit
     else BNormal
-
-  let function with_result ret ctx =
-    ensures { result.result = ret }
-    ensures { result.var_env = ctx.var_env }
-    ensures { result.func_env = ctx.func_env }
-    ensures { result.arguments = ctx.arguments }
-    { ctx with result = ret }
 
   (** {3 Specification of the semantics} *)
 
@@ -732,9 +735,11 @@ module Semantics
     eval_str_expr stk b (cnf, inp, ctx, sta) (SLiteral str) (sta, res)
 
   | eval_str_variable: forall stk cnf b inp ctx sta id.
-    let str = ctx.var_env[id] in
-    let res = Some (str, b) in
-    eval_str_expr stk b (cnf, inp, ctx, sta) (SVariable id) (sta, res)
+    let res =
+      let str = ctx.var_env[id] in
+      Some (str, b) in
+    let sta' = sta in
+    eval_str_expr stk b (cnf, inp, ctx, sta) (SVariable id) (sta', res)
 
   | eval_str_arg: forall stk cnf b inp ctx sta n.
     let str = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
