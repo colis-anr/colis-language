@@ -107,7 +107,7 @@ let run ~argument0 ?(arguments=[]) colis =
     try
       Interpreter.interp_program input state colis;
       if !(state.result) then 0 else 1
-    with Interpreter.EFailure ->
+    with Interpreter.EIncomplete ->
       10
   in
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");

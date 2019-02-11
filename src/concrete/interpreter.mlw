@@ -101,7 +101,7 @@ module Interpreter
 
   exception EExit
   exception EReturn
-  exception EFailure
+  exception EIncomplete
 
   let maybe_exit (inp:input) (sta:state) : unit
     returns { () ->
@@ -124,17 +124,17 @@ module Interpreter
       interp_utility (old state sta) id args = (state sta, S.Result !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
-    raises { EFailure -> true }
+    raises { EIncomplete -> true }
   = let sta', res = interp_utility (state sta) id args in
     sta.stdin := sta'.S.stdin;
     sta.stdout := sta'.S.stdout;
     match res with
-    | S.Ok b ->
+    | S.Result b ->
       sta.filesystem := sta'.S.filesystem;
       sta.result := b;
       maybe_exit inp sta
-    | S.Failure ->
-      raise EFailure
+    | S.Incomplete ->
+      raise EIncomplete
     end
 
   use semantics.Arguments
@@ -188,7 +188,7 @@ module Interpreter
       eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
         ins (state sta, context sta, BExit)
     }
-    raises { EFailure -> true }
+    raises { EIncomplete -> true }
   = label L in match ins with
 
     | IExit code ->
@@ -375,9 +375,9 @@ module Interpreter
     ensures { context sta = context (old sta) }
     returns { s, b' ->
       eval_str_expr 0 b (cnf, inp, context (old sta), state (old sta))
-        se (state sta, Some (s, b'))
+        se (state sta, S.Result (s, b'))
     }
-    raises { EFailure -> true }
+    raises { EIncomplete -> true }
   = match se with
 
     | SLiteral s ->
@@ -407,9 +407,9 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr 0 b (cnf, inp, context sta, state sta at L1) se1 (state sta, Some (s1, b1)) };
+      assert { eval_str_expr 0 b (cnf, inp, context sta, state sta at L1) se1 (state sta, S.Result (s1, b1)) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr 0 b1 (cnf, inp, context sta, state sta at L2) se2 (state sta, Some (s2, b2)) };
+      assert { eval_str_expr 0 b1 (cnf, inp, context sta, state sta at L2) se2 (state sta, S.Result (s2, b2)) };
       s1^s2, b2
     end
 
@@ -418,9 +418,9 @@ module Interpreter
     ensures { context sta = context (old sta) }
     returns { ss ->
       eval_list_expr 0 (cnf, inp, context (old sta), state (old sta))
-        le (state sta, Some ss)
+        le (state sta, S.Result ss)
     }
-    raises { EFailure -> true }
+    raises { EIncomplete -> true }
   = match le with
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
@@ -438,7 +438,7 @@ module Interpreter
       eval_program (cnf, inp, context (old sta), state (old sta))
         pro (state sta, Some !(sta.result))
     }
-    raises { EFailure -> true }
+    raises { EIncomplete -> true }
   = try
       let fenv = interp_function_definitions sta.func_env pro.function_definitions in
       interp_instruction inp { sta with func_env = fenv } pro.instruction
