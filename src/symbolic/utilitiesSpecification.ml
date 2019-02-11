@@ -29,20 +29,20 @@ type case = {
   result : bool;
   spec : Clause.t;
   descr : string;
-  output : string ;
+  stdout : Stdout.t ;
   error_message: string option;
 }
 
-let success_case ~descr ?(output="") spec =
-  { result = true ; error_message = None ; output ; descr; spec }
+let success_case ~descr ?(stdout=Stdout.empty) spec =
+  { result = true ; error_message = None ; stdout ; descr; spec }
 
-let error_case ~descr ?(output="") ?error_message spec =
-  { result = false ; error_message ; output ; descr ; spec }
+let error_case ~descr ?(stdout=Stdout.empty) ?error_message spec =
+  { result = false ; error_message ; stdout ; descr ; spec }
 
 let failure ?error_message () =
   [{ result = false ;
      descr = "" ;
-     output = "" ;
+     stdout = Stdout.empty ;
      error_message ;
      spec = Clause.true_ }]
 
@@ -52,8 +52,8 @@ let quantify_over_intermediate_root state conj =
   else
     Clause.quantify_over state.filesystem.root conj
 
-let apply_output_to_state state str =
-  { state with stdout = Stdout.(output str state.stdout ) }
+let apply_output_to_state (state : state) stdout =
+  { state with stdout = Stdout.concat state.stdout stdout }
 
 (* Create the corresponding filesystem, update the state and create corresponding
     result **)
@@ -67,7 +67,7 @@ let apply_clause_to_state state case root clause =
   state', case.result
 
 let apply_case_to_state state root case : (state * bool) list =
-  let state = apply_output_to_state state case.output in
+  let state = apply_output_to_state state case.stdout in
   (* Add the case specification to the current clause *)
   Clause.add_to_sat_conj case.spec state.filesystem.clause
   |> List.map (quantify_over_intermediate_root state)
