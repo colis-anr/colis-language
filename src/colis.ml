@@ -11,7 +11,7 @@ module Language = struct
   module FromShell = FromShell
 end
 
-module Concrete = struct
+module Semantics = struct
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
   module Stdin = Semantics__Buffers.Stdin
@@ -23,12 +23,14 @@ module Concrete = struct
   end
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
+end
+
+module Concrete = struct
   module Filesystem = Interpreter__Filesystem
   module Interpreter = Interpreter__Interpreter
 end
 
 module Symbolic = struct
-  module Context = SymbolicInterpreter__Context
   module Filesystem = SymbolicInterpreter__Filesystem
   module FilesystemSpec = FilesystemSpec
   module State = SymbolicInterpreter__State
@@ -152,7 +154,7 @@ let print_symbolic_state fmt ?id sta =
       (List.rev sta.stdin)
   end;
   (* Print stdout *)
-  if not (Concrete.Stdout.is_empty sta.stdout) then begin
+  if not (Semantics.Stdout.is_empty sta.stdout) then begin
     fprintf fmt "stdout: |@\n";
     List.iter (fprintf fmt "  %s@\n")
       (List.rev @@ sta.stdout.lines);
@@ -175,12 +177,12 @@ let run_symbolic config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
     let cwd = Constraints.Path.Abs [] in
     let root0 = if config.prune_init_state then None else Some root in
     let filesystem = {Filesystem.clause; cwd; root; root0} in
-    let stdin = Concrete.Stdin.empty in
-    let stdout = Concrete.Stdout.empty in
+    let stdin = Stdin.empty in
+    let stdout = Stdout.empty in
     {State.filesystem; stdin; stdout}
   in
   let run_in_state sta =
-    let inp = { Concrete.Input.empty with argument0 } in
+    let inp = { Input.empty with argument0 } in
     let loop_limit = Z.of_int config.loop_limit in
     let stack_size = Z.of_int config.stack_size in
     let ctx =
