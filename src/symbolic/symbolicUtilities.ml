@@ -5,6 +5,7 @@ open UtilitiesSpecification
 open Semantics__Buffers
 open SymbolicInterpreter__State
 
+type env = (string * string) list
 type args = string list
 
 (** Get the name of the last path component, if any, or of the hint root variable
@@ -54,20 +55,20 @@ let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
 let return result : utility =
   fun sta -> [sta, result]
 
-let interp_true: args -> utility =
-  fun _ ->
+let interp_true : env -> args -> utility =
+  fun _ _ ->
     return true
 
-let interp_false: args -> utility =
-  fun _ ->
+let interp_false : env -> args -> utility =
+  fun _ _ ->
     return false
 
 (*********************************************************************************)
 (*                                        echo                                   *)
 (*********************************************************************************)
 
-let interp_echo: args -> utility =
-  fun args sta ->
+let interp_echo : env -> args -> utility =
+  fun _ args sta ->
     let open Semantics__Buffers in
     let open SymbolicInterpreter__State in
     let str = String.concat " " args in
@@ -134,8 +135,8 @@ let interp_touch1 path_str : utility =
     | Down f ->
       common_cases @ feature_cases f
 
-let interp_touch: args -> utility =
-  function
+let interp_touch : env -> args -> utility =
+  fun _ -> function
   | [arg] -> interp_touch1 arg
   | _ -> unknown_argument ~msg:"multiple arguments"  ~name:"touch" ~arg:"" ()
 
@@ -194,8 +195,8 @@ let interp_mkdir1 path_str : utility =
         end;
     ]
 
-let interp_mkdir: args -> utility =
-  function
+let interp_mkdir : env -> args -> utility =
+  fun _ -> function
   | [] -> error ~msg:"mkdir: missing operand" ()
   | [arg] -> interp_mkdir1 arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"mkdir" ~arg:"" ()
@@ -324,7 +325,7 @@ let interp_test_x path_str : utility =
   ]
 
 let interp_test_n str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
   if str = "" then
     [
       error_case
@@ -343,7 +344,7 @@ let interp_test_n str : utility =
     ]
 
 let interp_test_z str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
   if str = "" then
     [
       success_case
@@ -362,7 +363,7 @@ let interp_test_z str : utility =
     ]
 
 let interp_test_string_equal s1 s2 : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+  under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
   if s1 = s2 then
     [
       success_case
@@ -445,7 +446,7 @@ let rec interp_test_expr e : utility =
      unknown_argument ~msg ~name ~arg ()
   )
 
-let interp_test ~bracket (args : string list) : utility =
+let interp_test ~bracket _env (args : string list) : utility =
   match Morsmall_utilities.TestParser.parse ~bracket args with
   | None -> interp_test_empty ()
   | Some e -> interp_test_expr e
@@ -456,7 +457,7 @@ let interp_test ~bracket (args : string list) : utility =
 (*                         Dispatch interpretation of utilities                  *)
 (*********************************************************************************)
 
-let interp (name: string) : args -> utility =
+let interp (name: string) : env -> args -> utility =
   match name with
   | "true" -> interp_true
   | "false" -> interp_false
@@ -465,4 +466,4 @@ let interp (name: string) : args -> utility =
   | "[" -> interp_test ~bracket:true
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
-  | _ -> fun _args -> unknown_utility ~name ()
+  | _ -> fun _env _args -> unknown_utility ~name ()
