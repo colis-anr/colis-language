@@ -11,7 +11,7 @@ module Language: sig
   module FromShell = FromShell
 end
 
-module Concrete: sig
+module Semantics: sig
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
   module Context = Semantics__Context
@@ -20,12 +20,14 @@ module Concrete: sig
   module Env = Semantics__Env
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
+end
+
+module Concrete: sig
   module Filesystem = Interpreter__Filesystem
   module Interpreter = Interpreter__Interpreter
 end
 
 module Symbolic: sig
-  module Context = SymbolicInterpreter__Context
   module Filesystem = SymbolicInterpreter__Filesystem
   module FilesystemSpec = FilesystemSpec
   module State = SymbolicInterpreter__State

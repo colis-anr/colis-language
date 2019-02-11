@@ -11,7 +11,7 @@ module Language = struct
   module FromShell = FromShell
 end
 
-module Concrete = struct
+module Semantics = struct
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
   module Stdin = Semantics__Buffers.Stdin
@@ -20,12 +20,14 @@ module Concrete = struct
   module Env = Semantics__Env
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
+end
+
+module Concrete = struct
   module Filesystem = Interpreter__Filesystem
   module Interpreter = Interpreter__Interpreter
 end
 
 module Symbolic = struct
-  module Context = SymbolicInterpreter__Context
   module Filesystem = SymbolicInterpreter__Filesystem
   module FilesystemSpec = FilesystemSpec
   module State = SymbolicInterpreter__State
@@ -99,6 +101,7 @@ let colis_to_file filename colis =
 (* Interpret *)
 
 let run ~argument0 ?(arguments=[]) colis =
+  let open Semantics in
   let open Concrete in
   let input = { Input.empty with argument0 } in
   let state = Interpreter.empty_state () in
@@ -142,7 +145,7 @@ let print_symbolic_state fmt ?id sta =
       (List.rev sta.stdin)
   end;
   (* Print stdout *)
-  if not (Concrete.Stdout.is_empty sta.stdout) then begin
+  if not (Semantics.Stdout.is_empty sta.stdout) then begin
     fprintf fmt "stdout: |@\n";
     List.iter (fprintf fmt "  %s@\n")
       (List.rev @@ sta.stdout.lines);
@@ -150,17 +153,18 @@ let print_symbolic_state fmt ?id sta =
   end
 
 let run_symbolic ~prune_init_state ~loop_limit ~stack_size ~fs_spec ~argument0 ?(arguments=[]) colis =
+  let open Semantics in
   let open Symbolic in
   let clause_to_state root clause =
     let cwd = Constraints.Path.Abs [] in
     let root0 = if prune_init_state then None else Some root in
     let filesystem = {Filesystem.clause; cwd; root; root0} in
-    let stdin = Concrete.Stdin.empty in
-    let stdout = Concrete.Stdout.empty in
+    let stdin = Stdin.empty in
+    let stdout = Stdout.empty in
     {State.filesystem; stdin; stdout}
   in
   let run_in_state sta =
-    let inp = { Concrete.Input.empty with argument0 } in
+    let inp = { Input.empty with argument0 } in
     let ctx = { Context.empty_context with arguments } in
     let loop_limit = Z.of_int loop_limit in
     let stack_size = Z.of_int stack_size in
