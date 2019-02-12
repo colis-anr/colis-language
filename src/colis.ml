@@ -14,13 +14,10 @@ end
 module Semantics = struct
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
+  module Env = Semantics__Env
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
   module Context = Semantics__Context
-  module Env = struct
-    include Semantics__Env
-    let update = mixfix_lblsmnrb
-  end
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
 end
@@ -104,10 +101,10 @@ let colis_to_file filename colis =
 (* Interpret *)
 
 let mk_var_env =
-  let open Semantics.Env in
+  let open Semantics in
   List.fold_left
-    (fun env (var, val_) -> mixfix_lblsmnrb env var val_)
-    (empty_env "")
+    (fun env (id, x) -> Env.set env id x)
+    (Context.empty_var_env)
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Semantics in

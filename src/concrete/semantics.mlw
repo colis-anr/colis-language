@@ -1,28 +1,4 @@
 
-(** {2 Environment (mapping from identifiers)} *)
-
-module Env
-  use map.Map
-  use syntax.Identifier
-  use mystring.String
-  
-  type env 'a = map identifier 'a
-
-  let function empty_env default =
-    fun _ -> default (* Cannot use map.Const because Map__Const is not extracted... *)
-
-  let function ([]) (e:env 'a) (id:identifier) : 'a =
-    Map.(e[id])
-
-  let function ([<-]) (e:env 'a) (id:identifier) (value:'a) : identifier -> 'a
-    ensures { result[id] = value }
-    ensures { forall id'. id' <> id -> result[id'] = e[id'] }
-  = fun id' ->
-      if identifier_eq id' id
-      then value
-      else e id'
-end
-
 (** {2 Behaviour of a CoLiS instruction} *)
 
 module Behaviour
@@ -264,16 +240,39 @@ module State
     with type filesystem = F.filesystem
 end
 
+module Env
+  use syntax.Identifier
+  use map.Map as M
+
+  type env 'a = abstract { model : M.map identifier 'a }
+
+  val function empty_env (default:'a) : env 'a
+    ensures { forall id. M.(result.model[id] = default) }
+
+  val function ([]) (env:env 'a) (id:identifier) : 'a
+    ensures { result = M.(env.model[id]) }
+
+  let function get (env:env 'a) (id:identifier) : 'a =
+    env[id]
+
+  val function ([<-]) (env:env 'a) (id:identifier) (v:'a) : env 'a
+    ensures { result.model = M.(env.model[id <- v]) }
+
+  let function set (env:env 'a) (id:identifier) (v:'a) : env 'a =
+    env[id <- v]
+end
+
 module Context
 
   use option.Option
+  use map.Map as M
   use list.List
 
   use mystring.String
   use syntax.Syntax
+  use export Env
 
   use Buffers
-  use Env
 
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
       subprocesses) *)
@@ -282,13 +281,13 @@ module Context
   type var_env = env string
 
   let constant empty_var_env : var_env =
-    fun _ -> String.empty
+    empty_env String.empty
 
   (** A function environment *)
   type func_env = env (option instruction)
 
   let constant empty_func_env : func_env =
-    fun _ -> None
+    empty_env None
 
   type context = {
     var_env: var_env;
@@ -384,7 +383,6 @@ module Semantics
   use list.List
   use list.Append
   use option.Option
-  use map.Map
   use bool.Bool
 
   use mystring.String
@@ -580,21 +578,21 @@ module Semantics
 
   | eval_call_function_not_found: forall stk cnf inp ctx sta sta' id es ss.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta', ss) ->
-    ctx.func_env id = None ->
+    ctx.func_env[id] = None ->
     let ctx' = with_result False ctx in
     let bhv = behaviour inp ctx'.result in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta', ctx', bhv)
 
   | eval_call_function_stack_limit: forall stk cnf inp ctx sta sta1 id es args ins.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) ->
-    ctx.func_env id = Some ins ->
+    ctx.func_env[id] = Some ins ->
     match cnf.stack_size with Some n -> n = stk | None -> false end ->
     let ctx' = ctx in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta1, ctx', BFailure)
 
   | eval_call_function_failure: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) ->
-    ctx.func_env id = Some ins ->
+    ctx.func_env[id] = Some ins ->
     let inp1 = { inp with argument0 = identifier_to_string id } in
     let ctx1 = { ctx with arguments = args } in
     match cnf.stack_size with Some n -> n <> stk | None -> true end ->
@@ -605,7 +603,7 @@ module Semantics
   | eval_call_function: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
     bhv <> BFailure ->
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) ->
-    ctx.func_env id = Some ins ->
+    ctx.func_env[id] = Some ins ->
     match cnf.stack_size with Some n -> n <> stk | None -> true end ->
     let inp1 = { inp with argument0 = identifier_to_string id } in
     let ctx1 = { ctx with arguments = args } in
@@ -835,7 +833,7 @@ module Semantics
   = match defs with
     | Nil -> fenv
     | Cons (id, instr) defs' ->
-      interp_function_definitions Env.(fenv[id <- Some instr])  defs'
+      interp_function_definitions (fenv[id <- Some instr])  defs'
     end
 
   (** Evaluation of a CoLis program.

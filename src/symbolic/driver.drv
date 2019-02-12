@@ -6,7 +6,7 @@ module symbolicInterpreter.Constraints
 end
 
 module symbolicInterpreter.Interpreter
-  syntax val interp_utility "BatSet.of_list (SymbolicUtilities.interp %1 (BatMap.bindings %2) %3 %4)"
+  syntax val interp_utility "BatSet.of_list (SymbolicUtilities.interp %1 (IdEnv.bindings (fst %2)) %3 %4)"
 end
 
 module symbolicAuxiliaries.Fset
