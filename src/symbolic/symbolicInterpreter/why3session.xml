@@ -100,25 +100,6 @@
   </goal>
   <goal name="VC separate_options.4" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.31"/></proof>
-  <transf name="destruct_rec" arg1="H2">
-   <goal name="VC separate_options.2.0" expl="postcondition">
-   <proof prover="2"><result status="valid" time="0.25"/></proof>
-   </goal>
-   <goal name="VC separate_options.2.1" expl="postcondition">
-   <transf name="destruct_rec" arg1="H2">
-    <goal name="VC separate_options.2.1.0" expl="postcondition">
-    <transf name="destruct_rec" arg1="H2">
-     <goal name="VC separate_options.2.1.0.0" expl="postcondition">
-     <proof prover="2"><result status="valid" time="0.25"/></proof>
-     </goal>
-     <goal name="VC separate_options.2.1.0.1" expl="postcondition">
-     <proof prover="2"><result status="valid" time="0.44"/></proof>
-     </goal>
-    </transf>
-    </goal>
-   </transf>
-   </goal>
-  </transf>
   </goal>
  </transf>
  </goal>
@@ -128,28 +109,158 @@
  <goal name="VC get_some" expl="VC for get_some" proved="true">
  <proof prover="2"><result status="valid" time="0.10"/></proof>
  </goal>
+ <goal name="VC size_instr" expl="VC for size_instr" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC size_instr.0" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.38"/></proof>
+  </goal>
+  <goal name="VC size_instr.1" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.38"/></proof>
+  </goal>
+  <goal name="VC size_instr.2" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.42"/></proof>
+  </goal>
+  <goal name="VC size_instr.3" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.59"/></proof>
+  </goal>
+  <goal name="VC size_instr.4" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.45"/></proof>
+  </goal>
+  <goal name="VC size_instr.5" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.41"/></proof>
+  </goal>
+  <goal name="VC size_instr.6" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.47"/></proof>
+  </goal>
+  <goal name="VC size_instr.7" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.39"/></proof>
+  </goal>
+  <goal name="VC size_instr.8" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.38"/></proof>
+  </goal>
+  <goal name="VC size_instr.9" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.38"/></proof>
+  </goal>
+  <goal name="VC size_instr.10" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.39"/></proof>
+  </goal>
+  <goal name="VC size_instr.11" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.39"/></proof>
+  </goal>
+  <goal name="VC size_instr.12" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.39"/></proof>
+  </goal>
+  <goal name="VC size_instr.13" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.53"/></proof>
+  </goal>
+  <goal name="VC size_instr.14" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.41"/></proof>
+  </goal>
+  <goal name="VC size_instr.15" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.53"/></proof>
+  </goal>
+  <goal name="VC size_instr.16" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.40"/></proof>
+  </goal>
+  <goal name="VC size_instr.17" expl="postcondition" proved="true">
+  <transf name="split_vc" proved="true" >
+   <goal name="VC size_instr.17.0" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.17"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.1" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.16"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.2" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.17"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.3" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.41"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.4" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.28"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.5" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.27"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.6" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.26"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.7" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.26"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.8" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.33"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.9" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.34"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.10" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.32"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.11" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.27"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.12" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.23"/></proof>
+   </goal>
+   <goal name="VC size_instr.17.13" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.24"/></proof>
+   </goal>
+  </transf>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="VC size_list_expr" expl="VC for size_list_expr" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC size_list_expr.0" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.35"/></proof>
+  </goal>
+  <goal name="VC size_list_expr.1" expl="variant decrease" proved="true">
+  <proof prover="2"><result status="valid" time="0.31"/></proof>
+  </goal>
+  <goal name="VC size_list_expr.2" expl="postcondition" proved="true">
+  <transf name="split_vc" proved="true" >
+   <goal name="VC size_list_expr.2.0" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.14"/></proof>
+   </goal>
+   <goal name="VC size_list_expr.2.1" expl="postcondition" proved="true">
+   <proof prover="2"><result status="valid" time="0.21"/></proof>
+   </goal>
+  </transf>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="VC size_pair" expl="VC for size_pair" proved="true">
+ <proof prover="2"><result status="valid" time="0.18"/></proof>
+ </goal>
+ <goal name="VC size_string_expr" expl="VC for size_string_expr" proved="true">
+ <proof prover="2"><result status="valid" time="0.38"/></proof>
+ </goal>
+ <goal name="VC size_string_expr_list_expr" expl="VC for size_string_expr_list_expr" proved="true">
+ <proof prover="2"><result status="valid" time="0.43"/></proof>
+ </goal>
  <goal name="VC interp_instr" expl="VC for interp_instr">
  <transf name="split_vc" >
   <goal name="VC interp_instr.0" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.34"/></proof>
+  <proof prover="2"><result status="valid" time="0.47"/></proof>
   </goal>
   <goal name="VC interp_instr.1" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.14"/></proof>
+  <proof prover="2"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC interp_instr.2" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instr.3" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.50"/></proof>
+  <proof prover="2"><result status="valid" time="0.58"/></proof>
   </goal>
   <goal name="VC interp_instr.4" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instr.5" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.14"/></proof>
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_instr.6" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.34"/></proof>
+  <proof prover="2"><result status="valid" time="0.56"/></proof>
   </goal>
   <goal name="VC interp_instr.7" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.16"/></proof>
@@ -158,7 +269,7 @@
   <proof prover="2"><result status="valid" time="0.15"/></proof>
   </goal>
   <goal name="VC interp_instr.9" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.47"/></proof>
+  <proof prover="2"><result status="valid" time="0.48"/></proof>
   </goal>
   <goal name="VC interp_instr.10" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.16"/></proof>
@@ -167,7 +278,7 @@
   <proof prover="2"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_instr.12" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.37"/></proof>
+  <proof prover="2"><result status="valid" time="0.61"/></proof>
   </goal>
   <goal name="VC interp_instr.13" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.16"/></proof>
@@ -176,7 +287,7 @@
   <proof prover="2"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_instr.15" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.40"/></proof>
+  <proof prover="2"><result status="valid" time="0.39"/></proof>
   </goal>
   <goal name="VC interp_instr.16" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.17"/></proof>
@@ -185,16 +296,16 @@
   <proof prover="2"><result status="valid" time="0.15"/></proof>
   </goal>
   <goal name="VC interp_instr.18" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.32"/></proof>
+  <proof prover="2"><result status="valid" time="0.42"/></proof>
   </goal>
   <goal name="VC interp_instr.19" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.16"/></proof>
+  <proof prover="2"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC interp_instr.20" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.14"/></proof>
   </goal>
   <goal name="VC interp_instr.21" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.48"/></proof>
+  <proof prover="2"><result status="valid" time="0.58"/></proof>
   </goal>
   <goal name="VC interp_instr.22" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.17"/></proof>
@@ -203,25 +314,25 @@
   <proof prover="2"><result status="valid" time="0.14"/></proof>
   </goal>
   <goal name="VC interp_instr.24" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.47"/></proof>
+  <proof prover="2"><result status="valid" time="0.66"/></proof>
   </goal>
   <goal name="VC interp_instr.25" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.16"/></proof>
+  <proof prover="2"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_instr.26" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.25"/></proof>
   </goal>
   <goal name="VC interp_instr.27" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.41"/></proof>
+  <proof prover="2"><result status="valid" time="0.55"/></proof>
   </goal>
   <goal name="VC interp_instr.28" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.15"/></proof>
+  <proof prover="2"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC interp_instr.29" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.25"/></proof>
   </goal>
   <goal name="VC interp_instr.30" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.39"/></proof>
+  <proof prover="2"><result status="valid" time="0.52"/></proof>
   </goal>
   <goal name="VC interp_instr.31" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.15"/></proof>
@@ -233,13 +344,13 @@
   <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instr.34" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.38"/></proof>
+  <proof prover="2"><result status="valid" time="0.52"/></proof>
   </goal>
   <goal name="VC interp_instr.35" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.20"/></proof>
+  <proof prover="2"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_instr.36" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.14"/></proof>
+  <proof prover="2"><result status="valid" time="0.26"/></proof>
   </goal>
   <goal name="VC interp_instr.37" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.31"/></proof>
@@ -248,37 +359,37 @@
   <proof prover="2"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_instr.39" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.39"/></proof>
+  <proof prover="2"><result status="valid" time="0.53"/></proof>
   </goal>
   <goal name="VC interp_instr.40" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.35"/></proof>
+  <proof prover="2"><result status="valid" time="0.55"/></proof>
   </goal>
   <goal name="VC interp_instr.41" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.15"/></proof>
+  <proof prover="2"><result status="valid" time="0.27"/></proof>
   </goal>
   <goal name="VC interp_instr.42" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.23"/></proof>
   </goal>
   <goal name="VC interp_instr.43" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.45"/></proof>
+  <proof prover="2"><result status="valid" time="0.44"/></proof>
   </goal>
   <goal name="VC interp_instr.44" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.19"/></proof>
   </goal>
   <goal name="VC interp_instr.45" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.15"/></proof>
+  <proof prover="2"><result status="valid" time="0.29"/></proof>
   </goal>
   <goal name="VC interp_instr.46" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.42"/></proof>
+  <proof prover="2"><result status="valid" time="0.58"/></proof>
   </goal>
   <goal name="VC interp_instr.47" expl="variant decrease" proved="true">
   <proof prover="2"><result status="valid" time="0.43"/></proof>
   </goal>
   <goal name="VC interp_instr.48" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.54"/></proof>
+  <proof prover="2"><result status="valid" time="0.41"/></proof>
   </goal>
   <goal name="VC interp_instr.49" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.54"/></proof>
+  <proof prover="2"><result status="valid" time="0.51"/></proof>
   </goal>
   <goal name="VC interp_instr.50" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.14"/></proof>
@@ -287,7 +398,7 @@
   <proof prover="2"><result status="valid" time="0.13"/></proof>
   </goal>
   <goal name="VC interp_instr.52" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.44"/></proof>
+  <proof prover="2"><result status="valid" time="0.49"/></proof>
   </goal>
   <goal name="VC interp_instr.53" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.16"/></proof>
@@ -299,7 +410,7 @@
   <proof prover="2"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="VC interp_instr.56" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.28"/></proof>
+  <proof prover="2"><result status="valid" time="0.44"/></proof>
   </goal>
   <goal name="VC interp_instr.57" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.39"/></proof>
@@ -308,7 +419,7 @@
   <proof prover="2"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="VC interp_instr.59" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.48"/></proof>
+  <proof prover="2"><result status="valid" time="0.38"/></proof>
   </goal>
   <goal name="VC interp_instr.60" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.14"/></proof>
@@ -317,13 +428,13 @@
   <proof prover="2"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="VC interp_instr.62" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.37"/></proof>
+  <proof prover="2"><result status="valid" time="0.56"/></proof>
   </goal>
   <goal name="VC interp_instr.63" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.14"/></proof>
+  <proof prover="2"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC interp_instr.64" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.14"/></proof>
+  <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instr.65" expl="postcondition">
   </goal>
@@ -341,11 +452,7 @@
   <proof prover="2"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instr&#39;.3" expl="assertion" proved="true">
-  <transf name="subst_all" proved="true" >
-   <goal name="VC interp_instr&#39;.3.0" expl="assertion" proved="true">
-   <proof prover="0"><result status="valid" time="0.13" steps="113"/></proof>
-   </goal>
-  </transf>
+  <proof prover="0"><result status="valid" time="0.15" steps="128"/></proof>
   </goal>
   <goal name="VC interp_instr&#39;.4" expl="variant decrease" proved="true">
   <proof prover="2"><result status="valid" time="0.36"/></proof>
@@ -353,19 +460,15 @@
   <goal name="VC interp_instr&#39;.5" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC interp_instr&#39;.5.0" expl="postcondition" proved="true">
-   <proof prover="2"><result status="valid" time="0.24"/></proof>
+   <proof prover="2"><result status="valid" time="0.45"/></proof>
    </goal>
    <goal name="VC interp_instr&#39;.5.1" expl="postcondition" proved="true">
-   <transf name="subst_all" proved="true" >
-    <goal name="VC interp_instr&#39;.5.1.0" expl="postcondition" proved="true">
-    <proof prover="2"><result status="valid" time="0.72"/></proof>
-    </goal>
-   </transf>
+   <proof prover="2"><result status="valid" time="0.65"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instr&#39;.6" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.28"/></proof>
+  <proof prover="2"><result status="valid" time="0.41"/></proof>
   </goal>
  </transf>
  </goal>
@@ -375,10 +478,10 @@
   <proof prover="2"><result status="valid" time="0.43"/></proof>
   </goal>
   <goal name="VC interp_str_expr.1" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.35"/></proof>
+  <proof prover="2"><result status="valid" time="0.36"/></proof>
   </goal>
   <goal name="VC interp_str_expr.2" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.16"/></proof>
+  <proof prover="2"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_str_expr.3" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.26"/></proof>
@@ -387,7 +490,7 @@
   <proof prover="2"><result status="valid" time="0.16"/></proof>
   </goal>
   <goal name="VC interp_str_expr.5" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.34"/></proof>
+  <proof prover="2"><result status="valid" time="0.37"/></proof>
   </goal>
   <goal name="VC interp_str_expr.6" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.19"/></proof>
@@ -399,7 +502,7 @@
   <proof prover="2"><result status="valid" time="0.44"/></proof>
   </goal>
   <goal name="VC interp_str_expr.9" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.49"/></proof>
+  <proof prover="2"><result status="valid" time="0.39"/></proof>
   </goal>
   <goal name="VC interp_str_expr.10" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.20"/></proof>
@@ -417,10 +520,10 @@
  <goal name="VC interp_list_expr" expl="VC for interp_list_expr" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC interp_list_expr.0" expl="variant decrease" proved="true">
-  <proof prover="0"><result status="valid" time="0.07" steps="108"/></proof>
+  <proof prover="2"><result status="valid" time="0.31"/></proof>
   </goal>
   <goal name="VC interp_list_expr.1" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.11"/></proof>
+  <proof prover="2"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_list_expr.2" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.14"/></proof>
@@ -443,7 +546,7 @@
         <goal name="VC interp_list_expr.4.0.0.0.0.0.0" expl="assertion" proved="true">
         <transf name="destruct" proved="true" arg1="H">
          <goal name="VC interp_list_expr.4.0.0.0.0.0.0.0" expl="assertion" proved="true">
-         <proof prover="2"><result status="valid" time="0.39"/></proof>
+         <proof prover="2"><result status="valid" time="0.54"/></proof>
          </goal>
         </transf>
         </goal>
@@ -460,7 +563,7 @@
   </transf>
   </goal>
   <goal name="VC interp_list_expr.5" expl="variant decrease" proved="true">
-  <proof prover="0"><result status="valid" time="0.08" steps="163"/></proof>
+  <proof prover="0"><result status="valid" time="0.11" steps="106"/></proof>
   </goal>
   <goal name="VC interp_list_expr.6" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.19"/></proof>
@@ -479,7 +582,7 @@
       <goal name="VC interp_list_expr.8.0.0.0.0" expl="assertion" proved="true">
       <transf name="exists" proved="true" arg1="x">
        <goal name="VC interp_list_expr.8.0.0.0.0.0" proved="true">
-       <proof prover="0"><result status="valid" time="0.07" steps="87"/></proof>
+       <proof prover="0"><result status="valid" time="0.20" steps="74"/></proof>
        </goal>
       </transf>
       </goal>
@@ -492,15 +595,15 @@
   </transf>
   </goal>
   <goal name="VC interp_list_expr.9" expl="assertion" proved="true">
-  <proof prover="0"><result status="valid" time="0.07" steps="127"/></proof>
+  <proof prover="0"><result status="valid" time="0.20" steps="123"/></proof>
   </goal>
   <goal name="VC interp_list_expr.10" expl="variant decrease" proved="true">
-  <proof prover="2"><result status="valid" time="0.37"/></proof>
+  <proof prover="2"><result status="valid" time="0.49"/></proof>
   </goal>
   <goal name="VC interp_list_expr.11" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC interp_list_expr.11.0" expl="postcondition" proved="true">
-   <proof prover="2"><result status="valid" time="0.40"/></proof>
+   <proof prover="2"><result status="valid" time="0.60"/></proof>
    </goal>
    <goal name="VC interp_list_expr.11.1" expl="postcondition" proved="true">
    <transf name="steps" proved="true" arg1="10" arg2="in" arg3="H1">
@@ -523,7 +626,7 @@
             <goal name="VC interp_list_expr.11.1.0.0.0.0.0.0.0.0.0" expl="postcondition" proved="true">
             <transf name="steps" proved="true" arg1="3" arg2="in" arg3="H">
              <goal name="VC interp_list_expr.11.1.0.0.0.0.0.0.0.0.0.0" expl="postcondition" proved="true">
-             <proof prover="0"><result status="valid" time="0.51" steps="891"/></proof>
+             <proof prover="0"><result status="valid" time="0.69" steps="928"/></proof>
              </goal>
             </transf>
             </goal>
@@ -534,7 +637,7 @@
          </transf>
          </goal>
          <goal name="VC interp_list_expr.11.1.0.0.0.0.0.1" expl="postcondition" proved="true">
-         <proof prover="2"><result status="valid" time="0.65"/></proof>
+         <proof prover="2"><result status="valid" time="0.85"/></proof>
          </goal>
          <goal name="VC interp_list_expr.11.1.0.0.0.0.0.2" expl="postcondition" proved="true">
          <proof prover="0"><result status="valid" time="0.25" steps="191"/></proof>
@@ -556,25 +659,25 @@
   <goal name="VC interp_list_expr.12" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC interp_list_expr.12.0" expl="postcondition" proved="true">
-   <proof prover="2"><result status="valid" time="0.45"/></proof>
+   <proof prover="2"><result status="valid" time="0.67"/></proof>
    </goal>
    <goal name="VC interp_list_expr.12.1" expl="postcondition" proved="true">
-   <proof prover="0"><result status="valid" time="0.39" steps="703"/></proof>
+   <proof prover="0"><result status="valid" time="0.55" steps="738"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_list_expr.13" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC interp_list_expr.13.0" expl="postcondition" proved="true">
-   <proof prover="2"><result status="valid" time="0.41"/></proof>
+   <proof prover="2"><result status="valid" time="0.63"/></proof>
    </goal>
    <goal name="VC interp_list_expr.13.1" expl="postcondition" proved="true">
    <transf name="destruct_term_subst" proved="true" arg1="res">
     <goal name="VC interp_list_expr.13.1.0" expl="postcondition" proved="true">
-    <proof prover="0"><result status="valid" time="0.23" steps="319"/></proof>
+    <proof prover="0"><result status="valid" time="0.36" steps="342"/></proof>
     </goal>
     <goal name="VC interp_list_expr.13.1.1" expl="postcondition" proved="true">
-    <proof prover="0"><result status="valid" time="0.26" steps="284"/></proof>
+    <proof prover="0"><result status="valid" time="0.26" steps="308"/></proof>
     </goal>
    </transf>
    </goal>

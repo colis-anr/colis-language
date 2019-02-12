@@ -241,10 +241,6 @@ module Interpreter
     let results, failures = separate_options' (Fset.to_list sta_opts) in
     Fset.of_list results, Fset.of_list failures
 
-  (* lemma set_mem_map: forall y: 'b, s: set 'a, f: 'a -> 'b. *)
-  (*   mem y (map f s) -> *)
-  (*   exists x. mem x s /\ f x = y *)
-
   lemma set_mem_map: forall y: 'b, s: set 'a, f: 'a -> 'b.
     mem y (map f s) <-> (exists x. mem x s /\ f x = y)
 
@@ -255,52 +251,54 @@ module Interpreter
     | None -> absurd
     end
 
-  (** A skeleton is the shape of an instruction, covering also the string expressions and
-      list expressions. It serves as part of the variant to proove the termination of the
-      symbolic execution of instructions. *)
-  type skel =
-  | S0
-  | S1 skel
-  | S2 skel skel
-  | S3 skel skel skel
-
-  function skel_instr (ins:instruction) : skel =
-    match ins with
+  let rec function size_instr (ins:instruction) : int
+    variant { ins }
+    ensures { 0 < result }
+  = 1 + match ins with
     | IReturn _
     | IExit _
-    | IShift _ ->
-      S0
+    | IShift _ -> 0
     | INot ins1
     | INoOutput ins1
-    | ISubshell ins1 ->
-      S1 (skel_instr ins1)
-    | IAssignment _ se  ->
-      S1 (skel_string_expr se)
+    | ISubshell ins1 -> size_instr ins1
+    | IAssignment _ se  -> size_string_expr se
     | ICallUtility _ le
-    | ICallFunction _ le ->
-      S1 (skel_list_expr le)
+    | ICallFunction _ le -> size_list_expr le
     | ISequence ins1 ins2
     | IPipe ins1 ins2
-    | IWhile ins1 ins2 ->
-      S2 (skel_instr ins1) (skel_instr ins2)
-    | IForeach _ le ins ->
-      S2 (skel_list_expr le) (skel_instr ins)
-    | IIf ins1 ins2 ins3 ->
-      S3 (skel_instr ins1) (skel_instr ins2) (skel_instr ins3)
+    | IWhile ins1 ins2 -> size_instr ins1 + size_instr ins2
+    | IForeach _ le ins -> size_list_expr le + size_instr ins
+    | IIf ins1 ins2 ins3 -> size_instr ins1 + size_instr ins2 + size_instr ins3
     end
-  with skel_list_expr (le:list_expression): skel =
-    match le with
-    | Nil -> S0
-    | Cons (se, _) le' -> S2 (skel_string_expr se) (skel_list_expr le')
+  with function size_list_expr (le:list_expression): int
+    variant { le }
+    ensures { 0 < result }
+  = 1 + match le with
+    | Nil -> 0
+    | Cons se_sp le' ->
+      size_pair se_sp + size_list_expr le'
     end
-  with skel_string_expr (se:string_expression): skel =
-    match se with
-    | SLiteral _ | SVariable _ | SArgument _ ->
-      S0
-    | SSubshell ins ->
-      S1 (skel_instr ins)
-    | SConcat se1 se2 ->
-      S2 (skel_string_expr se1) (skel_string_expr se2)
+  with function size_pair (se_sp: (string_expression, split)) : int
+    variant { se_sp }
+    ensures { 0 < result }
+  = let se, _ = se_sp in
+    size_string_expr se
+  with function size_string_expr (se:string_expression): int
+    variant { se }
+    ensures { 0 < result }
+  = 1 + match se with
+    | SLiteral _
+    | SVariable _
+    | SArgument _ -> 0
+    | SSubshell ins -> size_instr ins
+    | SConcat se1 se2 -> size_string_expr se1 + size_string_expr se2
+    end
+
+  let rec lemma size_string_expr_list_expr (le:list_expression)
+    ensures { forall se sp. size_string_expr se < size_list_expr (Cons (se, sp) le) }
+  = match le with
+    | Nil -> ()
+    | Cons _ le' -> size_string_expr_list_expr le'
     end
 
   let function flip_result sta' =
@@ -325,7 +323,7 @@ module Interpreter
     : Rs.t unit
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, skel_instr ins, -1 }
+    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, -1 }
     ensures {
       forall bhv sta'.
       Rs.mem sta' bhv result ->
@@ -636,7 +634,7 @@ module Interpreter
   with interp_instr' (stk:int) (cnf:config) (inp:input) (stas: set (sym_state 'a)) (ins:instruction) : Rs.t 'a
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, skel_instr ins, cardinal stas }
+    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, cardinal stas }
     ensures {
       forall bhv sta'.
       Rs.mem sta' bhv result ->
@@ -679,7 +677,7 @@ module Interpreter
     : set (state, option (string, bool))
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, skel_string_expr se, -1 }
+    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_string_expr se, -1 }
     ensures {
       forall sta' res.
       mem (sta', res) result ->
@@ -773,7 +771,7 @@ module Interpreter
     : set (state, option (list string))
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, skel_list_expr le, -1 }
+    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_list_expr le, -1 }
     ensures {
       forall sta' res.
       mem (sta', res) result ->
