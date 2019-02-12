@@ -492,6 +492,7 @@ let interp_test_regular_and_x path_str : utility =
   let hintx = last_comp_as_hint ~root p in [
     success_case
       ~descr:(asprintf "which '%a': path resolves to a regular executable (overapprox to -f)" Path.pp p)
+      ~stdout:Stdout.(empty |> output (asprintf "%a" Path.pp p) |> newline)
       begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & reg x & (* no way to constraint "x" mode *)
