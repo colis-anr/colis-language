@@ -298,25 +298,25 @@ let interp_test_f path_str : utility =
       end;
   ]
 
-let interp_test_x path_str : utility =
+let interp_test_x ?(name="test -x") path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
-      ~descr:(asprintf "test -x %a: path resolves to an executable (overapprox to -e)" Path.pp p)
+      ~descr:(asprintf "%s '%a': path resolves to an executable (overapprox to -e)" name Path.pp p)
       begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & (* no way to constraint "x" mode *)
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "test -x %a: path does not resolve" Path.pp p)
+      ~descr:(asprintf "%s '%a': path does not resolve" name Path.pp p)
       begin
         noresolve root cwd p &
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "test -x %a: path resolves but not to an executable (overapprox to -e)" Path.pp p)
+      ~descr:(asprintf "%s '%a': path resolves but not to an executable (overapprox to -e)" name Path.pp p)
       begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x &  (* no way to constraint no "x" mode *)
@@ -454,6 +454,125 @@ let interp_test ~bracket _env (args : string list) : utility =
      interp_test_parse_error args
 
 (*********************************************************************************)
+(*                                   which                                       *)
+(*********************************************************************************)
+
+let _interp_which_naive (args: string list) : utility =
+  match args with
+  | [] ->
+     under_specifications @@ fun ~cwd ~root ~root' ->
+       [
+         error_case
+           ~descr:(asprintf "which without argument (returns 1)")
+           begin
+             eq root root'
+           end
+       ]
+  | [p] ->
+     under_specifications @@ fun ~cwd ~root ~root' ->
+       [
+         success_case
+           ~descr:(asprintf "which '%s': assuming command is found" p)
+           begin
+             eq root root'
+           end
+       ;
+         error_case
+           ~descr:(asprintf "which '%s': assuming command is not found" p)
+           begin
+             eq root root'
+           end
+       ]
+  | p :: _ ->
+     unknown_argument ~msg:"more than one argument" ~name:"which" ~arg:p ()
+
+let interp_test_regular_and_x path_str : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let p = Path.from_string path_str in
+  let hintx = last_comp_as_hint ~root p in [
+    success_case
+      ~descr:(asprintf "which '%a': path resolves to a regular executable (overapprox to -f)" Path.pp p)
+      ~stdout:Stdout.(empty |> output (asprintf "%a" Path.pp p) |> newline)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & reg x & (* no way to constraint "x" mode *)
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "which '%a': path does not resolve" Path.pp p)
+      begin
+        noresolve root cwd p &
+        eq root root'
+      end;
+    error_case
+      ~descr:(asprintf "which '%a': path resolves but not to regular executable)" Path.pp p)
+      begin
+        exists ?hint:hintx @@ fun x ->
+        resolve root cwd p x & (* no way to constraint no "x" mode *)
+        eq root root'
+      end;
+  ]
+
+
+let rec search_as_which_in_path (path:string list) arg : utility =
+  match path with
+  | [] ->
+     under_specifications @@ fun ~cwd:_ ~root ~root' ->
+       [
+         error_case
+           ~descr:(asprintf "which: `%s` not found in PATH" arg)
+           begin
+             eq root root'
+           end
+       ]
+  | p :: rem ->
+     let u1 = interp_test_regular_and_x (p ^ "/" ^ arg) in
+     let u2 = search_as_which_in_path rem arg in
+     fun st ->
+     List.flatten
+       (List.map
+          (function (s1,b1) as x -> if b1 then [x] else u2 s1)
+          (u1 st))
+
+let search_as_which (path:string list) arg : utility =
+  match Path.from_string arg with
+  | Abs _ -> interp_test_regular_and_x arg
+  | Rel [] -> assert false
+  | Rel [_] -> search_as_which_in_path path arg
+  | Rel r ->
+     fun st ->
+     let a = Path.concat st.filesystem.cwd r in
+     interp_test_regular_and_x (Path.to_string a) st
+
+
+let interp_which_full _env (* envPATH:string *) (args:string list) : utility =
+  match args with
+  | [] ->
+     under_specifications @@ fun ~cwd ~root ~root' ->
+       [
+         error_case
+           ~descr:(asprintf "which without argument (returns 1)")
+           begin
+             eq root root'
+           end
+       ]
+  | ["-a"] ->
+     unknown_argument ~msg:"option `-a`" ~name:"which" ~arg:"-a" ()
+  | _ ->
+     (* FIXME     let path = String.split_on_char ':' envPATH in *)
+     let path = [ "/usr/sbin" ; "/usr/bin" ; "/sbin" ; "/bin" (* ; "/usr/games" *) ] in
+     let rec aux args =
+       match args with
+       | [] -> assert false
+       | [a] -> search_as_which path a
+       | a :: rem ->
+          interp_test_and (search_as_which path a) (aux rem)
+     in
+     aux args
+
+
+
+(*********************************************************************************)
 (*                         Dispatch interpretation of utilities                  *)
 (*********************************************************************************)
 
@@ -466,4 +585,5 @@ let interp (name: string) : env -> args -> utility =
   | "[" -> interp_test ~bracket:true
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
+  | "which" -> interp_which_full
   | _ -> fun _env _args -> unknown_utility ~name ()

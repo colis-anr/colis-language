@@ -26,7 +26,11 @@ let compile ~root nodes =
 let empty : t = []
 
 let simple : t = [
+  node "bin" [];
+  node "sbin" [];
   node "usr" [
+    node "bin" [];
+    node "sbin" [];
     node "local" [
       node "lib" [];
     ];

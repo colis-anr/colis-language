@@ -62,11 +62,11 @@ let apply_clause_to_state state case root clause =
   let state' =
     { state with filesystem }
     |> print_error case.error_message
-    |> print_utility_trace case.descr
   in
   state', case.result
 
 let apply_case_to_state state root case : (state * bool) list =
+  let state = print_utility_trace case.descr state in
   let state = apply_output_to_state state case.stdout in
   (* Add the case specification to the current clause *)
   Clause.add_to_sat_conj case.spec state.filesystem.clause
