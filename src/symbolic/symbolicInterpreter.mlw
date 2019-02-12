@@ -205,12 +205,12 @@ module Interpreter
   let separate_options (sta_opts: set (state, option 'a)) : (results: set (state, 'a), failures: set state)
     ensures {
       forall sta x.
-      mem (sta, x) results ->
+      mem (sta, x) results <->
       mem (sta, Some x) sta_opts
     }
     ensures {
       forall sta.
-      mem sta failures ->
+      mem sta failures <->
       mem (sta, None) sta_opts
     }
   = let rec separate_options' (sta_opts: list (state, option 'a))
@@ -218,12 +218,12 @@ module Interpreter
       variant { sta_opts }
       ensures {
         forall sta x.
-        Mem.mem (sta, x) results ->
+        Mem.mem (sta, x) results <->
         Mem.mem (sta, Some x) sta_opts
       }
       ensures {
         forall sta.
-        Mem.mem sta failures ->
+        Mem.mem sta failures <->
         Mem.mem (sta, None) sta_opts
       }
     = match sta_opts with
@@ -255,6 +255,9 @@ module Interpreter
     | None -> absurd
     end
 
+  (** A skeleton is the shape of an instruction, covering also the string expressions and
+      list expressions. It serves as part of the variant to proove the termination of the
+      symbolic execution of instructions. *)
   type skel =
   | S0
   | S1 skel
@@ -707,29 +710,29 @@ module Interpreter
         sta1', Some  (str, b')
       in
       let res_non_failure = map for_non_failure res in
-      assert {
-        forall sta', str_b.
-        mem (sta', str_b) res_non_failure ->
-        exists str b' sta'.
-        str_b = Some (str, b') /\
-        exists sta bhv.
-        mem sta res /\
-        bhv <> BFailure /\
-        exists ctx'.
-        let sta1 = sem_state sta.state in
-        Sem.eval_instruction stk (cnf, inp, ctx, {sta1 with SemState.stdout=Stdout.empty}) ins (sem_state sta', ctx', bhv)
-      };
+      (* assert { *)
+      (*   forall sta', str_b. *)
+      (*   mem (sta', str_b) res_non_failure -> *)
+      (*   exists str b' sta'. *)
+      (*   str_b = Some (str, b') /\ *)
+      (*   exists sta bhv. *)
+      (*   mem sta res /\ *)
+      (*   bhv <> BFailure /\ *)
+      (*   exists ctx'. *)
+      (*   let sta1 = sem_state sta.state in *)
+      (*   Sem.eval_instruction stk (cnf, inp, ctx, {sta1 with SemState.stdout=Stdout.empty}) ins (sem_state sta', ctx', bhv) *)
+      (* }; *)
       let res_failure = map (fun sta1 -> sta1.state, None) stas_failures in
-      assert {
-        forall sta' n.
-        mem (sta, n) res_failure ->
-        (n = None /\
-         exists ctx'.
-         let sta1 = sem_state sta in
-         Sem.eval_instruction stk (cnf, inp, ctx, {sta1 with SemState.stdout=Stdout.empty}) ins (sta', ctx', BFailure))
-      };
+      (* assert { *)
+      (*   forall sta' n. *)
+      (*   mem (sta, n) res_failure -> *)
+      (*   (n = None /\ *)
+      (*    exists ctx'. *)
+      (*    let sta1 = sem_state sta in *)
+      (*    Sem.eval_instruction stk (cnf, inp, ctx, {sta1 with SemState.stdout=Stdout.empty}) ins (sta', ctx', BFailure)) *)
+      (* }; *)
       let res = union res_non_failure res_failure in
-      assert { forall x. mem x res -> (mem x res_non_failure \/ mem x res_failure) };
+      (* assert { forall x. mem x res -> (mem x res_non_failure \/ mem x res_failure) }; *)
       res
     | SConcat se1 se2 ->
       let res1 = interp_str_expr stk b cnf inp ctx sta se1 in
