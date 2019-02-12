@@ -17,7 +17,11 @@ module Concrete: sig
   module Context = Semantics__Context
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
-  module Env = Semantics__Env
+  module Env : sig
+    include module type of Semantics__Env
+    val update : (string -> 'a) -> string -> 'a -> (string -> 'a)
+    (** Alias for the auto-generated name [mixfix_lblsmsrb] *)
+  end
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
   module Filesystem = Interpreter__Filesystem
@@ -78,12 +82,23 @@ val pp_print_colis : Format.formatter -> colis -> unit
 
 (** {2 Interpreting} *)
 
-val run : argument0:string -> ?arguments:(string list) -> colis -> unit
+val run : argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Runs a Colis program.
 
     @param argument0 Value for argument zero (the interpreter or filename)
     @param arguments Other arguments
   *)
 
-val run_symbolic : prune_init_state:bool -> loop_limit:int -> fs_spec:Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> colis -> unit
+type symbolic_config = {
+  fs_spec: Symbolic.FilesystemSpec.t;
+  (** Specifitation of the filesystem to start the symbolic execution *)
+  prune_init_state: bool;
+  (** Prune the initial symbolic state during symbolic execution for a faster execution *)
+  loop_limit: int;
+  (** Maximum number of iterations of while loops in symbolic execution *)
+  stack_size: int;
+  (** Maximum height of the call stack in symbolic execution *)
+}
+
+val run_symbolic : symbolic_config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Symbolically executes a Colis program. *)

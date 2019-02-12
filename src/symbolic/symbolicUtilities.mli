@@ -1,4 +1,4 @@
 
 type args = string list
 
-val interp : string -> args -> UtilitiesSpecification.utility
+val interp : string -> env -> args -> UtilitiesSpecification.utility

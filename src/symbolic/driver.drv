@@ -6,15 +6,14 @@ module symbolicInterpreter.Constraints
 end
 
 module symbolicInterpreter.Interpreter
-  syntax val interp_utility "BatSet.of_list (SymbolicUtilities.interp %1 %2 %3)"
+  syntax val interp_utility "BatSet.of_list (SymbolicUtilities.interp %1 (BatMap.bindings %2) %3 %4)"
 end
 
 module symbolicInterpreter.Env
   syntax type t "(string, %1) BatMap.t"
   syntax val empty "BatMap.empty"
-  syntax val get "BatMap.find_default %3 %2 %1"
+  syntax val get "BatMap.find %2 %1"
   syntax val set "BatMap.add %2 %3 %1"
-  syntax val functional "fun id -> BatMap.find_default %2 id %1"
 end
 
 module symbolicAuxiliaries.Fset

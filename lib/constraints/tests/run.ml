@@ -43,7 +43,7 @@ let run_tests () =
       Log.info (fun m -> m "Running test %d (%s expected)." i
                            (match test.expectation with Sat -> "Sat" | _ -> "Unsat"));
       (
-        match add_to_sat_conj test.formula true_, test.expectation with
+        match add_to_sat_conj test.formula true_sat_conj, test.expectation with
         | [], Unsat | _::_, Sat ->
            (
              Log.info (fun m -> m "Test %d succeeded" i);

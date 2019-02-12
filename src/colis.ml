@@ -17,7 +17,10 @@ module Concrete = struct
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
   module Context = Semantics__Context
-  module Env = Semantics__Env
+  module Env = struct
+    include Semantics__Env
+    let update = mixfix_lblsmnrb
+  end
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
   module Filesystem = Interpreter__Filesystem
@@ -98,11 +101,18 @@ let colis_to_file filename colis =
 
 (* Interpret *)
 
-let run ~argument0 ?(arguments=[]) colis =
+let mk_concrete_var_env =
+  let open Concrete.Env in
+  List.fold_left
+    (fun env (var, val_) -> update env var val_)
+    (empty_env "")
+
+let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Concrete in
   let input = { Input.empty with argument0 } in
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
+  state.var_env := mk_concrete_var_env vars;
   Interpreter.interp_program input state colis;
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
@@ -149,11 +159,21 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let run_symbolic ~prune_init_state ~loop_limit ~fs_spec ~argument0 ?(arguments=[]) colis =
+type symbolic_config = {
+  fs_spec: Symbolic.FilesystemSpec.t;
+  prune_init_state: bool;
+  loop_limit: int;
+  stack_size: int;
+}
+
+let mk_symbolic_var_env vars =
+  BatMap.of_enum (BatList.enum vars)
+
+let run_symbolic config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Symbolic in
   let clause_to_state root clause =
     let cwd = Constraints.Path.Abs [] in
-    let root0 = if prune_init_state then None else Some root in
+    let root0 = if config.prune_init_state then None else Some root in
     let filesystem = {Filesystem.clause; cwd; root; root0} in
     let stdin = Concrete.Stdin.empty in
     let stdout = Concrete.Stdout.empty in
@@ -161,14 +181,18 @@ let run_symbolic ~prune_init_state ~loop_limit ~fs_spec ~argument0 ?(arguments=[
   in
   let run_in_state sta =
     let inp = { Concrete.Input.empty with argument0 } in
-    let ctx = { Context.empty_context with arguments } in
-    sta, Interpreter.interp_program (Z.of_int loop_limit) inp ctx sta colis
+    let loop_limit = Z.of_int config.loop_limit in
+    let stack_size = Z.of_int config.stack_size in
+    let ctx =
+      let var_env = mk_symbolic_var_env vars in
+      { Context.empty_context with arguments; var_env } in
+    sta, Interpreter.interp_program loop_limit stack_size inp ctx sta colis
   in
   let res =
     let open Constraints in
     let root = Constraints.Var.fresh ~hint:"r" () in
-    let clause = FilesystemSpec.compile ~root fs_spec in
-    Clause.(add_to_sat_conj clause true_) |>
+    let clause = FilesystemSpec.compile ~root config.fs_spec in
+    Clause.(add_to_sat_conj clause true_sat_conj) |>
     List.map (clause_to_state root) |>
     List.map run_in_state
   in
