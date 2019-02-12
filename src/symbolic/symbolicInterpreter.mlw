@@ -92,15 +92,6 @@ module Results
     failure = Fset.empty;
   }
 
-  (* let function results rs : set (sym_state 'a, behaviour) = *)
-  (*   let with_bhv bhv sta = (sta, bhv) in *)
-  (*   Fset. *)
-  (*   (union (map (fun x -> with_bhv BNormal x) rs.normal) *)
-  (*      (union (map (fun x -> with_bhv BExit x) rs.exit) *)
-  (*         (union (map (fun x -> with_bhv BReturn x) rs.return_) *)
-  (*            (map (fun x -> with_bhv BFailure x) rs.failure)))) *)
-
-
   predicate mem (sta:sym_state 'a) (bhv:behaviour) (rs:t 'a) =
     match bhv with
     | BNormal  -> Fset.mem sta rs.normal
@@ -324,11 +315,12 @@ module Interpreter
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, -1 }
+    (* Over-approximation (->) and under-approximation (<-) *)
     ensures {
       forall bhv sta'.
-      Rs.mem sta' bhv result ->
       Sem.eval_instruction stk (cnf, inp, ctx, sem_state sta) ins
-        (sem_state sta'.state, sta'.context, bhv)
+        (sem_state sta'.state, sta'.context, bhv) <->
+      Rs.mem sta' bhv result
     }
   = match ins with
 
@@ -635,6 +627,15 @@ module Interpreter
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, cardinal stas }
+    (* Over-approximation *)
+    ensures {
+      forall bhv sta sta'.
+      mem sta stas ->
+      Sem.eval_instruction stk (cnf, inp, sta.context, sem_state sta.state) ins
+        (sem_state sta'.state, sta'.context, bhv) ->
+      Rs.mem sta' bhv result
+    }
+    (* Under-approximation *)
     ensures {
       forall bhv sta'.
       Rs.mem sta' bhv result ->
@@ -678,11 +679,12 @@ module Interpreter
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_string_expr se, -1 }
+    (* Over-approximation (->) and under-approximation (<-) *)
     ensures {
       forall sta' res.
-      mem (sta', res) result ->
       Sem.eval_str_expr stk b (cnf, inp, ctx, sem_state sta) se
-        (sem_state sta', res)
+        (sem_state sta', res) <->
+      mem (sta', res) result
     }
   = match se with
     | SLiteral str ->
@@ -772,11 +774,12 @@ module Interpreter
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_list_expr le, -1 }
+    (* Over-approximation (->) and under-approximation (<-) *)
     ensures {
       forall sta' res.
-      mem (sta', res) result ->
       Sem.eval_list_expr stk (cnf, inp, ctx, sem_state sta) le
-        (sem_state sta', res)
+        (sem_state sta', res) <->
+      mem (sta', res) result
     }
   = match le with
     | Nil ->
