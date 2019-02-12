@@ -28,7 +28,6 @@ module Interpreter
   use Filesystem
   use semantics.Buffers
   use semantics.Behaviour
-  use semantics.Env
   use semantics.Input
   use semantics.Config
   use semantics.Context as C
@@ -64,14 +63,7 @@ module Interpreter
 
   (** {4 Conversion to `semantics.Context`} *)
 
-  let function context (sta:state) : C.context
-    ensures {
-      result.C.var_env = !(sta.var_env) /\
-      result.C.func_env = sta.func_env /\
-      result.C.arguments = !(sta.arguments) /\
-      result.C.result = !(sta.result)
-    }
-  = {
+  function sem_context (sta:state) : C.context = {
     C.var_env = !(sta.var_env);
     C.func_env = sta.func_env;
     C.arguments = !(sta.arguments);
@@ -81,9 +73,9 @@ module Interpreter
   lemma context_same: forall sta1 sta2.
     !(sta1.arguments) = !(sta2.arguments) ->
     !(sta1.result) = !(sta2.result) ->
-    !(sta1.var_env) == !(sta2.var_env) ->
-    sta1.func_env == sta2.func_env ->
-    context sta1 = context sta2
+    !(sta1.var_env) = !(sta2.var_env) ->
+    sta1.func_env = sta2.func_env ->
+    sem_context sta1 = sem_context sta2
 
   let function state (sta:state) : S.state = {
     S.filesystem = !(sta.filesystem);
@@ -171,16 +163,16 @@ module Interpreter
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
     returns { () ->
-      eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
-        ins (state sta, context sta, BNormal)
+      eval_instruction 0 (cnf, inp, sem_context (old sta), state (old sta))
+        ins (state sta, sem_context sta, BNormal)
     }
     raises { EReturn ->
-      eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
-        ins (state sta, context sta, BReturn)
+      eval_instruction 0 (cnf, inp, sem_context (old sta), state (old sta))
+        ins (state sta, sem_context sta, BReturn)
     }
     raises { EExit ->
-      eval_instruction 0 (cnf, inp, context (old sta), state (old sta))
-        ins (state sta, context sta, BExit)
+      eval_instruction 0 (cnf, inp, sem_context (old sta), state (old sta))
+        ins (state sta, sem_context sta, BExit)
     }
   = label L in match ins with
 
@@ -210,7 +202,7 @@ module Interpreter
 
     | IAssignment id se ->
       let str, b = interp_str_expr True inp sta se in
-      sta.var_env := !(sta.var_env)[id <- str];
+      sta.var_env := (let env = !(sta.var_env) in C.(env[id <- str]));
       sta.result := b;
       maybe_exit inp sta
 
@@ -285,7 +277,7 @@ module Interpreter
 
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in
-      match sta.func_env id with
+      match C.(sta.func_env[id]) with
       | Some ins ->
         try
           let inp' = { inp with argument0 = identifier_to_string id } in
@@ -307,18 +299,18 @@ module Interpreter
       let ss = interp_list_expr inp sta le in
       let last_result = ref True in (* See NOTES[Previous in for-loop] *)
       let ghost sta0 = state sta in
-      let ghost ctx0 = context sta in
+      let ghost ctx0 = sem_context sta in
       for i = 0 to length ss - 1 do
         invariant {
           eval_foreach 0 True
             (cnf, inp, ctx0, sta0)
             id (take i ss) ins
-            (state sta, context sta, BNormal)
+            (state sta, sem_context sta, BNormal)
             !last_result
         }
         invariant { forall sta1, ctx1, bhv1, b1.
           eval_foreach 0 !last_result
-            (cnf, inp, context sta, state sta)
+            (cnf, inp, sem_context sta, state sta)
             id (drop i ss) ins
             (sta1, ctx1, bhv1) b1 ->
           eval_foreach 0 True
@@ -328,7 +320,7 @@ module Interpreter
         }
         match nth i ss with
         | Some s ->
-          sta.var_env := !(sta.var_env)[id <- s];
+          sta.var_env := (let env = !(sta.var_env) in C.(env[id <- s]));
           interp_instruction inp sta ins;
           last_result := !(sta.result);
         | None ->
@@ -339,7 +331,7 @@ module Interpreter
 
     | IWhile ins1 ins2 ->
       let ghost sta0 = state sta in
-      let ghost ctx0 = context sta in
+      let ghost ctx0 = sem_context sta in
       let ctr = ref 0 in
       let last_result = ref True in
       while (
@@ -348,7 +340,7 @@ module Interpreter
       ) do
         invariant { forall sta1 ctx1 b1 bhv n.
           eval_while 0 !ctr !last_result
-            (cnf, inp, context sta, state sta)
+            (cnf, inp, sem_context sta, state sta)
             ins1 ins2
             (sta1, ctx1, bhv) n b1 ->
           eval_while 0 0 True
@@ -365,9 +357,9 @@ module Interpreter
 
   with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (string, bool)
     diverges
-    ensures { context sta = context (old sta) }
+    ensures { sem_context sta = sem_context (old sta) }
     returns { s, b' ->
-      eval_str_expr 0 b (cnf, inp, context (old sta), state (old sta))
+      eval_str_expr 0 b (cnf, inp, sem_context (old sta), state (old sta))
         se (state sta, Some (s, b'))
     }
   = match se with
@@ -376,7 +368,8 @@ module Interpreter
       s, b
 
     | SVariable id ->
-      !(sta.var_env) id, b  (* Why3 bug: Map__Map is not created - cannot use ctx.senv[id] *)
+      let env = !(sta.var_env) in
+      C.(env[id]), b 
 
     | SArgument n ->
       nth_argument (Cons inp.argument0 !(sta.arguments)) n.nat, b
@@ -399,17 +392,17 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr 0 b (cnf, inp, context sta, state sta at L1) se1 (state sta, Some (s1, b1)) };
+      assert { eval_str_expr 0 b (cnf, inp, sem_context sta, state sta at L1) se1 (state sta, Some (s1, b1)) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr 0 b1 (cnf, inp, context sta, state sta at L2) se2 (state sta, Some (s2, b2)) };
+      assert { eval_str_expr 0 b1 (cnf, inp, sem_context sta, state sta at L2) se2 (state sta, Some (s2, b2)) };
       s1^s2, b2
     end
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
     diverges
-    ensures { context sta = context (old sta) }
+    ensures { sem_context sta = sem_context (old sta) }
     returns { ss ->
-      eval_list_expr 0 (cnf, inp, context (old sta), state (old sta))
+      eval_list_expr 0 (cnf, inp, sem_context (old sta), state (old sta))
         le (state sta, Some ss)
     }
   = match le with
@@ -426,7 +419,7 @@ module Interpreter
   let interp_program inp sta pro
     diverges
     returns { () ->
-      eval_program (cnf, inp, context (old sta), state (old sta))
+      eval_program (cnf, inp, sem_context (old sta), state (old sta))
         pro (state sta, Some !(sta.result))
     }
   = try

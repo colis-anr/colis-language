@@ -14,14 +14,10 @@ end
 module Semantics: sig
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
+  module Env = Semantics__Env
   module Context = Semantics__Context
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
-  module Env : sig
-    include module type of Semantics__Env
-    val update : (string -> 'a) -> string -> 'a -> (string -> 'a)
-    (** Alias for the auto-generated name [mixfix_lblsmsrb] *)
-  end
   module Input = Semantics__Input
   module Semantics = Semantics__Semantics
 end

@@ -52,8 +52,8 @@ end
 
 module SymState
 
-  use semantics.Context
   use State
+  use semantics.Context
 
   type sym_state 'a = {
     context: context;
@@ -198,7 +198,7 @@ module Interpreter
   use Results as Rs
 
   (* Implemented in OCaml *)
-  val function interp_utility identifier var_env (list string) state : set (state, bool)
+  val function interp_utility (id:identifier) (var_env:var_env) (args:list string) (sta:state) : set (state, bool)
 
   lemma list_mem_set_mem: forall x:'a, s. mem x s <-> Mem.mem x (Fset.to_list s)
 
@@ -351,7 +351,7 @@ module Interpreter
           let sta', (str, result) = arg in
           let ctx' = {
             ctx with
-            var_env = Env.(ctx.var_env[var <- str]);
+            var_env = ctx.var_env[var <- str];
             result = result;
           }
           in
@@ -435,7 +435,7 @@ module Interpreter
           (interp_list_expr stk cnf inp ctx sta le)
       in
       let res =
-        match Env.(ctx.func_env[id]) with
+        match ctx.func_env[id] with
         | Some ins ->
             if stk = get_some cnf.stack_size then
               let aux arg =
@@ -500,7 +500,7 @@ module Interpreter
           Rs.({empty with normal = normal})
         | Cons s ss' ->
           let res1_normal, res1_abort =
-            let ctx' = {ctx with var_env = Env.(ctx.var_env[id <- s])} in
+            let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
             Rs.separate_normal
               (interp_instr stk cnf inp ctx' sta ins)
           in
@@ -688,7 +688,7 @@ module Interpreter
     | SLiteral str ->
       singleton (sta, Some (str, b))
     | SVariable var ->
-      let str = Env.(ctx.var_env[var]) in
+      let str = ctx.var_env[var] in
       singleton (sta, Some (str, b))
     | SArgument n ->
       let str = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
@@ -871,7 +871,7 @@ module Interpreter
   = match defs with
     | Nil -> fenv
     | Cons (id, instr) defs' ->
-      interp_function_definitions Env.(fenv[id <- Some instr])  defs'
+      interp_function_definitions fenv[id <- Some instr]  defs'
     end
 
   let function only_states_with_result (res: bool) (stas: set (sym_state unit)) : set state =
