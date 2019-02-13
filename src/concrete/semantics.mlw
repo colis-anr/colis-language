@@ -273,7 +273,7 @@ module Context
     c1.var_env = c2.var_env ->
     c1.func_env = c2.func_env ->
     c1.arguments = c2.arguments ->
-    c1.result = c1.result ->
+    c1.result = c2.result ->
     c1 = c2
 
   let constant empty_context = {
@@ -412,6 +412,7 @@ module Semantics
   use Input
 
   clone export State
+    with axiom interp_utility_extends_output
 
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with

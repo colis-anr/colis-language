@@ -52,6 +52,14 @@ module Fset
   val function bind (f: 'a -> set 'b) (s: set 'a) : set 'b
     ensures { result = fold union (map f s) empty }
 
+  lemma bind_spec1: forall y:'b, f: 'a -> set 'b, s: set 'a.
+    mem y (bind f s) <->
+    exists x. mem x s /\ mem y (f x)
+
+  lemma bind_spec2: forall x:'a, s: set 'a, f: 'a -> set 'b.
+    mem x s ->
+    subset (f x) (bind f s)
+
   val function to_list (s: set 'a) : list 'a
     ensures { forall x. mem x s <-> Mem.mem x result }
 

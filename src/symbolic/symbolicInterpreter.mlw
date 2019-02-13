@@ -33,7 +33,8 @@ module Semantics
   use Filesystem
 
   clone export semantics.Semantics
-    with type filesystem = filesystem
+    with type filesystem = filesystem,
+         axiom interp_utility_extends_output
 end
 
 
@@ -105,16 +106,6 @@ module Results
     failure = Fset.union res1.failure res2.failure;
   }
 
-  lemma mem_union: forall sta bhv, rs1 rs2:t 'a.
-    mem sta bhv (union rs1 rs2) <->
-    (mem sta bhv rs1 \/ mem sta bhv rs2)
-
-  lemma mem_map: forall sta': sym_state 'b, bhv, rs, f: sym_state 'a -> sym_state 'b.
-    mem sta' bhv (map f rs) ->
-    exists sta.
-    mem sta bhv rs /\
-    sta' = f sta
-
   let separate_normal (res:t 'a) : (normal: set (sym_state 'a), other: t 'a)
     ensures { normal = res.normal }
     ensures { other.normal = Fset.empty }
@@ -143,8 +134,12 @@ module Results
     eq_behaviour bhv
       (behaviour inp sta.context.result)
 
+  lemma state_behaviour_normal_exit: forall inp bhv, sta: sym_state 'a.
+    (is_state_behaviour inp bhv @ sta) = True ->
+    (bhv <> BReturn /\ bhv <> BFailure)
+
   let function inject (inp:input) (stas:set (sym_state 'a)) : t 'a
-    ensures { stas = Fset.union result.normal result.exit }
+    ensures { stas = Fset.union result.normal result.exit by stas == Fset.union result.normal result.exit }
     ensures { forall s. Fset.mem s result.normal -> Fset.mem s stas /\ behaviour inp s.context.result = BNormal }
     ensures { forall s. Fset.mem s result.exit -> Fset.mem s stas /\ behaviour inp s.context.result = BExit }
     ensures { result.return_ = Fset.empty }
@@ -153,6 +148,49 @@ module Results
      exit = Fset.filter (is_state_behaviour inp BExit) stas;
      return_ = Fset.empty;
      failure = Fset.empty}
+
+  lemma mem_union: forall sta bhv, rs1 rs2:t 'a.
+    mem sta bhv (union rs1 rs2) <->
+    (mem sta bhv rs1 \/ mem sta bhv rs2)
+
+  lemma mem_map: forall sta': sym_state 'b, bhv, rs, f: sym_state 'a -> sym_state 'b.
+    mem sta' bhv (map f rs) <->
+    exists sta.
+    mem sta bhv rs /\
+    sta' = f sta
+
+  lemma mem_mk_results: forall sta: sym_state 'a, bhv normal exit return_ failure.
+    mem sta bhv { normal=normal; exit=exit; return_=return_; failure=failure } <->
+    match bhv with
+    | BNormal  -> Fset.mem sta normal
+    | BExit    -> Fset.mem sta exit
+    | BReturn  -> Fset.mem sta return_
+    | BFailure -> Fset.mem sta failure
+    end
+
+  lemma mem_union_results: forall sta: sym_state 'a, bhv rs1 rs2.
+    mem sta bhv (union rs1 rs2) <->
+    (match bhv with
+     | BNormal  -> Fset.mem sta rs1.normal
+     | BExit    -> Fset.mem sta rs1.exit
+     | BReturn  -> Fset.mem sta rs1.return_
+     | BFailure -> Fset.mem sta rs1.failure
+     end \/
+     match bhv with
+     | BNormal  -> Fset.mem sta rs2.normal
+     | BExit    -> Fset.mem sta rs2.exit
+     | BReturn  -> Fset.mem sta rs2.return_
+     | BFailure -> Fset.mem sta rs2.failure
+     end)
+
+  lemma mem_inject: forall sta: sym_state 'a, bhv inp stas.
+    mem sta bhv (inject inp stas) <->
+    Fset.mem sta stas /\ is_state_behaviour inp bhv sta
+
+  lemma mem_union_inject: forall sta: sym_state 'a, bhv inp stas rs.
+    mem sta bhv (union (inject inp stas) rs) <->
+    ((Fset.mem sta stas /\ is_state_behaviour inp bhv sta) \/
+     mem sta bhv rs)
 end
 
 module Interpreter
@@ -160,7 +198,7 @@ module Interpreter
   use bool.Bool
   use option.Option
   use int.Int
-  use list.List, list.Mem, list.Map
+  use list.List, list.Mem, list.Map, list.Length
   use list.Append
   use mystring.String
   use syntax.Syntax
@@ -308,18 +346,28 @@ module Interpreter
     let sta2, strs2 = arg in
     sta2, Some (strs1++strs2)
 
+  let function assignment_for_str_sta ctx var arg =
+    let sta', (str, result) = arg in
+    let ctx' = {
+      ctx with
+      var_env = ctx.var_env[var <- str];
+      result = result;
+    }
+    in
+    {state = sta'; context = ctx'; data = ()}
+
   let rec interp_instr (stk:int) (cnf:config) (inp:input) (ctx:context) (sta:state) (ins:instruction)
     : Rs.t unit
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, -1 }
-    (* Over-approximation (->) and under-approximation (<-) *)
-    ensures {
-      forall bhv sta'.
-      eval_instruction stk (cnf, inp, ctx, sta) ins
-        (sta'.state, sta'.context, bhv) <->
-      Rs.mem sta' bhv result
-    }
+    (* (\* Under-approximation (->) and over-approximation (<-) *\) *)
+    (* ensures { *)
+    (*   forall bhv sta'. *)
+    (*   Rs.mem sta' bhv result <-> *)
+    (*   eval_instruction stk (cnf, inp, ctx, sta) ins *)
+    (*     (sta'.state, sta'.context, bhv) *)
+    (* } *)
   = match ins with
 
     | INot ins1 ->
@@ -337,18 +385,8 @@ module Interpreter
           (interp_str_expr stk True cnf inp ctx sta se)
       in
       let res =
-        let for_str_sta arg =
-          let sta', (str, result) = arg in
-          let ctx' = {
-            ctx with
-            var_env = ctx.var_env[var <- str];
-            result = result;
-          }
-          in
-          {state = sta'; context = ctx'; data = ()}
-        in
         Rs.inject inp
-          (Fset.map for_str_sta str_stas)
+          (Fset.map (fun arg -> assignment_for_str_sta ctx var arg) str_stas)
       in
       let res_failure = Rs.failures ctx str_stas_failure in
       Rs.union res res_failure
@@ -625,33 +663,33 @@ module Interpreter
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, cardinal stas }
-    (* Over-approximation *)
-    ensures {
-      forall bhv sta sta'.
-      mem sta stas ->
-      eval_instruction stk (cnf, inp, sta.context, sta.state) ins
-        (sta'.state, sta'.context, bhv) ->
-      Rs.mem sta' bhv result
-    }
-    (* Under-approximation *)
-    ensures {
-      forall bhv sta'.
-      Rs.mem sta' bhv result ->
-      exists sta.
-      mem sta stas /\
-      eval_instruction stk (cnf, inp, sta.context, sta.state) ins
-        (sta'.state, sta'.context, bhv)
-    }
+    (* (\* Over-approximation *\) *)
+    (* ensures { *)
+    (*   forall sta sta' bhv. *)
+    (*   mem sta stas -> *)
+    (*   Rs.mem sta' bhv result -> *)
+    (*   eval_instruction stk (cnf, inp, sta.context, sta.state) ins *)
+    (*     (sta'.state, sta'.context, bhv) *)
+    (* } *)
+    (* (\* Under-approximation *\) *)
+    (* ensures { *)
+    (*   forall bhv sta'. *)
+    (*   Rs.mem sta' bhv result -> *)
+    (*   exists sta. *)
+    (*   mem sta stas /\ *)
+    (*   eval_instruction stk (cnf, inp, sta.context, sta.state) ins *)
+    (*     (sta'.state, sta'.context, bhv) *)
+    (* } *)
   = let rec aux (stas: list (sym_state 'a)) : Rs.t 'a
       variant { stas }
-      ensures { forall sta' bhv.
-        Rs.mem sta' bhv result ->
-        exists sta.
-        Mem.mem sta stas /\
-        sta'.data = sta.data /\
-        eval_instruction stk (cnf, inp, sta.context, sta.state) ins
-          (sta'.state, sta'.context, bhv)
-      }
+      (* ensures { forall sta' bhv. *)
+      (*   Rs.mem sta' bhv result -> *)
+      (*   exists sta. *)
+      (*   Mem.mem sta stas /\ *)
+      (*   sta'.data = sta.data /\ *)
+      (*   eval_instruction stk (cnf, inp, sta.context, sta.state) ins *)
+      (*     (sta'.state, sta'.context, bhv) *)
+      (* } *)
     = match stas with
       | Nil ->
         Rs.empty
@@ -660,13 +698,13 @@ module Interpreter
           Rs.map (with_data sta.data) 
             (interp_instr stk cnf inp sta.context sta.state ins)
         in
-        assert {
-          forall sta' bhv.
-          Rs.mem sta' bhv res ->
-          sta'.data = sta.data /\
-          eval_instruction stk (cnf, inp, sta.context, sta.state) ins
-            (sta'.state, sta'.context, bhv)
-        };
+        (* assert { *)
+        (*   forall sta' bhv. *)
+        (*   Rs.mem sta' bhv res -> *)
+        (*   sta'.data = sta.data /\ *)
+        (*   eval_instruction stk (cnf, inp, sta.context, sta.state) ins *)
+        (*     (sta'.state, sta'.context, bhv) *)
+        (* }; *)
         Rs.union res (aux stas')
       end
     in
@@ -677,13 +715,13 @@ module Interpreter
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_string_expr se, -1 }
-    (* Over-approximation (->) and under-approximation (<-) *)
-    ensures {
-      forall sta' res.
-      eval_str_expr stk b (cnf, inp, ctx, sta) se
-        (sta', res) <->
-      mem (sta', res) result
-    }
+    (* (\* Under-approximation (->) and over-approximation (<-) *\) *)
+    (* ensures { *)
+    (*   forall sta' res. *)
+    (*   mem (sta', res) result <-> *)
+    (*   eval_str_expr stk b (cnf, inp, ctx, sta) se *)
+    (*     (sta', res) *)
+    (* } *)
   = match se with
     | SLiteral str ->
       singleton (sta, Some (str, b))
@@ -699,72 +737,55 @@ module Interpreter
         Rs.separate_non_failure
           (interp_instr stk cnf inp ctx sta' ins)
       in
-      let for_non_failure (sta1:sym_state unit)
-        : (sta: state, res: option (string, bool))
-        ensures { res <> None }
+      let function for_res (sta1:sym_state unit)
       = let str = Stdout.to_string sta1.state.stdout in
         let sta1' = {sta1.state with stdout=sta.stdout} in
         let b' = sta1.context.result in
         sta1', Some  (str, b')
       in
-      let res_non_failure = map for_non_failure res in
-      (* assert { *)
-      (*   forall sta', str_b. *)
-      (*   mem (sta', str_b) res_non_failure -> *)
-      (*   exists str b' sta'. *)
-      (*   str_b = Some (str, b') /\ *)
-      (*   exists sta bhv. *)
-      (*   mem sta res /\ *)
-      (*   bhv <> BFailure /\ *)
-      (*   exists ctx'. *)
-      (*   let sta1 = sem_state sta.state in *)
-      (*   Sem.eval_instruction stk (cnf, inp, ctx, {sta1 with SemState.stdout=Stdout.empty}) ins (sem_state sta', ctx', bhv) *)
-      (* }; *)
+      let res_non_failure = map for_res res in
       let res_failure = map (fun sta1 -> sta1.state, None) stas_failures in
-      (* assert { *)
-      (*   forall sta' n. *)
-      (*   mem (sta, n) res_failure -> *)
-      (*   (n = None /\ *)
-      (*    exists ctx'. *)
-      (*    let sta1 = sem_state sta in *)
-      (*    Sem.eval_instruction stk (cnf, inp, ctx, {sta1 with SemState.stdout=Stdout.empty}) ins (sta', ctx', BFailure)) *)
-      (* }; *)
       let res = union res_non_failure res_failure in
-      (* assert { forall x. mem x res -> (mem x res_non_failure \/ mem x res_failure) }; *)
       res
     | SConcat se1 se2 ->
-      let res1 = interp_str_expr stk b cnf inp ctx sta se1 in
-      let rec for_res1 (res1: list (state, option (string, bool))) : set (state, option (string, bool))
-        variant { res1 }
-        (* ensures { *)
-        (*   forall sta' r'. *)
-        (*   mem (sta', r') result -> *)
-        (*   exists sta b. *)
-        (*   Mem.mem (sta, r) res1 /\ *)
-
-        (* } *)
-      = match res1 with
-        | Nil ->
-          empty
-        | Cons (sta1, None) res1' ->
-          Fset.add (sta1, None)
-            (for_res1 res1')
-        | Cons (sta1, Some (str1, b1)) res1' ->
-          let stas = interp_str_expr stk b1 cnf inp ctx sta1 se2 in
-          let concat arg =
-            match arg with
-            | sta2, None ->
-              sta2, None
-            | sta2, Some (str2, b2) ->
-              sta2, Some (str1^str2, b2)
-            end
-          in
-          Fset.union
-            (Fset.map concat stas)
-            (for_res1 res1')
-        end
+      let res1: set (state, (string, bool)), res1_failures: set state =
+        separate_options
+          (interp_str_expr stk b cnf inp ctx sta se1)
       in
-      for_res1 (Fset.to_list res1)
+      let as_failure sta = sta, None in
+      let for_res1 sta1 str1 b1 : set (state, option (string, bool))
+        (* ensures { *)
+        (*   forall sta2. *)
+        (*   mem (sta2, None) result <-> *)
+        (*   eval_str_expr stk b1 (cnf, inp, ctx, sta1) se2 (sta2, None) *)
+        (* } *)
+        (* ensures { *)
+        (*   forall sta2 str2 b2. *)
+        (*   mem (sta2, Some (str2, b2)) result -> *)
+        (*   exists str2'. *)
+        (*   eval_str_expr stk b1 (cnf, inp, ctx, sta1) se2 (sta2, Some (str2', b2)) /\ *)
+        (*   str2 = str1^str2' *)
+        (* } *)
+        (* ensures { *)
+        (*   forall sta2, str2' b2. *)
+        (*   eval_str_expr stk b1 (cnf, inp, ctx, sta1) se2 (sta2, Some (str2', b2)) -> *)
+        (*   mem (sta2, Some (str1^str2', b2)) result *)
+        (* } *)
+      = let res2, res2_failures =
+          separate_options
+            (interp_str_expr stk b1 cnf inp ctx sta1 se2)
+        in
+        let for_res2 arg2 =
+          let sta2, (str2, b2) = arg2 in
+          sta2, Some (str1^str2, b2)
+        in
+        union
+          (map for_res2 res2)
+          (map as_failure res2_failures)
+      in
+      let res1' : set (state, option (string, bool)) =
+        bind (fun arg1 -> let sta1, (str1, b1) = arg1 in for_res1 sta1 str1 b1) res1 in
+      union res1' (map as_failure res1_failures)
     end
 
   with interp_list_expr (stk:int) (cnf:config) (inp:input) (ctx:context) (sta:state) (le:list_expression)
@@ -772,13 +793,13 @@ module Interpreter
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_list_expr le, -1 }
-    (* Over-approximation (->) and under-approximation (<-) *)
-    ensures {
-      forall sta' res.
-      eval_list_expr stk (cnf, inp, ctx, sta) le
-        (sta', res) <->
-      mem (sta', res) result
-    }
+    (* (\* Under-approximation (->) and over-approximation (<-) *\) *)
+    (* ensures { *)
+    (*   forall sta' res. *)
+    (*   mem (sta', res) result <-> *)
+    (*   eval_list_expr stk (cnf, inp, ctx, sta) le *)
+    (*     (sta', res) *)
+    (* } *)
   = match le with
     | Nil ->
       singleton (sta, Some Nil)
@@ -787,84 +808,121 @@ module Interpreter
         separate_options
           (interp_str_expr stk True cnf inp ctx sta se)
       in
-      assert {
-        forall sta1 str b.
-        mem (sta1, (str, b)) str_res1 ->
-        eval_str_expr stk True (cnf, inp, ctx, sta) se
-          (sta1, Some (str, b))
-      };
+      (* assert { *)
+      (*   (\* Every element of str_res1 is a result eval_str_expr *\) *)
+      (*   forall sta1 str b. *)
+      (*   mem (sta1, (str, b)) str_res1 <-> *)
+      (*   eval_str_expr stk True (cnf, inp, ctx, sta) se *)
+      (*     (sta1, Some (str, b)) *)
+      (* }; *)
+      (* assert { *)
+      (*   (\* Every element of str_res1_failures is an incompletness in eval_str_expr *\) *)
+      (*   forall sta1. *)
+      (*   mem sta1 str_res1_failures <-> *)
+      (*   eval_str_expr stk True (cnf, inp, ctx, sta) se *)
+      (*     (sta1, None) *)
+      (* }; *)
       let lst_res1: set (state, list string) = (* Non-failure string list results *)
         map (fun arg -> state_split_str sp arg) str_res1
       in
-      assert {
-        forall sta1 li.
-        mem (sta1, li) lst_res1 ->
-        exists str b.
-        mem (sta1, (str, b)) str_res1 /\
-        eval_str_expr stk True (cnf, inp, ctx, sta) se
-          (sta1, Some (str, b)) /\
-        li = split sp str
-      };
-      let rec for_lst_res1 (lst_res1_lst: list (state, list string)) : set (state, option (list string))
-        variant { lst_res1_lst }
-        ensures {
-          forall sta2 strs2.
-          mem (sta2, Some strs2) result ->
-          exists sta1 strs1 strs2'.
-          Mem.mem (sta1, strs1) lst_res1_lst /\
-          eval_list_expr stk (cnf, inp, ctx, sta1) le'
-            (sta2, Some strs2') /\
-          strs2 = strs1++strs2'
-        }
-        ensures {
-          forall sta2.
-          mem (sta2, None) result ->
-          exists sta1 strs1.
-          Mem.mem (sta1, strs1) lst_res1_lst /\
-          eval_list_expr stk (cnf, inp, ctx, sta1) le'
-            (sta2, None)
-        }
-      = match lst_res1_lst with
-        | Nil -> empty
-        | Cons (sta1, strs1) lst_res1_lst' ->
-          let lst_res2: set (state, list string), lst_res2_failures: set state =
-            separate_options
-              (interp_list_expr stk cnf inp ctx sta1 le')
-          in
-          let lst_res12 : set (state, option (list string)) =
-            Fset.map (fun arg -> state_concat strs1 arg) lst_res2
-          in
-          assert {
-            forall sta2 res2.
-            mem (sta2, res2) lst_res12 ->
-            exists strs2'.
-            eval_list_expr stk (cnf, inp, ctx, sta1) le'
-              (sta2, Some strs2') /\
-            res2 = Some (strs1++strs2')
-          };
-          let lst_res2_failures' : set (state, option (list string)) =
-            map (fun sta -> sta, None) lst_res2_failures
-          in
-          assert {
-            forall sta2 res2.
-            mem (sta2, res2) lst_res2_failures' ->
-            res2 = None /\
-            eval_list_expr stk (cnf, inp, ctx, sta1) le'
-              (sta2, None)
-          };
-          let lst_res1'' : set (state, option (list string)) =
-            for_lst_res1 lst_res1_lst'
-          in
-          union (union lst_res12 lst_res1'') lst_res2_failures'
-        end
-      in
+      (* assert { *)
+      (*   forall sta1 li. *)
+      (*   mem (sta1, li) lst_res1 -> *)
+      (*   exists str b. *)
+      (*   mem (sta1, (str, b)) str_res1 /\ *)
+      (*   eval_str_expr stk True (cnf, inp, ctx, sta) se *)
+      (*     (sta1, Some (str, b)) /\ *)
+      (*   li = split sp str *)
+      (* }; *)
+      (* assert { *)
+      (*   forall sta1 str b. *)
+      (*   eval_str_expr stk True (cnf, inp, ctx, sta) se *)
+      (*     (sta1, Some (str, b)) -> *)
+      (*   mem (sta1, split sp str) lst_res1 *)
+      (* }; *)
       let lst_res1' : set (state, option (list string)) =
-        for_lst_res1 (Fset.to_list lst_res1)
+        interp_list_expr' stk cnf inp ctx (Fset.to_list lst_res1) le'
       in
+      (* assert { *)
+      (*   forall sta2 strs2. *)
+      (*   mem (sta2, Some strs2) lst_res1' -> *)
+      (*   exists sta1 strs1 strs2'. *)
+      (*   mem (sta1, strs1) lst_res1 /\ *)
+      (*   eval_list_expr stk (cnf, inp, ctx, sta1) le' *)
+      (*     (sta2, Some strs2') /\ *)
+      (*   strs2 = strs1++strs2' *)
+      (* }; *)
       let str_res1_failures' : set (state, option (list string)) =
         map (fun sta -> sta, None) str_res1_failures
       in
       union lst_res1' str_res1_failures'
+    end
+
+  with interp_list_expr' (stk:int) (cnf:config) (inp:input) (ctx:context) (res1: list (state, list string)) (le:list_expression)
+    : set (state, option (list string))
+    requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
+    requires { stk <= get_some cnf.stack_size }
+    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_list_expr le, length res1 }
+    (* ensures { *)
+    (*   (\* All results are in eval_list_expr *\) *)
+    (*   forall sta2 strs2. *)
+    (*   mem (sta2, Some strs2) result -> *)
+    (*   exists sta1 strs1 strs2'. *)
+    (*   Mem.mem (sta1, strs1) res1 /\ *)
+    (*   eval_list_expr stk (cnf, inp, ctx, sta1) le *)
+    (*     (sta2, Some strs2') /\ *)
+    (*   strs2 = strs1++strs2' *)
+    (* } *)
+    (* ensures { *)
+    (*   (\* All incomplete results are incomplete in eval_list_expr *\) *)
+    (*   forall sta2. *)
+    (*   mem (sta2, None) result -> *)
+    (*   exists sta1 strs1. *)
+    (*   Mem.mem (sta1, strs1) res1 /\ *)
+    (*   eval_list_expr stk (cnf, inp, ctx, sta1) le *)
+    (*     (sta2, None) *)
+    (* } *)
+    (* ensures { *)
+    (*   (\* The evaluation in eval_list_expr for every argument state is included in the results *\) *)
+    (*   forall sta1 strs1 sta2 strs2'. *)
+    (*   Mem.mem (sta1, strs1) res1 -> *)
+    (*   eval_list_expr stk (cnf, inp, ctx, sta1) le *)
+    (*     (sta2, Some strs2') -> *)
+    (*   mem (sta2, Some (strs1++strs2')) result *)
+    (* } *)
+    (* ensures { *)
+    (*   (\* The incomplete evaluation in eval_list_expr for every argument state is included in the results *\) *)
+    (*   forall sta1 strs1 sta2. *)
+    (*   Mem.mem (sta1, strs1) res1 -> *)
+    (*   eval_list_expr stk (cnf, inp, ctx, sta1) le *)
+    (*     (sta2, None) -> *)
+    (*   mem (sta2, None) result *)
+    (* } *)
+  = match res1 with
+    | Nil -> empty
+    | Cons (sta1, strs1) res1' ->
+      let lst_res2: set (state, list string), lst_res2_failures: set state =
+        separate_options
+          (interp_list_expr stk cnf inp ctx sta1 le)
+      in
+      let lst_res12 : set (state, option (list string)) =
+        Fset.map (fun arg -> state_concat strs1 arg) lst_res2
+      in
+      (* assert { *)
+      (*   forall sta2 strs2. *)
+      (*   mem (sta2, Some strs2) lst_res12 -> *)
+      (*   exists strs2'. *)
+      (*   eval_list_expr stk (cnf, inp, ctx, sta1) le *)
+      (*     (sta2, Some strs2') /\ *)
+      (*   strs2 = strs1++strs2' *)
+      (* }; *)
+      let lst_res2_failures' : set (state, option (list string)) =
+        map (fun sta -> sta, None) lst_res2_failures
+      in
+      let lst_res1'' : set (state, option (list string)) =
+        interp_list_expr' stk cnf inp ctx res1' le
+      in
+      union (union lst_res12 lst_res1'') lst_res2_failures'
     end
 
   let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)
