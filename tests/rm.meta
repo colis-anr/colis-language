@@ -1,0 +1,9 @@
+input:
+  stdin: ""
+  arguments: []
+
+output:
+  stdout: |
+    rm: command not found
+  stderr: ""
+  return_code: 1
