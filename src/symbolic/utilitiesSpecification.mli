@@ -1,5 +1,5 @@
 open Constraints
-open SymbolicInterpreter__State
+open SymbolicInterpreter__Semantics
 open Semantics__Buffers
 
 (** A utility transforms a symbolic state into a list of symbolic states

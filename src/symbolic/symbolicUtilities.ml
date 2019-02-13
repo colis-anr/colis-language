@@ -3,7 +3,6 @@ open Constraints
 open Clause
 open UtilitiesSpecification
 open Semantics__Buffers
-open SymbolicInterpreter__State
 
 type env = (string * string) list
 type args = string list
@@ -71,7 +70,7 @@ let interp_false : env -> args -> utility =
 let interp_echo : env -> args -> utility =
   fun _ args sta ->
     let open Semantics__Buffers in
-    let open SymbolicInterpreter__State in
+    let open SymbolicInterpreter__Semantics in
     let str = String.concat " " args in
     let stdout = Stdout.(output str sta.stdout |> newline) in
     [ {sta with stdout}, true ]

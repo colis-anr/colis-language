@@ -3,7 +3,7 @@
 module Errors = Errors
 module Options = Options
 
-module Language: sig
+module Language : sig
   module Nat = Syntax__Nat
   module Syntax = Syntax__Syntax
   module Parser = ColisParser
@@ -11,31 +11,32 @@ module Language: sig
   module FromShell = FromShell
 end
 
-module Semantics: sig
+module Semantics : sig
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
   module Env = Semantics__Env
-  module Context = Semantics__Context
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
+  module Context = Semantics__Context
   module Input = Semantics__Input
-  module Semantics = Semantics__Semantics
 end
 
-module Concrete: sig
+module Concrete : sig
   module Filesystem = Interpreter__Filesystem
   module Interpreter = Interpreter__Interpreter
+  module State = Interpreter__State
 end
 
-module Symbolic: sig
+module Symbolic : sig
   module Filesystem = SymbolicInterpreter__Filesystem
   module FilesystemSpec = FilesystemSpec
-  module State = SymbolicInterpreter__State
+  module State = SymbolicInterpreter__Semantics (* Semantics contais State *)
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
   module Utilities = SymbolicUtilities
 end
+
 
 type colis = Language.Syntax.program
 (** The abstract syntax of Colis programs. *)

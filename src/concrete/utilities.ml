@@ -3,8 +3,8 @@
     See subsections of http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap04.html#tag_20
   *)
 
-open Semantics__State
 open Semantics__Buffers
+open Interpreter__Semantics
 
 let unknown_utility ?(msg="command not found") ~name sta =
   if !Options.fail_on_unknown_utilities then

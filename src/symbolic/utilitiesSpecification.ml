@@ -1,6 +1,5 @@
 open Constraints
-open SymbolicInterpreter__Filesystem
-open SymbolicInterpreter__State
+open SymbolicInterpreter__Semantics
 open Semantics__Buffers
 
 type utility = state -> (state * bool) list

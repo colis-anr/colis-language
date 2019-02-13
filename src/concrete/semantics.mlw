@@ -213,33 +213,6 @@ module Input
   }
 end
 
-(** {2 Read/write context for the evaluation of a term with abstract filesystem} *)
-module AbstractState
-
-  use Buffers
-
-  type filesystem
-
-  (** The state is unreversable ("following a linear logic") and each internal state should
-      be consumed exactly once *)
-  type state = {
-    filesystem: filesystem;
-    stdin: stdin;
-    stdout: stdout;
-  }
-end
-
-module Filesystem
-  type filesystem = unit
-  let empty = ()
-end
-
-module State
-  use Filesystem as F
-  clone export AbstractState
-    with type filesystem = F.filesystem
-end
-
 module Env
   use syntax.Identifier
   use map.Map as M
@@ -295,6 +268,13 @@ module Context
     arguments: list string;
     result: bool; (* previous result ($?) for input state, current result for output state *)
   }
+
+  lemma same_context: forall c1 c2.
+    c1.var_env = c2.var_env ->
+    c1.func_env = c2.func_env ->
+    c1.arguments = c2.arguments ->
+    c1.result = c1.result ->
+    c1 = c2
 
   let constant empty_context = {
     var_env = empty_env String.empty; 
@@ -375,6 +355,41 @@ module Config
   = { loop_limit = loop_limit; stack_size = stack_size }
 end
 
+(** {2 Read/write context for the evaluation of a term with abstract filesystem} *)
+module State
+
+  use list.List
+  use mystring.String
+  use syntax.Identifier
+  use Buffers
+
+  type filesystem
+
+  (** The state is unreversable ("following a linear logic") and each internal state should
+      be consumed exactly once *)
+  type state = {
+    filesystem: filesystem;
+    stdin: stdin;
+    stdout: stdout;
+  }
+
+  (** Interprete a command defined in the document *Specification of UNIX Commands*.
+
+      It acts upon the input and irreversable state, and returns a stdout, a behaviour
+      (True/False), and another irreversable state, see also NOTES[Callees] *)
+  val function interp_utility state identifier (list string) :
+    (state, bool)
+
+  axiom interp_utility_extends_output : forall sta sta' name args b.
+    interp_utility {sta with stdout=Stdout.empty} name args = (sta', b) ->
+    interp_utility sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
+
+  function any_filesystem : unit -> filesystem
+
+  function mk_state (stdin:stdin) (stdout:stdout) : state =
+    { stdin=stdin; stdout=stdout; filesystem=any_filesystem () }
+end
+
 (** {2 Semantics of the CoLiS language} *)
 
 module Semantics
@@ -394,9 +409,9 @@ module Semantics
   use Buffers
   use Config
   use Context
-  use Filesystem
   use Input
-  use State
+
+  clone export State
 
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with
@@ -420,17 +435,6 @@ module Semantics
     else BNormal
 
   (** {3 Specification of the semantics} *)
-
-  (** Interprete a command defined in the document *Specification of UNIX Commands*.
-
-      It acts upon the input and irreversable state, and returns a stdout, a behaviour
-      (True/False), and another irreversable state, see also NOTES[Callees] *)
-  val function interp_utility state identifier (list string) :
-    (state, bool)
-
-  axiom interp_utility_extends_output : forall sta sta' name args b.
-    interp_utility {sta with stdout=Stdout.empty} name args = (sta', b) ->
-    interp_utility sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
   let function split sp str =
     match sp with
@@ -781,7 +785,8 @@ module Semantics
   with eval_list_expr int (config, input, context, state) list_expression (state, option (list string)) =
 
     | eval_list_expr_nil: forall stk cnf inp ctx sta.
-      eval_list_expr stk (cnf, inp, ctx, sta) Nil (sta, Some Nil)
+      let sta' = sta in
+      eval_list_expr stk (cnf, inp, ctx, sta) Nil (sta', Some Nil)
 
     (* Failure in the head string expression *)
     | eval_list_expr_failure_head: forall stk cnf inp ctx sta sta1 se sp es.

@@ -7,6 +7,7 @@ module semantics.Env
   syntax function ([<-]) "(IdEnv.add %2 %3 (fst %1), snd %1)"
 end
 
-module semantics.Semantics
-  syntax function interp_utility "Utilities.interp_utility %1 %2 %3"
+
+module interpreter.Interpreter
+  syntax function S.interp_utility "Utilities.interp_utility %1 %2 %3"
 end
