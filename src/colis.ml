@@ -19,18 +19,18 @@ module Semantics = struct
   module Stdout = Semantics__Buffers.Stdout
   module Context = Semantics__Context
   module Input = Semantics__Input
-  module Semantics = Semantics__Semantics
 end
 
 module Concrete = struct
   module Filesystem = Interpreter__Filesystem
   module Interpreter = Interpreter__Interpreter
+  module State = Interpreter__State
 end
 
 module Symbolic = struct
   module Filesystem = SymbolicInterpreter__Filesystem
   module FilesystemSpec = FilesystemSpec
-  module State = SymbolicInterpreter__State
+  module State = SymbolicInterpreter__Semantics (* Semantics contais State *)
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
@@ -110,7 +110,7 @@ let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Semantics in
   let open Concrete in
   let input = { Input.empty with argument0 } in
-  let state = Interpreter.empty_state () in
+  let state = State.empty_state () in
   state.arguments := arguments;
   state.var_env := mk_var_env vars;
   Interpreter.interp_program input state colis;

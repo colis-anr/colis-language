@@ -13,12 +13,7 @@ module Constraints
   type path
 end
 
-(** A symbolic file system.
-
-   The only symbolic part in this intepreter *)
 module Filesystem
-
-  use list.List
   use option.Option
   use Constraints
 
@@ -34,31 +29,28 @@ module Filesystem
   }
 end
 
-module State
-
+module Semantics
   use Filesystem
 
-  clone export semantics.AbstractState
+  clone export semantics.Semantics
     with type filesystem = filesystem
-
-  use semantics.State as S
-  function sem_state (sta:state) : S.state = {
-    S.stdin = sta.stdin;
-    S.stdout = sta.stdout;
-    S.filesystem = ();
-  }
 end
 
 
 module SymState
 
-  use State
+  use list.List
   use semantics.Context
+  use Semantics
+
+  (* lemma sem_state_eq: forall s1 s2. *)
+  (*   s1.filesystem = s2.filesystem -> *)
+  (*   (s1 = s2 <-> sem_state s1 = sem_state s2) *)
 
   type sym_state 'a = {
     context: context;
     state: state;
-    data: 'a (* Used to fiddle additional information through interp_instr': A stdin in pipe and the last reuslt in the loops *)
+    data: 'a (* Used to fiddle additional information through interp_instr': A stdin in pipe and the last result in the loops *)
   }
 
   let function with_data data =
@@ -73,9 +65,8 @@ module Results
   use symbolicAuxiliaries.Fset
   use semantics.Input
   use semantics.Behaviour
-  use semantics.Semantics
   use semantics.Context
-  use State
+  use Semantics
   use SymState
 
   type t 'a = {
@@ -179,17 +170,20 @@ module Interpreter
   use semantics.Config
   use semantics.Buffers
   use semantics.Arguments
-  use semantics.State as SemState
-  use semantics.Semantics as Sem
   use semantics.Context
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset
-  use State
+  use Semantics
   use SymState
   use Results as Rs
 
   (* Implemented in OCaml *)
-  val function interp_utility (id:identifier) (var_env:var_env) (args:list string) (sta:state) : set (state, bool)
+  val function sym_interp_utility (id:identifier) (var_env:var_env) (args:list string) (sta:state) : set (state, bool)
+    ensures {
+      forall res.
+      interp_utility sta id args = res <->
+      mem res result
+    }
 
   lemma list_mem_set_mem: forall x:'a, s. mem x s <-> Mem.mem x (Fset.to_list s)
 
@@ -234,6 +228,10 @@ module Interpreter
 
   lemma set_mem_map: forall y: 'b, s: set 'a, f: 'a -> 'b.
     mem y (map f s) <-> (exists x. mem x s /\ f x = y)
+
+  (* lemma set_mem_map': forall y: 'b, s: set 'a, f: 'a -> 'b. *)
+  (*   (exists x. mem x s /\ f x = y) -> *)
+  (*   mem y (map f s) *)
 
   let function get_some (o: option 'a) : 'a
     requires { o <> None }
@@ -304,7 +302,7 @@ module Interpreter
 
   let function state_split_str sp arg =
     let sta, (str, _:bool) = arg in
-    sta, Sem.split sp str
+    sta, split sp str
 
   let function state_concat strs1 arg =
     let sta2, strs2 = arg in
@@ -318,8 +316,8 @@ module Interpreter
     (* Over-approximation (->) and under-approximation (<-) *)
     ensures {
       forall bhv sta'.
-      Sem.eval_instruction stk (cnf, inp, ctx, sem_state sta) ins
-        (sem_state sta'.state, sta'.context, bhv) <->
+      eval_instruction stk (cnf, inp, ctx, sta) ins
+        (sta'.state, sta'.context, bhv) <->
       Rs.mem sta' bhv result
     }
   = match ins with
@@ -405,7 +403,7 @@ module Interpreter
       let res' =
         let call_utility arg =
           let sta', args = arg in
-          interp_utility id ctx.var_env args sta' (*FIXME: export?*)
+          sym_interp_utility id ctx.var_env args sta' (*FIXME: export?*)
         in
         let for_call_result arg =
           let sta'', b = arg in
@@ -631,8 +629,8 @@ module Interpreter
     ensures {
       forall bhv sta sta'.
       mem sta stas ->
-      Sem.eval_instruction stk (cnf, inp, sta.context, sem_state sta.state) ins
-        (sem_state sta'.state, sta'.context, bhv) ->
+      eval_instruction stk (cnf, inp, sta.context, sta.state) ins
+        (sta'.state, sta'.context, bhv) ->
       Rs.mem sta' bhv result
     }
     (* Under-approximation *)
@@ -641,8 +639,8 @@ module Interpreter
       Rs.mem sta' bhv result ->
       exists sta.
       mem sta stas /\
-      Sem.eval_instruction stk (cnf, inp, sta.context, sem_state sta.state) ins
-        (sem_state sta'.state, sta'.context, bhv)
+      eval_instruction stk (cnf, inp, sta.context, sta.state) ins
+        (sta'.state, sta'.context, bhv)
     }
   = let rec aux (stas: list (sym_state 'a)) : Rs.t 'a
       variant { stas }
@@ -651,8 +649,8 @@ module Interpreter
         exists sta.
         Mem.mem sta stas /\
         sta'.data = sta.data /\
-        Sem.eval_instruction stk (cnf, inp, sta.context, sem_state sta.state) ins
-          (sem_state sta'.state, sta'.context, bhv)
+        eval_instruction stk (cnf, inp, sta.context, sta.state) ins
+          (sta'.state, sta'.context, bhv)
       }
     = match stas with
       | Nil ->
@@ -666,8 +664,8 @@ module Interpreter
           forall sta' bhv.
           Rs.mem sta' bhv res ->
           sta'.data = sta.data /\
-          Sem.eval_instruction stk (cnf, inp, sta.context, sem_state sta.state) ins
-            (sem_state sta'.state, sta'.context, bhv)
+          eval_instruction stk (cnf, inp, sta.context, sta.state) ins
+            (sta'.state, sta'.context, bhv)
         };
         Rs.union res (aux stas')
       end
@@ -682,8 +680,8 @@ module Interpreter
     (* Over-approximation (->) and under-approximation (<-) *)
     ensures {
       forall sta' res.
-      Sem.eval_str_expr stk b (cnf, inp, ctx, sem_state sta) se
-        (sem_state sta', res) <->
+      eval_str_expr stk b (cnf, inp, ctx, sta) se
+        (sta', res) <->
       mem (sta', res) result
     }
   = match se with
@@ -777,8 +775,8 @@ module Interpreter
     (* Over-approximation (->) and under-approximation (<-) *)
     ensures {
       forall sta' res.
-      Sem.eval_list_expr stk (cnf, inp, ctx, sem_state sta) le
-        (sem_state sta', res) <->
+      eval_list_expr stk (cnf, inp, ctx, sta) le
+        (sta', res) <->
       mem (sta', res) result
     }
   = match le with
@@ -792,8 +790,8 @@ module Interpreter
       assert {
         forall sta1 str b.
         mem (sta1, (str, b)) str_res1 ->
-        Sem.eval_str_expr stk True (cnf, inp, ctx, sem_state sta) se
-          (sem_state sta1, Some (str, b))
+        eval_str_expr stk True (cnf, inp, ctx, sta) se
+          (sta1, Some (str, b))
       };
       let lst_res1: set (state, list string) = (* Non-failure string list results *)
         map (fun arg -> state_split_str sp arg) str_res1
@@ -803,9 +801,9 @@ module Interpreter
         mem (sta1, li) lst_res1 ->
         exists str b.
         mem (sta1, (str, b)) str_res1 /\
-        Sem.eval_str_expr stk True (cnf, inp, ctx, sem_state sta) se
-          (sem_state sta1, Some (str, b)) /\
-        li = Sem.split sp str
+        eval_str_expr stk True (cnf, inp, ctx, sta) se
+          (sta1, Some (str, b)) /\
+        li = split sp str
       };
       let rec for_lst_res1 (lst_res1_lst: list (state, list string)) : set (state, option (list string))
         variant { lst_res1_lst }
@@ -814,8 +812,8 @@ module Interpreter
           mem (sta2, Some strs2) result ->
           exists sta1 strs1 strs2'.
           Mem.mem (sta1, strs1) lst_res1_lst /\
-          Sem.eval_list_expr stk (cnf, inp, ctx, sem_state sta1) le'
-            (sem_state sta2, Some strs2') /\
+          eval_list_expr stk (cnf, inp, ctx, sta1) le'
+            (sta2, Some strs2') /\
           strs2 = strs1++strs2'
         }
         ensures {
@@ -823,8 +821,8 @@ module Interpreter
           mem (sta2, None) result ->
           exists sta1 strs1.
           Mem.mem (sta1, strs1) lst_res1_lst /\
-          Sem.eval_list_expr stk (cnf, inp, ctx, sem_state sta1) le'
-            (sem_state sta2, None)
+          eval_list_expr stk (cnf, inp, ctx, sta1) le'
+            (sta2, None)
         }
       = match lst_res1_lst with
         | Nil -> empty
@@ -840,8 +838,8 @@ module Interpreter
             forall sta2 res2.
             mem (sta2, res2) lst_res12 ->
             exists strs2'.
-            Sem.eval_list_expr stk (cnf, inp, ctx, sem_state sta1) le'
-              (sem_state sta2, Some strs2') /\
+            eval_list_expr stk (cnf, inp, ctx, sta1) le'
+              (sta2, Some strs2') /\
             res2 = Some (strs1++strs2')
           };
           let lst_res2_failures' : set (state, option (list string)) =
@@ -851,8 +849,8 @@ module Interpreter
             forall sta2 res2.
             mem (sta2, res2) lst_res2_failures' ->
             res2 = None /\
-            Sem.eval_list_expr stk (cnf, inp, ctx, sem_state sta1) le'
-              (sem_state sta2, None)
+            eval_list_expr stk (cnf, inp, ctx, sta1) le'
+              (sta2, None)
           };
           let lst_res1'' : set (state, option (list string)) =
             for_lst_res1 lst_res1_lst'
