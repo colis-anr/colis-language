@@ -3,7 +3,7 @@
     See NOTES[Concrete interpreter type] for discussion on arguments.
  *)
 
-(** The filesystem is no modelled by the concrete interpreter *)
+(** The filesystem is not modelled by the concrete interpreter *)
 module Filesystem
   type filesystem = unit
   let constant empty : filesystem = ()
@@ -13,7 +13,8 @@ module Semantics
   use Filesystem
 
   clone export semantics.Semantics
-    with type filesystem = filesystem
+    with type filesystem = filesystem,
+         axiom interp_utility_extends_output
 end
 
 module State
