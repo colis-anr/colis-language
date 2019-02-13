@@ -8,9 +8,9 @@ open SymbolicInterpreter__State
 type env = (string * string) list
 type args = string list
 
-(** Get the name of the last path component, if any, or of the hint root variable
-    otherwise. The result is useful as a hint for creating variables for resolving the
-    path. *)
+(** Get the name of the last path component, if any, or of the hint
+   root variable otherwise. The result is useful as a hint for
+   creating variables for resolving the path. *)
 let last_comp_as_hint: root:Var.t -> Path.t -> string option =
   fun ~root path ->
     match Path.split_last path with
@@ -48,9 +48,9 @@ let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
   else
     error ~msg:(msg ^ ": " ^ arg) ()
 
-(*********************************************************************************)
-(*                                     true/false                                *)
-(*********************************************************************************)
+(******************************************************************************)
+(*                                  true/false                                *)
+(******************************************************************************)
 
 let return result : utility =
   fun sta -> [sta, result]
@@ -63,9 +63,9 @@ let interp_false : env -> args -> utility =
   fun _ _ ->
     return false
 
-(*********************************************************************************)
-(*                                        echo                                   *)
-(*********************************************************************************)
+(******************************************************************************)
+(*                                     echo                                   *)
+(******************************************************************************)
 
 let interp_echo : env -> args -> utility =
   fun _ args sta ->
@@ -75,9 +75,9 @@ let interp_echo : env -> args -> utility =
     let stdout = Stdout.(output str sta.stdout |> newline) in
     [ {sta with stdout}, true ]
 
-(*********************************************************************************)
-(*                                        touch                                  *)
-(*********************************************************************************)
+(******************************************************************************)
+(*                                     touch                                  *)
+(******************************************************************************)
 
 let interp_touch1 path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
@@ -140,9 +140,9 @@ let interp_touch : env -> args -> utility =
   | [arg] -> interp_touch1 arg
   | _ -> unknown_argument ~msg:"multiple arguments"  ~name:"touch" ~arg:"" ()
 
-(*********************************************************************************)
-(*                                        mkdir                                  *)
-(*********************************************************************************)
+(******************************************************************************)
+(*                                     mkdir                                  *)
+(******************************************************************************)
 
 let interp_mkdir1 path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
@@ -201,9 +201,9 @@ let interp_mkdir : env -> args -> utility =
   | [arg] -> interp_mkdir1 arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"mkdir" ~arg:"" ()
 
-(*********************************************************************************)
-(*                                        test                                   *)
-(*********************************************************************************)
+(******************************************************************************)
+(*                                     test                                   *)
+(******************************************************************************)
 
 let interp_test_parse_error args : utility =
   under_specifications @@ fun ~cwd:_ ~root ~root' ->
@@ -453,9 +453,9 @@ let interp_test ~bracket _env (args : string list) : utility =
   | exception Morsmall_utilities.TestParser.Parse_error ->
      interp_test_parse_error args
 
-(*********************************************************************************)
-(*                                   which                                       *)
-(*********************************************************************************)
+(******************************************************************************)
+(*                                which                                       *)
+(******************************************************************************)
 
 let _interp_which_naive (args: string list) : utility =
   match args with
@@ -572,9 +572,9 @@ let interp_which_full _env (* envPATH:string *) (args:string list) : utility =
 
 
 
-(*********************************************************************************)
-(*                         Dispatch interpretation of utilities                  *)
-(*********************************************************************************)
+(******************************************************************************)
+(*                      Dispatch interpretation of utilities                  *)
+(******************************************************************************)
 
 let interp (name: string) : env -> args -> utility =
   match name with
