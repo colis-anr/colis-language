@@ -58,6 +58,7 @@ let normalize ?(limit=50) (disj : Disj.t) : Disj.t =
 
 let simplify (disj : Disj.t) : Disj.t =
   Log.debug (fun m -> m "Simplifying");
+  Log.check_cpu_time_limit ();
   let disj' =
     List.map
       (fun (es, c) ->

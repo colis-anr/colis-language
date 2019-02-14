@@ -28,3 +28,15 @@ let log level f =
 let debug f = log Debug f
 let info f = log Info f
 let warn f = log Warning f
+
+(*** implementing CPU time limit ***)
+
+let cpu_time_limit = ref None
+exception CPU_time_limit_exceeded
+
+let check_cpu_time_limit () =
+  match !cpu_time_limit with
+  | None -> ()
+  | Some l ->
+     let t = Sys.time () in
+     if t >= l then raise CPU_time_limit_exceeded
