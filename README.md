@@ -24,7 +24,7 @@ The oracle file is a Yaml-serialised file of the following format:
 input:
   stdin: <a string>
   arguments: <a list of arguments>
-  
+
 output:
   stdout: <a string>
   stderr: <a string>
@@ -50,3 +50,4 @@ The tool uses different return codes for different kind of errors.
 |   8  | Unsupported option for a supported utility (only with option --fail-on-unknown-utility)
 |   9  | Error in pretty-printing (Shell or CoLiS)
 |  10  | Symbolic execution: No error states found, but some execution were not covered by symbolic execution
+|  11  | Symbolic execution: CPU time limit exceeded
