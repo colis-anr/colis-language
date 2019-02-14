@@ -248,7 +248,7 @@ module Context
 
   use mystring.String
   use syntax.Syntax
-  use export Env
+  use Env
 
   use Buffers
 
@@ -256,16 +256,41 @@ module Context
       subprocesses) *)
 
   (* A variable environment *)
-  type var_env = env string
+  type export_state = Exported | Not_exported
+  type var_env = env (string, export_state)
 
   let constant empty_var_env : var_env =
-    empty_env String.empty
+    empty_env (String.empty, Not_exported)
+
+  let predicate is_exported (x:(string, export_state)) =
+    match x with
+    | _, Exported -> true
+    | _, Not_exported -> false
+    end
+
+  (* Reexport mixfix operators and deal with the export_state flag. *)
+    
+  let function ([<-]') (env:var_env) (id:identifier) (s:string) : var_env =
+    let _, e = env[id] in
+    env[id <- (s, e)]
+
+  let function ([]') (e:var_env) (id:identifier) : string =
+    let s, _ = e[id] in
+    s
 
   (** A function environment *)
   type func_env = env (option instruction)
 
   let constant empty_func_env : func_env =
     empty_env None
+
+  (* Reexport mixfix operators. *)
+
+  let function ([]) (e:func_env) (id:identifier) : option instruction =
+    e[id]
+
+  let function ([<-]) (e:func_env) (id:identifier) (ins:instruction) : func_env =
+    e[id <- Some ins]
 
   type context = {
     var_env: var_env;
@@ -282,8 +307,8 @@ module Context
     c1 = c2
 
   let constant empty_context = {
-    var_env = empty_env String.empty; 
-    func_env = empty_env None;
+    var_env = empty_var_env; 
+    func_env = empty_func_env;
     arguments = Nil;
     result = True;
   }
@@ -491,7 +516,7 @@ module Semantics
 
   | eval_assignment: forall stk cnf inp ctx sta sta' id e s b.
     eval_str_expr stk True (cnf, inp, ctx, sta) e (sta', Some (s, b)) ->
-    let ctx' = with_result b { ctx with var_env = ctx.var_env[id <- s] } in
+    let ctx' = with_result b { ctx with var_env = ctx.var_env[id <- s]' } in
     let bhv = behaviour inp ctx'.result in
     eval_instruction stk (cnf, inp, ctx, sta) (IAssignment id e) (sta', ctx', bhv)
 
@@ -718,7 +743,7 @@ module Semantics
 
   | eval_foreach_abort: forall stk cnf b inp ctx ctx1 sta sta1 id s ss' ins bhv1.
     let ss = Cons s ss' in
-    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
+    let ctx' = {ctx with var_env = ctx.var_env[id <- s]'} in
     eval_instruction stk (cnf, inp, ctx', sta) ins (sta1, ctx1, bhv1) ->
     bhv1 <> BNormal ->
     let r = ctx1.result in
@@ -726,7 +751,7 @@ module Semantics
 
   | eval_foreach_step: forall stk cnf b b2 inp ctx ctx1 ctx2 sta sta1 sta2 id s ss' ins bhv2.
     let ss = Cons s ss' in
-    let ctx' = {ctx with var_env = ctx.var_env[id <- s]} in
+    let ctx' = {ctx with var_env = ctx.var_env[id <- s]'} in
     eval_instruction stk (cnf, inp, ctx', sta) ins (sta1, ctx1, BNormal) ->
     eval_foreach stk ctx1.result (cnf, inp, ctx1, sta1) id ss' ins (sta2, ctx2, bhv2) b2 ->
     eval_foreach stk b (cnf, inp, ctx, sta) id ss ins (sta2, ctx2, bhv2) b2
@@ -747,7 +772,7 @@ module Semantics
 
   | eval_str_variable: forall stk cnf b inp ctx sta id.
     let res =
-      let str = ctx.var_env[id] in
+      let str = ctx.var_env[id]' in
       Some (str, b) in
     let sta' = sta in
     eval_str_expr stk b (cnf, inp, ctx, sta) (SVariable id) (sta', res)
@@ -821,7 +846,7 @@ module Semantics
       eval_function_definitions fenv Nil fenv
 
     | eval_function_definition: forall e e' id ins defs.
-      eval_function_definitions e[id <- Some ins] defs e' ->
+      eval_function_definitions e[id <- ins] defs e' ->
       eval_function_definitions e (Cons (id, ins) defs) e'
 
   let rec lemma no_while_failure (ctr n:int) (cnf:config) (ins1 ins2:instruction)
@@ -847,7 +872,7 @@ module Semantics
   = match defs with
     | Nil -> fenv
     | Cons (id, instr) defs' ->
-      interp_function_definitions (fenv[id <- Some instr])  defs'
+      interp_function_definitions (fenv[id <- instr])  defs'
     end
 
   (** Evaluation of a CoLis program.
@@ -892,7 +917,7 @@ module Semantics
   let rec lemma eval_foreach_last (ss:list string)
     ensures { forall stk cnf b b1 inp ctx ctx1 ctx2 sta sta1 sta2 id s ins bhv2.
       eval_foreach stk b (cnf, inp, ctx, sta) id ss ins (sta1, ctx1, BNormal) b1 ->
-      let ctx1' = {ctx1 with var_env = ctx1.var_env[id <- s]} in
+      let ctx1' = {ctx1 with var_env = ctx1.var_env[id <- s]'} in
       eval_instruction stk (cnf, inp, ctx1', sta1) ins (sta2, ctx2, bhv2) ->
       let b' = ctx2.result in
       eval_foreach stk b (cnf, inp, ctx, sta) id (ss ++ Cons s Nil) ins (sta2, ctx2, bhv2) b'
