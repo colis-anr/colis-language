@@ -103,7 +103,8 @@ let colis_to_file filename colis =
 let mk_var_env =
   let open Semantics in
   List.fold_left
-    (fun env (id, x) -> Env.set env id x)
+    (* All variables given on the command line are exported! *)
+    (fun env (id, x) -> Env.set env id (x, Context.Exported))
     (Context.empty_var_env)
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =

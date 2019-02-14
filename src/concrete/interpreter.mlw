@@ -225,7 +225,7 @@ module Interpreter
 
     | IAssignment id se ->
       let str, b = interp_str_expr True inp sta se in
-      sta.var_env := (let env = !(sta.var_env) in C.(env[id <- str]));
+      sta.var_env := (let env = !(sta.var_env) in C.(env[id <- str]'));
       sta.result := b;
       maybe_exit inp sta
 
@@ -343,7 +343,7 @@ module Interpreter
         }
         match nth i ss with
         | Some s ->
-          sta.var_env := (let env = !(sta.var_env) in C.(env[id <- s]));
+          sta.var_env := (let env = !(sta.var_env) in C.(env[id <- s]'));
           interp_instruction inp sta ins;
           last_result := !(sta.result);
         | None ->
@@ -392,7 +392,7 @@ module Interpreter
 
     | SVariable id ->
       let env = !(sta.var_env) in
-      C.(env[id]), b 
+      C.(env[id]'), b 
 
     | SArgument n ->
       nth_argument (Cons inp.argument0 !(sta.arguments)) n.nat, b
