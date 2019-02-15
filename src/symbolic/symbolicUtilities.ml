@@ -570,7 +570,21 @@ let interp_which_full _env (* envPATH:string *) (args:string list) : utility =
      in
      aux args
 
+(**************************************************************************)
+(*                     update-alternatives                                *)
+(**************************************************************************)
 
+let interp_update_alternatives _env args =
+  let name = "update-alternatives" in
+  let rec aux = function
+    | [] ->
+       unknown_argument ~msg:"update-alternatives: no command found" ~name ~arg:"(none)" ()
+    | "--quiet" :: rem->
+       fun st -> aux rem (print_utility_trace (name ^ ": ignored option --quiet") st)
+    | arg :: _ ->
+       unknown_argument ~msg:"update-alternatives: unsupported argument" ~name ~arg ()
+  in
+  aux args
 
 (******************************************************************************)
 (*                      Dispatch interpretation of utilities                  *)
@@ -586,4 +600,5 @@ let interp (name: string) : env -> args -> utility =
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
   | "which" -> interp_which_full
+  | "update-alternatives" -> interp_update_alternatives
   | _ -> fun _env _args -> unknown_utility ~name ()
