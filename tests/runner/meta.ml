@@ -19,15 +19,13 @@ type t =
     output : output }
 [@@deriving protocol ~driver:(module Yaml)]
 
-let rec promote_strings_to_ints = function
-  | `Null -> `Null
+let rec promote_null_to_empty_string = function
+  | `Null -> `String ""
   | `Bool b -> `Bool b
   | `Float f -> `Float f
-  | `String s ->
-     (try `Float (float_of_string s)
-      with _ -> `String s)
-  | `A vl -> `A (List.map promote_strings_to_ints vl)
-  | `O svl -> `O (List.map (fun (s, v) -> (s, promote_strings_to_ints v)) svl)
+  | `String s -> `String s
+  | `A vl -> `A (List.map promote_null_to_empty_string vl)
+  | `O svl -> `O (List.map (fun (s, v) -> (s, promote_null_to_empty_string v)) svl)
 
 let load_from_file filename =
   try
@@ -35,7 +33,7 @@ let load_from_file filename =
     let yaml =
       in_channel_to_string ichan
       |> yaml_of_string
-      |> promote_strings_to_ints
+      |> promote_null_to_empty_string
       |> of_yaml
     in
     close_in ichan;
