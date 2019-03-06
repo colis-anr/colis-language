@@ -14,7 +14,9 @@ RUN [ -z "$SWITCH" ] || opam switch create "$SWITCH"
 
 ## ============================ [ Dependencies ] ============================ ##
 
-RUN sudo apt-get update && sudo apt-get install -yy -qq wget autoconf automake
+RUN sudo apt-get update
+RUN sudo apt-get install -qq -yy wget autoconf automake
+RUN sudo apt-get install -qq -yy debianutils libgmp-dev m4 perl pkg-config zlib1g-dev
 
 WORKDIR /home/opam/colis-language
 COPY colis-language.opam .
@@ -29,9 +31,7 @@ RUN opam show . -f pin-depends: 2>/dev/null \
   | xargs -n2 opam pin -n
 
 # Extract dependencies from opam file and install their dependencies
-RUN opam show . -f depends: \
-  | cut -d '"' -f 2 \
-  | xargs opam depext --install
+RUN opam install . --deps-only --with-test --with-doc
 
 ## ========================= [ Solvers for Why3 ] =========================== ##
 
