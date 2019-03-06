@@ -19,6 +19,7 @@ authors: [
 maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 
 pin-depends: [
+  [ "morbig.dev"   "git+https://github.com/colis-anr/morbig.git" ]
   [ "morsmall.dev" "git+https://github.com/colis-anr/morsmall.git" ]
   [ "why3.dev"     "git+https://gitlab.inria.fr/why3/why3.git#c0758c6b" ]
 ]
@@ -39,6 +40,7 @@ depends: [
   "ppx_deriving"           {build}
   "ppx_protocol_conv_yaml" {with-test}
   "why3"                   {= "dev" & (build | with-test)}
+  "yaml"                   {with-test & >= "1.0.0"}
   "zarith"
 ]
 
