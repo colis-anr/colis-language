@@ -400,10 +400,9 @@ and command'__to__instruction env command' =
 and case_item'_list__to__if_sequence fresh_var env = function
   | [] -> assert false
 
-  | [{value=({value=[[GlobAny | Literal "*"]];_}, command'_option);_}] ->
+  | [{value=({value=[[GlobAll]];_}, command'_option);_}] ->
      (* When the last case_item is "* )", it's the "else" part of our
-        if sequence. FIXME: When Morbig is fixed, remove the [Literal
-        "*"] part. *)
+        if sequence. *)
      command'_option__to__instruction env command'_option
 
   | [case_item'] ->
@@ -428,7 +427,7 @@ and command'_option__to__instruction env = function
 and pattern__to__instruction fresh_var pattern =
   List.fold_left
     (fun instruction -> function
-      | [Literal word] when not (String.contains word '*') -> (* FIXME: when Morbig is fixed, remove this guard. *)
+      | [Literal word] ->
          C.(ior (instruction, ICallUtility ("test", [(SVariable fresh_var, DontSplit); (SLiteral "=", DontSplit); (SLiteral word, DontSplit)])))
       | _ ->
          unsupported "case when non-literal patterns")
