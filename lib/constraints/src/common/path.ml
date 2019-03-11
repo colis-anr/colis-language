@@ -1,5 +1,3 @@
-open OptionMonad
-
 type comp =
   | Up
   | Here
@@ -39,11 +37,13 @@ type t = Abs of rel | Rel of rel
 
 let split_last = function
   | Abs q ->
-     split_last_rel q >>= fun (q, e) ->
-     Some (Abs q, e)
+    BatOption.bind
+      (split_last_rel q)
+      (fun (q, e) -> Some (Abs q, e))
   | Rel q ->
-     split_last_rel q >>= fun (q, e) ->
-     Some (Rel q, e)
+    BatOption.bind
+      (split_last_rel q)
+      (fun (q, e) -> Some (Rel q, e))
 
 let from_string s =
   String.split_on_char '/' s
