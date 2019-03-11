@@ -50,7 +50,6 @@ let rec match_literal_l pl ls =
        (Seq.map (fun (a, ls) -> (a, l::ls)) (match_literal_l pl ls))
 
 let rec match_ pls ls =
-  let open OptionMonad in
   match pls with
   | [] -> Seq.return (Assign.empty, Literal.Set.of_list ls)
   | pl :: pls' ->
@@ -60,8 +59,9 @@ let rec match_ pls ls =
             match_ pls' ls1
             |> Seq.filter_map
                  (fun  (a2, ls2) ->
-                   Assign.merge a1 a2 >>= fun a ->
-                   Some (a, ls2)))
+                  BatOption.bind
+                    (Assign.merge a1 a2)
+                    (fun a -> Some (a, ls2))))
 
 let find_all ?(pred=(fun _ _ -> true)) pls (es, ls) =
   match_ pls (Literal.Set.elements ls)
