@@ -4,7 +4,9 @@
 <why3session shape_version="5">
 <prover id="0" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
 <prover id="1" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
-<file name="../auxiliaries.mlw" proved="true">
+<file proved="true">
+<path name=".."/>
+<path name="auxiliaries.mlw"/>
 <theory name="TakeDrop" proved="true">
  <goal name="drop0" proved="true">
  <proof prover="0"><result status="valid" time="0.03"/></proof>
