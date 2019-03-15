@@ -12,6 +12,9 @@ ARG SWITCH=
 
 RUN [ -z "$SWITCH" ] || opam switch create "$SWITCH"
 
+WORKDIR /home/opam/opam-repository
+RUN git pull; opam update
+
 ## ============================ [ Dependencies ] ============================ ##
 
 RUN sudo apt-get update
