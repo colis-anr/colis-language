@@ -82,6 +82,7 @@ module Interpreter
   use semantics.Behaviour
   use semantics.Input
   use semantics.Config
+  use semantics.Env as E
   use semantics.Context as C
   use auxiliaries.TakeDrop
   use import Semantics as S
@@ -222,6 +223,12 @@ module Interpreter
       shift_arguments sta n;
       maybe_exit inp sta
       (* case !(sta.result); apply eval_shift with (contents (arguments sta)) *)
+
+    | IExport id ->
+      let env = !(sta.var_env) in
+      let str = C.(env[id]') in
+      sta.var_env := E.(env[id <- (str, C.Exported)]);
+      sta.result := True
 
     | IAssignment id se ->
       let str, b = interp_str_expr True inp sta se in
