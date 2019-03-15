@@ -220,7 +220,7 @@ module Interpreter
   val function sym_interp_utility (id:identifier) (var_env:var_env) (args:list string) (sta:state) : set (state, bool)
     ensures {
       forall res.
-      interp_utility sta id args = res <->
+      interp_utility (only_exported var_env) sta id args = res <->
       mem res result
     }
 
@@ -286,6 +286,7 @@ module Interpreter
     | IReturn _
     | IExit _
     | IShift _ -> 0
+    | IExport _ -> 0
     | INot ins1
     | INoOutput ins1
     | ISubshell ins1 -> size_instr ins1
@@ -391,6 +392,18 @@ module Interpreter
       in
       let res_failure = Rs.failures ctx str_stas_failure in
       Rs.union res res_failure
+
+    | IExport id ->
+      let sta' =
+        let ctx' =
+          let var_env' = Env.(
+            let str = ctx.var_env[id]' in
+            ctx.var_env[id <- (str, Exported)]
+          ) in
+          {ctx with var_env = var_env'; result = True} in
+        {state = sta; context = ctx'; data=()}
+      in
+      Rs.({empty with normal = Fset.singleton sta' })
 
     | ISequence ins1 ins2 ->
       let res1_normal, res1_other =
