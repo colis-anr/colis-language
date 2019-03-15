@@ -73,6 +73,7 @@ module Syntax
     | IReturn return_code                              (* return r                       | return r                         *)
     | IExit return_code                                (* exit r                         | exit r (see NOTES[Exit])         *)
     | IShift (option nat)                              (* shift n?                       | shift n?                         *)
+    | IExport identifier                               (* export id                      | export id                        *)
 
   with function_definition = (identifier, instruction) (* function id instr; | function id instr *)
 
