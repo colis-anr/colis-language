@@ -255,18 +255,19 @@ module Context
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
       subprocesses) *)
 
-  (* A variable environment *)
+  (** A flag to indicate the export state of a variable. Only exported variables are made
+      available to called utilities *)
   type export_state = Exported | Not_exported
+
+  (** A variable environment.
+
+      The values in variable environemnt pair the variable value with its export state. *)
   type var_env = env (string, export_state)
 
+  (** Variables have as default empty strings and are not exported *)
   let constant empty_var_env : var_env =
     empty_env (String.empty, Not_exported)
 
-  let predicate is_exported (x:(string, export_state)) =
-    match x with
-    | _, Exported -> true
-    | _, Not_exported -> false
-    end
 
   (* Reexport mixfix operators and deal with the export_state flag. *)
     
@@ -278,7 +279,7 @@ module Context
     let s, _ = e[id] in
     s
 
-  (** A function environment *)
+  (** A function environment. *)
   type func_env = env (option instruction)
 
   let constant empty_func_env : func_env =
@@ -513,6 +514,15 @@ module Semantics
     let ctx' = with_result False ctx in
     let bhv = behaviour inp ctx'.result in
     eval_instruction stk (cnf, inp, ctx, sta) (IShift bn) (sta', ctx', bhv)
+
+  | eval_export: forall stk cnf inp ctx sta id.
+    let sta' = sta in
+    let ctx' =
+      let str = ctx.var_env[id]' in (* Get (default) value *)
+      let var_env = Env.(ctx.var_env[id <- (str, Exported)]) in (* Set export flag *)
+      with_result True {ctx with var_env = var_env}
+    in
+    eval_instruction stk (cnf, inp, ctx, sta) (IExport id) (sta', ctx', BNormal)
 
   | eval_assignment: forall stk cnf inp ctx sta sta' id e s b.
     eval_str_expr stk True (cnf, inp, ctx, sta) e (sta', Some (s, b)) ->
