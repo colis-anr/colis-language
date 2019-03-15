@@ -41,7 +41,8 @@ let simple : t = [
   ];
   node "var" [
     node "lib" [];
-  ]
+  ];
+  node "run" [];
 ]
 
 (* TODO extended to FSH 3.0 *)
