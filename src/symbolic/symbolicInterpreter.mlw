@@ -136,7 +136,7 @@ module Results
       (behaviour inp sta.context.result)
 
   lemma state_behaviour_normal_exit: forall inp bhv, sta: sym_state 'a.
-    (is_state_behaviour inp bhv @ sta) = True ->
+    is_state_behaviour inp bhv sta = True ->
     (bhv <> BReturn /\ bhv <> BFailure)
 
   let function inject (inp:input) (stas:set (sym_state 'a)) : t 'a

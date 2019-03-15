@@ -2,8 +2,8 @@
 <!DOCTYPE why3session PUBLIC "-//Why3//proof session v5//EN"
 "http://why3.lri.fr/why3session.dtd">
 <why3session shape_version="5">
-<prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
-<prover id="1" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
+<prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="0" steplimit="131" memlimit="0"/>
+<prover id="1" name="CVC4" version="1.6" timelimit="0" memlimit="0"/>
 <file proved="true">
 <path name=".."/>
 <path name="symbolicInterpreter.mlw"/>
@@ -49,21 +49,21 @@
  <goal name="mem_map" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="mem_map.0" proved="true">
-  <proof prover="0"><result status="valid" time="1.11" steps="2644"/></proof>
+  <proof prover="0" steplimit="2644"><result status="valid" time="0.76" steps="2644"/></proof>
   </goal>
   <goal name="mem_map.1" proved="true">
-  <proof prover="0"><result status="valid" time="0.12" steps="84"/></proof>
+  <proof prover="0" steplimit="84"><result status="valid" time="0.12" steps="84"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="mem_mk_results" proved="true">
- <proof prover="1"><result status="valid" time="0.58"/></proof>
+ <proof prover="1"><result status="valid" time="0.53"/></proof>
  </goal>
  <goal name="mem_union_results" proved="true">
- <proof prover="1"><result status="valid" time="0.69"/></proof>
+ <proof prover="1"><result status="valid" time="0.40"/></proof>
  </goal>
  <goal name="mem_inject" proved="true">
- <proof prover="0"><result status="valid" time="0.40" steps="492"/></proof>
+ <proof prover="0" steplimit="492"><result status="valid" time="0.40" steps="492"/></proof>
  </goal>
  <goal name="mem_union_inject" proved="true">
  <proof prover="1"><result status="valid" time="0.40"/></proof>
@@ -74,16 +74,16 @@
  <proof prover="1"><result status="valid" time="0.29"/></proof>
  </goal>
  <goal name="VC separate_options" expl="VC for separate_options" proved="true">
- <proof prover="0"><result status="valid" time="0.50" steps="1264"/></proof>
+ <proof prover="0" steplimit="1264"><result status="valid" time="0.30" steps="1264"/></proof>
  </goal>
  <goal name="set_mem_map" proved="true">
- <proof prover="1"><result status="valid" time="0.52"/></proof>
+ <proof prover="1"><result status="valid" time="0.34"/></proof>
  </goal>
  <goal name="VC get_some" expl="VC for get_some" proved="true">
  <proof prover="1"><result status="valid" time="0.24"/></proof>
  </goal>
  <goal name="VC size_instr" expl="VC for size_instr" proved="true">
- <proof prover="0"><result status="valid" time="0.52" steps="2793"/></proof>
+ <proof prover="0" steplimit="2949"><result status="valid" time="0.52" steps="2949"/></proof>
  </goal>
  <goal name="VC size_list_expr" expl="VC for size_list_expr" proved="true">
  <proof prover="1"><result status="valid" time="0.48"/></proof>
@@ -100,7 +100,7 @@
  <goal name="VC interp_instr" expl="VC for interp_instr" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC interp_instr.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.55"/></proof>
+  <proof prover="1"><result status="valid" time="0.32"/></proof>
   </goal>
   <goal name="VC interp_instr.1" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.21"/></proof>
@@ -115,7 +115,7 @@
   <proof prover="1"><result status="valid" time="0.18"/></proof>
   </goal>
   <goal name="VC interp_instr.5" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.25"/></proof>
+  <proof prover="1"><result status="valid" time="0.12"/></proof>
   </goal>
   <goal name="VC interp_instr.6" expl="variant decrease" proved="true">
   <proof prover="1"><result status="valid" time="0.41"/></proof>
@@ -124,16 +124,16 @@
   <proof prover="1"><result status="valid" time="0.18"/></proof>
   </goal>
   <goal name="VC interp_instr.8" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.25"/></proof>
+  <proof prover="1"><result status="valid" time="0.12"/></proof>
   </goal>
   <goal name="VC interp_instr.9" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.48"/></proof>
+  <proof prover="1"><result status="valid" time="0.33"/></proof>
   </goal>
   <goal name="VC interp_instr.10" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.20"/></proof>
   </goal>
   <goal name="VC interp_instr.11" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.25"/></proof>
+  <proof prover="1"><result status="valid" time="0.12"/></proof>
   </goal>
   <goal name="VC interp_instr.12" expl="variant decrease" proved="true">
   <proof prover="1"><result status="valid" time="0.34"/></proof>
@@ -163,7 +163,7 @@
   <proof prover="1"><result status="valid" time="0.23"/></proof>
   </goal>
   <goal name="VC interp_instr.21" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.42"/></proof>
+  <proof prover="1"><result status="valid" time="0.38"/></proof>
   </goal>
   <goal name="VC interp_instr.22" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.17"/></proof>
@@ -172,7 +172,7 @@
   <proof prover="1"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instr.24" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.61"/></proof>
+  <proof prover="1"><result status="valid" time="0.42"/></proof>
   </goal>
   <goal name="VC interp_instr.25" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.18"/></proof>
@@ -211,7 +211,7 @@
   <proof prover="1"><result status="valid" time="0.18"/></proof>
   </goal>
   <goal name="VC interp_instr.37" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.37"/></proof>
+  <proof prover="1"><result status="valid" time="0.22"/></proof>
   </goal>
   <goal name="VC interp_instr.38" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.14"/></proof>
@@ -268,7 +268,7 @@
   <proof prover="1"><result status="valid" time="0.22"/></proof>
   </goal>
   <goal name="VC interp_instr.56" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.39"/></proof>
+  <proof prover="1"><result status="valid" time="0.24"/></proof>
   </goal>
   <goal name="VC interp_instr.57" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.37"/></proof>
@@ -306,13 +306,13 @@
  <proof prover="0"><result status="valid" time="0.21" steps="131"/></proof>
  </goal>
  <goal name="VC interp_list_expr&#39;" expl="VC for interp_list_expr&#39;" proved="true">
- <proof prover="1"><result status="valid" time="0.61"/></proof>
+ <proof prover="1"><result status="valid" time="0.44"/></proof>
  </goal>
  <goal name="VC interp_function_definitions" expl="VC for interp_function_definitions" proved="true">
  <proof prover="1"><result status="valid" time="0.36"/></proof>
  </goal>
  <goal name="VC interp_program" expl="VC for interp_program" proved="true">
- <proof prover="1"><result status="valid" time="0.37"/></proof>
+ <proof prover="1"><result status="valid" time="0.22"/></proof>
  </goal>
 </theory>
 </file>
