@@ -97,7 +97,7 @@ module E = struct
     ({ e' with at_toplevel = e.at_toplevel }, x)
 end
 
-let on_located_with_env (f : E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a located -> (E.t * 'b) =
+let on_located_with_env (f : E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a Morsmall.Location.located -> (E.t * 'b) =
   on_located (f e)
 
 (* Define split requirements. This will be usefull in the conversion
@@ -131,7 +131,7 @@ let unify_split_requirement_list =
    functions X'__to__Y take a located type in Morsmall.C. *)
 
 let rec word__to__name e = function
-  | [Literal s] -> (e, s)
+  | [WLiteral s] -> (e, s)
   | _ -> unsupported "(word_to_name)"
 
 and word'__to__name e word' =
@@ -145,32 +145,32 @@ and word'__to__name e word' =
    then gives the 'split' flag in CoLiS. *)
 
 and word_component__to__string_expression_split_requirement e = function
-  | Literal s when List.exists (String.contains s) E.ifs ->
+  | WLiteral s when List.exists (String.contains s) E.ifs ->
      (e, (C.SLiteral s, NoSplit))
-  | Literal s ->
+  | WLiteral s ->
      (e, (C.SLiteral s, DoesntCare))
-  | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
+  | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, (C.SArgument (Z.of_int (int_of_string name)), Split))
-  | Variable (name, NoAttribute) ->
+  | WVariable (name, NoAttribute) ->
      (e, (C.SVariable name, Split))
-  | Subshell c's ->
+  | WSubshell c's ->
      E.with_deeper e @@ fun e ->
      let (e, i) = command'_list__to__instruction e c's in
      (e, (C.SSubshell i, Split))
-  | DoubleQuoted word ->
+  | WDoubleQuoted word ->
      E.with_deeper e @@ fun e ->
      word_DoubleQuoted__to__string_expression_split_requirement e word
   | _ ->
      unsupported "(word_component)"
 
 and word_component_DoubleQuoted__to__string_expression e = function
-  | Literal s ->
+  | WLiteral s ->
      (e, C.SLiteral s)
-  | Variable (name, NoAttribute) when int_of_string_opt name <> None ->
+  | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, C.SArgument (Z.of_int (int_of_string name)))
-  | Variable (name, NoAttribute) ->
+  | WVariable (name, NoAttribute) ->
      (e, C.SVariable name)
-  | Subshell c's ->
+  | WSubshell c's ->
      E.with_deeper e @@ fun e ->
      let (e, i) = command'_list__to__instruction e c's in
      (e, C.SSubshell i)
@@ -400,7 +400,7 @@ and command'__to__instruction env command' =
 and case_item'_list__to__if_sequence fresh_var env = function
   | [] -> assert false
 
-  | [{value=({value=[[GlobAll]];_}, command'_option);_}] ->
+  | [{value=({value=[[WGlobAll]];_}, command'_option);_}] ->
      (* When the last case_item is "* )", it's the "else" part of our
         if sequence. *)
      command'_option__to__instruction env command'_option
@@ -427,7 +427,7 @@ and command'_option__to__instruction env = function
 and pattern__to__instruction fresh_var pattern =
   List.fold_left
     (fun instruction -> function
-      | [Literal word] ->
+      | [WLiteral word] ->
          C.(ior (instruction, ICallUtility ("test", [(SVariable fresh_var, DontSplit); (SLiteral "=", DontSplit); (SLiteral word, DontSplit)])))
       | _ ->
          unsupported "case when non-literal patterns")
@@ -440,13 +440,13 @@ and pattern'__to__instruction fresh_var env pattern' =
 and redirection__to__instruction e = function
   (* >=2 redirected to /dev/null. Since they don't have any impact on
      the semantics of the program, we don't care. *)
-  | Redirection (command', descr, Output, [Literal "/dev/null"])
+  | Redirection (command', descr, Output, [WLiteral "/dev/null"])
        when descr >= 2 ->
      snd (command'__to__instruction e command')
 
   (* 1 redirected to >=2, this means the output will never ever have
      an impact on the semantics again ==> ignore *)
-  | Redirection (command', 1, OutputDuplicate, [Literal i])
+  | Redirection (command', 1, OutputDuplicate, [WLiteral i])
        when (try int_of_string i >= 2 with Failure _ ->  false) ->
      C.INoOutput (snd (command'__to__instruction e command'))
 
@@ -454,10 +454,10 @@ and redirection__to__instruction e = function
      have an impact on the semantics again ==> Ignore. In fact, we can
      even be a bit better an accept all subsequent redirections of >=2
      to 1. *)
-  | Redirection (command', 1, Output, [Literal "/dev/null"]) ->
+  | Redirection (command', 1, Output, [WLiteral "/dev/null"]) ->
      (
        let rec flush_redirections_to_1 = function
-         | Redirection (command', descr, OutputDuplicate, [Literal "1"])
+         | Redirection (command', descr, OutputDuplicate, [WLiteral "1"])
               when descr >= 2 ->
             flush_redirections'_to_1 command'
          | _ as command -> command
