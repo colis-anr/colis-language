@@ -214,25 +214,33 @@ module Input
 end
 
 module Env
+
   use syntax.Identifier
   use map.Map as M
 
-  type env 'a = abstract { model : M.map identifier 'a }
+  type env 'a = abstract { to_map : M.map identifier 'a; default: 'a }
+  meta coercion function to_map
 
   val function empty_env (default:'a) : env 'a
-    ensures { forall id. M.(result.model[id] = default) }
+    ensures { result.default = default }
+    ensures { forall id. M.(result[id]) = default }
 
   val function ([]) (env:env 'a) (id:identifier) : 'a
-    ensures { result = M.(env.model[id]) }
-
-  let function get (env:env 'a) (id:identifier) : 'a =
-    env[id]
+    ensures { result = M.(env[id]) }
 
   val function ([<-]) (env:env 'a) (id:identifier) (v:'a) : env 'a
-    ensures { result.model = M.(env.model[id <- v]) }
+    ensures { result = M.(env[id <- v]) }
 
-  let function set (env:env 'a) (id:identifier) (v:'a) : env 'a =
-    env[id <- v]
+  val function filter (p:identifier -> 'a -> bool) (env:env 'a) : env 'a
+    ensures { forall id x. M.(env[id]) = x -> p id x -> M.(result[id]) = x }
+    ensures { forall id x. M.(env[id]) = x -> not p id x -> M.(result[id]) = result.default }
+
+  val function map (f:'a -> 'b) (env: env 'a) : env 'b
+    ensures { forall id x y. M.(env[id]) = x -> y = f x -> M.(result[id]) = y }
+    ensures { forall id x y. M.(result[id]) = y -> y = f x -> M.(env[id]) = x }
+
+  let function get = ([])
+  let function set = ([<-])
 end
 
 (** {2 The concrete evaluation context}
