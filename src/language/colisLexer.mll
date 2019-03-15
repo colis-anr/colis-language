@@ -14,6 +14,7 @@ let reserved_words =
     "end",      END ;
     "epip",     EPIP ;
     "exit",     EXIT ;
+    "export",   EXPORT ;
     "failure",  FAILURE ;
     "function", FUNCTION ;
     "fi",       FI ;

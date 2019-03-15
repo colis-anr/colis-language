@@ -12,7 +12,7 @@ let rec concat = function
 %}
 
 
-%token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE FI FOR IN FUNCTION CALL
+%token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE EXPORT FI FOR IN FUNCTION CALL
 %token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING ARG SHIFT
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET EMBED SEMICOLON EOF RETURN
 %token<string> LITERAL
@@ -32,6 +32,7 @@ instruction:
   | EXIT exit_code                                            { IExit($2) }
   | RETURN exit_code                                          { IReturn($2) }
   | SHIFT option(NAT)                                         { IShift($2) }
+  | EXPORT IDENTIFIER                                         { IExport($2) }
   | IF instruction THEN instruction ELSE instruction FI       { IIf ($2, $4, $6) }
   | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallUtility("true", [])) }
   | NOT instruction                                           { INot ($2) }

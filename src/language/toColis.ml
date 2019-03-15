@@ -77,6 +77,8 @@ and instruction (fmt:formatter) (i:instruction) : unit =
   | IShift bn ->
      let n = match bn with None -> "" | Some n -> " "^Z.to_string n in
      fprintf fmt "@[shift%s@]" n
+  | IExport id ->
+     fprintf fmt "@[export %s@]" id
 
 and exitcode (fmt:formatter) (c:return_code) =
   match c with
