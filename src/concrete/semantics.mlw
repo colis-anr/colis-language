@@ -276,7 +276,6 @@ module Context
   let constant empty_var_env : var_env =
     empty_env (String.empty, Not_exported)
 
-
   (* Reexport mixfix operators and deal with the export_state flag. *)
     
   let function ([<-]') (env:var_env) (id:identifier) (s:string) : var_env =
@@ -286,6 +285,16 @@ module Context
   let function ([]') (e:var_env) (id:identifier) : string =
     let s, _ = e[id] in
     s
+
+  let function only_exported (env:var_env) : env string =
+    let is_exported (_:identifier) (x:(string, export_state)) : bool =
+      match x with
+      | _, Exported -> true
+      | _, Not_exported -> false
+      end
+    in
+    Env.map (fun p -> let x, _ = p in x)
+      (Env.filter (fun k v -> is_exported k v) env)
 
   (** A function environment. *)
   type func_env = env (option instruction)
@@ -405,6 +414,7 @@ module State
   use mystring.String
   use syntax.Identifier
   use Buffers
+  use Env
 
   type filesystem
 
@@ -420,12 +430,12 @@ module State
 
       It acts upon the input and irreversable state, and returns a stdout, a behaviour
       (True/False), and another irreversable state, see also NOTES[Callees] *)
-  val function interp_utility state identifier (list string) :
+  val function interp_utility (env string) state identifier (list string) :
     (state, bool)
 
-  axiom interp_utility_extends_output : forall sta sta' name args b.
-    interp_utility {sta with stdout=Stdout.empty} name args = (sta', b) ->
-    interp_utility sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
+  axiom interp_utility_extends_output : forall var_env sta sta' name args b.
+    interp_utility var_env {sta with stdout=Stdout.empty} name args = (sta', b) ->
+    interp_utility var_env sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
   function any_filesystem : unit -> filesystem
 
@@ -622,8 +632,8 @@ module Semantics
   
   | eval_call_utility: forall stk cnf inp ctx sta sta' sta'' id es ss b.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
-    (* Utilities don’t increase the stack, as long they do not generate instructions *)
-    (sta'', b) = interp_utility sta' id ss ->
+    (* Utilities don’t increase the stack (as long they do not generate instructions) *)
+    (sta'', b) = interp_utility (only_exported ctx.var_env) sta' id ss ->
     let ctx' = with_result b ctx in
     let bhv = behaviour inp ctx'.result in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)
