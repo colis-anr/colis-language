@@ -239,8 +239,11 @@ module Env
     ensures { forall id x y. M.(env[id]) = x -> y = f x -> M.(result[id]) = y }
     ensures { forall id x y. M.(result[id]) = y -> y = f x -> M.(env[id]) = x }
 
-  let function get = ([])
-  let function set = ([<-])
+  (** Define aliases for the `val function`s above - those will be replaced by the Why3
+      extraction. *)
+
+  let function get env id = env[id]
+  let function set env id value = env[id <- value]
 end
 
 (** {2 The concrete evaluation context}
