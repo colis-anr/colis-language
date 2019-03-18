@@ -80,7 +80,7 @@ let speclist =
     "--external-sources",          Set_string external_sources,   "DIR Import absolute sources from DIR";
     "--print-colis",               Unit (set_action PrintColis),  " Print the CoLiS script";
     "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
-    "--var",                       String set_var,                " VAR=VAL Set variable VAR to VAL in the interpreter";
+    "--var",                       String set_var,                " VAR=VAL Set and export variable VAR to VAL in the interpreter";
     "--realworld",                 Set real_world,                " Use system utilities in concrete execution";
     "--symbolic-fs",               String set_symbolic_fs,        "FS Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
     "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
