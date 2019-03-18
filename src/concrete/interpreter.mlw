@@ -226,15 +226,14 @@ module Interpreter
 
     | IExport id ->
       let old_env = !(sta.var_env) in
-      let str = C.(old_env[id]') in
-      let var_val = C.({value=str; exported=True}) in
-      sta.var_env := E.(old_env[id <- var_val]);
+      let var_val = {old_env[id] with C.exported=True} in
+      sta.var_env := old_env[id <- var_val];
       sta.result := True
 
     | IAssignment id se ->
       let str, b = interp_str_expr True inp sta se in
       let old_env = !(sta.var_env) in
-      sta.var_env := C.(old_env[id <- str]');
+      sta.var_env := old_env[id <- str]';
       sta.result := b;
       maybe_exit inp sta
 
@@ -309,7 +308,7 @@ module Interpreter
 
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in
-      match C.(sta.func_env[id]) with
+      match sta.func_env[id] with
       | Some ins ->
         try
           let inp' = { inp with argument0 = identifier_to_string id } in
@@ -353,7 +352,7 @@ module Interpreter
         match nth i ss with
         | Some s ->
           let old_env = !(sta.var_env) in
-          sta.var_env := C.(old_env[id <- s]');
+          sta.var_env := old_env[id <- s]';
           interp_instruction inp sta ins;
           last_result := !(sta.result);
         | None ->
@@ -402,7 +401,7 @@ module Interpreter
 
     | SVariable id ->
       let env = !(sta.var_env) in
-      C.(env[id]'), b 
+      env[id]', b 
 
     | SArgument n ->
       nth_argument (Cons inp.argument0 !(sta.arguments)) n.nat, b
