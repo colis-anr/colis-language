@@ -1,12 +1,10 @@
-prelude "module IdEnv = Map.Make (String) type 'a id_env = 'a IdEnv.t * 'a"
-
 module semantics.Env
-  syntax type env "(%1 IdEnv.t * %1)" (* Environment and default *)
-  syntax function empty_env "IdEnv.empty, %1"
-  syntax function ([]) "(try IdEnv.find %2 (fst %1) with Not_found -> snd %1)"
-  syntax function ([<-]) "IdEnv.add %2 %3 (fst %1), snd %1"
-  syntax function filter "IdEnv.filter %1 (fst %2), snd %2"
-  syntax function map "IdEnv.map %1 (fst %2), %1 (snd %2)"
+  syntax type env "%1 Env.env"
+  syntax function empty_env "Env.empty %1"
+  syntax function ([]) "Env.get %1 %2"
+  syntax function ([<-]) "Env.set %1 %2 %3"
+  syntax function filter "Env.filter %1 %2"
+  syntax function map "Env.map %1 %2"
 end
 
 module interpreter.Interpreter

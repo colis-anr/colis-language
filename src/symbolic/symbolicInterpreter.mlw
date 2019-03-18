@@ -209,6 +209,7 @@ module Interpreter
   use semantics.Config
   use semantics.Buffers
   use semantics.Arguments
+  use semantics.Env
   use semantics.Context
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset

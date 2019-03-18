@@ -1,6 +1,4 @@
+open Env
 
-type env = (string * string) list
-
-type args = string list
-
-val interp : string -> env -> args -> UtilitiesSpecification.utility
+(** [interp name var_env args] *)
+val interp : string -> string env -> string list -> UtilitiesSpecification.utility (*TODO name arguments *)

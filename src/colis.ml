@@ -14,7 +14,7 @@ end
 module Semantics = struct
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
-  module Env = Semantics__Env
+  module Env = Env
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
   module Context = Semantics__Context
@@ -104,7 +104,7 @@ let mk_var_env =
   let open Semantics in
   List.fold_left
     (* All variables given on the command line are exported! *)
-    (fun env (id, x) -> Env.set env id (x, Context.Exported))
+    (fun env (id, value) -> Env.set env id {Context.value; exported=true})
     (Context.empty_var_env)
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =

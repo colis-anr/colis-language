@@ -3,6 +3,7 @@
     See subsections of http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap04.html#tag_20
   *)
 
+open Env
 open Semantics__Buffers
 open Interpreter__Semantics
 
@@ -30,7 +31,7 @@ let test (sta : state) : string list -> (state * bool) = function
   | _ ->
      unknown_argument ~name:"test" ~arg:"" sta
 
-let interp_utility : string id_env -> state -> string -> string list -> (state * bool) =
+let interp_utility : string env -> state -> string -> string list -> (state * bool) =
   fun _var_env sta name args ->
   match name with
   | "echo" ->
