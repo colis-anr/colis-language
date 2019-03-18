@@ -4,7 +4,8 @@ open Clause
 open UtilitiesSpecification
 open Semantics__Buffers
 
-type env = (string * string) list
+type env = string Env.env
+
 type args = string list
 
 module type SYMBOLIC_UTILITY = sig

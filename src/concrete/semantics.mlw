@@ -239,11 +239,7 @@ module Env
     ensures { forall id x y. M.(env[id]) = x -> y = f x -> M.(result[id]) = y }
     ensures { forall id x y. M.(result[id]) = y -> y = f x -> M.(env[id]) = x }
 
-  (** Define aliases for the `val function`s above - those will be replaced by the Why3
-      extraction. *)
 
-  let function get env id = env[id]
-  let function set env id value = env[id <- value]
 end
 
 (** {2 The concrete evaluation context}
@@ -291,14 +287,8 @@ module Context
     s
 
   let function only_exported (env:var_env) : env string =
-    let is_exported (_:identifier) (x:(string, export_state)) : bool =
-      match x with
-      | _, Exported -> true
-      | _, Not_exported -> false
-      end
-    in
-    Env.map (fun p -> let x, _ = p in x)
-      (Env.filter (fun k v -> is_exported k v) env)
+    Env.map (fun v -> v.value)
+      (Env.filter (fun k v -> v.exported) env)
 
   (** A function environment. *)
   type func_env = env (option instruction)

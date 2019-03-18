@@ -14,7 +14,7 @@ end
 module Semantics : sig
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
-  module Env = Semantics__Env
+  module Env = Env
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
   module Context = Semantics__Context
