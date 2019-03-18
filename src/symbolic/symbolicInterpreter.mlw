@@ -397,11 +397,8 @@ module Interpreter
     | IExport id ->
       let sta' =
         let ctx' =
-          let var_env' = Env.(
-            let str = ctx.var_env[id]' in
-            let var_val = {value=str; exported=True} in
-            ctx.var_env[id <- var_val]
-          ) in
+          let var_val = {ctx.var_env[id] with exported=True} in
+          let var_env' = ctx.var_env[id <- var_val] in
           {ctx with var_env = var_env'; result = True} in
         {state = sta; context = ctx'; data=()}
       in
@@ -946,7 +943,7 @@ module Interpreter
   = match defs with
     | Nil -> fenv
     | Cons (id, instr) defs' ->
-      interp_function_definitions fenv[id <- instr]  defs'
+      interp_function_definitions fenv[id <- Some instr]  defs'
     end
 
   let function only_states_with_result (res: bool) (stas: set (sym_state unit)) : set state =

@@ -273,17 +273,6 @@ module Context
   let constant empty_var_env : var_env =
     empty_env {value=String.empty; exported=False}
 
-  (** Define mixfix operators for variable environments that retain or ignore the
-      export_state flag in the environment variable. *)
-
-  let function ([]') (e:var_env) (id:identifier) : string =
-    (* Env.(e[id]).value results in faulty extraction as of why3 1.2 *)
-    let var_val = Env.(e[id]) in
-    var_val.value
-    
-  let function ([<-]') (env:var_env) (id:identifier) (value:string) : var_env =
-    Env.(env[id <- {(env[id]) with value=value}])
-
   let function only_exported (env:var_env) : env string =
     Env.map (fun v -> v.value)
       (Env.filter (fun k v -> v.exported) env)
@@ -293,14 +282,6 @@ module Context
 
   let constant empty_func_env : func_env =
     empty_env None
-
-  (* Reexport mixfix operators. *)
-
-  let function ([]) (e:func_env) (id:identifier) : option instruction =
-    e[id]
-
-  let function ([<-]) (e:func_env) (id:identifier) (ins:instruction) : func_env =
-    e[id <- Some ins]
 
   type context = {
     var_env: var_env;
@@ -452,8 +433,8 @@ module Semantics
   use Behaviour
   use Buffers
   use Config
+  use import Env as E
   use Context
-  use Env as E
   use Input
 
   clone export State
@@ -487,6 +468,25 @@ module Semantics
     | DontSplit -> Cons str Nil
     | Split -> String.split_on_default_ifs str
     end
+
+  (* Reexport mixfix operators. *)
+
+  let function ([]) (e:env 'a) (id:identifier) : 'a =
+    Env.(e[id])
+
+  let function ([<-]) (e:env 'a) (id:identifier) (value:'a) : env 'a =
+    Env.(e[id <- value])
+
+  (** Define mixfix operators for variable environments that retain or ignore the
+      export_state flag in the environment variable. *)
+
+  let function ([]') (e:var_env) (id:identifier) : string =
+    (* Env.(e[id]).value results in faulty extraction as of why3 1.2 *)
+    let var_val = e[id] in
+    var_val.value
+    
+  let function ([<-]') (env:var_env) (id:identifier) (value:string) : var_env =
+    env[id <- {(env[id]) with value=value}]
 
   (** Evaluation of a instruction i with input I, context C and state S resulting in an
       state S', context C', and behaviour b:
@@ -529,9 +529,8 @@ module Semantics
   | eval_export: forall stk cnf inp ctx sta id.
     let sta' = sta in
     let ctx' =
-      let str = ctx.var_env[id]' in
-      let var_val = {value=str; exported=True} in
-      let var_env = Env.(ctx.var_env[id <- var_val]) in
+      let var_val = {ctx.var_env[id] with exported=True} in
+      let var_env = ctx.var_env[id <- var_val] in
       with_result True {ctx with var_env = var_env}
     in
     eval_instruction stk (cnf, inp, ctx, sta) (IExport id) (sta', ctx', BNormal)
@@ -868,7 +867,7 @@ module Semantics
       eval_function_definitions fenv Nil fenv
 
     | eval_function_definition: forall e e' id ins defs.
-      eval_function_definitions e[id <- ins] defs e' ->
+      eval_function_definitions e[id <- Some ins] defs e' ->
       eval_function_definitions e (Cons (id, ins) defs) e'
 
   let rec lemma no_while_failure (ctr n:int) (cnf:config) (ins1 ins2:instruction)
@@ -894,7 +893,7 @@ module Semantics
   = match defs with
     | Nil -> fenv
     | Cons (id, instr) defs' ->
-      interp_function_definitions E.(fenv[id <- Some instr])  defs'
+      interp_function_definitions fenv[id <- Some instr]  defs'
     end
 
   (** Evaluation of a CoLis program.
