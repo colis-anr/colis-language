@@ -279,7 +279,8 @@ module Context
   let constant empty_var_env : var_env =
     empty_env (String.empty, Not_exported)
 
-  (* Reexport mixfix operators and deal with the export_state flag. *)
+  (** Define mixfix operators for variable environments that ignore with the export_state
+      flag in the environment variable. *)
     
   let function ([<-]') (env:var_env) (id:identifier) (s:string) : var_env =
     let _, e = env[id] in
