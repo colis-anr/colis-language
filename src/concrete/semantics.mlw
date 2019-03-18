@@ -262,29 +262,27 @@ module Context
   (** The context of the interpretation, resulting contexts may be ignored (e.g., from
       subprocesses) *)
 
-  (** A flag to indicate the export state of a variable. Only exported variables are made
-      available to called utilities *)
-  type export_state = Exported | Not_exported
 
   (** A variable environment.
 
       The values in variable environemnt pair the variable value with its export state. *)
-  type var_env = env (string, export_state)
+  type var_env = env var_value
+  with var_value = {value: string; exported: bool}
 
   (** Variables have as default empty strings and are not exported *)
   let constant empty_var_env : var_env =
-    empty_env (String.empty, Not_exported)
+    empty_env {value=String.empty; exported=False}
 
-  (** Define mixfix operators for variable environments that ignore with the export_state
-      flag in the environment variable. *)
-    
-  let function ([<-]') (env:var_env) (id:identifier) (s:string) : var_env =
-    let _, e = env[id] in
-    env[id <- (s, e)]
+  (** Define mixfix operators for variable environments that retain or ignore the
+      export_state flag in the environment variable. *)
 
   let function ([]') (e:var_env) (id:identifier) : string =
-    let s, _ = e[id] in
-    s
+    (* Env.(e[id]).value results in faulty extraction as of why3 1.2 *)
+    let var_val = Env.(e[id]) in
+    var_val.value
+    
+  let function ([<-]') (env:var_env) (id:identifier) (value:string) : var_env =
+    Env.(env[id <- {(env[id]) with value=value}])
 
   let function only_exported (env:var_env) : env string =
     Env.map (fun v -> v.value)
@@ -455,6 +453,7 @@ module Semantics
   use Buffers
   use Config
   use Context
+  use Env as E
   use Input
 
   clone export State
@@ -530,8 +529,9 @@ module Semantics
   | eval_export: forall stk cnf inp ctx sta id.
     let sta' = sta in
     let ctx' =
-      let str = ctx.var_env[id]' in (* Get (default) value *)
-      let var_env = Env.(ctx.var_env[id <- (str, Exported)]) in (* Set export flag *)
+      let str = ctx.var_env[id]' in
+      let var_val = {value=str; exported=True} in
+      let var_env = Env.(ctx.var_env[id <- var_val]) in
       with_result True {ctx with var_env = var_env}
     in
     eval_instruction stk (cnf, inp, ctx, sta) (IExport id) (sta', ctx', BNormal)
@@ -894,7 +894,7 @@ module Semantics
   = match defs with
     | Nil -> fenv
     | Cons (id, instr) defs' ->
-      interp_function_definitions (fenv[id <- instr])  defs'
+      interp_function_definitions E.(fenv[id <- Some instr])  defs'
     end
 
   (** Evaluation of a CoLis program.

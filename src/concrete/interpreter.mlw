@@ -225,14 +225,16 @@ module Interpreter
       (* case !(sta.result); apply eval_shift with (contents (arguments sta)) *)
 
     | IExport id ->
-      let env = !(sta.var_env) in
-      let str = C.(env[id]') in
-      sta.var_env := E.(env[id <- (str, C.Exported)]);
+      let old_env = !(sta.var_env) in
+      let str = C.(old_env[id]') in
+      let var_val = C.({value=str; exported=True}) in
+      sta.var_env := E.(old_env[id <- var_val]);
       sta.result := True
 
     | IAssignment id se ->
       let str, b = interp_str_expr True inp sta se in
-      sta.var_env := (let env = !(sta.var_env) in C.(env[id <- str]'));
+      let old_env = !(sta.var_env) in
+      sta.var_env := C.(old_env[id <- str]');
       sta.result := b;
       maybe_exit inp sta
 
@@ -350,7 +352,8 @@ module Interpreter
         }
         match nth i ss with
         | Some s ->
-          sta.var_env := (let env = !(sta.var_env) in C.(env[id <- s]'));
+          let old_env = !(sta.var_env) in
+          sta.var_env := C.(old_env[id <- s]');
           interp_instruction inp sta ins;
           last_result := !(sta.result);
         | None ->

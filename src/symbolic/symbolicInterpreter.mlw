@@ -399,7 +399,8 @@ module Interpreter
         let ctx' =
           let var_env' = Env.(
             let str = ctx.var_env[id]' in
-            ctx.var_env[id <- (str, Exported)]
+            let var_val = {value=str; exported=True} in
+            ctx.var_env[id <- var_val]
           ) in
           {ctx with var_env = var_env'; result = True} in
         {state = sta; context = ctx'; data=()}
