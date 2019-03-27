@@ -32,7 +32,7 @@ let test (sta : state) : string list -> (state * bool) = function
      unknown_argument ~name:"test" ~arg:"" sta
 
 let interp_utility : string env -> state -> string -> string list -> (state * bool) =
-  fun _var_env sta name args ->
+  fun var_env sta name args ->
   match name with
   | "echo" ->
      let stdout =
@@ -50,6 +50,21 @@ let interp_utility : string env -> state -> string -> string list -> (state * bo
   | "false" ->
      sta, false
   | "test" -> test sta args
+  | "env" ->
+    begin match args with
+    | [] ->
+      let format_line (var, value) =
+        Format.sprintf "%s=%s" var value
+      in
+      let print_line sta line =
+        {sta with stdout=Stdout.(sta.stdout |> output line |> newline)}
+      in
+      Env.elements var_env |>
+      Seq.map format_line |>
+      Seq.fold_left print_line sta, true
+    | arg :: _ ->
+      unknown_argument ~name:"env" ~msg:"Not arguments implemented" ~arg sta
+    end
   | "grep" -> (* Just for testing stdin/stdout handling *)
      begin match args with
      | [word] ->
