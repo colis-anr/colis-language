@@ -145,7 +145,7 @@
   <proof prover="1"><result status="valid" time="0.20"/></proof>
   </goal>
   <goal name="VC interp_instr.15" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.43"/></proof>
+  <proof prover="1"><result status="valid" time="0.28"/></proof>
   </goal>
   <goal name="VC interp_instr.16" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.22"/></proof>
@@ -163,7 +163,7 @@
   <proof prover="1"><result status="valid" time="0.23"/></proof>
   </goal>
   <goal name="VC interp_instr.21" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.38"/></proof>
+  <proof prover="1"><result status="valid" time="0.42"/></proof>
   </goal>
   <goal name="VC interp_instr.22" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.17"/></proof>
@@ -172,7 +172,7 @@
   <proof prover="1"><result status="valid" time="0.17"/></proof>
   </goal>
   <goal name="VC interp_instr.24" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.42"/></proof>
+  <proof prover="1"><result status="valid" time="0.38"/></proof>
   </goal>
   <goal name="VC interp_instr.25" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.18"/></proof>

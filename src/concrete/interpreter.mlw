@@ -84,6 +84,7 @@ module Interpreter
   use semantics.Config
   use semantics.Env as E
   use semantics.Context as C
+  use semantics.FilterVarEnv
   use auxiliaries.TakeDrop
   use import Semantics as S
   use State
@@ -132,15 +133,15 @@ module Interpreter
   (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
   let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
-    returns { () -> 
-      interp_utility (C.only_exported !(old sta.var_env)) (old sem_state sta) id args = (sem_state sta, !(sta.result)) /\
+    returns { () ->
+      interp_utility (filter_var_env !(old sta.var_env)) (old sem_state sta) id args = (sem_state sta, !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
     raises { EExit ->
-      interp_utility (C.only_exported !(old sta.var_env)) (old sem_state sta) id args = (sem_state sta, !(sta.result)) /\
+      interp_utility (filter_var_env !(old sta.var_env)) (old sem_state sta) id args = (sem_state sta, !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
-  = let sta', b = interp_utility (C.only_exported !(sta.var_env)) (sem_state sta) id args in
+  = let sta', b = interp_utility (filter_var_env !(sta.var_env)) (sem_state sta) id args in
     sta.filesystem := sta'.S.filesystem;
     sta.stdin := sta'.S.stdin;
     sta.stdout := sta'.S.stdout;

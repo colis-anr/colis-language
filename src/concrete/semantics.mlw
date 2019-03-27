@@ -230,16 +230,6 @@ module Env
 
   val function ([<-]) (env:env 'a) (id:identifier) (v:'a) : env 'a
     ensures { result = M.(env[id <- v]) }
-
-  val function filter (p:identifier -> 'a -> bool) (env:env 'a) : env 'a
-    ensures { forall id x. M.(env[id]) = x -> p id x -> M.(result[id]) = x }
-    ensures { forall id x. M.(env[id]) = x -> not p id x -> M.(result[id]) = result.default }
-
-  val function map (f:'a -> 'b) (env: env 'a) : env 'b
-    ensures { forall id x y. M.(env[id]) = x -> y = f x -> M.(result[id]) = y }
-    ensures { forall id x y. M.(result[id]) = y -> y = f x -> M.(env[id]) = x }
-
-
 end
 
 (** {2 The concrete evaluation context}
@@ -256,26 +246,16 @@ module Context
   use mystring.String
   use syntax.Syntax
   use Env
-
   use Buffers
-
-  (** The context of the interpretation, resulting contexts may be ignored (e.g., from
-      subprocesses) *)
-
 
   (** A variable environment.
 
       The values in variable environemnt pair the variable value with its export state. *)
   type var_env = env var_value
-  with var_value = {value: string; exported: bool}
+  with var_value = {value: option string; exported: bool}
 
-  (** Variables have as default empty strings and are not exported *)
-  let constant empty_var_env : var_env =
-    empty_env {value=String.empty; exported=False}
-
-  let function only_exported (env:var_env) : env string =
-    Env.map (fun v -> v.value)
-      (Env.filter (fun k v -> v.exported) env)
+  let constant empty_var_env =
+    empty_env {value=None; exported=False}
 
   (** A function environment. *)
   type func_env = env (option instruction)
@@ -298,8 +278,8 @@ module Context
     c1 = c2
 
   let constant empty_context = {
-    var_env = empty_var_env; 
-    func_env = empty_func_env;
+    var_env = empty_env {value=None; exported=False};
+    func_env = empty_env None;
     arguments = Nil;
     result = True;
   }
@@ -310,6 +290,20 @@ module Context
     ensures { result.arguments = ctx.arguments }
     ensures { result.result = res }
     { ctx with result = res }
+end
+
+module FilterVarEnv
+  use option.Option
+  use mystring.String
+  use Context
+  use Env
+
+  val function filter_var_env (env:var_env) : env string
+    (** A specification is not required because the result is not used inside the language
+        but only in utilities which are not specified. *)
+    (* ensures { forall x s. *)
+    (*   env[x] = {value=Some s; exported=True} <-> result[x] = s *)
+    (* } *)
 end
 
 (** {2 Argument lists} *)
@@ -435,6 +429,7 @@ module Semantics
   use Config
   use import Env as E
   use Context
+  use FilterVarEnv
   use Input
 
   clone export State
@@ -483,10 +478,13 @@ module Semantics
   let function ([]') (e:var_env) (id:identifier) : string =
     (* Env.(e[id]).value results in faulty extraction as of why3 1.2 *)
     let var_val = e[id] in
-    var_val.value
+    match var_val.value with
+    | Some str -> str
+    | None -> String.empty
+    end
     
   let function ([<-]') (env:var_env) (id:identifier) (value:string) : var_env =
-    env[id <- {(env[id]) with value=value}]
+    env[id <- {(env[id]) with value=Some value}]
 
   (** Evaluation of a instruction i with input I, context C and state S resulting in an
       state S', context C', and behaviour b:
@@ -626,7 +624,7 @@ module Semantics
   | eval_call_utility: forall stk cnf inp ctx sta sta' sta'' id es ss b.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
     (* Utilities don’t increase the stack (as long they do not generate instructions) *)
-    (sta'', b) = interp_utility (only_exported ctx.var_env) sta' id ss ->
+    (sta'', b) = interp_utility (filter_var_env ctx.var_env) sta' id ss ->
     let ctx' = with_result b ctx in
     let bhv = behaviour inp ctx'.result in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)

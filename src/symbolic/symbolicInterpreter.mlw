@@ -211,6 +211,7 @@ module Interpreter
   use semantics.Arguments
   use semantics.Env
   use semantics.Context
+  use semantics.FilterVarEnv
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset
   use Semantics
@@ -454,7 +455,7 @@ module Interpreter
       let res' =
         let call_utility arg =
           let sta', args = arg in
-          sym_interp_utility id (only_exported ctx.var_env) args sta'
+          sym_interp_utility id (filter_var_env ctx.var_env) args sta'
         in
         let for_call_result arg =
           let sta'', b = arg in

@@ -104,7 +104,7 @@ let mk_var_env =
   let open Semantics in
   List.fold_left
     (* All variables given on the command line are exported! *)
-    (fun env (id, value) -> Env.set env id {Context.value; exported=true})
+    (fun env (id, value) -> Env.set env id {Context.value=Some value; exported=true})
     (Context.empty_var_env)
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
