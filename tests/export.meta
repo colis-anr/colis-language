@@ -1,0 +1,14 @@
+input:
+  stdin: ""
+  arguments: []
+output:
+  stdout: |
+    1
+    2
+    3
+    COLIS_X=x
+    4
+    5
+    COLIS_Y=y
+  stderr: ""
+  return_code: 0
