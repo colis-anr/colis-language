@@ -3,8 +3,17 @@ module semantics.Env
   syntax function empty_env "Env.empty %1"
   syntax function ([]) "Env.get %1 %2"
   syntax function ([<-]) "Env.set %1 %2 %3"
-  syntax function filter "Env.filter %1 %2"
-  syntax function map "Env.map %1 %2"
+end
+
+module semantics.FilterVarEnv
+  prelude "
+    let filter_var_env env =
+      let open Semantics__Context in
+      env |>
+      Env.filter (fun _ v -> v.exported && v.value <> None) |>
+      Env.map (function {value=Some s; _} -> s | _ -> assert false) \"\"
+  "
+  syntax function filter_var_env "Semantics__FilterVarEnv.filter_var_env %1"
 end
 
 module interpreter.Interpreter
