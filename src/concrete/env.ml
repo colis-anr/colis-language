@@ -5,3 +5,4 @@ let get env id = try IdMap.find id env.map with Not_found -> env.default
 let set env id value = {env with map=IdMap.add id value env.map}
 let filter p env = {env with map=IdMap.filter p env.map}
 let map f env = {map=IdMap.map f env.map; default=f env.default}
+let elements env = IdMap.to_seq env.map
