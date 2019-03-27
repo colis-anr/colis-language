@@ -66,9 +66,9 @@ let interp_utility : string env -> state -> string -> string list -> (state * bo
         in
         let sta' = {sta with stdout; stdin=Stdin.empty} in
         sta', result
-     | _ ->
-        let str = "grep: not exactly one argument" in
-        let stdout = Stdout.(sta.stdout |> output str |> newline) in
-        {sta with stdout}, false
+     | [] ->
+       unknown_argument ~name:"grep" ~msg:"Missing argument" ~arg:"" sta
+     | arg :: _ ->
+       unknown_argument ~name:"grep" ~msg:"Only one argument implemented" ~arg sta
      end
   | _ -> unknown_utility ~name sta
