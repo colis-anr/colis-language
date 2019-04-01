@@ -2,7 +2,6 @@ exception Contents of string
 
 type t = (string,string) Hashtbl.t
 
-let is_newline c = (c='\n') || (c='\r')
 let is_space c = (c=' ') || (c='\t')
 
 let newtable () = (Hashtbl.create 1000:t)
