@@ -137,6 +137,7 @@ let interp_touch : env -> args -> utility =
   | [arg] -> interp_touch1 arg
   | _ -> unknown_argument ~msg:"multiple arguments"  ~name:"touch" ~arg:"" ()
 
+
 (******************************************************************************)
 (*                                     mkdir                                  *)
 (******************************************************************************)
@@ -694,6 +695,48 @@ let interp_dpkg _env args =
   aux args
 
 (******************************************************************************)
+(*                       dpkg_maintscript_helper                              *)
+(******************************************************************************)
+
+let interp_dpkg_maintscript_helper_supports _env args =
+  match args with
+  |["rm_conffile"] | ["mv_conffile"] | ["symlink_to_dir"] | ["dir_to_symlink"]
+   -> return true
+  | _ -> return false
+
+let interp_dpkg_maintscript_helper_rm_conffile env arg = assert false
+
+let interp_dpkg_maintscript_helper_mv_conffile env arg = assert false
+
+let interp_dpkg_maintscript_helper_symlink_to_dir env arg = assert false
+
+let interp_dpkg_maintscript_helper_dir_to_symlink env arg = assert false
+
+let interp_dpkg_maintscript_helper (env:env) (args:args) =
+  match args with
+  | "supports"::restargs ->
+     interp_dpkg_maintscript_helper_supports env restargs
+  | "rm_conffile"::restargs ->
+     interp_dpkg_maintscript_helper_rm_conffile env restargs
+  | "mv_conffile"::restargs ->
+     interp_dpkg_maintscript_helper_mv_conffile env restargs
+  | "symlink_to_dir"::restargs ->
+     interp_dpkg_maintscript_helper_symlink_to_dir env restargs
+  | "dir_to_symlink"::restargs ->
+     interp_dpkg_maintscript_helper_dir_to_symlink env restargs
+  | subcmd::_ -> unknown_argument
+                   ~msg:"unknown subcommand"
+                   ~name:"dpkg_maintscript_helper"
+                   ~arg:subcmd
+                   ()
+  | [] -> unknown_argument
+            ~msg:"no arguments"
+            ~name: "dpkg_maintscript_helper"
+            ~arg:""
+            ()
+  
+
+(******************************************************************************)
 (*                      Dispatch interpretation of utilities                  *)
 (******************************************************************************)
 
@@ -710,4 +753,5 @@ let interp (name: string) : env -> args -> utility =
   | "rm" -> interp_rm
   | "update-alternatives" -> interp_update_alternatives
   | "dpkg" -> interp_dpkg
+  | "dpkg-maintscript-helper" -> interp_dpkg_maintscript_helper
   | _ -> fun _env _args -> unknown_utility ~name ()
