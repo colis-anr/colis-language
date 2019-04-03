@@ -454,6 +454,92 @@ let interp_test ~bracket _env (args : string list) : utility =
      interp_test_parse_error args
 
 (******************************************************************************)
+(*                                rm                                          *)
+(******************************************************************************)
+let interp_rm1 arg : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let q = Path.from_string arg in
+  match Path.split_last q with
+  (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
+  (* FIXME: Shouldn't we factorize it in a combinator?             *)
+  | None ->
+     failure ~error_message:"rm: invalid path ''" ()
+  | Some (_q, (Here|Up)) ->
+     failure ~error_message:"rm: cannot remove .. or ." ()
+  | Some (q, Down f) ->
+     let hintx = last_comp_as_hint ~root q in
+     let hinty = Feat.to_string f in [
+         success_case
+           ~descr:(asprintf "rm %a: remove file" Path.pp q)
+           begin
+             exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
+             exists ~hint:hinty @@ fun y ->
+             resolve root cwd q y & ndir y
+             & similar root root' cwd q x x'
+             & sim x (Feat.Set.singleton f) x'
+             & dir x' & fen x' (Feat.Set.singleton f)
+           end;
+         error_case
+           ~descr:(asprintf "rm %a: target is a directory" Path.pp q)
+           begin
+             exists ~hint:hinty @@ fun y ->
+             resolve root cwd q y & dir y
+             & eq root root'
+           end;
+         error_case
+           ~descr:(asprintf "rm %a: target does not exist" Path.pp q)
+           begin
+             exists ~hint:hinty @@ fun y ->
+             noresolve root cwd q & eq root root'
+           end;
+       ]
+
+let interp_rm1_r arg : utility =
+  under_specifications @@ fun ~cwd ~root ~root' ->
+  let q = Path.from_string arg in
+  match Path.split_last q with
+  (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
+  (* FIXME: Shouldn't we factorize it in a combinator?             *)
+  | None ->
+     failure ~error_message:"rm: invalid path ''" ()
+  | Some (_q, (Here|Up)) ->
+     failure ~error_message:"rm: cannot remove .. or ." ()
+  | Some (q, Down f) ->
+     let hintx = last_comp_as_hint ~root q in
+     let hinty = Feat.to_string f in [
+         success_case
+           ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp q)
+           begin
+             exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
+             exists ~hint:hinty @@ fun y ->
+             resolve root cwd q y & ndir y
+             & similar root root' cwd q x x'
+             & sim x (Feat.Set.singleton f) x'
+             & dir x' & fen x' (Feat.Set.singleton f)
+           end;
+         error_case
+           ~descr:(asprintf "rm -r %a: target does not exist" Path.pp q)
+           begin
+             exists ~hint:hinty @@ fun y ->
+             noresolve root cwd q & eq root root'
+           end;
+       ]
+
+let interp_rm_r : env -> args -> utility =
+  fun _ -> function
+  | [] -> error ~msg:"rm: missing operand" ()
+  | [arg] -> interp_rm1_r arg
+  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm -r/R" ~arg:"" ()
+
+let interp_rm : env -> args -> utility =
+  fun env -> function
+  | [] -> error ~msg:"rm: missing operand" ()
+  | ("-r" | "-R") :: args -> interp_rm_r env args
+  | [arg] -> interp_rm1 arg
+  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm" ~arg:"" ()
+
+
+(******************************************************************************)
 (*                                which                                       *)
 (******************************************************************************)
 
@@ -600,5 +686,6 @@ let interp (name: string) : env -> args -> utility =
   | "touch" -> interp_touch
   | "mkdir" -> interp_mkdir
   | "which" -> interp_which_full
+  | "rm" -> interp_rm
   | "update-alternatives" -> interp_update_alternatives
   | _ -> fun _env _args -> unknown_utility ~name ()
