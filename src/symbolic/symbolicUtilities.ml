@@ -532,7 +532,7 @@ let interp_rm_r : env -> args -> utility =
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm -r/R" ~arg:"" ()
 
 let rec interp_rm_args : args -> utility = function
-  | [] -> identity
+  | [] -> return true
   | arg :: args -> seq ( && ) (interp_rm1 arg) (interp_rm_args args)
 
 let interp_rm : env -> args -> utility =

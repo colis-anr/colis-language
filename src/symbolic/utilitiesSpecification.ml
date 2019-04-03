@@ -5,8 +5,6 @@ open Semantics__Buffers
 
 type utility = state -> (state * bool) list
 
-let identity = fun s -> [(s, true)]
-
 let seq join (u1 : utility) (u2 : utility) : utility = fun s0 -> List.(
      u1 s0
   |> map (fun (s1, b1) -> u2 s1 |> map (fun (s2, b2) -> (s2, join b1 b2)))
