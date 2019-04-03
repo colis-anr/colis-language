@@ -673,6 +673,29 @@ let interp_update_alternatives _env args =
   in
   aux args
 
+(**************************************************************************)
+(*                                    dpkg                                *)
+(**************************************************************************)
+
+let interp_dpkg _env args =
+  let name = "dpkg" in
+  let aux = function
+    | ["-L"; pkg_name] ->
+       unknown_argument ~msg:"support for -L not yet implemented" ~name ~arg:pkg_name ()
+    | "-L" :: _ ->
+       unknown_argument ~msg:"option -L expects exactly one argument" ~name ~arg:"(any)" ()
+    | ["--compare-versions"; v1; v2] ->
+       unknown_argument ~msg:"support for --compare-versions not yet implemented" ~name ~arg:(v1 ^ " " ^v2) ()
+    | "--compare-versions" :: _ ->
+       unknown_argument ~msg:"option --compare-versions expects exactly two arguments" ~name ~arg:"(any)" ()
+    | [] ->
+       (* TODO: return error state *)
+       unknown_argument ~msg:"no argument found" ~name ~arg:"(none)" ()
+    | arg :: _ ->
+       unknown_argument ~msg:"unsupported argument" ~name ~arg ()
+  in
+  aux args
+
 (******************************************************************************)
 (*                      Dispatch interpretation of utilities                  *)
 (******************************************************************************)
@@ -689,4 +712,5 @@ let interp (name: string) : env -> args -> utility =
   | "which" -> interp_which_full
   | "rm" -> interp_rm
   | "update-alternatives" -> interp_update_alternatives
+  | "dpkg" -> interp_dpkg
   | _ -> fun _env _args -> unknown_utility ~name ()
