@@ -2,9 +2,12 @@ open Constraints
 open SymbolicInterpreter__State
 open Semantics__Buffers
 
-(** A utility transforms a symbolic states into a list of symbol states with boolean
-   results *)
+(** A utility transforms a symbolic state into a list of symbolic states
+    with boolean results *)
 type utility = state -> (state * bool) list
+
+(** Non-deterministic choice between two utilities *)
+val choice : utility -> utility -> utility
 
 val print_utility_trace : string -> state -> state
 

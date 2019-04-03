@@ -74,6 +74,10 @@ let apply_case_to_state state root case : (state * bool) list =
   |> List.flatten
   |> List.map (apply_clause_to_state state case root)
 
+let choice u1 u2 =
+  (* non-deterministic choice *)
+  function state -> (u1 state) @ (u2 state)
+
 type specifications = cwd:Path.t -> root:Var.t -> root':Var.t -> case list
 
 let under_specifications : specifications -> state -> (state * bool) list =
