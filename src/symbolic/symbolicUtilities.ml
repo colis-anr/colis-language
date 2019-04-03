@@ -578,11 +578,12 @@ let interp_update_alternatives _env args =
   let name = "update-alternatives" in
   let rec aux = function
     | [] ->
-       unknown_argument ~msg:"update-alternatives: no command found" ~name ~arg:"(none)" ()
+       (* TODO: return error state *)
+       unknown_argument ~msg:"no sub-command found" ~name ~arg:"(none)" ()
     | "--quiet" :: rem->
        fun st -> aux rem (print_utility_trace (name ^ ": ignored option --quiet") st)
     | arg :: _ ->
-       unknown_argument ~msg:"update-alternatives: unsupported argument" ~name ~arg ()
+       unknown_argument ~msg:"unsupported argument" ~name ~arg ()
   in
   aux args
 
