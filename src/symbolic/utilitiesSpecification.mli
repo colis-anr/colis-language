@@ -6,6 +6,8 @@ open Semantics__Buffers
    results *)
 type utility = state -> (state * bool) list
 
+val print_utility_trace : string -> state -> state
+
 (** A case in the specification is either a success or an error *)
 type case
 
