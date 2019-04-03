@@ -688,5 +688,4 @@ let interp (name: string) : env -> args -> utility =
   | "which" -> interp_which_full
   | "rm" -> interp_rm
   | "update-alternatives" -> interp_update_alternatives
-  | "rm" -> interp_rm
   | _ -> fun _env _args -> unknown_utility ~name ()
