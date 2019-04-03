@@ -531,13 +531,15 @@ let interp_rm_r : env -> args -> utility =
   | [arg] -> interp_rm1_r arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm -r/R" ~arg:"" ()
 
+let rec interp_rm_args : args -> utility = function
+  | [] -> identity
+  | arg :: args -> seq ( && ) (interp_rm1 arg) (interp_rm_args args)
+
 let interp_rm : env -> args -> utility =
   fun env -> function
   | [] -> error ~msg:"rm: missing operand" ()
   | ("-r" | "-R") :: args -> interp_rm_r env args
-  | [arg] -> interp_rm1 arg
-  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm" ~arg:"" ()
-
+  | args -> interp_rm_args args
 
 (******************************************************************************)
 (*                                which                                       *)
@@ -688,5 +690,4 @@ let interp (name: string) : env -> args -> utility =
   | "which" -> interp_which_full
   | "rm" -> interp_rm
   | "update-alternatives" -> interp_update_alternatives
-  | "rm" -> interp_rm
   | _ -> fun _env _args -> unknown_utility ~name ()

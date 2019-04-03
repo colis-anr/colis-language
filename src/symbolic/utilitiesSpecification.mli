@@ -6,6 +6,14 @@ open Semantics__Buffers
    results *)
 type utility = state -> (state * bool) list
 
+(** [identity] is an utility that succeeds and preserves the state. *)
+val identity : utility
+
+(** [seq combine u1 u2] produces an utility which executes [u1]
+    and then [u2], whatever the exit status of [u1]. The final status
+    is obtained by application of [combine] on the two status. *)
+val seq : (bool -> bool -> bool) -> utility -> utility -> utility
+
 val print_utility_trace : string -> state -> state
 
 (** A case in the specification is either a success or an error *)
