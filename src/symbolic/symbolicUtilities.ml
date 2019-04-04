@@ -52,9 +52,6 @@ let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
 (*                                  true/false                                *)
 (******************************************************************************)
 
-let return result : utility =
-  fun sta -> [sta, result]
-
 let interp_true : env -> args -> utility =
   fun _ _ ->
     return true

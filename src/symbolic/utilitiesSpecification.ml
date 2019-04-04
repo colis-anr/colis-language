@@ -5,6 +5,9 @@ open Semantics__Buffers
 
 type utility = state -> (state * bool) list
 
+let return result : utility =
+  fun sta -> [sta, result]
+
 let print_line msg state =
   let open Semantics__Buffers in
   let stdout = Stdout.(output msg state.stdout |> newline) in

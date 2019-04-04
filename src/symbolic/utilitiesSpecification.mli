@@ -6,8 +6,13 @@ open Semantics__Buffers
     with boolean results *)
 type utility = state -> (state * bool) list
 
-(** Non-deterministic choice between two utilities *)
+(** [choice u1 u2]  yields the utility that non-deterministacillay
+    behaves like [u1] or [u2].  *)
 val choice : utility -> utility -> utility
+
+(** [return b] yields the utility that does not change its state, and
+    succeeds if and only if [b] is [true] *)
+val return : bool -> utility
 
 val print_utility_trace : string -> state -> state
 
