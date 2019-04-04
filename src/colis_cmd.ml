@@ -130,12 +130,12 @@ let main () =
      Colis.run ~argument0 ~arguments ~vars program
   | RunSymbolic ->
      let config = {
-       Colis.fs_spec = get_symbolic_fs ();
-       prune_init_state = !prune_init_state;
+       Colis.prune_init_state = !prune_init_state;
        loop_limit = !loop_limit;
        stack_size = !stack_size;
      } in
-     Colis.run_symbolic config ~argument0 ~arguments ~vars program
+     let fs_spec = get_symbolic_fs () in
+     Colis.run_symbolic config fs_spec ~argument0 ~arguments ~vars program
   | PrintColis ->
      Colis.print_colis program;
   | PrintShell ->
