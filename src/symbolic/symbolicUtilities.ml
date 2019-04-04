@@ -704,41 +704,179 @@ module type SYMBOLIC_UTILITY = sig
 end
 
 module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
-  let interp_dpkg_maintscript_helper_supports _env args =
+  let supports _env args =
     match args with
     |["rm_conffile"]|["mv_conffile"]|["symlink_to_dir"]|["dir_to_symlink"]
      -> return true
     | _ -> return false
 
-  let interp_dpkg_maintscript_helper_rm_conffile env arg = assert false
+  exception NoDashDash
+  let split_at_dashdash l =
+    (* split a list into the part before "--" and the part after *)
+    let rec split_aux acc = function
+      | "--"::rest -> (List.rev acc, rest)
+      | head::rest -> split_aux (head::acc) rest
+      | [] -> raise NoDashDash
+    in split_aux [] l
 
-  let interp_dpkg_maintscript_helper_mv_conffile env arg = assert false
+  type maintscript_name = MSPreinst|MSPostinst|MSPrerm|MSPostrm|MSOther
+  let string_to_maintscript_name = function
+    | "preinst" -> MSPreinst
+    | "postinst" -> MSPostinst
+    | "prerm" -> MSPrerm
+    | "postrm" -> MSPostrm
+    |  s -> MSOther
+          
+  let starts_on_slash s = String.length s > 0 && s.[0]='/'
+  let empty_string s = (String.length s = 0)
+  let dpkg_compare_versions_le_nl s1 s2 = assert false (* FIXME *)
+  let dpkg_validate_version s = true (* FIXME *)
+  let validate_optional_version s =
+    empty_string s || dpkg_validate_version s
+  let ensure_that_package_owns_conffile conffile package = true (* FIXME *)
 
-  let interp_dpkg_maintscript_helper_symlink_to_dir env arg = assert false
+  exception Error of string
+  exception NumberOfArguments
+  exception MaintainerScriptArguments
 
-  let interp_dpkg_maintscript_helper_dir_to_symlink env arg = assert false
+  let prepare_rm_conffile conffile package =
+    if ensure_that_package_owns_conffile package conffile
+    then choice
+           (return true)
+           (* FIXME: really mv -f "$CONFFILE" "$CONFFILE.dpkg-backup" *)
+           (return true)
+           (* FIXME really mv -f "$CONFFILE" "$CONFFILE.dpkg-remove" *)
+    else return true
+
+  let finish_rm_conffile conffile =
+    assert false
+    
+  let abort_rm_conffile conffile package =
+    assert false
+
+  let rm_conffile env cmdargs scriptarg1 scriptarg2 =
+    let dpkg_package =
+      try List.assoc "DPKG_MAINTSCRIPT_PACKAGE" env
+      with Not_found ->
+        raise (Error
+                 "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let default_package =
+      try
+        let dpkg_arch = List.assoc "DPKG_MAINTSCRIPT_ARCH" env
+        in dpkg_package^":"^dpkg_arch
+      with Not_found -> dpkg_package
+    in
+    let dpkg_maintscript_name =
+      try string_to_maintscript_name
+            (List.assoc "DPKG_MAINTSCRIPT_NAME" env)
+      with
+      | Not_found ->
+         raise (Error
+                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let (conffile,lastversion,package) =
+      match cmdargs with
+      | [x;y;z] -> (x,y,if empty_string z then default_package else z)
+      | [x;y] -> (x,y,default_package)
+      | [x] -> (x,"",default_package)
+      | _ -> raise NumberOfArguments
+    in
+    if empty_string package then
+      raise (Error "couldn't identify the package");
+    (* checking scriptarg1 done by [interprete] *)
+    (* checking DPKG_MAINTSCRIPTNAME done above *)
+    (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
+    if not (starts_on_slash conffile) then
+      raise (Error "conffile '$CONFFILE' is not an absolute path");
+    if not (validate_optional_version lastversion) then
+      raise (Error ("wrong version "^lastversion));
+    match dpkg_maintscript_name with
+    | MSPreinst ->
+       if (scriptarg1 = "install" || scriptarg1 = "upgrade")
+          && not (empty_string scriptarg2)
+          && dpkg_compare_versions_le_nl scriptarg2 lastversion
+       then prepare_rm_conffile conffile package
+       else return true
+    | MSPostinst ->
+       if scriptarg1 = "configure"
+          && not (empty_string scriptarg2)
+          && dpkg_compare_versions_le_nl scriptarg2 lastversion
+       then finish_rm_conffile conffile
+       else return true
+    | MSPostrm ->
+       if scriptarg1 = "purge"
+       then interp_rm env
+              [ "-f";
+                conffile^".dpkg-bak";
+                conffile^".dpkg-remove"; 
+                conffile^".dpkg-backup"]
+       else
+         if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
+            && not (empty_string scriptarg2)
+            && dpkg_compare_versions_le_nl scriptarg2 lastversion
+         then abort_rm_conffile conffile package
+         else return true
+    | _ -> return true
+         
+  let mv_conffile env cmdargs scriptarg1 scriptarg2 =
+    assert false
+    
+  let symlink_to_dir env cmdargs scriptarg1 scriptarg2 =
+    assert false
+
+  let dir_to_symlink env cmdargs scriptarg1 scriptarg2 =
+    assert false
 
   let interprete (env:env) (args:args) =
     match args with
-    | "supports"::restargs ->
-       interp_dpkg_maintscript_helper_supports env restargs
-    | "rm_conffile"::restargs ->
-       interp_dpkg_maintscript_helper_rm_conffile env restargs
-    | "mv_conffile"::restargs ->
-       interp_dpkg_maintscript_helper_mv_conffile env restargs
-    | "symlink_to_dir"::restargs ->
-       interp_dpkg_maintscript_helper_symlink_to_dir env restargs
-    | "dir_to_symlink"::restargs ->
-       interp_dpkg_maintscript_helper_dir_to_symlink env restargs
-    | subcmd::_ -> unknown_argument
-                     ~msg:"unknown subcommand"
-                     ~name:"dpkg_maintscript_helper"
-                     ~arg:subcmd
-                     ()
+    | subcmd::restargs ->
+       begin
+         if subcmd = "supports" then 
+           supports env restargs
+         else
+           try
+             let (cmdargs,scriptargs) = split_at_dashdash args in
+             let (scriptarg1,scriptarg2) =
+               match scriptargs with
+               | [x;y] -> (x,y)
+               | [x] -> (x,"")
+               | _ -> raise MaintainerScriptArguments
+             in
+             match subcmd with
+             | "rm_conffile"->
+                rm_conffile env cmdargs scriptarg1 scriptarg2
+             | "mv_conffile" ->
+                mv_conffile env cmdargs scriptarg1 scriptarg2
+             | "symlink_to_dir" ->
+                symlink_to_dir env cmdargs scriptarg1 scriptarg2
+             | "dir_to_symlink" ->
+                dir_to_symlink cmdargs scriptarg1 scriptarg2
+             | _ -> unknown_argument
+                      ~msg:"unknown subcommand"
+                      ~name:"dpkg_maintscript_helper"
+                      ~arg:subcmd
+                      ()
+           with
+           | NoDashDash ->
+              unknown_argument
+                ~msg:"missing -- separator"
+                ~name:("dpkg-maintscript-helper "^subcmd)
+                ~arg:"" (* FIXME *)
+                ()
+           | MaintainerScriptArguments ->
+              unknown_argument
+                ~msg:"maintainer script arguments are missing"
+                ~name:("dpkg-maintscript-helper "^subcmd)
+                ~arg: "" (* FIXME *)
+                ()
+           | Error s ->
+              error ~msg:s ()
+       end
     | [] -> unknown_argument
               ~msg:"no arguments"
               ~name: "dpkg_maintscript_helper"
-              ~arg:""
+              ~arg:"" (* FIXME *)
               ()
 end
 
