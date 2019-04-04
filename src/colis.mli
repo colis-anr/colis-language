@@ -89,8 +89,6 @@ val run : argument0:string -> ?arguments:(string list) -> ?vars:((string * strin
   *)
 
 type symbolic_config = {
-  fs_spec: Symbolic.FilesystemSpec.t;
-  (** Specifitation of the filesystem to start the symbolic execution *)
   prune_init_state: bool;
   (** Prune the initial symbolic state during symbolic execution for a faster execution *)
   loop_limit: int;
@@ -99,5 +97,5 @@ type symbolic_config = {
   (** Maximum height of the call stack in symbolic execution *)
 }
 
-val run_symbolic : symbolic_config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
+val run_symbolic : symbolic_config -> Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Symbolically executes a Colis program. *)
