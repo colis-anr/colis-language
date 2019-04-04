@@ -8,6 +8,10 @@ open SymbolicInterpreter__State
 type env = (string * string) list
 type args = string list
 
+module type SYMBOLIC_UTILITY = sig
+  val interprete : env -> args -> utility
+end
+
 (** Get the name of the last path component, if any, or of the hint
    root variable otherwise. The result is useful as a hint for
    creating variables for resolving the path. *)
@@ -536,6 +540,16 @@ let interp_rm : env -> args -> utility =
   | [arg] -> interp_rm1 arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm" ~arg:"" ()
 
+(******************************************************************************)
+(*                                  mv                                        *)
+(******************************************************************************)
+
+(* FIXME: this should go into a separate file *)
+
+module Mv:SYMBOLIC_UTILITY = struct
+  let interprete (env:env) (args:args) =
+    unknown_utility ~name:"mv" ()
+end                                              
 
 (******************************************************************************)
 (*                                which                                       *)
@@ -699,9 +713,6 @@ let interp_dpkg _env args =
 (******************************************************************************)
 
 (* FIXME: this should go into a separate file *)
-module type SYMBOLIC_UTILITY = sig
-  val interprete : env -> args -> utility
-end
 
 module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
   let supports _env args =
@@ -719,14 +730,6 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
       | [] -> raise NoDashDash
     in split_aux [] l
 
-  type maintscript_name = MSPreinst|MSPostinst|MSPrerm|MSPostrm|MSOther
-  let string_to_maintscript_name = function
-    | "preinst" -> MSPreinst
-    | "postinst" -> MSPostinst
-    | "prerm" -> MSPrerm
-    | "postrm" -> MSPostrm
-    |  s -> MSOther
-          
   let starts_on_slash s = String.length s > 0 && s.[0]='/'
   let empty_string s = (String.length s = 0)
   let dpkg_compare_versions_le_nl s1 s2 = assert false (* FIXME *)
@@ -739,19 +742,23 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
   exception NumberOfArguments
   exception MaintainerScriptArguments
 
-  let prepare_rm_conffile conffile package =
+  let prepare_rm_conffile env conffile package =
     if ensure_that_package_owns_conffile package conffile
     then choice
-           (return true)
-           (* FIXME: really mv -f "$CONFFILE" "$CONFFILE.dpkg-backup" *)
-           (return true)
-           (* FIXME really mv -f "$CONFFILE" "$CONFFILE.dpkg-remove" *)
+           (Mv.interprete env [
+                "-f";
+                conffile;
+                conffile^".dpkg-backup"])
+           (Mv.interprete env [
+                "-f";
+                conffile;
+                conffile^".dpkg-remove"])
     else return true
 
-  let finish_rm_conffile conffile =
+  let finish_rm_conffile env conffile =
     assert false
     
-  let abort_rm_conffile conffile package =
+  let abort_rm_conffile env conffile package =
     assert false
 
   let rm_conffile env cmdargs scriptarg1 scriptarg2 =
@@ -768,8 +775,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
       with Not_found -> dpkg_package
     in
     let dpkg_maintscript_name =
-      try string_to_maintscript_name
-            (List.assoc "DPKG_MAINTSCRIPT_NAME" env)
+      try List.assoc "DPKG_MAINTSCRIPT_NAME" env
       with
       | Not_found ->
          raise (Error
@@ -792,19 +798,19 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     if not (validate_optional_version lastversion) then
       raise (Error ("wrong version "^lastversion));
     match dpkg_maintscript_name with
-    | MSPreinst ->
+    | "preinst" ->
        if (scriptarg1 = "install" || scriptarg1 = "upgrade")
           && not (empty_string scriptarg2)
           && dpkg_compare_versions_le_nl scriptarg2 lastversion
-       then prepare_rm_conffile conffile package
+       then prepare_rm_conffile env conffile package
        else return true
-    | MSPostinst ->
+    | "postinst" ->
        if scriptarg1 = "configure"
           && not (empty_string scriptarg2)
           && dpkg_compare_versions_le_nl scriptarg2 lastversion
-       then finish_rm_conffile conffile
+       then finish_rm_conffile env conffile
        else return true
-    | MSPostrm ->
+    | "postrm" ->
        if scriptarg1 = "purge"
        then interp_rm env
               [ "-f";
@@ -815,7 +821,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
          if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
             && not (empty_string scriptarg2)
             && dpkg_compare_versions_le_nl scriptarg2 lastversion
-         then abort_rm_conffile conffile package
+         then abort_rm_conffile env conffile package
          else return true
     | _ -> return true
          
@@ -880,6 +886,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
               ()
 end
 
+
 (******************************************************************************)
 (*                      Dispatch interpretation of utilities                  *)
 (******************************************************************************)
@@ -898,4 +905,5 @@ let interp (name: string) : env -> args -> utility =
   | "update-alternatives" -> interp_update_alternatives
   | "dpkg" -> interp_dpkg
   | "dpkg-maintscript-helper" -> DpkgMaintScriptHelper.interprete
+  | "mv" -> Mv.interprete
   | _ -> fun _env _args -> unknown_utility ~name ()
