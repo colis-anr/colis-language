@@ -952,15 +952,20 @@ module Interpreter
       (filter (fun sta -> notb (xorb res sta.context.result))
         stas)
 
-  let interp_program loop_limit stack_size inp ctx sta pro : (set state, set state, set state)
+  let interp_program loop_limit stack_size inp stas pro : (set state, set state, set state)
     requires { 0 <= loop_limit }
     requires { 0 <= stack_size }
   = let stas, stas_failure =
-      let fenv = interp_function_definitions ctx.func_env pro.function_definitions in
-      let ctx' = {ctx with func_env = fenv} in
       let cnf = { loop_limit = Some loop_limit; stack_size = Some stack_size } in
+      let stas =
+        let aux sta =
+          let fenv = interp_function_definitions sta.context.func_env pro.function_definitions in
+          {sta with context={sta.context with func_env = fenv}}
+        in
+        map aux stas
+      in
       Rs.separate_non_failure
-        (interp_instr 0 cnf inp ctx' sta pro.instruction)
+        (interp_instr' 0 cnf inp stas pro.instruction)
     in
     (only_states_with_result True stas,
      only_states_with_result False stas,
