@@ -1,32 +1,32 @@
+open Constraints
+
 (** Simple specification of filessytems (with a translation to feature constraints) *)
+type t
 
-type t = node list
-and node
-
-val node : string -> t -> node
-
-(** Compile the specification of a filesystem into a feature constraint. Returns the
-    root variable and a constraint that encodes the filesystem *)
-val compile : root:Constraints.Var.t -> t -> Constraints.Clause.t
-
-(** Empty filesystem (only root directory) *)
+(** Empty filesystem (i.e., only the root directory) *)
 val empty : t
 
-(** A simple filesystem (including some but not all directories from the FHS)
+(** Add a directory to a FS spec at the given relative path to root, defined by a list of
+   feature names.
 
-    Specified directories:
+    @raises Invalid_argument if any super-path is already specified as a file. *)
+val add_dir : string list -> t -> t
 
-    {v
-    /etc
-    /var/lib
-    /usr/lib
-    /usr/local/lib
-    v} *)
-val simple : t
+(** Add a file to a FS spec at the given relative path to root.
 
-(** Filesystem with directory structor following the
-   {{:https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.html:}Filesystem Hierarchy
-   Standard}.
+    @raises Invalid_argument if any super-path of the parent is specified as a file or the
+    path is already specified as a directory. *)
+val add_file : string list -> t -> t
 
-    Incomplete. *)
-val fhs : t
+(** Adds files and directories from a channel. One line per entry, all lines start with
+    '/' and directories end with '/'
+
+    @raises Invalid_argument like functions [add_dir] and [add_file ]*)
+val add_channel : in_channel -> t -> t
+
+(** Compile the specification of a filesystem into a feature constraint at the given root
+    variable.*)
+val compile : Var.t -> t -> Clause.t
+
+(** Print the FS spec as a tree *)
+val pp : Format.formatter -> t -> unit
