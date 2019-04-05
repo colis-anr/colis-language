@@ -60,8 +60,8 @@ let interp_utility : string env -> state -> string -> string list -> (state * bo
         {sta with stdout=Stdout.(sta.stdout |> output line |> newline)}
       in
       Env.elements var_env |>
-      Seq.map format_line |>
-      Seq.fold_left print_line sta, true
+      List.map format_line |>
+      List.fold_left print_line sta, true
     | arg :: _ ->
       unknown_argument ~name:"env" ~msg:"Not arguments implemented" ~arg sta
     end
