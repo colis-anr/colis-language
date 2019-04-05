@@ -33,6 +33,16 @@ let if_then_else (cond:utility) (posbranch:utility) (negbranch:utility) =
             (apply_to_list posstates posbranch)
             @ (apply_to_list negstates negbranch)
 
+let compose_non_strict (u1:utility) (u2:utility) =
+  function sta ->
+    apply_to_list (List.map fst (u1 sta)) u2
+
+let compose_strict (u1:utility) (u2:utility) =
+  function sta ->
+    let (success1,failure1) = separate_states (u1 sta)
+    in (apply_to_list success1 u2) @
+         (List.map (function sta -> (sta,false)) failure1)
+         
 let print_line msg state =
   let open Semantics__Buffers in
   let stdout = Stdout.(output msg state.stdout |> newline) in

@@ -18,6 +18,16 @@ val return : bool -> utility
     if [u1]  then [u2] else [u3] *)
 val if_then_else : utility -> utility -> utility -> utility
 
+(** compose_non_strict [u1] [u2] yields the utility that behaves like
+    [u1]; [u2] in non-strict mode, that is the error code of [u1] is
+    ignored *)
+val compose_non_strict : utility -> utility -> utility
+
+(** compose_strict [u1] [u2] yields the utility that behaves like
+    [u1]; [u2] in strict mode, that is if [u1] fails then the composition
+    fails and [u2]  is not executed    *) 
+val compose_strict : utility -> utility -> utility
+
 val print_utility_trace : string -> state -> state
 
 (** A case in the specification is either a success or an error *)
