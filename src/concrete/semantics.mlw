@@ -254,6 +254,15 @@ module Context
   type var_env = env var_value
   with var_value = {value: option string; exported: bool}
 
+  (** Auxiliary function for creating an initial variable environemnt *)
+  let rec add_var_bindings exported bindings env
+    variant { bindings }
+  = match bindings with
+    | Nil -> env
+    | Cons (name, value) bindings' ->
+      add_var_bindings exported bindings' env[name <- {value=Some value; exported=exported}]
+    end
+
   let constant empty_var_env =
     empty_env {value=None; exported=False}
 
