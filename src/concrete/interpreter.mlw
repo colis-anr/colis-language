@@ -3,7 +3,7 @@
     See NOTES[Concrete interpreter type] for discussion on arguments.
  *)
 
-(** The filesystem is not modelled by the concrete interpreter *)
+(** A dummy filesystem - the filesystem is not modelled in the concrete interpreter *)
 module Filesystem
   type filesystem = unit
   let constant empty : filesystem = ()
@@ -12,6 +12,7 @@ end
 module Semantics
   use Filesystem
 
+  (* Instantiate the concrete semantics with our dummy filesystem *)
   clone export semantics.Semantics
     with type filesystem = filesystem,
          axiom interp_utility_extends_output

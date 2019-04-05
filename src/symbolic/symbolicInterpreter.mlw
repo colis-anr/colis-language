@@ -24,7 +24,7 @@ module Filesystem
   type filesystem = {
     root : variable;
     clause : clause;
-    cwd : path;
+    cwd : path; (* TODO in the concrete evaluation context as `list string`? *)
     root0 : option variable;
   }
 end
@@ -32,6 +32,7 @@ end
 module Semantics
   use Filesystem
 
+  (* Instantiate the concrete semantics with the symbolic filesystem *)
   clone export semantics.Semantics
     with type filesystem = filesystem,
          axiom interp_utility_extends_output

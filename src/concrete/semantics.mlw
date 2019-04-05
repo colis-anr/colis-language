@@ -235,6 +235,11 @@ module Env
     env[id <- v]
 end
 
+(** {2 The concrete evaluation context}
+
+    The concrete context combines a variable environment, function environment, arguments,
+    and result, and is reused in the concrete semantics, concrete interpreter and symbolic
+    interpreter. *)
 module Context
 
   use option.Option
@@ -355,7 +360,11 @@ module Config
   = { loop_limit = loop_limit; stack_size = stack_size }
 end
 
-(** {2 Read/write context for the evaluation of a term with abstract filesystem} *)
+(** {2 Evaluation state}
+
+    The evaluation state combines standard input and stdout output with the filesystem.
+    The filesystem is left abstract in the semantics, and instantiated with type unit in
+    the concrete interpreter and with a feature constraint in the symbolic interpreter *)
 module State
 
   use list.List
@@ -390,8 +399,7 @@ module State
     { stdin=stdin; stdout=stdout; filesystem=any_filesystem () }
 end
 
-(** {2 Semantics of the CoLiS language} *)
-
+(** {2 Concrete semantics of the CoLiS language} *)
 module Semantics
 
   use int.Int
