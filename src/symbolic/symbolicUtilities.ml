@@ -851,9 +851,105 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
          then abort_rm_conffile env conffile package
          else return true
     | _ -> return true
-         
+
+  let prepare_mv_conffile env conffile package =
+    if_then_else
+      (interp_test_e conffile)
+      (if ensure_package_owns_file package conffile
+       then choice
+              (Mv.interprete env ["-f"; conffile; conffile^".dpkg-remove"])
+              (return true)
+       else return true)
+      (return true)
+    
+  let finish_mv_conffile env oldconffile newconffile package =
+    compose_non_strict
+      (interp_rm env ["-f"; oldconffile^".dpkg-remove"])
+      (if_then_else
+         (interp_test_e oldconffile)
+           (if ensure_package_owns_file package oldconffile
+            then
+              (* TODO echo bla bla *)
+              compose_non_strict
+                (if_then_else
+                   (interp_test_e newconffile)
+                   (Mv.interprete env
+                      ["-f";newconffile; newconffile^".dpkg-new"])
+                   (return true))
+                (Mv.interprete env ["-f"; oldconffile; newconffile])
+            else return true
+           )
+           (return true)
+      )
+    
+  let abort_mv_conffile env conffile package =
+    if ensure_package_owns_file package conffile
+    then
+      if_then_else
+        (interp_test_e (conffile^".dpkg-remove"))
+        (* TODO echo bla bla *)
+        (Mv.interprete env [conffile^".dpkg-remove"; conffile])
+        (return true)
+    else return true
+    
   let mv_conffile env cmdargs scriptarg1 scriptarg2 =
-    assert false
+    let dpkg_package =
+      try List.assoc "DPKG_MAINTSCRIPT_PACKAGE" env
+      with Not_found ->
+        raise (Error
+                 "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let default_package =
+      try
+        let dpkg_arch = List.assoc "DPKG_MAINTSCRIPT_ARCH" env
+        in dpkg_package^":"^dpkg_arch
+      with Not_found -> dpkg_package
+    in
+    let dpkg_maintscript_name =
+      try List.assoc "DPKG_MAINTSCRIPT_NAME" env
+      with
+      | Not_found ->
+         raise (Error
+                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let (oldconffile,newconffile,lastversion,package) =
+      match cmdargs with
+      | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
+      | [w;x;y] -> (w,x,y,default_package)
+      | [w;x] -> (w,x,"",default_package)
+      | _ -> raise NumberOfArguments
+    in
+    if empty_string package then
+      raise (Error "couldn't identify the package");
+    (* checking scriptarg1 done by [interprete] *)
+    (* checking DPKG_MAINTSCRIPT_NAME done above *)
+    (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
+    if not (starts_on_slash oldconffile) then
+      raise (Error "conffile '$OLDCONFFILE' is not an absolute path");
+    if not (starts_on_slash newconffile) then
+      raise (Error "conffile '$NEWCONFFILE' is not an absolute path");
+    if not (validate_optional_version lastversion) then
+      raise (Error ("wrong version "^lastversion));
+    match dpkg_maintscript_name with
+    | "preinst" ->
+       if (scriptarg1 = "install" || scriptarg1 = "upgrade")
+          && not (empty_string scriptarg2)
+          && dpkg_compare_versions_le_nl scriptarg2 lastversion
+       then prepare_mv_conffile env oldconffile package
+       else return true
+    | "postinst" ->
+       if scriptarg1 = "configure"
+          && not (empty_string scriptarg2)
+          && dpkg_compare_versions_le_nl scriptarg2 lastversion
+       then finish_mv_conffile env oldconffile newconffile package
+       else return true
+    | "postrm" ->
+         if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
+            && not (empty_string scriptarg2)
+            && dpkg_compare_versions_le_nl scriptarg2 lastversion
+         then abort_mv_conffile env oldconffile package
+         else return true
+    | _ -> return true
     
   let symlink_to_dir env cmdargs scriptarg1 scriptarg2 =
     assert false
