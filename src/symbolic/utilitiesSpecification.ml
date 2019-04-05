@@ -6,7 +6,32 @@ open Semantics__Buffers
 type utility = state -> (state * bool) list
 
 let return result : utility =
-  fun sta -> [sta, result]
+  function sta -> [sta, result]
+
+let apply_to_list l u =
+  (* apply utility [u] to a list [l] of states *)
+  List.concat (List.map u l)
+
+let separate_states l =
+  (* split a list of pairs state*bool into the list of states with flag
+     [true] and the list of pairs with flag [false]
+   *)
+  let rec separate_aux posacc negacc = function
+    | [] -> (posacc,negacc)
+    | (s,true)::l -> separate_aux (s::posacc) negacc l
+    | (s,false)::l -> separate_aux posacc (s::negacc) l
+  in separate_aux [] [] l
+
+let choice u1 u2 =
+  (* non-deterministic choice *)
+  function state -> (u1 state) @ (u2 state)
+
+let if_then_else (cond:utility) (posbranch:utility) (negbranch:utility) =
+  function sta ->
+            let (posstates,negstates) = separate_states (cond sta)
+            in 
+            (apply_to_list posstates posbranch)
+            @ (apply_to_list negstates negbranch)
 
 let print_line msg state =
   let open Semantics__Buffers in
@@ -77,9 +102,6 @@ let apply_case_to_state state root case : (state * bool) list =
   |> List.flatten
   |> List.map (apply_clause_to_state state case root)
 
-let choice u1 u2 =
-  (* non-deterministic choice *)
-  function state -> (u1 state) @ (u2 state)
 
 type specifications = cwd:Path.t -> root:Var.t -> root':Var.t -> case list
 

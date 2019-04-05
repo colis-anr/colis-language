@@ -14,6 +14,10 @@ val choice : utility -> utility -> utility
     succeeds if and only if [b] is [true] *)
 val return : bool -> utility
 
+(** [if_then_else u1 u2 u3] yields the utility that behaves like
+    if [u1]  then [u2] else [u3] *)
+val if_then_else : utility -> utility -> utility -> utility
+
 val print_utility_trace : string -> state -> state
 
 (** A case in the specification is either a success or an error *)
