@@ -736,14 +736,14 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
   let dpkg_validate_version s = true (* FIXME *)
   let validate_optional_version s =
     empty_string s || dpkg_validate_version s
-  let ensure_that_package_owns_conffile conffile package = true (* FIXME *)
+  let ensure_package_owns_file conffile package = true (* FIXME *)
 
   exception Error of string
   exception NumberOfArguments
   exception MaintainerScriptArguments
 
   let prepare_rm_conffile env conffile package =
-    if ensure_that_package_owns_conffile package conffile
+    if ensure_package_owns_file package conffile
     then choice
            (Mv.interprete env [
                 "-f";
@@ -756,10 +756,37 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     else return true
 
   let finish_rm_conffile env conffile =
-    assert false
+    compose_non_strict
+      (if_then_else
+         (interp_test_e (conffile^".dpkg-backup"))
+         (* TODO: echo .... in positive case *)
+         (Mv.interprete env
+            ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"])
+         (return true))
+      (if_then_else
+         (interp_test_e (conffile^".dpkg-remove"))
+         (* TODO echo ... in positive case *)
+         (interp_rm env
+            ["-f"; conffile^".dpkg-remove"])
+         (return true)
+      )
     
   let abort_rm_conffile env conffile package =
-    assert false
+    if ensure_package_owns_file package conffile
+    then
+      compose_non_strict
+        (if_then_else
+           (interp_test_e (conffile^".dpkg-remove"))
+         (* TODO echo ... in positive case *)
+           (Mv.interprete env [conffile^".dpkg-remove"; conffile])
+           (return true))
+        (if_then_else
+           (interp_test_e (conffile^".dpkg-backup"))
+         (* TODO echo ... in positive case *)
+           (Mv.interprete env [conffile^".dpkg-backup"; conffile])
+           (return true))
+    else
+      return true
 
   let rm_conffile env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
