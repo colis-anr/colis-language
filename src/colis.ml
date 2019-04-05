@@ -100,12 +100,6 @@ let colis_to_file filename colis =
 
 (* Interpret *)
 
-let mk_var_env =
-  let open Semantics in
-  List.fold_left
-    (* All variables given on the command line are exported! *)
-    (fun env (id, value) -> Env.set env id {Context.value=Some value; exported=true})
-    (Context.empty_var_env)
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Semantics in
@@ -113,7 +107,7 @@ let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let input = { Input.empty with argument0 } in
   let state = State.empty_state () in
   state.arguments := arguments;
-  state.var_env := mk_var_env vars;
+  state.var_env := Context.add_var_bindings true vars Context.empty_var_env;
   Interpreter.interp_program input state colis;
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
@@ -189,7 +183,7 @@ let run_symbolic config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   (* Create corresponding symbolic states by adding the context *)
   let stas' =
     let context =
-      let var_env = mk_var_env vars in
+      let var_env = Context.add_var_bindings true vars Context.empty_var_env in
       {Context.empty_context with arguments; var_env}
     in
     let aux state =
