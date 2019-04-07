@@ -4,7 +4,9 @@ open Clause
 open UtilitiesSpecification
 open Semantics__Buffers
 
-type env = string Env.env
+module IdMap = Env.IdMap
+
+type env = string IdMap.t
 
 type args = string list
 

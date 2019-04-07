@@ -17,5 +17,5 @@ module semantics.FilterVarEnv
 end
 
 module interpreter.Interpreter
-  syntax function S.interp_utility "Utilities.interp_utility %1 %2 %3 %4"
+  syntax function S.interp_utility "Utilities.interp_utility (Env.to_map %1) %2 %3 %4"
 end
