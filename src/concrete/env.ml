@@ -6,3 +6,4 @@ let set env id value = {env with map=IdMap.add id value env.map}
 let filter p env = {env with map=IdMap.filter p env.map}
 let map f default env = {map=IdMap.map f env.map; default}
 let elements env = IdMap.fold (fun k v t -> (k, v) :: t) env.map []
+let to_map env = env.map

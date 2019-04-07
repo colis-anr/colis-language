@@ -3,9 +3,12 @@
     See subsections of http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap04.html#tag_20
   *)
 
-open Env
 open Semantics__Buffers
 open Interpreter__Semantics
+
+module IdMap = Env.IdMap
+
+type env = string IdMap.t
 
 let unknown_utility ?(msg="command not found") ~name sta =
   if !Options.fail_on_unknown_utilities then
@@ -31,7 +34,7 @@ let test (sta : state) : string list -> (state * bool) = function
   | _ ->
      unknown_argument ~name:"test" ~arg:"" sta
 
-let interp_utility : string env -> state -> string -> string list -> (state * bool) =
+let interp_utility : env -> state -> string -> string list -> (state * bool) =
   fun var_env sta name args ->
   match name with
   | "echo" ->
@@ -59,7 +62,7 @@ let interp_utility : string env -> state -> string -> string list -> (state * bo
       let print_line sta line =
         {sta with stdout=Stdout.(sta.stdout |> output line |> newline)}
       in
-      Env.elements var_env |>
+      IdMap.bindings var_env |>
       List.map format_line |>
       List.fold_left print_line sta, true
     | arg :: _ ->
