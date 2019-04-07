@@ -792,19 +792,19 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
 
   let rm_conffile env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
-      try List.assoc "DPKG_MAINTSCRIPT_PACKAGE" env
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
       with Not_found ->
         raise (Error
                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let default_package =
       try
-        let dpkg_arch = List.assoc "DPKG_MAINTSCRIPT_ARCH" env
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
         in dpkg_package^":"^dpkg_arch
       with Not_found -> dpkg_package
     in
     let dpkg_maintscript_name =
-      try List.assoc "DPKG_MAINTSCRIPT_NAME" env
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
       with
       | Not_found ->
          raise (Error
@@ -896,19 +896,19 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     
   let mv_conffile env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
-      try List.assoc "DPKG_MAINTSCRIPT_PACKAGE" env
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
       with Not_found ->
         raise (Error
                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let default_package =
       try
-        let dpkg_arch = List.assoc "DPKG_MAINTSCRIPT_ARCH" env
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
         in dpkg_package^":"^dpkg_arch
       with Not_found -> dpkg_package
     in
     let dpkg_maintscript_name =
-      try List.assoc "DPKG_MAINTSCRIPT_NAME" env
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
       with
       | Not_found ->
          raise (Error
