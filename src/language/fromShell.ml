@@ -24,6 +24,19 @@ module C = struct
   let ifalse = ICallUtility ("false", [])
 
   let ior (i1, i2) = IIf (i1, itrue, i2)
+
+  let rec sexpr_unfold_concat = function
+    | SConcat (s1, s2) ->
+      sexpr_unfold_concat s1 @ sexpr_unfold_concat s2
+    | sexpr -> [sexpr]
+
+  let rec sexprs_merge_literals = function
+    | SLiteral a :: SLiteral b :: sexprs ->
+      sexprs_merge_literals (SLiteral (a^b) :: sexprs)
+    | [] ->
+      []
+    | sexpr :: sexprs ->
+      sexpr :: sexprs_merge_literals sexprs
 end
 
 let list_fold_map (f : 'a -> 'b -> ('a * 'c)) (x : 'a) (l : 'b list) : ('a * 'c list) =
@@ -259,6 +272,25 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
           (e, C.(IExit RSuccess))
        | "exit", [C.SLiteral n, _] when int_of_string_opt n <> None ->
           (e, C.(IExit RFailure))
+
+       | "export", [sexpr, DontSplit] ->
+         (
+           match sexpr |> C.sexpr_unfold_concat |> C.sexprs_merge_literals with
+           | [C.SLiteral name] when String.index_opt name '=' = None ->
+             (e, C.IExport name)
+           | C.SLiteral name :: sexprs when String.index_opt name '=' <> None ->
+             let name, literal =
+               let i = String.index name '=' in
+               String.(sub name 0 i, sub name (i+1) (length name - i-1))
+             in
+             (e, C.(ISequence (
+                  IAssignment (name, C.sconcat_l (SLiteral literal :: sexprs)),
+                  IExport name)))
+           | _ ->
+             unsupported "export with one bad argument"
+         )
+       | "export", _ ->
+         unsupported "export with no, several or splitable arguments"
 
        | "return", [] | "return", [C.SVariable "?", _] ->
           (e, C.(IReturn RPrevious))
