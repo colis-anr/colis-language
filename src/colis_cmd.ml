@@ -45,16 +45,17 @@ let prune_init_state = ref false
 let loop_limit = ref 10
 let stack_size = ref 10
 
-let get_symbolic_fs, set_symbolic_fs =
-  let fs_spec = ref Colis.Symbolic.FilesystemSpec.empty in
+let get_symbolic_fs, add_symbolic_fs =
+  let open Colis.Symbolic.FilesystemSpec in
+  let fs_spec = ref empty in
   (fun () -> !fs_spec),
-  (fun str ->
-     let open Colis.Symbolic.FilesystemSpec in
-     match str with
-     | "empty" -> fs_spec := empty
-     | "simple" -> fs_spec := simple
-     (* | "fhs" -> fs_spec := fhs *)
-     | _ -> raise (Arg.Bad "only filesystems `empty', `simple' are known"))
+  (fun filename ->
+     try
+       let cin = open_in filename in
+       fs_spec := add_channel cin !fs_spec;
+       close_in cin
+     with Sys_error msg ->
+       raise (Arg.Bad msg))
 
 let set_var, get_vars =
   let vars = ref [] in
@@ -82,7 +83,7 @@ let speclist =
     "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
     "--var",                       String set_var,                " VAR=VAL Set and export variable VAR to VAL in the interpreter";
     "--realworld",                 Set real_world,                " Use system utilities in concrete execution";
-    "--symbolic-fs",               String set_symbolic_fs,        "FS Name of the initial symbolic filesystem in symbolic execution (values: empty, simple, fhs, default: empty)";
+    "--add-symbolic-fs",           String add_symbolic_fs,        "FILE Add files and directories from FILE to the initially empty symbolic file system (One file or directory per line; directories end with '/')";
     "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
     "--loop-limit",                Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
     "--cpu-time-limit",            Float (fun f -> Constraints_common.Log.cpu_time_limit := Some f),     "LIMIT Set CPU time limit for symbolic execution to LIMIT in seconds (default: none)";
