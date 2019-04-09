@@ -1,0 +1,10 @@
+/bin/
+/bin/sleep
+/sbin/
+/usr/bin/
+/usr/sbin/
+/usr/local/lib/
+/etc/
+/usr/lib/
+/var/lib/
+/run/
