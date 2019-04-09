@@ -366,6 +366,9 @@ let interp_test_z str : utility =
       end
     ]
 
+let interp_test_h str : utility =
+  assert false (* FIXME : we need test -h *)
+  
 let interp_test_string_equal s1 s2 : utility =
   under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
   if s1 = s2 then
@@ -429,6 +432,7 @@ let rec interp_test_expr e : utility =
   | Unary("-e",arg) -> interp_test_e arg
   | Unary("-d",arg) -> interp_test_d arg
   | Unary("-f",arg) -> interp_test_f arg
+  | Unary("-h",arg) -> interp_test_h arg
   | Unary("-x",arg) -> interp_test_x arg
   | Unary("-n",arg) -> interp_test_n arg
   | Unary("-z",arg) -> interp_test_z arg
@@ -733,6 +737,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     in split_aux [] l
 
   let starts_on_slash s = String.length s > 0 && s.[0]='/'
+  let ends_on_slash s = let n = String.length s in n > 0 && s.[n-1]='/'
   let empty_string s = (String.length s = 0)
   let dpkg_compare_versions_le_nl s1 s2 = assert false (* FIXME *)
   let dpkg_validate_version s = true (* FIXME *)
@@ -952,10 +957,103 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
          then abort_mv_conffile env oldconffile package
          else return true
     | _ -> return true
+
+  let symlink_match link target = assert false (* FIXME *)
     
   let symlink_to_dir env cmdargs scriptarg1 scriptarg2 =
-    assert false
-
+    let dpkg_package =
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
+      with Not_found ->
+        raise (Error
+                 "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let default_package =
+      try
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
+        in dpkg_package^":"^dpkg_arch
+      with Not_found -> dpkg_package
+    in
+    let dpkg_maintscript_name =
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
+      with
+      | Not_found ->
+         raise (Error
+                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let (symlink,symlink_target,lastversion,package) =
+      match cmdargs with
+      | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
+      | [w;x;y] -> (w,x,y,default_package)
+      | [w;x] -> (w,x,"",default_package)
+      | _ -> raise NumberOfArguments
+    in
+    if empty_string package then
+      raise (Error "couldn't identify the package");
+    if empty_string symlink then
+      raise (Error "symlink parameter is missing");
+    if not (starts_on_slash symlink) then
+      raise (Error "symlink pathname is not an absolute path");
+    if ends_on_slash symlink then
+      raise (Error "symlink pathname ends with a slash");
+    if empty_string symlink_target then
+      raise (Error "original symlink target is missing");
+    (* checking scriptarg1 done by [interprete] *)
+    (* checking DPKG_MAINTSCRIPT_NAME done above *)
+    (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
+    if not (validate_optional_version lastversion) then
+      raise (Error ("wrong version "^lastversion));
+    match dpkg_maintscript_name with
+    | "preinst" ->
+       if (scriptarg1 = "install" || scriptarg1 = "upgrade" )
+          && not (empty_string scriptarg2)
+          && dpkg_compare_versions_le_nl scriptarg2 lastversion
+       then
+         if_then_else
+           (interp_test_h symlink)
+           (if_then_else
+              (symlink_match symlink symlink_target)
+              (Mv.interprete env [symlink; (symlink^".dpkg-backup")])
+              (return true))
+           (return true)
+       else return true
+    | "postinst" ->
+       if scriptarg1 = "configure"
+       then
+         if_then_else
+           (interp_test_h (symlink^".dpkg-backup"))
+           (if_then_else
+              (symlink_match (symlink^".dpkg-backup") symlink_target)
+              (interp_rm env ["-f"; symlink^".dpkg-backup"])
+              (return true))
+           (return true)
+       else return true
+    | "postrm" ->
+       compose_non_strict
+         (if scriptarg1 = "purge"
+          then
+            if_then_else
+              (interp_test_h (symlink^".dpkg-backup"))
+              (interp_rm env ["-f"; symlink^".dpkg-backup"])
+              (return true)
+          else return true)
+         (if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
+             && not (empty_string scriptarg2)
+             && dpkg_compare_versions_le_nl scriptarg2 lastversion
+          then
+            if_then_else
+              (interp_test_e symlink)
+              (return true)
+              (if_then_else
+                 (interp_test_h (symlink^".dpkg-backup"))
+                 (if_then_else
+                    (symlink_match (symlink^".dpkg-backup") symlink_target)
+                    (* FIXME echo Restoring ... *)
+                    (Mv.interprete env [symlink^".dpkg-backup"; symlink])
+                    (return true))
+                 (return true))
+          else return true)
+    | _ -> return true
+      
   let dir_to_symlink env cmdargs scriptarg1 scriptarg2 =
     assert false
 
