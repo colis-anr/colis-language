@@ -736,6 +736,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
       | [] -> raise NoDashDash
     in split_aux [] l
 
+  let (||>>) = compose_non_strict
   let starts_on_slash s = String.length s > 0 && s.[0]='/'
   let ends_on_slash s = let n = String.length s in n > 0 && s.[n-1]='/'
   let empty_string s = (String.length s = 0)
@@ -743,8 +744,27 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
   let dpkg_validate_version s = true (* FIXME *)
   let validate_optional_version s =
     empty_string s || dpkg_validate_version s
-  let ensure_package_owns_file conffile package = true (* FIXME *)
+  let ensure_package_owns_file package file = true (* FIXME *)
+  let conffiles package = [] (* FIXME *)
+  let contents package = [] (* FIXME *)
+  let is_pathprefix p1 p2 =
+    (* check whether [p1^'/'] is a prefix of [p2] *)
+    let rec forall_from_to lower upper pred =
+      (* check [(pred lower) && .... && (pred upper)] *)
+      if lower > upper then true
+      else pred lower && forall_from_to (lower+1) upper pred
+    in
+    let n1 = String.length p1
+    and n2 = String.length p2
+    in
+    if n1+1 >= n2
+    then
+      false
+    else
+      p2.[n1]='/' && forall_from_to 0 (n1-1) (function i -> p1.[i]=p2.[i])
 
+  let interp_test_fence pathname arity = return true (* FIXME *)
+                                  
   exception Error of string
   exception NumberOfArguments
   exception MaintainerScriptArguments
@@ -763,38 +783,38 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     else return true
 
   let finish_rm_conffile env conffile =
-    compose_non_strict
-      (if_then_else
-         (interp_test_e (conffile^".dpkg-backup"))
-         (* TODO: echo .... in positive case *)
-         (Mv.interprete env
-            ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"])
-         (return true))
-      (if_then_else
-         (interp_test_e (conffile^".dpkg-remove"))
-         (* TODO echo ... in positive case *)
-         (interp_rm env
-            ["-f"; conffile^".dpkg-remove"])
-         (return true)
-      )
+    (if_then_else
+       (interp_test_e (conffile^".dpkg-backup"))
+       (* TODO: echo .... in positive case *)
+       (Mv.interprete env
+          ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"])
+       (return true))
+  ||>>
+    (if_then_else
+       (interp_test_e (conffile^".dpkg-remove"))
+       (* TODO echo ... in positive case *)
+       (interp_rm env
+          ["-f"; conffile^".dpkg-remove"])
+       (return true)
+    )
     
   let abort_rm_conffile env conffile package =
     if ensure_package_owns_file package conffile
     then
-      compose_non_strict
-        (if_then_else
-           (interp_test_e (conffile^".dpkg-remove"))
+      (if_then_else
+         (interp_test_e (conffile^".dpkg-remove"))
          (* TODO echo ... in positive case *)
-           (Mv.interprete env [conffile^".dpkg-remove"; conffile])
-           (return true))
+         (Mv.interprete env [conffile^".dpkg-remove"; conffile])
+         (return true))
+      ||>>
         (if_then_else
            (interp_test_e (conffile^".dpkg-backup"))
-         (* TODO echo ... in positive case *)
+           (* TODO echo ... in positive case *)
            (Mv.interprete env [conffile^".dpkg-backup"; conffile])
            (return true))
     else
       return true
-
+    
   let rm_conffile env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
       try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
@@ -870,23 +890,23 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
       (return true)
     
   let finish_mv_conffile env oldconffile newconffile package =
-    compose_non_strict
-      (interp_rm env ["-f"; oldconffile^".dpkg-remove"])
+    (interp_rm env ["-f"; oldconffile^".dpkg-remove"])
+    ||>>
       (if_then_else
          (interp_test_e oldconffile)
-           (if ensure_package_owns_file package oldconffile
-            then
-              (* TODO echo bla bla *)
-              compose_non_strict
-                (if_then_else
-                   (interp_test_e newconffile)
-                   (Mv.interprete env
-                      ["-f";newconffile; newconffile^".dpkg-new"])
-                   (return true))
-                (Mv.interprete env ["-f"; oldconffile; newconffile])
-            else return true
-           )
-           (return true)
+         (if ensure_package_owns_file package oldconffile
+          then
+            (* TODO echo bla bla *)
+            compose_non_strict
+              (if_then_else
+                 (interp_test_e newconffile)
+                 (Mv.interprete env
+                    ["-f";newconffile; newconffile^".dpkg-new"])
+                 (return true))
+              (Mv.interprete env ["-f"; oldconffile; newconffile])
+          else return true
+         )
+         (return true)
       )
     
   let abort_mv_conffile env conffile package =
@@ -1028,14 +1048,14 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
            (return true)
        else return true
     | "postrm" ->
-       compose_non_strict
-         (if scriptarg1 = "purge"
-          then
-            if_then_else
-              (interp_test_h (symlink^".dpkg-backup"))
-              (interp_rm env ["-f"; symlink^".dpkg-backup"])
-              (return true)
-          else return true)
+       (if scriptarg1 = "purge"
+        then
+          if_then_else
+            (interp_test_h (symlink^".dpkg-backup"))
+            (interp_rm env ["-f"; symlink^".dpkg-backup"])
+            (return true)
+        else return true)
+       ||>>
          (if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
              && not (empty_string scriptarg2)
              && dpkg_compare_versions_le_nl scriptarg2 lastversion
@@ -1053,9 +1073,112 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
                  (return true))
           else return true)
     | _ -> return true
-      
+         
+  let prepare_dir_to_symlink env package pathname =
+    (if List.exists
+          (function filename -> is_pathprefix pathname filename)
+          (conffiles package)
+     then raise (Error
+                   ("directory '"^pathname^
+                      "' contains conffiles, cannot swithc to directory"))
+     else return true)
+    ||>>
+      (if_then_else
+         (interp_test_fence
+            pathname
+            (List.filter
+               (function filename -> is_pathprefix pathname filename)
+               (* FIXME we also need to remove the pathprefix *) 
+               (contents package)))
+         (raise (Error
+                   ("directory '" ^ pathname
+                    ^ "' contains files not owned by '" ^ package
+                    ^ "', cannot switch to symlink")))
+         (return true))
+    ||>>
+      (Mv.interprete env ["-f"; pathname; pathname^".dpkg-staging-dir"])
+    ||>>
+      (interp_mkdir env [pathname])
+    ||>>
+      (interp_touch env [pathname^"/.dpkg-staging-dir"])
+
+  let finish_dir_to_symlink env pathname symlink_target = assert false
+                                                        
   let dir_to_symlink env cmdargs scriptarg1 scriptarg2 =
-    assert false
+    let dpkg_package =
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
+      with Not_found ->
+        raise (Error
+                 "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let default_package =
+      try
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
+        in dpkg_package^":"^dpkg_arch
+      with Not_found -> dpkg_package
+    in
+    let dpkg_maintscript_name =
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
+      with
+      | Not_found ->
+         raise (Error
+                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+    in
+    let (pathname,symlink_target,lastversion,package) =
+      match cmdargs with
+      | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
+      | [w;x;y] -> (w,x,y,default_package)
+      | [w;x] -> (w,x,"",default_package)
+      | _ -> raise NumberOfArguments
+    in
+    (* checking DPKG_MAINTSCRIPT_NAME done above *)
+    (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
+    if empty_string package then
+      raise (Error "cannot identify the package");
+    if empty_string pathname then
+      raise (Error "directory parameter is missing");
+    if not (starts_on_slash pathname) then
+      raise (Error "directory parameter is not an absolute path");
+    if empty_string symlink_target then
+      raise (Error "new symlink target is missing");
+    (* checking scriptarg1 done by [interprete] *)
+    if not (validate_optional_version lastversion) then
+      raise (Error ("wrong version "^lastversion));
+    match dpkg_maintscript_name with
+    | "preinst" ->
+       if (scriptarg1 = "install" || scriptarg1 = "upgrade" )
+          && not (empty_string scriptarg2)
+          && dpkg_compare_versions_le_nl scriptarg2 lastversion then
+         if_then_else
+           (interp_test_h pathname)
+           (if_then_else
+              (interp_test_d pathname)
+              (prepare_dir_to_symlink env package pathname)
+              (return true))
+           (return true)
+       else return true
+    | "postinst" ->
+       if scriptarg1 = "configure" then
+         if_then_else
+           (interp_test_d (pathname^".dpkg-backup"))
+           (if_then_else
+              (interp_test_h pathname)
+              (return true)
+              (if_then_else
+                 (interp_test_d pathname)
+                 (if_then_else
+                    (interp_test_f (pathname^".dpkg-staging-dir"))
+                    (finish_dir_to_symlink env pathname symlink_target)
+                    (return true)
+                 )
+                 (return true)
+              )
+           )
+           (return true)
+       else return true
+    | "postrm" ->
+       assert false
+    | _ -> return true
 
   let interprete (env:env) (args:args) =
     match args with
@@ -1080,7 +1203,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
              | "symlink_to_dir" ->
                 symlink_to_dir env cmdargs scriptarg1 scriptarg2
              | "dir_to_symlink" ->
-                dir_to_symlink cmdargs scriptarg1 scriptarg2
+                dir_to_symlink env cmdargs scriptarg1 scriptarg2
              | _ -> unknown_argument
                       ~msg:"unknown subcommand"
                       ~name:"dpkg_maintscript_helper"
