@@ -35,6 +35,34 @@ module Symbolic = struct
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
   module Utilities = SymbolicUtilities
+
+  let compile_fs_spec ~root fs_spec =
+    let open Constraints in
+    let clause = FilesystemSpec.compile root fs_spec in
+    Clause.add_to_sat_conj clause Clause.true_sat_conj
+
+  let to_state ~prune_init_state ~root conj : State.state =
+    let open Semantics in
+    let root0 = if prune_init_state then None else Some root in
+    let cwd = Constraints.Path.Abs [] in
+    let filesystem = {Filesystem.clause=conj; cwd; root0; root} in
+    {State.filesystem; stdin=Stdin.empty; stdout=Stdout.empty}
+
+  let to_symbolic_state ~vars ~arguments state =
+    let open Semantics in
+    let context =
+      let var_env = Context.add_var_bindings true vars Context.empty_var_env in
+      {Context.empty_context with arguments; var_env}
+    in
+    {SymState.state; context; data=()}
+
+  let interp_program ~loop_limit ~stack_size ~argument0 stas' program =
+    let open Semantics in
+    let loop_limit = Z.of_int loop_limit in
+    let stack_size = Z.of_int stack_size in
+    let inp = { Input.empty with argument0 } in
+    let normals, errors, failures = Interpreter.interp_program loop_limit stack_size inp (BatSet.of_list stas') program in
+    BatSet.(to_list normals, to_list errors, to_list failures)
 end
 
 (* Parsers *)
@@ -112,13 +140,6 @@ let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
 
-let print_symbolic_filesystem fmt fs =
-  let open Constraints in
-  let open Symbolic.Filesystem in
-  fprintf fmt "root: %a@\n" Var.pp fs.root;
-  fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
-  fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
-
 let print_dot filename id clause =
   let ch = open_out filename in
   try
@@ -128,6 +149,19 @@ let print_dot filename id clause =
   with e ->
     close_out ch;
     raise e
+
+type symbolic_config = {
+  prune_init_state: bool;
+  loop_limit: int;
+  stack_size: int;
+}
+
+let print_symbolic_filesystem fmt fs =
+  let open Constraints in
+  let open Symbolic.Filesystem in
+  fprintf fmt "root: %a@\n" Var.pp fs.root;
+  fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
+  fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt ?id sta =
   let open Symbolic.State in
@@ -154,77 +188,50 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-type symbolic_config = {
-  prune_init_state: bool;
-  loop_limit: int;
-  stack_size: int;
-}
+let print_symbolic_state label ctr fmt sta =
+  let id = sprintf "%s-%d" label !ctr in
+  incr ctr;
+  fprintf fmt "- @[%a@]@\n" (print_symbolic_state ~id) sta
 
-let run_symbolic config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
-  let open Semantics in
-  let open Symbolic in
-  let open Constraints in
-  let root = Constraints.Var.fresh ~hint:"r" () in
-  (* Create disjunction representing the FS *)
-  let disj =
-    let clause = FilesystemSpec.compile root fs_spec in
-    Clause.add_to_sat_conj clause Clause.true_sat_conj
-  in
-  (* Create corresponding states *)
-  let stas =
-    let root0 = if config.prune_init_state then None else Some root in
-    let cwd = Constraints.Path.Abs [] in
-    let aux conj =
-      let filesystem = {Filesystem.clause=conj; cwd; root0; root} in
-      {State.filesystem; stdin=Stdin.empty; stdout=Stdout.empty}
-    in
-    List.map aux disj
-  in
-  (* Create corresponding symbolic states by adding the context *)
-  let stas' =
-    let context =
-      let var_env = Context.add_var_bindings true vars Context.empty_var_env in
-      {Context.empty_context with arguments; var_env}
-    in
-    let aux state =
-      {SymState.state; context; data=()}
-    in
-    List.map aux stas
-  in
-  let normals, errors, failures =
-    let loop_limit = Z.of_int config.loop_limit in
-    let stack_size = Z.of_int config.stack_size in
-    let inp = { Input.empty with argument0 } in
-    Interpreter.interp_program loop_limit stack_size inp (BatSet.of_list stas') colis
-  in
-  let print_symbolic_state label ctr fmt sta =
-    let id = sprintf "%s-%d" label !ctr in
-    incr ctr;
-    fprintf fmt "- @[%a@]@\n" (print_symbolic_state ~id) sta
-  in
-  printf "* Initial states@\n";
-  List.iter (print_symbolic_state "initial" (ref 1) Format.std_formatter) stas;
-  if not (BatSet.is_empty normals) then begin
+let print_symbolic_states ~initials (normals, errors, failures) =
+    printf "* Initial states@\n";
+  List.iter (print_symbolic_state "initial" (ref 1) Format.std_formatter) initials;
+  if normals <> [] then begin
     printf "* Success states@\n";
-    List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) (BatSet.to_list normals);
+    List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) normals;
   end;
-  if not (BatSet.is_empty errors) then begin
+  if errors <> [] then begin
     printf "* Error states@\n";
-    List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) (BatSet.to_list errors);
+    List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) errors;
   end;
-  if not (BatSet.is_empty failures) then begin
+  if failures <> [] then begin
     printf "* Incomplete symbolic execution@\n";
-    List.iter (print_symbolic_state "notcovered" (ref 1) Format.std_formatter) (BatSet.to_list failures);
+    List.iter (print_symbolic_state "notcovered" (ref 1) Format.std_formatter) failures;
   end;
   printf "* Summary@\n@\n";
-  printf "- Success cases: %d@\n" (BatSet.cardinal normals);
-  printf "- Error cases: %d@\n" (BatSet.cardinal errors);
-  printf "- Incomplete symbolic execution: %d@\n" (BatSet.cardinal failures);
+  printf "- Success cases: %d@\n" (List.length normals);
+  printf "- Error cases: %d@\n" (List.length errors);
+  printf "- Incomplete symbolic execution: %d@\n" (List.length failures)
+
+let exit_code (_, errors, failures) =
   (* Exit 1 if there is any error result *)
-  if not (BatSet.is_empty errors) then
-    exit 1;
-  (* Exit 10 if there is any failure result *)
-  if not (BatSet.is_empty failures) then
-    exit 10;
-  (* Exit 0, if there aren’t any errors or failures *)
-  exit 0
+  if errors <> [] then
+    1
+    (* Exit 10 if there is any failure result *)
+  else if failures <> [] then
+    10
+  else (* Exit 0, if there aren’t any errors or failures *)
+    exit 0
+
+let run_symbolic config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
+  let open Symbolic in
+  let root = Constraints.Var.fresh ~hint:"r" () in
+  let disj = compile_fs_spec ~root fs_spec in
+  let stas = List.map (to_state ~prune_init_state:config.prune_init_state ~root) disj in
+  let stas' = List.map (to_symbolic_state ~vars ~arguments) stas in
+  let results =
+    interp_program ~loop_limit:config.loop_limit ~stack_size:config.stack_size ~argument0
+      stas' colis
+  in
+  print_symbolic_states ~initials:stas results;
+  exit (exit_code results)

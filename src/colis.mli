@@ -35,8 +35,21 @@ module Symbolic : sig
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
   module Utilities = SymbolicUtilities
-end
 
+  open Constraints
+
+  (** Create a disjunction representing the FS *)
+  val compile_fs_spec : root:Var.t -> FilesystemSpec.t -> NaiveClause.sat_conj list
+
+  (* Create a state corresponding to a conjunction *)
+  val to_state : prune_init_state:bool -> root:Var.t -> NaiveClause.sat_conj -> State.state
+
+  (* Create a symbolic states by adding context to a stringe *)
+  val to_symbolic_state : vars:(string * string) list -> arguments:string list -> State.state -> unit SymState.sym_state
+
+  (* Wrapper around [Symbolic.Interpreter.interp_program] *)
+  val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> unit SymState.sym_state list -> Language.Syntax.program -> (State.state list * State.state list * State.state list)
+end
 
 type colis = Language.Syntax.program
 (** The abstract syntax of Colis programs. *)
@@ -96,6 +109,12 @@ type symbolic_config = {
   stack_size: int;
   (** Maximum height of the call stack in symbolic execution *)
 }
+
+open Symbolic
+
+val print_symbolic_states : initials:State.state list -> (State.state list * State.state list * State.state list) -> unit
+
+val exit_code : (State.state list * State.state list * State.state list) -> int
 
 val run_symbolic : symbolic_config -> Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Symbolically executes a Colis program. *)
