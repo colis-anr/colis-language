@@ -6,29 +6,28 @@ open Semantics__Buffers
     with boolean results *)
 type utility = state -> (state * bool) list
 
-(** {1 Combinators} *)
+(** {2 Dispatch} *)
 
-(** [choice u1 u2]  yields the utility that non-deterministacillay
-    behaves like [u1] or [u2].  *)
-val choice : utility -> utility -> utility
+(** The concrete evaluation context. It contains the fields from
+    Colis.Semantics.Context.context that are relevant to the utilities **)
+type context = {
+  args: string list; (** Command arguments *)
+  cwd: Constraints.Path.t; (** Current working directory *)
+  env: string Env.IdMap.t; (** Variable environment *)
+}
 
-(** [return b] yields the utility that does not change its state, and
-    succeeds if and only if [b] is [true] *)
-val return : bool -> utility
+(** Entry-point for the interpretation of symbolic utilties *)
+val dispatch : name:string -> context -> utility
 
-(** [if_then_else u1 u2 u3] yields the utility that behaves like
-    if [u1]  then [u2] else [u3] *)
-val if_then_else : utility -> utility -> utility -> utility
+(** {2 Registration} *)
 
-(** compose_non_strict [u1] [u2] yields the utility that behaves like
-    [u1]; [u2] in non-strict mode, that is the error code of [u1] is
-    ignored *)
-val compose_non_strict : utility -> utility -> utility
+module type SYMBOLIC_UTILITY = sig
+  val name : string
+  val interprete : context -> utility
+end
 
-(** compose_strict [u1] [u2] yields the utility that behaves like
-    [u1]; [u2] in strict mode, that is if [u1] fails then the composition
-    fails and [u2]  is not executed    *) 
-val compose_strict : utility -> utility -> utility
+(** Register a symbolic utility *)
+val register : (module SYMBOLIC_UTILITY) -> unit
 
 (** {1 Specifications} *)
 
@@ -51,6 +50,30 @@ type specifications = root:Var.t -> root':Var.t -> case list
 (** Use specifications to define a utility *)
 val under_specifications : specifications -> utility
 
+(** {1 Combinators} *)
+
+(** [choice u1 u2]  yields the utility that non-deterministacillay
+    behaves like [u1] or [u2].  *)
+val choice : utility -> utility -> utility
+
+(** [return b] yields the utility that does not change its state, and
+    succeeds if and only if [b] is [true] *)
+val return : bool -> utility
+
+(** [if_then_else u1 u2 u3] yields the utility that behaves like
+    if [u1]  then [u2] else [u3] *)
+val if_then_else : utility -> utility -> utility -> utility
+
+(** compose_non_strict [u1] [u2] yields the utility that behaves like
+    [u1]; [u2] in non-strict mode, that is the error code of [u1] is
+    ignored *)
+val compose_non_strict : utility -> utility -> utility
+
+(** compose_strict [u1] [u2] yields the utility that behaves like
+    [u1]; [u2] in strict mode, that is if [u1] fails then the composition
+    fails and [u2]  is not executed    *)
+val compose_strict : utility -> utility -> utility
+
 (** {1 Auxiliaries} *)
 
 (** Get the name of the last path component, if any, or of the hint
@@ -69,27 +92,6 @@ val unknown_argument : ?msg:string -> name:string -> arg:string -> unit -> utili
 
 (** Print to stdout but mark the line with [UTL] *)
 val print_utility_trace : string -> state -> state
-
-(** The concrete evaluation context. It contains the fields from
-    Colis.Semantics.Context.context that are relevant to the utilities **)
-type context = {
-  args: string list; (** Command arguments *)
-  cwd: Constraints.Path.t; (** Current working directory *)
-  env: string Env.IdMap.t; (** Variable environment *)
-}
-
-(** {1 Dispatch/register} *)
-
-module type SYMBOLIC_UTILITY = sig
-  val name : string
-  val interprete : context -> utility
-end
-
-(** Entry-point for the interpretation of symbolic utilties *)
-val dispatch : name:string -> context -> utility
-
-(** Register a symbolic utility *)
-val register : (module SYMBOLIC_UTILITY) -> unit
 
 (**/**)
 
