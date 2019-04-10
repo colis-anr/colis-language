@@ -6,6 +6,8 @@ open Semantics__Buffers
     with boolean results *)
 type utility = state -> (state * bool) list
 
+(** {1 Combinators} *)
+
 (** [choice u1 u2]  yields the utility that non-deterministacillay
     behaves like [u1] or [u2].  *)
 val choice : utility -> utility -> utility
@@ -28,15 +30,15 @@ val compose_non_strict : utility -> utility -> utility
     fails and [u2]  is not executed    *) 
 val compose_strict : utility -> utility -> utility
 
-val print_utility_trace : string -> state -> state
+(** {1 Specifications} *)
 
 (** A case in the specification is either a success or an error *)
 type case
 
-(** A success case **)
+(** A success case *)
 val success_case: descr:string -> ?stdout:Stdout.t -> Clause.t -> case
 
-(** An error case **)
+(** An error case *)
 val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Clause.t -> case
 
 (** A singleton error case with optional error message *)
@@ -48,3 +50,48 @@ type specifications = root:Var.t -> root':Var.t -> case list
 
 (** Use specifications to define a utility *)
 val under_specifications : specifications -> utility
+
+(** {1 Auxiliaries} *)
+
+(** Get the name of the last path component, if any, or of the hint
+    root variable otherwise. The result is useful as a hint for
+    creating variables for resolving the path. *)
+val last_comp_as_hint: root:Var.t -> Path.t -> string option
+
+(** Error utility with optional message *)
+val error : ?msg:string -> unit -> utility
+
+(** Wrapper around [error] in case of unknown utility. *)
+val unknown_utility : ?msg:string -> name:string -> unit -> utility
+
+(** Wrapper around [error] in case of unknown argument. *)
+val unknown_argument : ?msg:string -> name:string -> arg:string -> unit -> utility
+
+(** Print to stdout but mark the line with [UTL] *)
+val print_utility_trace : string -> state -> state
+
+(** The concrete evaluation context. It contains the fields from
+    Colis.Semantics.Context.context that are relevant to the utilities **)
+type context = {
+  args: string list; (** Command arguments *)
+  cwd: Constraints.Path.t; (** Current working directory *)
+  env: string Env.IdMap.t; (** Variable environment *)
+}
+
+(** {1 Dispatch/register} *)
+
+module type SYMBOLIC_UTILITY = sig
+  val name : string
+  val interprete : context -> utility
+end
+
+(** Entry-point for the interpretation of symbolic utilties *)
+val dispatch : name:string -> context -> utility
+
+(** Register a symbolic utility *)
+val register : (module SYMBOLIC_UTILITY) -> unit
+
+(**/**)
+
+(** A wrapper of [dispatch] for use in the Why3 driver *)
+val dispatch' : name:string -> cwd:string list -> env:string Env.env -> args:string list -> state -> (state * bool) BatSet.t

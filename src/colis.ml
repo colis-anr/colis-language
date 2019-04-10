@@ -34,7 +34,7 @@ module Symbolic = struct
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
-  module Utilities = SymbolicUtilities
+  module Utility = SymbolicUtility
 
   let compile_fs_spec ~root fs_spec =
     let open Constraints in
