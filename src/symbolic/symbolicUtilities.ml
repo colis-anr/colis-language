@@ -1,60 +1,10 @@
 open Format
 open Constraints
 open Clause
-open UtilitiesSpecification
+open SymbolicUtility
 open Semantics__Buffers
 
 module IdMap = Env.IdMap
-
-type context = {
-  args: string list;
-  cwd: Path.t;
-  env: string IdMap.t;
-}
-
-module type SYMBOLIC_UTILITY = sig
-  val interprete : context -> utility
-end
-
-(** Get the name of the last path component, if any, or of the hint
-   root variable otherwise. The result is useful as a hint for
-   creating variables for resolving the path. *)
-let last_comp_as_hint: root:Var.t -> Path.t -> string option =
-  fun ~root path ->
-    match Path.split_last path with
-    | Some (_, Down f) ->
-      Some (Feat.to_string f)
-    | None -> (* Empty parent path => root *)
-      Some (Var.hint root)
-    | Some (_, (Here|Up)) ->
-      None (* We can’t know (if last component in parent path is a symbolic link) *)
-
-(** Error utility with optional message *)
-let error ?msg () : utility =
-  fun sta ->
-    let sta' =
-      match msg with
-      | Some msg ->
-        let str = "[ERR] "^msg in
-        let stdout = Stdout.(output str sta.stdout |> newline) in
-        {sta with stdout}
-      | None -> sta
-    in
-    [ sta', false ]
-
-(** Wrapper around [error] in case of unknown utility. *)
-let unknown_utility ?(msg="Unknown utility") ~name () =
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedUtility (name, msg))
-  else
-    error ~msg:(msg ^ ": " ^ name) ()
-
-(** Wrapper around [error] in case of unknown argument. *)
-let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedArgument (name, msg, arg))
-  else
-    error ~msg:(msg ^ ": " ^ arg) ()
 
 (******************************************************************************)
 (*                                  true/false                                *)
@@ -565,6 +515,7 @@ let interp_rm ctx : utility =
 (* FIXME: this should go into a separate file *)
 
 module Mv:SYMBOLIC_UTILITY = struct
+  let name = "mv"
   let interprete _ctx =
     unknown_utility ~name:"mv" ()
 end
@@ -733,6 +684,9 @@ let interp_dpkg ctx =
 (* FIXME: this should go into a separate file *)
 
 module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
+
+  let name = "dpkg-maintscript-helpers"
+
   let supports args =
     match args with
     |["rm_conffile"]|["mv_conffile"]|["symlink_to_dir"]|["dir_to_symlink"]
@@ -1279,23 +1233,10 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
               ()
 end
 
-
-(******************************************************************************)
-(*                      Dispatch interpretation of utilities                  *)
-(******************************************************************************)
-
-let table = Hashtbl.create 10
-
-let register ~name f =
-  Hashtbl.replace table name f
-
-let dispatch ~name =
-  try Hashtbl.find table name
-  with Not_found -> fun _ -> unknown_utility ~name ()
-
 let () =
   (* These calls can be moved to the modules that implement the utilities *)
-  List.iter (fun (name, f) -> register ~name f) [
+  let register' (name, f) = register (module struct let name = name let interprete = f end) in
+  List.iter register' [
     "true", interp_true;
     "false", interp_false;
     "echo", interp_echo;
@@ -1307,6 +1248,8 @@ let () =
     "rm", interp_rm;
     "update-alternatives", interp_update_alternatives;
     "dpkg", interp_dpkg;
-    "dpkg-maintscript-helper", DpkgMaintScriptHelper.interprete;
-    "mv", Mv.interprete;
+  ];
+  List.iter register [
+    (module DpkgMaintScriptHelper);
+    (module Mv);
   ]

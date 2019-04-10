@@ -119,3 +119,71 @@ let under_specifications : specifications -> state -> (state * bool) list =
     let new_root = Var.fresh ~hint:(Var.hint state.filesystem.root) () in
     let cases = spec ~root:state.filesystem.root ~root':new_root in
     List.map (apply_case_to_state state new_root) cases |> List.flatten
+
+(******************************************************************************)
+(*                      Dispatch interpretation of utilities                  *)
+(******************************************************************************)
+
+let last_comp_as_hint: root:Var.t -> Path.t -> string option =
+  fun ~root path ->
+    match Path.split_last path with
+    | Some (_, Down f) ->
+      Some (Feat.to_string f)
+    | None -> (* Empty parent path => root *)
+      Some (Var.hint root)
+    | Some (_, (Here|Up)) ->
+      None (* We can’t know (if last component in parent path is a symbolic link) *)
+
+let error ?msg () : utility =
+  fun sta ->
+    let sta' =
+      match msg with
+      | Some msg ->
+        let str = "[ERR] "^msg in
+        let stdout = Stdout.(output str sta.stdout |> newline) in
+        {sta with stdout}
+      | None -> sta
+    in
+    [ sta', false ]
+
+let unknown_utility ?(msg="Unknown utility") ~name () =
+  if !Options.fail_on_unknown_utilities then
+    raise (Errors.UnsupportedUtility (name, msg))
+  else
+    error ~msg:(msg ^ ": " ^ name) ()
+
+let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
+  if !Options.fail_on_unknown_utilities then
+    raise (Errors.UnsupportedArgument (name, msg, arg))
+  else
+    error ~msg:(msg ^ ": " ^ arg) ()
+
+module IdMap = Env.IdMap
+
+type context = {
+  args: string list;
+  cwd: Path.t;
+  env: string IdMap.t;
+}
+
+module type SYMBOLIC_UTILITY = sig
+  val name : string
+  val interprete : context -> utility
+end
+
+let table = Hashtbl.create 10
+
+let register (module M:SYMBOLIC_UTILITY) =
+  Hashtbl.replace table M.name M.interprete
+
+let dispatch ~name =
+  try Hashtbl.find table name
+  with Not_found -> fun _ -> unknown_utility ~name ()
+
+let dispatch' ~name ~cwd ~env ~args sta =
+  let ctx =
+    let cwd =
+      let aux s = Path.Down (Feat.from_string s) in
+      Constraints.(Path.Abs (List.map aux cwd)) in
+    {cwd; args; env=Env.to_map env} in
+  BatSet.of_list (dispatch ~name ctx sta)
