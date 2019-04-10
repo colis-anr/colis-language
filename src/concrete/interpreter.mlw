@@ -43,6 +43,7 @@ module State
     func_env : C.func_env;
     arguments: ref (list string);
     result : ref bool;
+    cwd : ref (list string);
   }
 
   let function sem_state (sta:state) : S.state = {
@@ -59,6 +60,7 @@ module State
     stdin = ref Stdin.empty;
     stdout = ref Stdout.empty;
     result = ref True;
+    cwd = ref Nil;
   }
 end
 
@@ -96,6 +98,7 @@ module Interpreter
     C.func_env = sta.func_env;
     C.arguments = !(sta.arguments);
     C.result = !(sta.result);
+    C.cwd = !(sta.cwd);
   }
 
   lemma context_same: forall sta1 sta2.

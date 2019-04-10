@@ -41,18 +41,17 @@ module Symbolic = struct
     let clause = FilesystemSpec.compile root fs_spec in
     Clause.add_to_sat_conj clause Clause.true_sat_conj
 
-  let to_state ~prune_init_state ~root conj : State.state =
+  let to_state ~prune_init_state ~root clause : State.state =
     let open Semantics in
     let root0 = if prune_init_state then None else Some root in
-    let cwd = Constraints.Path.Abs [] in
-    let filesystem = {Filesystem.clause=conj; cwd; root0; root} in
+    let filesystem = {Filesystem.root; clause; root0} in
     {State.filesystem; stdin=Stdin.empty; stdout=Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
     let open Semantics in
     let context =
       let var_env = Context.add_var_bindings true vars Context.empty_var_env in
-      {Context.empty_context with arguments; var_env}
+      {Context.empty_context with arguments; var_env; cwd=[]}
     in
     {SymState.state; context; data=()}
 
@@ -160,7 +159,6 @@ let print_symbolic_filesystem fmt fs =
   let open Constraints in
   let open Symbolic.Filesystem in
   fprintf fmt "root: %a@\n" Var.pp fs.root;
-  fprintf fmt "cwd: %a@\n" Path.pp fs.cwd;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt ?id sta =

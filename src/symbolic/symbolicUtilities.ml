@@ -6,12 +6,14 @@ open Semantics__Buffers
 
 module IdMap = Env.IdMap
 
-type env = string IdMap.t
-
-type args = string list
+type context = {
+  args: string list;
+  cwd: Path.t;
+  env: string IdMap.t;
+}
 
 module type SYMBOLIC_UTILITY = sig
-  val interprete : env -> args -> utility
+  val interprete : context -> utility
 end
 
 (** Get the name of the last path component, if any, or of the hint
@@ -58,23 +60,23 @@ let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
 (*                                  true/false                                *)
 (******************************************************************************)
 
-let interp_true : env -> args -> utility =
-  fun _ _ ->
+let interp_true : context -> utility =
+  fun _ ->
     return true
 
-let interp_false : env -> args -> utility =
-  fun _ _ ->
+let interp_false : context -> utility =
+  fun _ ->
     return false
 
 (******************************************************************************)
 (*                                     echo                                   *)
 (******************************************************************************)
 
-let interp_echo : env -> args -> utility =
-  fun _ args sta ->
+let interp_echo : context -> utility =
+  fun ctx sta ->
     let open Semantics__Buffers in
     let open SymbolicInterpreter__Semantics in
-    let str = String.concat " " args in
+    let str = String.concat " " ctx.args in
     let stdout = Stdout.(output str sta.stdout |> newline) in
     [ {sta with stdout}, true ]
 
@@ -82,8 +84,8 @@ let interp_echo : env -> args -> utility =
 (*                                     touch                                  *)
 (******************************************************************************)
 
-let interp_touch1 path_str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_touch1 cwd path_str : utility =
+  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   match Path.split_last p with
   | None -> (* `touch ''` *)
@@ -138,9 +140,9 @@ let interp_touch1 path_str : utility =
     | Down f ->
       common_cases @ feature_cases f
 
-let interp_touch : env -> args -> utility =
-  fun _ -> function
-  | [arg] -> interp_touch1 arg
+let interp_touch ctx : utility =
+  match ctx.args with
+  | [arg] -> interp_touch1 ctx.cwd arg
   | _ -> unknown_argument ~msg:"multiple arguments"  ~name:"touch" ~arg:"" ()
 
 
@@ -148,8 +150,8 @@ let interp_touch : env -> args -> utility =
 (*                                     mkdir                                  *)
 (******************************************************************************)
 
-let interp_mkdir1 path_str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_mkdir1 cwd path_str : utility =
+  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   match Path.split_last p with
   | None ->
@@ -199,10 +201,10 @@ let interp_mkdir1 path_str : utility =
         end;
     ]
 
-let interp_mkdir : env -> args -> utility =
-  fun _ -> function
+let interp_mkdir ctx : utility =
+  match ctx.args with
   | [] -> error ~msg:"mkdir: missing operand" ()
-  | [arg] -> interp_mkdir1 arg
+  | [arg] -> interp_mkdir1 ctx.cwd arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"mkdir" ~arg:"" ()
 
 (******************************************************************************)
@@ -210,7 +212,7 @@ let interp_mkdir : env -> args -> utility =
 (******************************************************************************)
 
 let interp_test_parse_error args : utility =
-  under_specifications @@ fun ~cwd:_ ~root ~root' ->
+  under_specifications @@ fun ~root ~root' ->
   [
     let descr = "test: parse error in `" ^ (String.concat " " args) ^ "`" in
     error_case
@@ -221,7 +223,7 @@ let interp_test_parse_error args : utility =
   ]
 
 let interp_test_empty () : utility =
-  under_specifications @@ fun ~cwd:_ ~root ~root' ->
+  under_specifications @@ fun ~root ~root' ->
   [
     let descr = "test: empty expression" in
     error_case
@@ -231,8 +233,8 @@ let interp_test_empty () : utility =
       end;
   ]
 
-let interp_test_e path_str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_test_e cwd path_str : utility =
+  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
@@ -250,8 +252,8 @@ let interp_test_e path_str : utility =
       end;
   ]
 
-let interp_test_d path_str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_test_d cwd path_str : utility =
+  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
@@ -276,8 +278,8 @@ let interp_test_d path_str : utility =
       end;
   ]
 
-let interp_test_f path_str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_test_f cwd path_str : utility =
+  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
@@ -302,9 +304,8 @@ let interp_test_f path_str : utility =
       end;
   ]
 
-
-let interp_test_attribute ~attr path_str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_test_attribute ~attr cwd path_str : utility =
+  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
@@ -332,7 +333,7 @@ let interp_test_attribute ~attr path_str : utility =
   ]
 
 let interp_test_n str : utility =
-  under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
+  under_specifications @@ fun ~root ~root' ->
   if str = "" then
     [
       error_case
@@ -351,7 +352,7 @@ let interp_test_n str : utility =
     ]
 
 let interp_test_z str : utility =
-  under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
+  under_specifications @@ fun ~root ~root' ->
   if str = "" then
     [
       success_case
@@ -369,11 +370,11 @@ let interp_test_z str : utility =
       end
     ]
 
-let interp_test_h str : utility =
+let interp_test_h _cwd _path_str : utility =
   assert false (* FIXME : we need test -h *)
 
 let interp_test_string_equal s1 s2 : utility =
-  under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
+  under_specifications @@ fun ~root ~root' ->
   if s1 = s2 then
     [
       success_case
@@ -392,7 +393,7 @@ let interp_test_string_equal s1 s2 : utility =
     ]
 
 let interp_test_string_notequal s1 s2 : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+  under_specifications @@ fun ~root ~root' ->
   if s1 <> s2 then
     [
       success_case
@@ -427,24 +428,24 @@ let interp_test_or (u1:utility) (u2:utility) : utility = fun st ->
          List.map (fun (s2,b2) -> (s2, b1 || b2)) (u2 s1))
        (u1 st))
 
-let rec interp_test_expr e : utility =
+let rec interp_test_expr cwd e : utility =
   let name = "test" in
   let msg what = "unsupported " ^ what in
   Morsmall_utilities.TestParser.(
   match e with
-  | Unary("-e",arg) -> interp_test_e arg
-  | Unary("-d",arg) -> interp_test_d arg
-  | Unary("-f",arg) -> interp_test_f arg
-  | Unary("-h",arg) -> interp_test_h arg
-  | Unary("-G",arg) -> interp_test_attribute ~attr:"G" arg
-  | Unary("-O",arg) -> interp_test_attribute ~attr:"O" arg
-  | Unary("-g",arg) -> interp_test_attribute ~attr:"g" arg
-  | Unary("-k",arg) -> interp_test_attribute ~attr:"k" arg
-  | Unary("-r",arg) -> interp_test_attribute ~attr:"r" arg
-  | Unary("-s",arg) -> interp_test_attribute ~attr:"s" arg
-  | Unary("-u",arg) -> interp_test_attribute ~attr:"u" arg
-  | Unary("-w",arg) -> interp_test_attribute ~attr:"w" arg
-  | Unary("-x",arg) -> interp_test_attribute ~attr:"x" arg
+  | Unary("-e",arg) -> interp_test_e cwd arg
+  | Unary("-d",arg) -> interp_test_d cwd arg
+  | Unary("-f",arg) -> interp_test_f cwd arg
+  | Unary("-h",arg) -> interp_test_h cwd arg
+  | Unary("-G",arg) -> interp_test_attribute ~attr:"G" cwd arg
+  | Unary("-O",arg) -> interp_test_attribute ~attr:"O" cwd arg
+  | Unary("-g",arg) -> interp_test_attribute ~attr:"g" cwd arg
+  | Unary("-k",arg) -> interp_test_attribute ~attr:"k" cwd arg
+  | Unary("-r",arg) -> interp_test_attribute ~attr:"r" cwd arg
+  | Unary("-s",arg) -> interp_test_attribute ~attr:"s" cwd arg
+  | Unary("-u",arg) -> interp_test_attribute ~attr:"u" cwd arg
+  | Unary("-w",arg) -> interp_test_attribute ~attr:"w" cwd arg
+  | Unary("-x",arg) -> interp_test_attribute ~attr:"x" cwd arg
   | Unary("-n",arg) -> interp_test_n arg
   | Unary("-z",arg) -> interp_test_z arg
   | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
@@ -453,10 +454,10 @@ let rec interp_test_expr e : utility =
      let msg = msg "unary operator" in
      unknown_argument ~msg ~name ~arg:op ()
   | And(e1,e2) ->
-     interp_test_and (interp_test_expr e1) (interp_test_expr e2)
+     interp_test_and (interp_test_expr cwd e1) (interp_test_expr cwd e2)
   | Or(e1,e2) ->
-     interp_test_or (interp_test_expr e1) (interp_test_expr e2)
-  | Not(e1) -> interp_test_neg (interp_test_expr e1)
+     interp_test_or (interp_test_expr cwd e1) (interp_test_expr cwd e2)
+  | Not(e1) -> interp_test_neg (interp_test_expr cwd e1)
   | Binary (op,_e1,_e2) ->
      let msg = msg "binary operator" in
      unknown_argument ~msg ~name ~arg:op ()
@@ -465,18 +466,18 @@ let rec interp_test_expr e : utility =
      unknown_argument ~msg ~name ~arg ()
   )
 
-let interp_test ~bracket _env (args : string list) : utility =
-  match Morsmall_utilities.TestParser.parse ~bracket args with
+let interp_test ~bracket ctx : utility =
+  match Morsmall_utilities.TestParser.parse ~bracket ctx.args with
   | None -> interp_test_empty ()
-  | Some e -> interp_test_expr e
+  | Some e -> interp_test_expr ctx.cwd e
   | exception Morsmall_utilities.TestParser.Parse_error ->
-     interp_test_parse_error args
+     interp_test_parse_error ctx.args
 
 (******************************************************************************)
 (*                                rm                                          *)
 (******************************************************************************)
-let interp_rm1 arg : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_rm1 cwd arg : utility =
+  under_specifications @@ fun ~root ~root' ->
   let q = Path.from_string arg in
   match Path.split_last q with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
@@ -513,8 +514,8 @@ let interp_rm1 arg : utility =
            end;
        ]
 
-let interp_rm1_r arg : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_rm1_r cwd arg : utility =
+  under_specifications @@ fun ~root ~root' ->
   let q = Path.from_string arg in
   match Path.split_last q with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
@@ -544,17 +545,17 @@ let interp_rm1_r arg : utility =
            end;
        ]
 
-let interp_rm_r : env -> args -> utility =
-  fun _ -> function
+let interp_rm_r cwd args : utility =
+  match args with
   | [] -> error ~msg:"rm: missing operand" ()
-  | [arg] -> interp_rm1_r arg
+  | [arg] -> interp_rm1_r cwd arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm -r/R" ~arg:"" ()
 
-let interp_rm : env -> args -> utility =
-  fun env -> function
+let interp_rm ctx : utility =
+  match ctx.args with
   | [] -> error ~msg:"rm: missing operand" ()
-  | ("-r" | "-R") :: args -> interp_rm_r env args
-  | [arg] -> interp_rm1 arg
+  | ("-r" | "-R") :: args -> interp_rm_r ctx.cwd args
+  | [arg] -> interp_rm1 ctx.cwd arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm" ~arg:"" ()
 
 (******************************************************************************)
@@ -564,7 +565,7 @@ let interp_rm : env -> args -> utility =
 (* FIXME: this should go into a separate file *)
 
 module Mv:SYMBOLIC_UTILITY = struct
-  let interprete (env:env) (args:args) =
+  let interprete _ctx =
     unknown_utility ~name:"mv" ()
 end
 
@@ -572,10 +573,10 @@ end
 (*                                which                                       *)
 (******************************************************************************)
 
-let _interp_which_naive (args: string list) : utility =
-  match args with
+let _interp_which_naive ctx : utility =
+  match ctx.args with
   | [] ->
-     under_specifications @@ fun ~cwd ~root ~root' ->
+     under_specifications @@ fun ~root ~root' ->
        [
          error_case
            ~descr:(asprintf "which without argument (returns 1)")
@@ -584,7 +585,7 @@ let _interp_which_naive (args: string list) : utility =
            end
        ]
   | [p] ->
-     under_specifications @@ fun ~cwd ~root ~root' ->
+     under_specifications @@ fun ~root ~root' ->
        [
          success_case
            ~descr:(asprintf "which '%s': assuming command is found" p)
@@ -601,8 +602,8 @@ let _interp_which_naive (args: string list) : utility =
   | p :: _ ->
      unknown_argument ~msg:"more than one argument" ~name:"which" ~arg:p ()
 
-let interp_test_regular_and_x path_str : utility =
-  under_specifications @@ fun ~cwd ~root ~root' ->
+let interp_test_regular_and_x cwd path_str : utility =
+  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
@@ -629,10 +630,10 @@ let interp_test_regular_and_x path_str : utility =
   ]
 
 
-let rec search_as_which_in_path (path:string list) arg : utility =
+let rec search_as_which_in_path cwd (path:string list) arg : utility =
   match path with
   | [] ->
-     under_specifications @@ fun ~cwd:_ ~root ~root' ->
+     under_specifications @@ fun ~root ~root' ->
        [
          error_case
            ~descr:(asprintf "which: `%s` not found in PATH" arg)
@@ -641,29 +642,29 @@ let rec search_as_which_in_path (path:string list) arg : utility =
            end
        ]
   | p :: rem ->
-     let u1 = interp_test_regular_and_x (p ^ "/" ^ arg) in
-     let u2 = search_as_which_in_path rem arg in
+     let u1 = interp_test_regular_and_x cwd (p ^ "/" ^ arg) in
+     let u2 = search_as_which_in_path cwd rem arg in
      fun st ->
      List.flatten
        (List.map
           (function (s1,b1) as x -> if b1 then [x] else u2 s1)
           (u1 st))
 
-let search_as_which (path:string list) arg : utility =
+let search_as_which cwd (path:string list) arg : utility =
   match Path.from_string arg with
-  | Abs _ -> interp_test_regular_and_x arg
+  | Abs _ -> interp_test_regular_and_x cwd arg
   | Rel [] -> assert false
-  | Rel [_] -> search_as_which_in_path path arg
+  | Rel [_] -> search_as_which_in_path cwd path arg
   | Rel r ->
      fun st ->
-     let a = Path.concat st.filesystem.cwd r in
-     interp_test_regular_and_x (Path.to_string a) st
+     let a = Path.concat cwd r in
+     interp_test_regular_and_x cwd (Path.to_string a) st
 
 
-let interp_which_full _env (* envPATH:string *) (args:string list) : utility =
-  match args with
+let interp_which_full ctx : utility =
+  match ctx.args with
   | [] ->
-     under_specifications @@ fun ~cwd ~root ~root' ->
+     under_specifications @@ fun ~root ~root' ->
        [
          error_case
            ~descr:(asprintf "which without argument (returns 1)")
@@ -674,22 +675,22 @@ let interp_which_full _env (* envPATH:string *) (args:string list) : utility =
   | ["-a"] ->
      unknown_argument ~msg:"option `-a`" ~name:"which" ~arg:"-a" ()
   | _ ->
-     (* FIXME     let path = String.split_on_char ':' envPATH in *)
+    (* FIXME     let path = String.split_on_char ':' (IdMap.find "PATH" ctx.env) in *)
      let path = [ "/usr/sbin" ; "/usr/bin" ; "/sbin" ; "/bin" (* ; "/usr/games" *) ] in
      let rec aux args =
        match args with
        | [] -> assert false
-       | [a] -> search_as_which path a
+       | [a] -> search_as_which ctx.cwd path a
        | a :: rem ->
-          interp_test_and (search_as_which path a) (aux rem)
+          interp_test_and (search_as_which ctx.cwd path a) (aux rem)
      in
-     aux args
+     aux ctx.args
 
 (**************************************************************************)
 (*                     update-alternatives                                *)
 (**************************************************************************)
 
-let interp_update_alternatives _env args =
+let interp_update_alternatives ctx =
   let name = "update-alternatives" in
   let rec aux = function
     | [] ->
@@ -700,13 +701,13 @@ let interp_update_alternatives _env args =
     | arg :: _ ->
        unknown_argument ~msg:"unsupported argument" ~name ~arg ()
   in
-  aux args
+  aux ctx.args
 
 (**************************************************************************)
 (*                                    dpkg                                *)
 (**************************************************************************)
 
-let interp_dpkg _env args =
+let interp_dpkg ctx =
   let name = "dpkg" in
   let aux = function
     | ["-L"; pkg_name] ->
@@ -723,7 +724,7 @@ let interp_dpkg _env args =
     | arg :: _ ->
        unknown_argument ~msg:"unsupported argument" ~name ~arg ()
   in
-  aux args
+  aux ctx.args
 
 (******************************************************************************)
 (*                       dpkg_maintscript_helper                              *)
@@ -732,7 +733,7 @@ let interp_dpkg _env args =
 (* FIXME: this should go into a separate file *)
 
 module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
-  let supports _env args =
+  let supports args =
     match args with
     |["rm_conffile"]|["mv_conffile"]|["symlink_to_dir"]|["dir_to_symlink"]
      -> return true
@@ -780,74 +781,72 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
   exception NumberOfArguments
   exception MaintainerScriptArguments
 
-  let prepare_rm_conffile env conffile package =
+  let prepare_rm_conffile ctx conffile package =
     if ensure_package_owns_file package conffile
     then choice
-           (Mv.interprete env [
-                "-f";
-                conffile;
-                conffile^".dpkg-backup"])
-           (Mv.interprete env [
-                "-f";
-                conffile;
-                conffile^".dpkg-remove"])
+        (let args = ["-f"; conffile; conffile^".dpkg-backup"] in
+         Mv.interprete {ctx with args})
+        (let args = ["-f"; conffile; conffile^".dpkg-remove"] in
+         Mv.interprete {ctx with args})
     else return true
 
-  let finish_rm_conffile env conffile =
+  let finish_rm_conffile ctx conffile =
     (if_then_else
-       (interp_test_e (conffile^".dpkg-backup"))
+       (interp_test_e ctx.cwd (conffile^".dpkg-backup"))
        (* TODO: echo .... in positive case *)
-       (Mv.interprete env
-          ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"])
+       (let args = ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"] in
+        Mv.interprete {ctx with args})
        (return true))
   ||>>
     (if_then_else
-       (interp_test_e (conffile^".dpkg-remove"))
+       (interp_test_e ctx.cwd (conffile^".dpkg-remove"))
        (* TODO echo ... in positive case *)
-       (interp_rm env
-          ["-f"; conffile^".dpkg-remove"])
+       (let args = ["-f"; conffile^".dpkg-remove"] in
+        interp_rm {ctx with args})
        (return true)
     )
 
-  let abort_rm_conffile env conffile package =
+  let abort_rm_conffile ctx conffile package =
     if ensure_package_owns_file package conffile
     then
       (if_then_else
-         (interp_test_e (conffile^".dpkg-remove"))
+         (interp_test_e ctx.cwd (conffile^".dpkg-remove"))
          (* TODO echo ... in positive case *)
-         (Mv.interprete env [conffile^".dpkg-remove"; conffile])
+         (let args = [conffile^".dpkg-remove"; conffile] in
+          Mv.interprete {ctx with args})
          (return true))
       ||>>
         (if_then_else
-           (interp_test_e (conffile^".dpkg-backup"))
+           (interp_test_e ctx.cwd (conffile^".dpkg-backup"))
            (* TODO echo ... in positive case *)
-           (Mv.interprete env [conffile^".dpkg-backup"; conffile])
+           (let args = [conffile^".dpkg-backup"; conffile] in
+            Mv.interprete {ctx with args})
            (return true))
     else
       return true
 
-  let rm_conffile env cmdargs scriptarg1 scriptarg2 =
+  let rm_conffile ctx scriptarg1 scriptarg2 =
     let dpkg_package =
-      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
       with Not_found ->
         raise (Error
                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let default_package =
       try
-        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
         in dpkg_package^":"^dpkg_arch
       with Not_found -> dpkg_package
     in
     let dpkg_maintscript_name =
-      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
       with
       | Not_found ->
          raise (Error
                   "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let (conffile,lastversion,package) =
-      match cmdargs with
+      match ctx.args with
       | [x;y;z] -> (x,y,if empty_string z then default_package else z)
       | [x;y] -> (x,y,default_package)
       | [x] -> (x,"",default_package)
@@ -867,91 +866,94 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
        if (scriptarg1 = "install" || scriptarg1 = "upgrade")
           && not (empty_string scriptarg2)
           && dpkg_compare_versions_le_nl scriptarg2 lastversion
-       then prepare_rm_conffile env conffile package
+       then prepare_rm_conffile ctx conffile package
        else return true
     | "postinst" ->
        if scriptarg1 = "configure"
           && not (empty_string scriptarg2)
           && dpkg_compare_versions_le_nl scriptarg2 lastversion
-       then finish_rm_conffile env conffile
+       then finish_rm_conffile ctx conffile
        else return true
     | "postrm" ->
        if scriptarg1 = "purge"
-       then interp_rm env
-              [ "-f";
-                conffile^".dpkg-bak";
-                conffile^".dpkg-remove";
-                conffile^".dpkg-backup"]
+       then
+         let args = [ "-f"; conffile^".dpkg-bak"; conffile^".dpkg-remove"; conffile^".dpkg-backup"] in
+         interp_rm {ctx with args}
        else
          if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
             && not (empty_string scriptarg2)
             && dpkg_compare_versions_le_nl scriptarg2 lastversion
-         then abort_rm_conffile env conffile package
+         then abort_rm_conffile ctx conffile package
          else return true
     | _ -> return true
 
-  let prepare_mv_conffile env conffile package =
+  let prepare_mv_conffile ctx conffile package =
     if_then_else
-      (interp_test_e conffile)
+      (interp_test_e ctx.cwd conffile)
       (if ensure_package_owns_file package conffile
-       then choice
-              (Mv.interprete env ["-f"; conffile; conffile^".dpkg-remove"])
-              (return true)
+       then
+         choice
+           (let args = ["-f"; conffile; conffile^".dpkg-remove"] in
+            Mv.interprete {ctx with args})
+           (return true)
        else return true)
       (return true)
 
-  let finish_mv_conffile env oldconffile newconffile package =
-    (interp_rm env ["-f"; oldconffile^".dpkg-remove"])
+  let finish_mv_conffile ctx oldconffile newconffile package =
+    (let args = ["-f"; oldconffile^".dpkg-remove"] in
+     interp_rm {ctx with args})
     ||>>
       (if_then_else
-         (interp_test_e oldconffile)
+         (interp_test_e ctx.cwd oldconffile)
          (if ensure_package_owns_file package oldconffile
           then
             (* TODO echo bla bla *)
             compose_non_strict
               (if_then_else
-                 (interp_test_e newconffile)
-                 (Mv.interprete env
-                    ["-f";newconffile; newconffile^".dpkg-new"])
+                 (interp_test_e ctx.cwd newconffile)
+                 (let args = ["-f";newconffile; newconffile^".dpkg-new"] in
+                  Mv.interprete {ctx with args})
                  (return true))
-              (Mv.interprete env ["-f"; oldconffile; newconffile])
+              (let args = ["-f"; oldconffile; newconffile] in
+               Mv.interprete {ctx with args})
           else return true
          )
          (return true)
       )
 
-  let abort_mv_conffile env conffile package =
+  let abort_mv_conffile ctx conffile package =
     if ensure_package_owns_file package conffile
     then
       if_then_else
-        (interp_test_e (conffile^".dpkg-remove"))
+        (interp_test_e ctx.cwd (conffile^".dpkg-remove"))
         (* TODO echo bla bla *)
-        (Mv.interprete env [conffile^".dpkg-remove"; conffile])
+        (let args = [conffile^".dpkg-remove"; conffile] in
+         Mv.interprete {ctx with args})
         (return true)
     else return true
 
-  let mv_conffile env cmdargs scriptarg1 scriptarg2 =
+  let mv_conffile ctx scriptarg1 scriptarg2 =
     let dpkg_package =
-      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
       with Not_found ->
         raise (Error
                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let default_package =
       try
-        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
         in dpkg_package^":"^dpkg_arch
       with Not_found -> dpkg_package
     in
     let dpkg_maintscript_name =
-      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
       with
       | Not_found ->
          raise (Error
                   "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let (oldconffile,newconffile,lastversion,package) =
-      match cmdargs with
+      match ctx.args with
       | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
       | [w;x;y] -> (w,x,y,default_package)
       | [w;x] -> (w,x,"",default_package)
@@ -973,46 +975,45 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
        if (scriptarg1 = "install" || scriptarg1 = "upgrade")
           && not (empty_string scriptarg2)
           && dpkg_compare_versions_le_nl scriptarg2 lastversion
-       then prepare_mv_conffile env oldconffile package
+       then prepare_mv_conffile ctx oldconffile package
        else return true
     | "postinst" ->
        if scriptarg1 = "configure"
           && not (empty_string scriptarg2)
           && dpkg_compare_versions_le_nl scriptarg2 lastversion
-       then finish_mv_conffile env oldconffile newconffile package
+       then finish_mv_conffile ctx oldconffile newconffile package
        else return true
     | "postrm" ->
          if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
             && not (empty_string scriptarg2)
             && dpkg_compare_versions_le_nl scriptarg2 lastversion
-         then abort_mv_conffile env oldconffile package
+         then abort_mv_conffile ctx oldconffile package
          else return true
     | _ -> return true
 
   let symlink_match link target = assert false (* FIXME *)
 
-  let symlink_to_dir env cmdargs scriptarg1 scriptarg2 =
+  let symlink_to_dir ctx scriptarg1 scriptarg2 =
     let dpkg_package =
-      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
       with Not_found ->
-        raise (Error
-                 "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+        raise (Error "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let default_package =
       try
-        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
         in dpkg_package^":"^dpkg_arch
       with Not_found -> dpkg_package
     in
     let dpkg_maintscript_name =
-      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
       with
       | Not_found ->
          raise (Error
                   "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let (symlink,symlink_target,lastversion,package) =
-      match cmdargs with
+      match ctx.args with
       | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
       | [w;x;y] -> (w,x,y,default_package)
       | [w;x] -> (w,x,"",default_package)
@@ -1040,10 +1041,11 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
           && dpkg_compare_versions_le_nl scriptarg2 lastversion
        then
          if_then_else
-           (interp_test_h symlink)
+           (interp_test_h ctx.cwd symlink)
            (if_then_else
               (symlink_match symlink symlink_target)
-              (Mv.interprete env [symlink; (symlink^".dpkg-backup")])
+              (let args = [symlink; (symlink^".dpkg-backup")] in
+               Mv.interprete {ctx with args})
               (return true))
            (return true)
        else return true
@@ -1051,10 +1053,11 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
        if scriptarg1 = "configure"
        then
          if_then_else
-           (interp_test_h (symlink^".dpkg-backup"))
+           (interp_test_h ctx.cwd (symlink^".dpkg-backup"))
            (if_then_else
               (symlink_match (symlink^".dpkg-backup") symlink_target)
-              (interp_rm env ["-f"; symlink^".dpkg-backup"])
+              (let args = ["-f"; symlink^".dpkg-backup"] in
+               interp_rm {ctx with args})
               (return true))
            (return true)
        else return true
@@ -1062,8 +1065,9 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
        (if scriptarg1 = "purge"
         then
           if_then_else
-            (interp_test_h (symlink^".dpkg-backup"))
-            (interp_rm env ["-f"; symlink^".dpkg-backup"])
+            (interp_test_h ctx.cwd (symlink^".dpkg-backup"))
+            (let args = ["-f"; symlink^".dpkg-backup"] in
+             interp_rm {ctx with args})
             (return true)
         else return true)
        ||>>
@@ -1072,20 +1076,21 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
              && dpkg_compare_versions_le_nl scriptarg2 lastversion
           then
             if_then_else
-              (interp_test_e symlink)
+              (interp_test_e ctx.cwd symlink)
               (return true)
               (if_then_else
-                 (interp_test_h (symlink^".dpkg-backup"))
+                 (interp_test_h ctx.cwd (symlink^".dpkg-backup"))
                  (if_then_else
                     (symlink_match (symlink^".dpkg-backup") symlink_target)
                     (* FIXME echo Restoring ... *)
-                    (Mv.interprete env [symlink^".dpkg-backup"; symlink])
+                    (let args = [symlink^".dpkg-backup"; symlink] in
+                     Mv.interprete {ctx with args})
                     (return true))
                  (return true))
           else return true)
     | _ -> return true
 
-  let prepare_dir_to_symlink env package pathname =
+  let prepare_dir_to_symlink ctx package pathname =
     (if List.exists
           (function filename -> is_pathprefix pathname filename)
           (conffiles package)
@@ -1107,38 +1112,41 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
                     ^ "', cannot switch to symlink")))
          (return true))
     ||>>
-      (Mv.interprete env ["-f"; pathname; pathname^".dpkg-staging-dir"])
+      (let args = ["-f"; pathname; pathname^".dpkg-staging-dir"] in
+       Mv.interprete {ctx with args})
     ||>>
-      (interp_mkdir env [pathname])
+      (let args = [pathname] in
+       interp_mkdir {ctx with args})
     ||>>
-      (interp_touch env [pathname^"/.dpkg-staging-dir"])
+      (let args = [pathname^"/.dpkg-staging-dir"] in
+       interp_touch {ctx with args})
 
-  let finish_dir_to_symlink env pathname symlink_target = assert false
+  let finish_dir_to_symlink _ctx pathname symlink_target = assert false
 
-  let abort_dir_to_symlink env pathname = assert false
+  let abort_dir_to_symlink _ctx pathname = assert false
                                         
-  let dir_to_symlink env cmdargs scriptarg1 scriptarg2 =
+  let dir_to_symlink ctx scriptarg1 scriptarg2 =
     let dpkg_package =
-      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
+      try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
       with Not_found ->
         raise (Error
                  "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let default_package =
       try
-        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" env
+        let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
         in dpkg_package^":"^dpkg_arch
       with Not_found -> dpkg_package
     in
     let dpkg_maintscript_name =
-      try IdMap.find "DPKG_MAINTSCRIPT_NAME" env
+      try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
       with
       | Not_found ->
          raise (Error
                   "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
     in
     let (pathname,symlink_target,lastversion,package) =
-      match cmdargs with
+      match ctx.args with
       | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
       | [w;x;y] -> (w,x,y,default_package)
       | [w;x] -> (w,x,"",default_package)
@@ -1163,25 +1171,25 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
           && not (empty_string scriptarg2)
           && dpkg_compare_versions_le_nl scriptarg2 lastversion then
          if_then_else
-           (interp_test_h pathname)
+           (interp_test_h ctx.cwd pathname)
            (if_then_else
-              (interp_test_d pathname)
-              (prepare_dir_to_symlink env package pathname)
+              (interp_test_d ctx.cwd pathname)
+              (prepare_dir_to_symlink ctx package pathname)
               (return true))
            (return true)
        else return true
     | "postinst" ->
        if scriptarg1 = "configure" then
          if_then_else
-           (interp_test_d (pathname^".dpkg-backup"))
+           (interp_test_d ctx.cwd (pathname^".dpkg-backup"))
            (if_then_else
-              (interp_test_h pathname)
+              (interp_test_h ctx.cwd pathname)
               (return true)
               (if_then_else
-                 (interp_test_d pathname)
+                 (interp_test_d ctx.cwd pathname)
                  (if_then_else
-                    (interp_test_f (pathname^".dpkg-staging-dir"))
-                    (finish_dir_to_symlink env pathname symlink_target)
+                    (interp_test_f ctx.cwd (pathname^".dpkg-staging-dir"))
+                    (finish_dir_to_symlink ctx pathname symlink_target)
                     (return true)
                  )
                  (return true)
@@ -1192,8 +1200,9 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     | "postrm" ->
        (if scriptarg1 = "purge"
         then if_then_else
-               (interp_test_d (pathname^".dpkg-backup"))
-               (interp_rm env ["-rf"; pathname^".dpkg-backup"])
+               (interp_test_d ctx.cwd (pathname^".dpkg-backup"))
+               (let args = ["-rf"; pathname^".dpkg-backup"] in
+                interp_rm {ctx with args})
                (return true)
         else return true
        )
@@ -1202,31 +1211,31 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
              && not (empty_string scriptarg2)
              && dpkg_compare_versions_le_nl scriptarg2 lastversion then
             (if_then_else
-               (interp_test_d (pathname^".dpkg-backup"))
+               (interp_test_d ctx.cwd (pathname^".dpkg-backup"))
                (if_then_else
-                  (interp_test_h pathname)
+                  (interp_test_h ctx.cwd pathname)
                   (if_then_else
                      (symlink_match pathname symlink_target)
-                     (abort_dir_to_symlink env pathname)
+                     (abort_dir_to_symlink ctx pathname)
                      (return true))
                   (if_then_else
-                     (interp_test env ~bracket:false
-                        ["-d"; pathname;"-a";"-f";pathname^".dpkg-staging-dir"])
-                     (abort_dir_to_symlink env pathname)
+                     (let args = ["-d"; pathname;"-a";"-f";pathname^".dpkg-staging-dir"] in
+                      interp_test ~bracket:false {ctx with args})
+                     (abort_dir_to_symlink ctx pathname)
                      (return true)))
                (return true))
           else return true)
     | _ -> return true
 
-  let interprete (env:env) (args:args) =
-    match args with
+  let interprete ctx =
+    match ctx.args with
     | subcmd::restargs ->
        begin
          if subcmd = "supports" then
-           supports env restargs
+           supports restargs
          else
            try
-             let (cmdargs,scriptargs) = split_at_dashdash args in
+             let (args,scriptargs) = split_at_dashdash ctx.args in
              let (scriptarg1,scriptarg2) =
                match scriptargs with
                | [x;y] -> (x,y)
@@ -1235,13 +1244,13 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
              in
              match subcmd with
              | "rm_conffile"->
-                rm_conffile env cmdargs scriptarg1 scriptarg2
+                rm_conffile ctx scriptarg1 scriptarg2
              | "mv_conffile" ->
-                mv_conffile env cmdargs scriptarg1 scriptarg2
+                mv_conffile ctx scriptarg1 scriptarg2
              | "symlink_to_dir" ->
-                symlink_to_dir env cmdargs scriptarg1 scriptarg2
+                symlink_to_dir ctx scriptarg1 scriptarg2
              | "dir_to_symlink" ->
-                dir_to_symlink env cmdargs scriptarg1 scriptarg2
+                dir_to_symlink {ctx with args} scriptarg1 scriptarg2
              | _ -> unknown_argument
                       ~msg:"unknown subcommand"
                       ~name:"dpkg_maintscript_helper"
@@ -1275,7 +1284,7 @@ end
 (*                      Dispatch interpretation of utilities                  *)
 (******************************************************************************)
 
-let interp (name: string) : env -> args -> utility =
+let interp ~name : context -> utility =
   match name with
   | "true" -> interp_true
   | "false" -> interp_false
@@ -1290,4 +1299,4 @@ let interp (name: string) : env -> args -> utility =
   | "dpkg" -> interp_dpkg
   | "dpkg-maintscript-helper" -> DpkgMaintScriptHelper.interprete
   | "mv" -> Mv.interprete
-  | _ -> fun _env _args -> unknown_utility ~name ()
+  | _ -> fun _ -> unknown_utility ~name ()

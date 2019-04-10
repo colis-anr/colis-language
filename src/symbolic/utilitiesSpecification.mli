@@ -44,7 +44,7 @@ val failure: ?error_message:string -> unit -> case list
 
 (** The specifications of a utility are a list of cases that depend on the current working
    directory, the old root variable, and a new root variable *)
-type specifications = cwd:Path.t -> root:Var.t -> root':Var.t -> case list
+type specifications = root:Var.t -> root':Var.t -> case list
 
 (** Use specifications to define a utility *)
 val under_specifications : specifications -> utility
