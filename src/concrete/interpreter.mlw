@@ -106,6 +106,7 @@ module Interpreter
     !(sta1.result) = !(sta2.result) ->
     !(sta1.var_env) = !(sta2.var_env) ->
     sta1.func_env = sta2.func_env ->
+    sta1.cwd = sta2.cwd ->
     sem_context sta1 = sem_context sta2
 
   (* function sem_state (sta:state) : S.state = *)
