@@ -112,10 +112,10 @@ let apply_case_to_state state root case : (state * bool) list =
   |> List.map (apply_clause_to_state state case root)
 
 
-type specifications = cwd:Path.t -> root:Var.t -> root':Var.t -> case list
+type specifications = root:Var.t -> root':Var.t -> case list
 
 let under_specifications : specifications -> state -> (state * bool) list =
   fun spec state ->
     let new_root = Var.fresh ~hint:(Var.hint state.filesystem.root) () in
-    let cases = spec ~cwd:state.filesystem.cwd ~root:state.filesystem.root ~root':new_root in
+    let cases = spec ~root:state.filesystem.root ~root':new_root in
     List.map (apply_case_to_state state new_root) cases |> List.flatten

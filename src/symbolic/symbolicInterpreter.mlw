@@ -24,7 +24,6 @@ module Filesystem
   type filesystem = {
     root : variable;
     clause : clause;
-    cwd : path; (* TODO in the concrete evaluation context as `list string`? *)
     root0 : option variable;
   }
 end
@@ -219,7 +218,7 @@ module Interpreter
   use Results as Rs
 
   (* Implemented in OCaml *)
-  val function sym_interp_utility (id:identifier) (var_env:env string) (args:list string) (sta:state) : set (state, bool)
+  val function sym_interp_utility (id:identifier) (cwd:list string) (var_env:env string) (args:list string) (sta:state) : set (state, bool)
     ensures {
       forall res.
       interp_utility var_env sta id args = res <->
@@ -455,7 +454,7 @@ module Interpreter
       let res' =
         let call_utility arg =
           let sta', args = arg in
-          sym_interp_utility id (filter_var_env ctx.var_env) args sta'
+          sym_interp_utility id ctx.cwd (filter_var_env ctx.var_env) args sta'
         in
         let for_call_result arg =
           let sta'', b = arg in

@@ -6,7 +6,8 @@ module symbolicInterpreter.Constraints
 end
 
 module symbolicInterpreter.Interpreter
-  syntax val sym_interp_utility "BatSet.of_list (SymbolicUtilities.interp %1 (Env.to_map %2) %3 %4)"
+  syntax val sym_interp_utility "let cwd = Constraints.(Path.Abs (List.map (fun s -> Path.Down (Feat.from_string s)) %2)) in
+                                 BatSet.of_list SymbolicUtilities.(interp ~name:%1 {cwd; env=Env.to_map %3; args=%4} %5)"
 end
 
 module semantics.State
