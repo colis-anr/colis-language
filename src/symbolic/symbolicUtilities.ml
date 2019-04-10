@@ -1103,7 +1103,9 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
       (interp_touch env [pathname^"/.dpkg-staging-dir"])
 
   let finish_dir_to_symlink env pathname symlink_target = assert false
-                                                        
+
+  let abort_dir_to_symlink env pathname symlink_target = assert false
+                                                       
   let dir_to_symlink env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
       try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
@@ -1177,7 +1179,32 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
            (return true)
        else return true
     | "postrm" ->
-       assert false
+       (if scriptarg1 = "purge"
+        then if_then_else
+               (interp_test_d (pathname^".dpkg-backup"))
+               (interp_rm env ["-rf"; pathname^".dpkg-backup"])
+               (return true)
+        else return true
+       )
+       ||>>
+         (if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
+             && not (empty_string scriptarg2)
+             && dpkg_compare_versions_le_nl scriptarg2 lastversion then
+            (if_then_else
+               (interp_test_d (pathname^".dpkg-backup"))
+               (if_then_else
+                  (interp_test_h pathname)
+                  (if_then_else
+                     (symlink_match pathname symlink_target)
+                     (abort_dir_to_symlink env pathname)
+                     (return true))
+                  (if_then_else
+                     (interp_test env ~bracket:false
+                        ["-d"; pathname;"-a";"-f";pathname^".dpkg-staging-dir"])
+                     (abort_dir_to_symlink env pathname)
+                     (return true)))
+               (return true))
+          else return true)
     | _ -> return true
 
   let interprete (env:env) (args:args) =
