@@ -1233,7 +1233,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
               ()
 end
 
-let () =
+let register () =
   (* These calls can be moved to the modules that implement the utilities *)
   let register' (name, f) = register (module struct let name = name let interprete = f end) in
   List.iter register' [

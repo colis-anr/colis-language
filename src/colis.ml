@@ -36,6 +36,8 @@ module Symbolic = struct
   module Interpreter = SymbolicInterpreter__Interpreter
   module Utility = SymbolicUtility
 
+  let () = SymbolicUtilities.register ()
+
   let compile_fs_spec ~root fs_spec =
     let open Constraints in
     let clause = FilesystemSpec.compile root fs_spec in
