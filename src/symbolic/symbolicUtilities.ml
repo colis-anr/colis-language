@@ -302,28 +302,31 @@ let interp_test_f path_str : utility =
       end;
   ]
 
-let interp_test_x ?(name="test -x") path_str : utility =
+
+let interp_test_attribute ~attr path_str : utility =
   under_specifications @@ fun ~cwd ~root ~root' ->
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
-      ~descr:(asprintf "%s '%a': path resolves to an executable (overapprox to -e)" name Path.pp p)
+      ~descr:(asprintf "test '%a': path resolves, attribute -%s OK (overapprox to -e)"
+                Path.pp p attr)
       begin
         exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x & (* no way to constraint "x" mode *)
+        resolve root cwd p x &
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "%s '%a': path does not resolve" name Path.pp p)
+      ~descr:(asprintf "test '%a': path does not resolve" Path.pp p)
       begin
         noresolve root cwd p &
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "%s '%a': path resolves but not to an executable (overapprox to -e)" name Path.pp p)
+      ~descr:(asprintf "test '%a': path resolves, attribute -%s not OK (overapprox to -e)"
+                Path.pp p attr)
       begin
         exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x &  (* no way to constraint no "x" mode *)
+        resolve root cwd p x &
         eq root root'
       end;
   ]
@@ -368,7 +371,7 @@ let interp_test_z str : utility =
 
 let interp_test_h str : utility =
   assert false (* FIXME : we need test -h *)
-  
+
 let interp_test_string_equal s1 s2 : utility =
   under_specifications @@ fun ~cwd:_cwd ~root ~root' ->
   if s1 = s2 then
@@ -433,7 +436,15 @@ let rec interp_test_expr e : utility =
   | Unary("-d",arg) -> interp_test_d arg
   | Unary("-f",arg) -> interp_test_f arg
   | Unary("-h",arg) -> interp_test_h arg
-  | Unary("-x",arg) -> interp_test_x arg
+  | Unary("-G",arg) -> interp_test_attribute ~attr:"G" arg
+  | Unary("-O",arg) -> interp_test_attribute ~attr:"O" arg
+  | Unary("-g",arg) -> interp_test_attribute ~attr:"g" arg
+  | Unary("-k",arg) -> interp_test_attribute ~attr:"k" arg
+  | Unary("-r",arg) -> interp_test_attribute ~attr:"r" arg
+  | Unary("-s",arg) -> interp_test_attribute ~attr:"s" arg
+  | Unary("-u",arg) -> interp_test_attribute ~attr:"u" arg
+  | Unary("-w",arg) -> interp_test_attribute ~attr:"w" arg
+  | Unary("-x",arg) -> interp_test_attribute ~attr:"x" arg
   | Unary("-n",arg) -> interp_test_n arg
   | Unary("-z",arg) -> interp_test_z arg
   | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
@@ -555,7 +566,7 @@ let interp_rm : env -> args -> utility =
 module Mv:SYMBOLIC_UTILITY = struct
   let interprete (env:env) (args:args) =
     unknown_utility ~name:"mv" ()
-end                                              
+end
 
 (******************************************************************************)
 (*                                which                                       *)
@@ -764,7 +775,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
       p2.[n1]='/' && forall_from_to 0 (n1-1) (function i -> p1.[i]=p2.[i])
 
   let interp_test_fence pathname arity = return true (* FIXME *)
-                                  
+
   exception Error of string
   exception NumberOfArguments
   exception MaintainerScriptArguments
@@ -797,7 +808,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
           ["-f"; conffile^".dpkg-remove"])
        (return true)
     )
-    
+
   let abort_rm_conffile env conffile package =
     if ensure_package_owns_file package conffile
     then
@@ -814,7 +825,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
            (return true))
     else
       return true
-    
+
   let rm_conffile env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
       try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
@@ -869,7 +880,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
        then interp_rm env
               [ "-f";
                 conffile^".dpkg-bak";
-                conffile^".dpkg-remove"; 
+                conffile^".dpkg-remove";
                 conffile^".dpkg-backup"]
        else
          if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
@@ -888,7 +899,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
               (return true)
        else return true)
       (return true)
-    
+
   let finish_mv_conffile env oldconffile newconffile package =
     (interp_rm env ["-f"; oldconffile^".dpkg-remove"])
     ||>>
@@ -908,7 +919,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
          )
          (return true)
       )
-    
+
   let abort_mv_conffile env conffile package =
     if ensure_package_owns_file package conffile
     then
@@ -918,7 +929,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
         (Mv.interprete env [conffile^".dpkg-remove"; conffile])
         (return true)
     else return true
-    
+
   let mv_conffile env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
       try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
@@ -979,7 +990,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     | _ -> return true
 
   let symlink_match link target = assert false (* FIXME *)
-    
+
   let symlink_to_dir env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
       try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
@@ -1073,7 +1084,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
                  (return true))
           else return true)
     | _ -> return true
-         
+
   let prepare_dir_to_symlink env package pathname =
     (if List.exists
           (function filename -> is_pathprefix pathname filename)
@@ -1088,7 +1099,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
             pathname
             (List.filter
                (function filename -> is_pathprefix pathname filename)
-               (* FIXME we also need to remove the pathprefix *) 
+               (* FIXME we also need to remove the pathprefix *)
                (contents package)))
          (raise (Error
                    ("directory '" ^ pathname
@@ -1103,7 +1114,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
       (interp_touch env [pathname^"/.dpkg-staging-dir"])
 
   let finish_dir_to_symlink env pathname symlink_target = assert false
-                                                        
+
   let dir_to_symlink env cmdargs scriptarg1 scriptarg2 =
     let dpkg_package =
       try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" env
@@ -1184,7 +1195,7 @@ module DpkgMaintScriptHelper:SYMBOLIC_UTILITY = struct
     match args with
     | subcmd::restargs ->
        begin
-         if subcmd = "supports" then 
+         if subcmd = "supports" then
            supports env restargs
          else
            try
