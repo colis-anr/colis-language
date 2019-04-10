@@ -1284,19 +1284,29 @@ end
 (*                      Dispatch interpretation of utilities                  *)
 (******************************************************************************)
 
-let interp ~name : context -> utility =
-  match name with
-  | "true" -> interp_true
-  | "false" -> interp_false
-  | "echo" -> interp_echo
-  | "test" -> interp_test ~bracket:false
-  | "[" -> interp_test ~bracket:true
-  | "touch" -> interp_touch
-  | "mkdir" -> interp_mkdir
-  | "which" -> interp_which_full
-  | "rm" -> interp_rm
-  | "update-alternatives" -> interp_update_alternatives
-  | "dpkg" -> interp_dpkg
-  | "dpkg-maintscript-helper" -> DpkgMaintScriptHelper.interprete
-  | "mv" -> Mv.interprete
-  | _ -> fun _ -> unknown_utility ~name ()
+let table = Hashtbl.create 10
+
+let register ~name f =
+  Hashtbl.replace table name f
+
+let dispatch ~name =
+  try Hashtbl.find table name
+  with Not_found -> fun _ -> unknown_utility ~name ()
+
+let () =
+  (* These calls can be moved to the modules that implement the utilities *)
+  List.iter (fun (name, f) -> register ~name f) [
+    "true", interp_true;
+    "false", interp_false;
+    "echo", interp_echo;
+    "test", interp_test ~bracket:false;
+    "[", interp_test ~bracket:true;
+    "touch", interp_touch;
+    "mkdir", interp_mkdir;
+    "which", interp_which_full;
+    "rm", interp_rm;
+    "update-alternatives", interp_update_alternatives;
+    "dpkg", interp_dpkg;
+    "dpkg-maintscript-helper", DpkgMaintScriptHelper.interprete;
+    "mv", Mv.interprete;
+  ]
