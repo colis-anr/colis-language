@@ -7,4 +7,7 @@ type context = {
 }
 
 (** Entry-point for the interpretation of symbolic utilties *)
-val interp : name:string -> context -> UtilitiesSpecification.utility
+val dispatch : name:string -> context -> UtilitiesSpecification.utility
+
+(** Register a symbolic utility *)
+val register : name:string -> (context -> UtilitiesSpecification.utility) -> unit
