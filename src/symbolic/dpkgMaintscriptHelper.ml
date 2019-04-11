@@ -58,10 +58,8 @@ exception MaintainerScriptArguments
 let prepare_rm_conffile ctx conffile package =
   if ensure_package_owns_file package conffile
   then choice
-         (let args = ["-f"; conffile; conffile^".dpkg-backup"] in
-          dispatch ~name:"mv" {ctx with args})
-         (let args = ["-f"; conffile; conffile^".dpkg-remove"] in
-          dispatch ~name:"mv" {ctx with args})
+         (call "mv" ctx ["-f"; conffile; conffile^".dpkg-backup"])
+         (call "mv" ctx ["-f"; conffile; conffile^".dpkg-remove"])
   else return true
   
 let finish_rm_conffile ctx conffile =
@@ -87,8 +85,7 @@ let abort_rm_conffile ctx conffile package =
       (if_then
          (call "test" ctx ["-e"; conffile^".dpkg-backup"])
          (* TODO echo ... in positive case *)
-         (let args = [conffile^".dpkg-backup"; conffile] in
-          (dispatch ~name:"mv" {ctx with args})))
+         (call "mv" ctx [conffile^".dpkg-backup"; conffile]))
   else
     return true
   
@@ -163,8 +160,7 @@ let prepare_mv_conffile ctx conffile package =
     (if ensure_package_owns_file package conffile
      then
        choice
-         (let args = ["-f"; conffile; conffile^".dpkg-remove"] in
-          dispatch ~name:"mv" {ctx with args})
+         (call "mv" ctx ["-f"; conffile; conffile^".dpkg-remove"])
          (return true)
      else return true)
   
@@ -192,8 +188,7 @@ let abort_mv_conffile ctx conffile package =
     if_then
       (call "test" ctx ["-e"; conffile^".dpkg-remove"])
       (* TODO echo bla bla *)
-      (let args = [conffile^".dpkg-remove"; conffile] in
-       dispatch ~name:"mv" {ctx with args})
+      (call "mv" ctx [conffile^".dpkg-remove"; conffile])
   else return true
   
 let mv_conffile ctx scriptarg1 scriptarg2 =
@@ -341,8 +336,7 @@ let symlink_to_dir ctx scriptarg1 scriptarg2 =
                (if_then
                   (symlink_match (symlink^".dpkg-backup") symlink_target)
                   (* FIXME echo Restoring ... *)
-                  (let args = [symlink^".dpkg-backup"; symlink] in
-                   dispatch ~name:"mv" {ctx with args})))
+                  (call "mv" ctx [symlink^".dpkg-backup"; symlink])))
         else return true)
   | _ -> return true
        
@@ -367,8 +361,7 @@ let prepare_dir_to_symlink ctx package pathname =
                   ^ "' contains files not owned by '" ^ package
                   ^ "', cannot switch to symlink"))))
   ||>>
-    (let args = ["-f"; pathname; pathname^".dpkg-staging-dir"] in
-     dispatch ~name:"mv" {ctx with args})
+    (call "mv" ctx ["-f"; pathname; pathname^".dpkg-staging-dir"]) 
   ||>>
     (call "mkdir" ctx [pathname])
   ||>>
