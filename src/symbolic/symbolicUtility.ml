@@ -27,10 +27,16 @@ let choice u1 u2 =
 
 let if_then_else (cond:utility) (posbranch:utility) (negbranch:utility) =
   function sta ->
-            let (posstates,negstates) = separate_states (cond sta)
-            in 
-            (apply_to_list posstates posbranch)
-            @ (apply_to_list negstates negbranch)
+    let (posstates,negstates) = separate_states (cond sta)
+    in
+    (apply_to_list posstates posbranch)
+    @ (apply_to_list negstates negbranch)
+let if_then (cond:utility) (posbranch:utility) =
+  function sta ->
+    let (posstates,negstates) = separate_states (cond sta)
+    in
+    (apply_to_list posstates posbranch)
+    @ (List.map (function sta -> (sta,true)) negstates)
 
 let compose_non_strict (u1:utility) (u2:utility) =
   function sta ->

@@ -61,8 +61,12 @@ val choice : utility -> utility -> utility
 val return : bool -> utility
 
 (** [if_then_else u1 u2 u3] yields the utility that behaves like
-    if [u1]  then [u2] else [u3] *)
+    if [u1]  then [u2] else [u3] fi *)
 val if_then_else : utility -> utility -> utility -> utility
+
+(** [if_then u1 u2] yields the utility that behaves like
+    if [u1] then [u2] fi *)
+val if_then : utility -> utility -> utility
 
 (** compose_non_strict [u1] [u2] yields the utility that behaves like
     [u1]; [u2] in non-strict mode, that is the error code of [u1] is

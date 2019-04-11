@@ -65,34 +65,30 @@ let prepare_rm_conffile ctx conffile package =
   else return true
   
 let finish_rm_conffile ctx conffile =
-  (if_then_else
+  (if_then
      (call "test" ctx ["-e"; conffile^".dpkg-backup"])
      (* TODO: echo .... in positive case *)
-     (call "mv" ctx ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"])
-     (return true))
+     (call "mv" ctx ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"]))
   ||>>
-    (if_then_else
+    (if_then
        (call "test" ctx ["-e"; conffile^".dpkg-remove"])
        (* TODO echo ... in positive case *)
        (call "rm" ctx ["-f"; conffile^".dpkg-remove"])
-       (return true)
     )
   
 let abort_rm_conffile ctx conffile package =
   if ensure_package_owns_file package conffile
   then
-    (if_then_else
+    (if_then
        (call "test" ctx ["-e"; conffile^".dpkg-remove"])
        (* TODO echo ... in positive case *)
-       (call "mv" ctx [conffile^".dpkg-remove"; conffile])
-       (return true))
+       (call "mv" ctx [conffile^".dpkg-remove"; conffile]))
     ||>>
-      (if_then_else
+      (if_then
          (call "test" ctx ["-e"; conffile^".dpkg-backup"])
          (* TODO echo ... in positive case *)
          (let args = [conffile^".dpkg-backup"; conffile] in
-          dispatch ~name:"mv" {ctx with args})
-         (return true))
+          (dispatch ~name:"mv" {ctx with args})))
   else
     return true
   
@@ -162,7 +158,7 @@ let rm_conffile ctx scriptarg1 scriptarg2 =
   | _ -> return true
        
 let prepare_mv_conffile ctx conffile package =
-  if_then_else
+  if_then
     (call "test" ctx ["-e"; conffile])
     (if ensure_package_owns_file package conffile
      then
@@ -171,12 +167,11 @@ let prepare_mv_conffile ctx conffile package =
           dispatch ~name:"mv" {ctx with args})
          (return true)
      else return true)
-    (return true)
   
 let finish_mv_conffile ctx oldconffile newconffile package =
   (call "rm" ctx ["-f"; oldconffile^".dpkg-remove"])
   ||>>
-    (if_then_else
+    (if_then
        (call "test" ctx ["-e"; oldconffile])
        (if ensure_package_owns_file package oldconffile
         then
@@ -189,18 +184,16 @@ let finish_mv_conffile ctx oldconffile newconffile package =
             (call "mv" ctx ["-f"; oldconffile; newconffile])
         else return true
        )
-       (return true)
     )
   
 let abort_mv_conffile ctx conffile package =
   if ensure_package_owns_file package conffile
   then
-    if_then_else
+    if_then
       (call "test" ctx ["-e"; conffile^".dpkg-remove"])
       (* TODO echo bla bla *)
       (let args = [conffile^".dpkg-remove"; conffile] in
        dispatch ~name:"mv" {ctx with args})
-      (return true)
   else return true
   
 let mv_conffile ctx scriptarg1 scriptarg2 =
@@ -311,32 +304,29 @@ let symlink_to_dir ctx scriptarg1 scriptarg2 =
         && not (empty_string scriptarg2)
         && dpkg_compare_versions_le_nl scriptarg2 lastversion
      then
-       if_then_else
+       if_then
          (call "test" ctx ["-h"; symlink])
          (if_then_else
             (symlink_match symlink symlink_target)
             (call "mv" ctx [symlink; symlink^".dpkg-backup"] )
             (return true))
-         (return true)
      else return true
   | "postinst" ->
      if scriptarg1 = "configure"
      then
-       if_then_else
+       if_then
          (call "test" ctx ["-h"; symlink^".dpkg-backup"])
          (if_then_else
             (symlink_match (symlink^".dpkg-backup") symlink_target)
             (call "rm" ctx ["-f"; symlink^".dpkg-backup"])
             (return true))
-         (return true)
      else return true
   | "postrm" ->
      (if scriptarg1 = "purge"
       then
-        if_then_else
+        if_then
           (call "test" ctx ["-h"; symlink^".dpkg-backup"])
           (call "rm" ctx ["-f"; symlink^".dpkg-backup"])
-          (return true)
       else return true)
      ||>>
        (if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
@@ -346,15 +336,13 @@ let symlink_to_dir ctx scriptarg1 scriptarg2 =
           if_then_else
             (call "test" ctx ["-e"; symlink])
             (return true)
-            (if_then_else
+            (if_then
                (call "test" ctx ["-h"; symlink^".dpkg-backup"])
-               (if_then_else
+               (if_then
                   (symlink_match (symlink^".dpkg-backup") symlink_target)
                   (* FIXME echo Restoring ... *)
                   (let args = [symlink^".dpkg-backup"; symlink] in
-                   dispatch ~name:"mv" {ctx with args})
-                  (return true))
-               (return true))
+                   dispatch ~name:"mv" {ctx with args})))
         else return true)
   | _ -> return true
        
@@ -367,7 +355,7 @@ let prepare_dir_to_symlink ctx package pathname =
                     "' contains conffiles, cannot swithc to directory"))
    else return true)
   ||>>
-    (if_then_else
+    (if_then
        (interp_test_fence
           pathname
           (List.filter
@@ -377,8 +365,7 @@ let prepare_dir_to_symlink ctx package pathname =
        (raise (Error
                  ("directory '" ^ pathname
                   ^ "' contains files not owned by '" ^ package
-                  ^ "', cannot switch to symlink")))
-       (return true))
+                  ^ "', cannot switch to symlink"))))
   ||>>
     (let args = ["-f"; pathname; pathname^".dpkg-staging-dir"] in
      dispatch ~name:"mv" {ctx with args})
@@ -436,59 +423,51 @@ let dir_to_symlink ctx scriptarg1 scriptarg2 =
      if (scriptarg1 = "install" || scriptarg1 = "upgrade" )
         && not (empty_string scriptarg2)
         && dpkg_compare_versions_le_nl scriptarg2 lastversion then
-       if_then_else
+       if_then
          (call "test" ctx ["-h"; pathname])
          (if_then_else
             (call "test" ctx ["-d"; pathname])
             (prepare_dir_to_symlink ctx package pathname)
             (return true))
-         (return true)
      else return true
   | "postinst" ->
      if scriptarg1 = "configure" then
-       if_then_else
+       if_then
          (call "test" ctx ["-d"; pathname^".dpkg-backup"])
          (if_then_else
             (call "test" ctx ["-h"; pathname])
             (return true)
-            (if_then_else
+            (if_then
                (call "test" ctx ["-d"; pathname])
-               (if_then_else
+               (if_then
                   (call "test" ctx ["-f"; pathname^".dpkg-staging-dir"])
                   (finish_dir_to_symlink ctx pathname symlink_target)
-                  (return true)
                )
-               (return true)
             )
          )
-         (return true)
      else return true
   | "postrm" ->
      (if scriptarg1 = "purge"
-      then if_then_else
+      then if_then
              (call "test" ctx ["-d"; pathname^".dpkg-backup"])
              (call "rm" ctx ["-rf"; pathname^".dpkg-backup"])
-             (return true)
       else return true
      )
      ||>>
        (if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
            && not (empty_string scriptarg2)
            && dpkg_compare_versions_le_nl scriptarg2 lastversion then
-          (if_then_else
+          (if_then
              (call "test" ctx ["-d"; pathname^".dpkg-backup"])
              (if_then_else
                 (call "test" ctx ["-h"; pathname])
-                (if_then_else
+                (if_then
                    (symlink_match pathname symlink_target)
-                   (abort_dir_to_symlink ctx pathname)
-                   (return true))
-                (if_then_else
+                   (abort_dir_to_symlink ctx pathname))
+                (if_then
                    (call "test" ctx
                       ["-d"; pathname;"-a";"-f";pathname^".dpkg-staging-dir"])
-                   (abort_dir_to_symlink ctx pathname)
-                   (return true)))
-             (return true))
+                   (abort_dir_to_symlink ctx pathname))))
         else return true)
   | _ -> return true
        
