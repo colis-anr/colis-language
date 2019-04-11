@@ -10,7 +10,7 @@ let call myname myctx myargs =
   dispatch ~name:myname {myctx with args=myargs}
 
 (* infix operator - should go into SymbolicUtility ? *)
-let (||>>) = compose_non_strict
+let (||>>) = compose_strict
 
 exception NoDashDash
 let split_at_dashdash l =
