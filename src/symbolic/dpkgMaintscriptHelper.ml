@@ -1,18 +1,17 @@
+(** Symbolic execution of dpkg-maintscript-helper. This structure of 
+    this code follows the implementation of version 1.19.6. *)
+
 open SymbolicUtility
    
-module IdMap = Env.IdMap
-
 let name = "dpkg-maintscript-helpers"
 
+(* saner way to call other utilities *)
 let call myname myctx myargs =
   dispatch ~name:myname {myctx with args=myargs}
-  
-let supports args =
-  match args with
-  |["rm_conffile"]|["mv_conffile"]|["symlink_to_dir"]|["dir_to_symlink"]
-   -> return true
-  | _ -> return false
-       
+
+(* infix operator - should go into SymbolicUtility ? *)
+let (||>>) = compose_non_strict
+
 exception NoDashDash
 let split_at_dashdash l =
   (* split a list into the part before "--" and the part after *)
@@ -22,7 +21,6 @@ let split_at_dashdash l =
     | [] -> raise NoDashDash
   in split_aux [] l
    
-let (||>>) = compose_non_strict
 let starts_on_slash s = String.length s > 0 && s.[0]='/'
 let ends_on_slash s = let n = String.length s in n > 0 && s.[n-1]='/'
 let empty_string s = (String.length s = 0)
@@ -50,10 +48,25 @@ let is_pathprefix p1 p2 =
     p2.[n1]='/' && forall_from_to 0 (n1-1) (function i -> p1.[i]=p2.[i])
   
 let interp_test_fence pathname arity = return true (* FIXME *)
-                                     
+let symlink_match link target = assert false (* FIXME *)
+                              
 exception Error of string
 exception NumberOfArguments
 exception MaintainerScriptArguments
+
+(***********************************************************************)
+(* dpkg-maintscript-helper supports                                    *)
+(***********************************************************************)
+        
+let supports args =
+  match args with
+  |["rm_conffile"]|["mv_conffile"]|["symlink_to_dir"]|["dir_to_symlink"]
+   -> return true
+  | _ -> return false
+       
+(***********************************************************************)
+(* dpkg-maintscript-helper rm_conffile                                 *)
+(***********************************************************************)
         
 let prepare_rm_conffile ctx conffile package =
   if ensure_package_owns_file package conffile
@@ -103,26 +116,8 @@ let abort_rm_conffile ctx conffile package =
   else
     return true
   
-let rm_conffile ctx scriptarg1 scriptarg2 =
-  let dpkg_package =
-    try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
-    with Not_found ->
-      raise (Error
-               "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
-  let default_package =
-    try
-      let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
-      in dpkg_package^":"^dpkg_arch
-    with Not_found -> dpkg_package
-  in
-  let dpkg_maintscript_name =
-    try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
-    with
-    | Not_found ->
-       raise (Error
-                "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
+let rm_conffile ctx
+      scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (conffile,lastversion,package) =
     match ctx.args with
     | [x;y;z] -> (x,y,if empty_string z then default_package else z)
@@ -139,7 +134,7 @@ let rm_conffile ctx scriptarg1 scriptarg2 =
     raise (Error "conffile '$CONFFILE' is not an absolute path");
   if not (validate_optional_version lastversion) then
     raise (Error ("wrong version "^lastversion));
-  match dpkg_maintscript_name with
+  match dms_name with
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade")
         && not (empty_string scriptarg2)
@@ -168,6 +163,10 @@ let rm_conffile ctx scriptarg1 scriptarg2 =
        else return true
   | _ -> return true
        
+(***********************************************************************)
+(* dpkg-maintscript-helper mv_conffile                                 *)
+(***********************************************************************)
+        
 let prepare_mv_conffile ctx conffile package =
   if_then
     (call "test" ctx ["-e"; conffile])
@@ -211,26 +210,8 @@ let abort_mv_conffile ctx conffile package =
       )
   else return true
   
-let mv_conffile ctx scriptarg1 scriptarg2 =
-  let dpkg_package =
-    try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
-    with Not_found ->
-      raise (Error
-               "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
-  let default_package =
-    try
-      let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
-      in dpkg_package^":"^dpkg_arch
-    with Not_found -> dpkg_package
-  in
-  let dpkg_maintscript_name =
-    try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
-    with
-    | Not_found ->
-       raise (Error
-                "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
+let mv_conffile ctx
+      scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (oldconffile,newconffile,lastversion,package) =
     match ctx.args with
     | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
@@ -249,7 +230,7 @@ let mv_conffile ctx scriptarg1 scriptarg2 =
     raise (Error "conffile '$NEWCONFFILE' is not an absolute path");
   if not (validate_optional_version lastversion) then
     raise (Error ("wrong version "^lastversion));
-  match dpkg_maintscript_name with
+  match dms_name with
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade")
         && not (empty_string scriptarg2)
@@ -270,27 +251,12 @@ let mv_conffile ctx scriptarg1 scriptarg2 =
      else return true
   | _ -> return true
        
-let symlink_match link target = assert false (* FIXME *)
-                              
-let symlink_to_dir ctx scriptarg1 scriptarg2 =
-  let dpkg_package =
-    try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
-    with Not_found ->
-      raise (Error "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
-  let default_package =
-    try
-      let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
-      in dpkg_package^":"^dpkg_arch
-    with Not_found -> dpkg_package
-  in
-  let dpkg_maintscript_name =
-    try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
-    with
-    | Not_found ->
-       raise (Error
-                "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
+(***********************************************************************)
+(* dpkg-maintscript-helper symlink_to_dir                              *)
+(***********************************************************************)
+        
+let symlink_to_dir ctx
+      scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (symlink,symlink_target,lastversion,package) =
     match ctx.args with
     | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
@@ -313,7 +279,7 @@ let symlink_to_dir ctx scriptarg1 scriptarg2 =
   (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
   if not (validate_optional_version lastversion) then
     raise (Error ("wrong version "^lastversion));
-  match dpkg_maintscript_name with
+  match dms_name with
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade" )
         && not (empty_string scriptarg2)
@@ -363,6 +329,10 @@ let symlink_to_dir ctx scriptarg1 scriptarg2 =
         else return true)
   | _ -> return true
        
+(***********************************************************************)
+(* dpkg-maintscript-helper dir_to_symlink                              *)
+(***********************************************************************)
+        
 let prepare_dir_to_symlink ctx package pathname =
   (if List.exists
         (function filename -> is_pathprefix pathname filename)
@@ -394,26 +364,8 @@ let finish_dir_to_symlink _ctx pathname symlink_target = assert false
                                                        
 let abort_dir_to_symlink _ctx pathname = assert false
                                        
-let dir_to_symlink ctx scriptarg1 scriptarg2 =
-  let dpkg_package =
-    try IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
-    with Not_found ->
-      raise (Error
-               "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
-  let default_package =
-    try
-      let dpkg_arch = IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
-      in dpkg_package^":"^dpkg_arch
-    with Not_found -> dpkg_package
-  in
-  let dpkg_maintscript_name =
-    try IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
-    with
-    | Not_found ->
-       raise (Error
-                "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
-  in
+let dir_to_symlink ctx
+      scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (pathname,symlink_target,lastversion,package) =
     match ctx.args with
     | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
@@ -434,7 +386,7 @@ let dir_to_symlink ctx scriptarg1 scriptarg2 =
   (* checking scriptarg1 done by [interprete] *)
   if not (validate_optional_version lastversion) then
     raise (Error ("wrong version "^lastversion));
-  match dpkg_maintscript_name with
+  match dms_name with
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade" )
         && not (empty_string scriptarg2)
@@ -486,8 +438,34 @@ let dir_to_symlink ctx scriptarg1 scriptarg2 =
                    (abort_dir_to_symlink ctx pathname))))
         else return true)
   | _ -> return true
-       
+
+(***********************************************************************)
+(* dpkg-maintscript-helper main code                                   *)
+(***********************************************************************)
+
 let interprete ctx =
+  (* the handling of command line arguments that is common to all
+     sub-commands except 'supports' has been factored out into the
+     main code. *)
+  let dms_package =
+    try Env.IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
+    with Not_found ->
+      raise (Error
+               "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+  in
+  let default_package =
+    try
+      let dpkg_arch = Env.IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
+      in dms_package^":"^dpkg_arch
+    with Not_found -> dms_package
+  in
+  let dms_name =
+    try Env.IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
+    with
+    | Not_found ->
+       raise (Error
+                "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+  in
   match ctx.args with
   | subcmd::restargs ->
      begin
@@ -504,13 +482,17 @@ let interprete ctx =
            in
            match subcmd with
            | "rm_conffile"->
-              rm_conffile ctx scriptarg1 scriptarg2
+              rm_conffile ctx
+                scriptarg1 scriptarg2 dms_package default_package dms_name
            | "mv_conffile" ->
-              mv_conffile ctx scriptarg1 scriptarg2
+              mv_conffile ctx
+                scriptarg1 scriptarg2 dms_package default_package dms_name
            | "symlink_to_dir" ->
-              symlink_to_dir ctx scriptarg1 scriptarg2
+              symlink_to_dir ctx
+                scriptarg1 scriptarg2 dms_package default_package dms_name
            | "dir_to_symlink" ->
-              dir_to_symlink {ctx with args} scriptarg1 scriptarg2
+              dir_to_symlink ctx
+                scriptarg1 scriptarg2 dms_package default_package dms_name
            | _ -> unknown_argument
                     ~msg:"unknown subcommand"
                     ~name:"dpkg_maintscript_helper"
