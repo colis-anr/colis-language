@@ -65,13 +65,21 @@ let prepare_rm_conffile ctx conffile package =
 let finish_rm_conffile ctx conffile =
   (if_then
      (call "test" ctx ["-e"; conffile^".dpkg-backup"])
-     (* TODO: echo .... in positive case *)
-     (call "mv" ctx ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"]))
+     (
+       (call "echo" ctx
+          ["Obsolete confffile"; conffile; "has been modified by you"])
+       ||>>
+       (call "echo" ctx ["Saving as "; conffile^".dpkg-bak"; "..."])
+       ||>>
+       (call "mv" ctx ["-f"; conffile^".dpkg-backup"; conffile^".dpkg-bak"])))
   ||>>
     (if_then
        (call "test" ctx ["-e"; conffile^".dpkg-remove"])
-       (* TODO echo ... in positive case *)
-       (call "rm" ctx ["-f"; conffile^".dpkg-remove"])
+       (
+         (call "echo" ctx ["Removing obsolete conffile"; conffile; "..."])
+         ||>>
+         (call "rm" ctx ["-f"; conffile^".dpkg-remove"])
+       )
     )
   
 let abort_rm_conffile ctx conffile package =
@@ -79,13 +87,19 @@ let abort_rm_conffile ctx conffile package =
   then
     (if_then
        (call "test" ctx ["-e"; conffile^".dpkg-remove"])
-       (* TODO echo ... in positive case *)
-       (call "mv" ctx [conffile^".dpkg-remove"; conffile]))
+       (
+         (call "echo" ctx ["Reinstalling"; conffile; "that was moved away"])
+         ||>>
+         (call "mv" ctx [conffile^".dpkg-remove"; conffile])
+       ))
     ||>>
       (if_then
          (call "test" ctx ["-e"; conffile^".dpkg-backup"])
-         (* TODO echo ... in positive case *)
-         (call "mv" ctx [conffile^".dpkg-backup"; conffile]))
+         (
+           (call "echo" ctx ["Reinstalling"; conffile; "that was backed-up"])
+           ||>>
+           (call "mv" ctx [conffile^".dpkg-backup"; conffile])
+         ))
   else
     return true
   
@@ -171,13 +185,16 @@ let finish_mv_conffile ctx oldconffile newconffile package =
        (call "test" ctx ["-e"; oldconffile])
        (if ensure_package_owns_file package oldconffile
         then
-          (* TODO echo bla bla *)
-          compose_non_strict
-            (if_then_else
-               (call "test" ctx ["-e"; newconffile])
-               (call "mv" ctx ["-f";newconffile; newconffile^".dpkg-new"])
-               (return true))
-            (call "mv" ctx ["-f"; oldconffile; newconffile])
+          (call "echo" ctx
+             ["Preserving user changes to"; newconffile;
+              "(renamed from"; oldconffile; ")..."])
+          ||>>
+          (if_then_else
+             (call "test" ctx ["-e"; newconffile])
+             (call "mv" ctx ["-f";newconffile; newconffile^".dpkg-new"])
+             (return true))
+          ||>>
+          (call "mv" ctx ["-f"; oldconffile; newconffile])
         else return true
        )
     )
@@ -187,8 +204,11 @@ let abort_mv_conffile ctx conffile package =
   then
     if_then
       (call "test" ctx ["-e"; conffile^".dpkg-remove"])
-      (* TODO echo bla bla *)
-      (call "mv" ctx [conffile^".dpkg-remove"; conffile])
+      (
+        (call "echo" ctx ["Reinstalling"; conffile; "that was moved away"])
+        ||>>
+        (call "mv" ctx [conffile^".dpkg-remove"; conffile])
+      )
   else return true
   
 let mv_conffile ctx scriptarg1 scriptarg2 =
@@ -335,8 +355,11 @@ let symlink_to_dir ctx scriptarg1 scriptarg2 =
                (call "test" ctx ["-h"; symlink^".dpkg-backup"])
                (if_then
                   (symlink_match (symlink^".dpkg-backup") symlink_target)
-                  (* FIXME echo Restoring ... *)
-                  (call "mv" ctx [symlink^".dpkg-backup"; symlink])))
+                  (
+                    (call "echo" ctx ["Restoring backup of"; symlink; "..."])
+                    ||>>
+                    (call "mv" ctx [symlink^".dpkg-backup"; symlink])
+                  )))
         else return true)
   | _ -> return true
        
