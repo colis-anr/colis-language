@@ -127,7 +127,7 @@ let under_specifications : specifications -> state -> (state * bool) list =
     List.map (apply_case_to_state state new_root) cases |> List.flatten
 
 (******************************************************************************)
-(*                      Dispatch interpretation of utilities                  *)
+(*                                  Auxiliaries                               *)
 (******************************************************************************)
 
 let last_comp_as_hint: root:Var.t -> Path.t -> string option =
@@ -185,6 +185,9 @@ let register (module M:SYMBOLIC_UTILITY) =
 let dispatch ~name =
   try Hashtbl.find table name
   with Not_found -> fun _ -> unknown_utility ~name ()
+
+let call name ctx args =
+  dispatch ~name {ctx with args}
 
 let dispatch' ~name ~cwd ~env ~args sta =
   let ctx =

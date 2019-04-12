@@ -19,6 +19,9 @@ type context = {
 (** Entry-point for the interpretation of symbolic utilties *)
 val dispatch : name:string -> context -> utility
 
+(** A saner way to call [dispatch] (e.g. in the implementation of utilities) *)
+val call : string -> context -> string list -> utility
+
 (** {2 Registration} *)
 
 module type SYMBOLIC_UTILITY = sig

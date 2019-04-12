@@ -5,10 +5,6 @@ open SymbolicUtility
    
 let name = "dpkg-maintscript-helpers"
 
-(* saner way to call other utilities *)
-let call myname myctx myargs =
-  dispatch ~name:myname {myctx with args=myargs}
-
 (* infix operator - should go into SymbolicUtility ? *)
 let (||>>) = compose_strict
 
