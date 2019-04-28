@@ -167,9 +167,11 @@ and word_component__to__string_expression_split_requirement e = function
   | WVariable (name, NoAttribute) when name = "@" ->
     unsupported "$@ without quotes"
   | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
-     (e, (C.SArgument (Z.of_int (int_of_string name)), Split))
+    (e, (C.SArgument (Z.of_int (int_of_string name)), Split))
   | WVariable (name, NoAttribute) ->
-     (e, (C.SVariable name, Split))
+    (e, (C.SVariable name, Split))
+  | WVariable _ ->
+    unsupported "variable with attribute"
   | WSubshell c's ->
      E.with_deeper e @@ fun e ->
      let (e, i) = command'_list__to__instruction e c's in
@@ -190,7 +192,9 @@ and word_component_DoubleQuoted__to__string_expression e = function
   | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, C.SArgument (Z.of_int (int_of_string name)))
   | WVariable (name, NoAttribute) ->
-     (e, C.SVariable name)
+    (e, C.SVariable name)
+  | WVariable _ ->
+    unsupported "variable with attribute"
   | WSubshell c's ->
      E.with_deeper e @@ fun e ->
      let (e, i) = command'_list__to__instruction e c's in
