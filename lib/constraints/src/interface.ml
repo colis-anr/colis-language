@@ -27,10 +27,6 @@ module type S = sig
   val nfeat : Var.t -> Feat.t -> Var.t -> t
   val abs : Var.t -> Feat.t -> t
   val nabs : Var.t -> Feat.t -> t
-  val reg : Var.t -> t
-  val nreg : Var.t -> t
-  val dir : Var.t -> t
-  val ndir : Var.t -> t
   val fen : Var.t -> Feat.Set.t -> t
   val nfen : Var.t -> Feat.Set.t -> t
   val empty : Var.t -> t
@@ -41,6 +37,21 @@ module type S = sig
   val nsim1 : Var.t -> Feat.t -> Var.t -> t
   val sim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
   val nsim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
+
+  val reg : Var.t -> t
+  val nreg : Var.t -> t
+  val dir : Var.t -> t
+  val ndir : Var.t -> t
+  val block : Var.t -> t
+  val nblock : Var.t -> t
+  val char : Var.t -> t
+  val nchar : Var.t -> t
+  val symlink : Var.t -> t
+  val nsymlink : Var.t -> t
+  val pipe : Var.t -> t
+  val npipe : Var.t -> t
+  val sock : Var.t -> t
+  val nsock : Var.t ->t
 
   (** {2 Macros} *)
 
@@ -81,10 +92,6 @@ module Make (I : Constraints_implementation.S) : S = struct
   let nfeat = I.nfeat
   let abs = I.abs
   let nabs = I.nabs
-  let reg = I.reg
-  let nreg = I.nreg
-  let dir = I.dir
-  let ndir = I.ndir
   let fen = I.fen
   let nfen = I.nfen
   let sim = I.sim
@@ -96,6 +103,21 @@ module Make (I : Constraints_implementation.S) : S = struct
   let nsim1 x f y = sim x (Feat.Set.singleton f) y
   let sim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
   let nsim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
+
+  let reg = I.reg
+  let nreg = I.nreg
+  let dir = I.dir
+  let ndir = I.ndir
+  let block = I.block
+  let nblock = I.nblock
+  let sock = I.sock
+  let nsock = I.nsock
+  let pipe = I.pipe
+  let npipe = I.npipe
+  let char = I.char
+  let nchar = I.nchar
+  let symlink = I.symlink
+  let nsymlink = I.nsymlink
 
   let exists ?hint f = fun c ->
     let x = Var.fresh ?hint () in
