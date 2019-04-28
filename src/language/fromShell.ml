@@ -161,7 +161,11 @@ and word_component__to__string_expression_split_requirement e = function
   | WLiteral s when List.exists (String.contains s) E.ifs ->
      (e, (C.SLiteral s, NoSplit))
   | WLiteral s ->
-     (e, (C.SLiteral s, DoesntCare))
+    (e, (C.SLiteral s, DoesntCare))
+  | WVariable (name, NoAttribute) when name = "*" || name = "#" ->
+    unsupported "$* or $#"
+  | WVariable (name, NoAttribute) when name = "@" ->
+    unsupported "$@ without quotes"
   | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, (C.SArgument (Z.of_int (int_of_string name)), Split))
   | WVariable (name, NoAttribute) ->
@@ -178,7 +182,11 @@ and word_component__to__string_expression_split_requirement e = function
 
 and word_component_DoubleQuoted__to__string_expression e = function
   | WLiteral s ->
-     (e, C.SLiteral s)
+    (e, C.SLiteral s)
+  | WVariable (name, NoAttribute) when name = "*" || name = "#" ->
+    unsupported "$* or $#"
+  | WVariable (name, NoAttribute) when name = "@" ->
+    unsupported "$@ with quotes (yet)" (* FIXME *)
   | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, C.SArgument (Z.of_int (int_of_string name)))
   | WVariable (name, NoAttribute) ->
