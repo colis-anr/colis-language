@@ -599,9 +599,8 @@ let search_as_which cwd (path:string list) arg : utility =
   | Rel [_] -> search_as_which_in_path cwd path arg
   | Rel r ->
      fun st ->
-     let a = Path.concat cwd r in
-     interp_test_regular_and_x cwd (Path.to_string a) st
-
+     let a = Path.concat cwd (Rel r) in
+     interp_test_regular_and_x cwd ("/" ^ Path.rel_to_string a) st
 
 let interp_which_full ctx : utility =
   match ctx.args with

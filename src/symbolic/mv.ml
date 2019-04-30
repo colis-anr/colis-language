@@ -2,15 +2,15 @@ open Format
 open Constraints
 open Clause
 open SymbolicUtility
-   
+
 let name = "mv"
 
 let interp_mv ctx src dst : utility =
   under_specifications @@ fun ~root ~root' ->
     let qsrc = Path.from_string src in
     let qdst = Path.from_string dst in
-    (* let norm_qsrc = normalize ctx.cwd qsrc in
-    let norm_qdst = normalize ctx.cwd qdst in *)
+    (* let norm_qsrc = Path.normalize ~cwd:ctx.cwd qsrc in
+    let norm_qdst = Path.normalize ~cwd:ctx.cwd qdst in *)
     (* FIXME: test that norm_qsrc is not a prefix or equal to norm_qdst *)
     (*        this test should be done on normalized paths in an utility *)
     (*        which return true if the source is a parent on the destination *)
@@ -164,7 +164,7 @@ let interp_mv ctx src dst : utility =
             ~descr:(asprintf "mv: destination file '%a/%a' not empty" Path.pp qdst Feat.pp fs)
             begin
               exists ?hint:None @@ fun zd ->
-              resolve root ctx.cwd (Path.from_string 
+              resolve root ctx.cwd (Path.from_string
                       (String.concat "" [dst; "/"; (Feat.to_string fs)])) zd &
               fen zd Feat.Set.empty &
               eq root root'
@@ -172,18 +172,18 @@ let interp_mv ctx src dst : utility =
        ]
 
   let rec interprete ctx : utility =
-    match ctx.args with 
-    | [] -> 
+    match ctx.args with
+    | [] ->
       under_specifications @@ fun ~root ~root' ->
         [
-          error_case 
+          error_case
             ~descr:(asprintf "mv: missing operands")
             begin
               eq root root'
             end
         ]
     | "-f" :: args -> interprete {ctx with args}
-    | "-i" :: args -> 
+    | "-i" :: args ->
       under_specifications @@ fun ~root ~root' ->
         [
           error_case
@@ -192,7 +192,7 @@ let interp_mv ctx src dst : utility =
               eq root root'
             end
         ]
-    | [arg] -> 
+    | [arg] ->
       under_specifications @@ fun ~root ~root' ->
         [
           error_case
@@ -202,7 +202,7 @@ let interp_mv ctx src dst : utility =
             end
         ]
     | [src; dst] -> interp_mv ctx src dst
-    | _ -> 
+    | _ ->
       under_specifications @@ fun ~root ~root' ->
         [
           error_case

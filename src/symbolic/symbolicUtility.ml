@@ -47,7 +47,7 @@ let compose_strict (u1:utility) (u2:utility) =
     let (success1,failure1) = separate_states (u1 sta)
     in (apply_to_list success1 u2) @
          (List.map (function sta -> (sta,false)) failure1)
-         
+
 let print_line msg state =
   let open Semantics__Buffers in
   let stdout = Stdout.(output msg state.stdout |> newline) in
@@ -168,7 +168,7 @@ module IdMap = Env.IdMap
 
 type context = {
   args: string list;
-  cwd: Path.t;
+  cwd: Path.normal;
   env: string IdMap.t;
 }
 
@@ -191,8 +191,6 @@ let call name ctx args =
 
 let dispatch' ~name ~cwd ~env ~args sta =
   let ctx =
-    let cwd =
-      let aux s = Path.Down (Feat.from_string s) in
-      Constraints.(Path.Abs (List.map aux cwd)) in
+    let cwd = List.map Feat.from_string cwd in
     {cwd; args; env=Env.to_map env} in
   BatSet.of_list (dispatch ~name ctx sta)
