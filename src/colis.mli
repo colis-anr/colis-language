@@ -38,8 +38,8 @@ module Symbolic : sig
 
   open Constraints
 
-  (** Create a disjunction representing the FS *)
-  val compile_fs_spec : root:Var.t -> FilesystemSpec.t -> NaiveClause.sat_conj list
+  (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
+  val add_fs_spec_to_clause : Var.t -> NaiveClause.sat_conj -> FilesystemSpec.t -> NaiveClause.sat_conj list
 
   (* Create a state corresponding to a conjunction *)
   val to_state : prune_init_state:bool -> root:Var.t -> NaiveClause.sat_conj -> State.state

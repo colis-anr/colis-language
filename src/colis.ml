@@ -38,10 +38,9 @@ module Symbolic = struct
 
   let () = SymbolicUtilities.register ()
 
-  let compile_fs_spec ~root fs_spec =
-    let open Constraints in
-    let clause = FilesystemSpec.compile root fs_spec in
-    Clause.add_to_sat_conj clause Clause.true_sat_conj
+  let add_fs_spec_to_clause root clause fs_spec =
+    let fs_clause = FilesystemSpec.compile root fs_spec in
+    Constraints.Clause.add_to_sat_conj fs_clause clause
 
   let to_state ~prune_init_state ~root clause : State.state =
     let open Semantics in
@@ -226,7 +225,7 @@ let exit_code (_, errors, failures) =
 let run_symbolic config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Symbolic in
   let root = Constraints.Var.fresh ~hint:"r" () in
-  let disj = compile_fs_spec ~root fs_spec in
+  let disj = add_fs_spec_to_clause root Constraints.Clause.true_sat_conj fs_spec in
   let stas = List.map (to_state ~prune_init_state:config.prune_init_state ~root) disj in
   let stas' = List.map (to_symbolic_state ~vars ~arguments) stas in
   let results =
