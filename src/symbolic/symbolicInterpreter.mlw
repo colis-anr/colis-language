@@ -29,25 +29,26 @@ module Filesystem
 end
 
 module Semantics
+  use list.List
   use Filesystem
+  use Constraints
 
   (* Instantiate the concrete semantics with the symbolic filesystem *)
-  clone export semantics.Semantics
-    with type filesystem = filesystem,
-         axiom interp_utility_extends_output
+  clone export semantics.Semantics with
+    type filesystem = filesystem,
+    type cwd = list feature,
+    val default_cwd = Nil,
+    axiom interp_utility_extends_output
 end
 
 
 module SymState
 
   use list.List
-  use semantics.Context
   use Semantics
 
-  (* lemma sem_state_eq: forall s1 s2. *)
-  (*   s1.filesystem = s2.filesystem -> *)
-  (*   (s1 = s2 <-> sem_state s1 = sem_state s2) *)
-
+  (** A symbolic state combines a concrete context and a program state as defined in the
+      semantics with a filesystem using feature constraints. *)
   type sym_state 'a = {
     context: context;
     state: state;
@@ -66,10 +67,11 @@ module Results
   use symbolicAuxiliaries.Fset
   use semantics.Input
   use semantics.Behaviour
-  use semantics.Context
   use Semantics
   use SymState
 
+  (** The results of a symbolic execution is a quadruple of sets of symbolic states, where
+      each components corresponds to a behaviour. *)
   type t 'a = {
     normal: set (sym_state 'a);
     exit: set (sym_state 'a);
@@ -209,16 +211,15 @@ module Interpreter
   use semantics.Buffers
   use semantics.Arguments
   use semantics.Env
-  use semantics.Context
-  use semantics.FilterVarEnv
   use symbolicAuxiliaries.Auxiliaries
   use symbolicAuxiliaries.Fset
-  use Semantics
-  use SymState
+  use Constraints
+  use import Semantics as S
+  use import SymState as St
   use Results as Rs
 
   (* Implemented in OCaml *)
-  val function sym_interp_utility (id:identifier) (cwd:list string) (var_env:env string) (args:list string) (sta:state) : set (state, bool)
+  val function sym_interp_utility (id:identifier) (cwd:list feature) (var_env:env string) (args:list string) (sta:state) : set (state, bool)
     ensures {
       forall res.
       interp_utility var_env sta id args = res <->

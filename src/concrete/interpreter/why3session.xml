@@ -130,7 +130,7 @@
   <proof prover="2"><result status="valid" time="0.30"/></proof>
   </goal>
   <goal name="VC interp_instruction.24" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.46"/></proof>
+  <proof prover="2"><result status="valid" time="0.65"/></proof>
   </goal>
   <goal name="VC interp_instruction.25" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.48"/></proof>
@@ -214,7 +214,7 @@
   <proof prover="2"><result status="valid" time="0.74"/></proof>
   </goal>
   <goal name="VC interp_instruction.52" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.73"/></proof>
+  <proof prover="2"><result status="valid" time="0.98"/></proof>
   </goal>
   <goal name="VC interp_instruction.53" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.79"/></proof>
@@ -223,7 +223,7 @@
   <proof prover="2"><result status="valid" time="0.91"/></proof>
   </goal>
   <goal name="VC interp_instruction.55" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="1.35"/></proof>
+  <proof prover="2"><result status="valid" time="1.05"/></proof>
   </goal>
   <goal name="VC interp_instruction.56" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="1.12"/></proof>
@@ -355,7 +355,7 @@
     <proof prover="2"><result status="valid" time="0.40"/></proof>
     </goal>
     <goal name="VC interp_instruction.73.0.1" expl="apply premises" proved="true">
-    <proof prover="2"><result status="valid" time="0.28"/></proof>
+    <proof prover="2"><result status="valid" time="0.44"/></proof>
     </goal>
    </transf>
    </goal>
@@ -369,7 +369,7 @@
     <proof prover="2" timelimit="1" memlimit="1000"><result status="valid" time="0.33"/></proof>
     </goal>
     <goal name="VC interp_instruction.74.0.1" expl="apply premises" proved="true">
-    <proof prover="2" timelimit="1" memlimit="1000"><result status="valid" time="0.20"/></proof>
+    <proof prover="2" timelimit="1" memlimit="1000"><result status="valid" time="0.37"/></proof>
     </goal>
    </transf>
    </goal>
@@ -380,7 +380,7 @@
    <goal name="VC interp_instruction.75.0" expl="exceptional postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_while_abort" arg2="with" arg3="ctr,last_result">
     <goal name="VC interp_instruction.75.0.0" expl="apply premises" proved="true">
-    <proof prover="2" timelimit="1" memlimit="1000"><result status="valid" time="0.22"/></proof>
+    <proof prover="2" timelimit="1" memlimit="1000"><result status="valid" time="0.35"/></proof>
     </goal>
     <goal name="VC interp_instruction.75.0.1" expl="apply premises" proved="true">
     <proof prover="2" timelimit="1" memlimit="1000"><result status="valid" time="0.25"/></proof>
@@ -412,10 +412,10 @@
   <proof prover="2"><result status="valid" time="0.22"/></proof>
   </goal>
   <goal name="VC interp_str_expr.6" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.29"/></proof>
+  <proof prover="2"><result status="valid" time="0.46"/></proof>
   </goal>
   <goal name="VC interp_str_expr.7" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.47"/></proof>
+  <proof prover="2"><result status="valid" time="0.32"/></proof>
   </goal>
   <goal name="VC interp_str_expr.8" expl="postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.36"/></proof>

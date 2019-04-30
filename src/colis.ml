@@ -11,13 +11,12 @@ module Language = struct
   module FromShell = FromShell
 end
 
-module Semantics = struct
+module Common = struct
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
   module Env = Env
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
-  module Context = Semantics__Context
   module Input = Semantics__Input
 end
 
@@ -25,12 +24,13 @@ module Concrete = struct
   module Filesystem = Interpreter__Filesystem
   module Interpreter = Interpreter__Interpreter
   module State = Interpreter__State
+  module Semantics = Interpreter__Semantics
 end
 
 module Symbolic = struct
   module Filesystem = SymbolicInterpreter__Filesystem
   module FilesystemSpec = FilesystemSpec
-  module State = SymbolicInterpreter__Semantics (* Semantics contais State *)
+  module Semantics = SymbolicInterpreter__Semantics
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
@@ -42,25 +42,23 @@ module Symbolic = struct
     let fs_clause = FilesystemSpec.compile root fs_spec in
     Constraints.Clause.add_to_sat_conj fs_clause clause
 
-  let to_state ~prune_init_state ~root clause : State.state =
-    let open Semantics in
+  let to_state ~prune_init_state ~root clause : Semantics.state =
     let root0 = if prune_init_state then None else Some root in
     let filesystem = {Filesystem.root; clause; root0} in
-    {State.filesystem; stdin=Stdin.empty; stdout=Stdout.empty}
+    {Semantics.filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
     let open Semantics in
     let context =
-      let var_env = Context.add_var_bindings true vars Context.empty_var_env in
-      {Context.empty_context with arguments; var_env; cwd=[]}
+      let var_env = Semantics.add_var_bindings true vars Semantics.empty_var_env in
+      {Semantics.empty_context with arguments; var_env; cwd=[]}
     in
     {SymState.state; context; data=()}
 
   let interp_program ~loop_limit ~stack_size ~argument0 stas' program =
-    let open Semantics in
     let loop_limit = Z.of_int loop_limit in
     let stack_size = Z.of_int stack_size in
-    let inp = { Input.empty with argument0 } in
+    let inp = { Common.Input.empty with argument0 } in
     let normals, errors, failures = Interpreter.interp_program loop_limit stack_size inp (BatSet.of_list stas') program in
     BatSet.(to_list normals, to_list errors, to_list failures)
 end
@@ -130,12 +128,12 @@ let colis_to_file filename colis =
 
 
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
-  let open Semantics in
+  let open Common in
   let open Concrete in
   let input = { Input.empty with argument0 } in
-  let state = State.empty_state () in
+  let state = Interpreter.empty_state () in
   state.arguments := arguments;
-  state.var_env := Context.add_var_bindings true vars Context.empty_var_env;
+  state.var_env := Semantics.add_var_bindings true vars Semantics.empty_var_env;
   Interpreter.interp_program input state colis;
   print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
   exit (if !(state.result) then 0 else 1)
@@ -163,7 +161,7 @@ let print_symbolic_filesystem fmt fs =
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt ?id sta =
-  let open Symbolic.State in
+  let open Symbolic.Semantics in
   begin match id with
     | Some id ->
       fprintf fmt "id: %s@\n" id;
@@ -180,7 +178,7 @@ let print_symbolic_state fmt ?id sta =
       (List.rev sta.stdin)
   end;
   (* Print stdout *)
-  if not (Semantics.Stdout.is_empty sta.stdout) then begin
+  if not (Common.Stdout.is_empty sta.stdout) then begin
     fprintf fmt "stdout: |@\n";
     List.iter (fprintf fmt "  %s@\n")
       (List.rev @@ sta.stdout.lines);

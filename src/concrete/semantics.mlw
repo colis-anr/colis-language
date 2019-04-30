@@ -191,12 +191,7 @@ module Buffers
   type stdout = Stdout.t
 end
 
-(** {2 Contexts for the evaluation}
-
-    NOTES[Evaluation relation]
- *)
-
-(** {2 Read-only context for the evaluation of a term} *)
+(** {2 Read-only context for the evaluation} *)
 module Input
 
   use bool.Bool
@@ -232,94 +227,7 @@ module Env
     ensures { result = M.(env[id <- v]) }
 end
 
-(** {2 The concrete evaluation context}
-
-    The concrete context combines a variable environment, function environment, arguments,
-    and result, and is reused in the concrete semantics, concrete interpreter and symbolic
-    interpreter. *)
-module Context
-
-  use option.Option
-  use map.Map as M
-  use list.List
-
-  use mystring.String
-  use syntax.Syntax
-  use Env
-  use Buffers
-
-  (** A variable environment.
-
-      The values in variable environemnt pair the variable value with its export state. *)
-  type var_env = env var_value
-  with var_value = {value: option string; exported: bool}
-
-  (** Auxiliary function for creating an initial variable environemnt *)
-  let rec add_var_bindings exported bindings env
-    variant { bindings }
-  = match bindings with
-    | Nil -> env
-    | Cons (name, value) bindings' ->
-      add_var_bindings exported bindings' env[name <- {value=Some value; exported=exported}]
-    end
-
-  let constant empty_var_env =
-    empty_env {value=None; exported=False}
-
-  (** A function environment. *)
-  type func_env = env (option instruction)
-
-  let constant empty_func_env : func_env =
-    empty_env None
-
-  type context = {
-    var_env: var_env;
-    func_env: func_env;
-    arguments: list string;
-    result: bool; (* previous result ($?) for input state, current result for output state *)
-    cwd: list string;
-  }
-
-  lemma same_context: forall c1 c2.
-    c1.var_env = c2.var_env ->
-    c1.func_env = c2.func_env ->
-    c1.arguments = c2.arguments ->
-    c1.result = c2.result ->
-    c1.cwd = c2.cwd ->
-    c1 = c2
-
-  let constant empty_context = {
-    var_env = empty_env {value=None; exported=False};
-    func_env = empty_env None;
-    arguments = Nil;
-    result = True;
-    cwd = Nil;
-  }
-
-  let function with_result (res:bool) (ctx:context) : context =
-    ensures { result.var_env = ctx.var_env }
-    ensures { result.func_env = ctx.func_env }
-    ensures { result.arguments = ctx.arguments }
-    ensures { result.result = res }
-    { ctx with result = res }
-end
-
-module FilterVarEnv
-  use option.Option
-  use mystring.String
-  use Context
-  use Env
-
-  val function filter_var_env (env:var_env) : env string
-    (** A specification is not required because the result is not used inside the language
-        but only in utilities which are not specified. *)
-    (* ensures { forall x s. *)
-    (*   env[x] = {value=Some s; exported=True} <-> result[x] = s *)
-    (* } *)
-end
-
 (** {2 Argument lists} *)
-
 module Arguments
   use list.List
   use list.Length
@@ -364,6 +272,7 @@ module Arguments
     shift_arguments n args = None
 end
 
+(** {2 The configuration of the evaluation model} *)
 module Config
 
   use int.Int
@@ -380,46 +289,6 @@ module Config
     ensures { result.loop_limit = loop_limit }
     ensures { result.stack_size = stack_size }
   = { loop_limit = loop_limit; stack_size = stack_size }
-end
-
-(** {2 Evaluation state}
-
-    The evaluation state combines standard input and stdout output with the filesystem.
-    The filesystem is left abstract in the semantics, and instantiated with type unit in
-    the concrete interpreter and with a feature constraint in the symbolic interpreter *)
-module State
-
-  use list.List
-  use mystring.String
-  use syntax.Identifier
-  use Buffers
-  use Env
-
-  type filesystem
-
-  (** The state is unreversable ("following a linear logic") and each internal state should
-      be consumed exactly once *)
-  type state = {
-    filesystem: filesystem;
-    stdin: stdin;
-    stdout: stdout;
-  }
-
-  (** Interprete a command defined in the document *Specification of UNIX Commands*.
-
-      It acts upon the input and irreversable state, and returns a stdout, a behaviour
-      (True/False), and another irreversable state, see also NOTES[Callees] *)
-  val function interp_utility (env string) state identifier (list string) :
-    (state, bool)
-
-  axiom interp_utility_extends_output : forall var_env sta sta' name args b.
-    interp_utility var_env {sta with stdout=Stdout.empty} name args = (sta', b) ->
-    interp_utility var_env sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
-
-  function any_filesystem : unit -> filesystem
-
-  function mk_state (stdin:stdin) (stdout:stdout) : state =
-    { stdin=stdin; stdout=stdout; filesystem=any_filesystem () }
 end
 
 (** {2 Concrete semantics of the CoLiS language} *)
@@ -439,13 +308,111 @@ module Semantics
   use Behaviour
   use Buffers
   use Config
-  use import Env as E
-  use Context
-  use FilterVarEnv
   use Input
+  use import Env as E
 
-  clone export State
-    with axiom interp_utility_extends_output
+  (** {3 The concrete evaluation context}
+
+      The concrete context combines a variable environment, function environment, arguments,
+      and result, and is reused in the concrete semantics, concrete interpreter and symbolic
+      interpreter. *)
+
+  (** A variable environment.
+
+      The values in variable environemnt pair the variable value with its export state. *)
+  type var_env = env var_value
+  with var_value = {value: option string; exported: bool}
+
+  (** Auxiliary function for creating an initial variable environemnt *)
+  let rec add_var_bindings exported bindings env
+    variant { bindings }
+  = match bindings with
+    | Nil -> env
+    | Cons (name, value) bindings' ->
+      add_var_bindings exported bindings' env[name <- {value=Some value; exported=exported}]
+    end
+
+  let constant empty_var_env =
+    empty_env {value=None; exported=False}
+
+  (** A function environment. *)
+  type func_env = env (option instruction)
+
+  let constant empty_func_env : func_env =
+    empty_env None
+
+  type cwd
+  val constant default_cwd : cwd
+
+  type context = {
+    var_env: var_env;
+    func_env: func_env;
+    arguments: list string;
+    result: bool; (* previous result ($?) for input state, current result for output state *)
+    cwd: cwd;
+  }
+
+  lemma same_context: forall c1 c2.
+    c1.var_env = c2.var_env ->
+    c1.func_env = c2.func_env ->
+    c1.arguments = c2.arguments ->
+    c1.result = c2.result ->
+    c1.cwd = c2.cwd ->
+    c1 = c2
+
+  let constant empty_context = {
+    var_env = empty_env {value=None; exported=False};
+    func_env = empty_env None;
+    arguments = Nil;
+    result = True;
+    cwd = default_cwd;
+  }
+
+  let function with_result (res:bool) (ctx:context) : context =
+    ensures { result.var_env = ctx.var_env }
+    ensures { result.func_env = ctx.func_env }
+    ensures { result.arguments = ctx.arguments }
+    ensures { result.result = res }
+    { ctx with result = res }
+
+  val function filter_var_env (env:var_env) : env string
+  (** A specification is not required because the result is not used inside the language
+      but only in utilities which are not specified. *)
+  (* ensures { forall x s. *)
+  (*   env[x] = {value=Some s; exported=True} <-> result[x] = s *)
+  (* } *)
+
+  (** {3 Evaluation state}
+
+      The evaluation state combines standard input and stdout output with the filesystem.
+      The filesystem is left abstract in the semantics, and instantiated with type unit in
+      the concrete interpreter and with a feature constraint in the symbolic interpreter *)
+
+  type filesystem
+
+  (** The state is unreversable ("following a linear logic") and each internal state should
+      be consumed exactly once *)
+  type state = {
+    filesystem: filesystem;
+    stdin: stdin;
+    stdout: stdout;
+  }
+
+  (** Interprete a command defined in the document *Specification of UNIX Commands*.
+ 
+      It acts upon the input and irreversable state, and returns a stdout, a behaviour
+      (True/False), and another irreversable state, see also NOTES[Callees] *)
+  val function interp_utility (env string) state identifier (list string) :
+    (state, bool)
+
+  axiom interp_utility_extends_output : forall var_env sta sta' name args b.
+    interp_utility var_env {sta with stdout=Stdout.empty} name args = (sta', b) ->
+    interp_utility var_env sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
+
+  function any_filesystem : unit -> filesystem
+
+  function mk_state (stdin:stdin) (stdout:stdout) : state =
+    { stdin=stdin; stdout=stdout; filesystem=any_filesystem () }
 
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with
@@ -479,10 +446,10 @@ module Semantics
   (* Reexport mixfix operators. *)
 
   let function ([]) (e:env 'a) (id:identifier) : 'a =
-    Env.(e[id])
+    E.(e[id])
 
   let function ([<-]) (e:env 'a) (id:identifier) (value:'a) : env 'a =
-    Env.(e[id <- value])
+    E.(e[id <- value])
 
   (** Define mixfix operators for variable environments that retain or ignore the
       export_state flag in the environment variable. *)

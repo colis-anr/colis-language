@@ -5,17 +5,10 @@ module semantics.Env
   syntax function ([<-]) "Env.set %1 %2 %3"
 end
 
-module semantics.FilterVarEnv
-  prelude "
-    let filter_var_env env =
-      let open Semantics__Context in
-      env |>
-      Env.filter (fun _ v -> v.exported && v.value <> None) |>
-      Env.map (function {value=Some s; _} -> s | _ -> assert false) \"\"
-  "
-  syntax function filter_var_env "Semantics__FilterVarEnv.filter_var_env %1"
+module interpreter.Semantics
+  syntax function filter_var_env "Env.filter_var_env (fun v -> v.Interpreter__Semantics.exported) (fun v -> v.Interpreter__Semantics.value) %1"
+  syntax function interp_utility "Utilities.interp_utility %1 %2 %3 %4"
 end
 
-module interpreter.Interpreter
-  syntax function S.interp_utility "Utilities.interp_utility (Env.to_map %1) %2 %3 %4"
-end
+(* module interpreter.Interpreter *)
+(* end *)

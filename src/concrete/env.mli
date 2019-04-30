@@ -12,3 +12,5 @@ module IdMap : Map.S with type key = string
 
 (** Conversion to a normal map without default value *)
 val to_map : 'a env -> 'a IdMap.t
+
+val filter_var_env : ('a -> bool) -> ('a -> string option) -> 'a env -> string IdMap.t

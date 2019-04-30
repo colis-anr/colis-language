@@ -11,13 +11,12 @@ module Language : sig
   module FromShell = FromShell
 end
 
-module Semantics : sig
+module Common : sig
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
   module Env = Env
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
-  module Context = Semantics__Context
   module Input = Semantics__Input
 end
 
@@ -25,12 +24,13 @@ module Concrete : sig
   module Filesystem = Interpreter__Filesystem
   module Interpreter = Interpreter__Interpreter
   module State = Interpreter__State
+  module Semantics = Interpreter__Semantics
 end
 
 module Symbolic : sig
   module Filesystem = SymbolicInterpreter__Filesystem
   module FilesystemSpec = FilesystemSpec
-  module State = SymbolicInterpreter__Semantics (* Semantics contais State *)
+  module Semantics = SymbolicInterpreter__Semantics
   module SymState = SymbolicInterpreter__SymState
   module Results = SymbolicInterpreter__Results
   module Interpreter = SymbolicInterpreter__Interpreter
@@ -42,13 +42,13 @@ module Symbolic : sig
   val add_fs_spec_to_clause : Var.t -> NaiveClause.sat_conj -> FilesystemSpec.t -> NaiveClause.sat_conj list
 
   (* Create a state corresponding to a conjunction *)
-  val to_state : prune_init_state:bool -> root:Var.t -> NaiveClause.sat_conj -> State.state
+  val to_state : prune_init_state:bool -> root:Var.t -> NaiveClause.sat_conj -> Semantics.state
 
   (* Create a symbolic states by adding context to a stringe *)
-  val to_symbolic_state : vars:(string * string) list -> arguments:string list -> State.state -> unit SymState.sym_state
+  val to_symbolic_state : vars:(string * string) list -> arguments:string list -> Semantics.state -> unit SymState.sym_state
 
   (* Wrapper around [Symbolic.Interpreter.interp_program] *)
-  val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> unit SymState.sym_state list -> Language.Syntax.program -> (State.state list * State.state list * State.state list)
+  val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> unit SymState.sym_state list -> Language.Syntax.program -> (Semantics.state list * Semantics.state list * Semantics.state list)
 end
 
 type colis = Language.Syntax.program
@@ -112,9 +112,9 @@ type symbolic_config = {
 
 open Symbolic
 
-val print_symbolic_states : initials:State.state list -> (State.state list * State.state list * State.state list) -> unit
+val print_symbolic_states : initials:Semantics.state list -> (Semantics.state list * Semantics.state list * Semantics.state list) -> unit
 
-val exit_code : (State.state list * State.state list * State.state list) -> int
+val exit_code : (Semantics.state list * Semantics.state list * Semantics.state list) -> int
 
 val run_symbolic : symbolic_config -> Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Symbolically executes a Colis program. *)

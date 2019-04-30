@@ -10,12 +10,15 @@ module Filesystem
 end
 
 module Semantics
-  use Filesystem
+  use list.List
+  use mystring.String
 
   (* Instantiate the concrete semantics with our dummy filesystem *)
-  clone export semantics.Semantics
-    with type filesystem = filesystem,
-         axiom interp_utility_extends_output
+  clone export semantics.Semantics with
+    type filesystem = unit,
+    type cwd = list string,
+    val default_cwd = Nil,
+    axiom interp_utility_extends_output
 end
 
 module State
@@ -23,11 +26,10 @@ module State
   use list.List
   use mystring.String
   use Filesystem
-  use semantics.Context as C
   use semantics.Buffers
-  use Semantics as S
+  use import Semantics as S
 
-  type sem_state = S.state
+  type sem_state = state
 
   (** {3 A purely imparative state} *)
 
@@ -39,28 +41,11 @@ module State
     stdin : ref stdin;
     stdout : ref stdout;
     (* Semantics.context *)
-    var_env : ref C.var_env;
-    func_env : C.func_env;
+    var_env : ref var_env;
+    func_env : func_env;
     arguments: ref (list string);
     result : ref bool;
     cwd : ref (list string);
-  }
-
-  let function sem_state (sta:state) : S.state = {
-    S.filesystem = empty;
-    S.stdin = !(sta.stdin);
-    S.stdout = !(sta.stdout);
-  }
-
-  let empty_state () = {
-    filesystem = ref Filesystem.empty;
-    var_env = ref C.empty_var_env;
-    func_env = C.empty_func_env;
-    arguments = ref Nil;
-    stdin = ref Stdin.empty;
-    stdout = ref Stdout.empty;
-    result = ref True;
-    cwd = ref Nil;
   }
 end
 
@@ -85,20 +70,36 @@ module Interpreter
   use semantics.Input
   use semantics.Config
   use semantics.Env as E
-  use semantics.Context as C
-  use semantics.FilterVarEnv
+  use Filesystem as Fs
   use auxiliaries.TakeDrop
   use import Semantics as S
-  use State
+  use import State as St
 
   (** {4 Conversion to `semantics.Context`} *)
 
-  function sem_context (sta:state) : C.context = {
-    C.var_env = !(sta.var_env);
-    C.func_env = sta.func_env;
-    C.arguments = !(sta.arguments);
-    C.result = !(sta.result);
-    C.cwd = !(sta.cwd);
+  let function sem_state (sta:state) : S.state = {
+    S.filesystem = Fs.empty;
+    S.stdin = !(sta.stdin);
+    S.stdout = !(sta.stdout);
+  }
+
+  let empty_state () = {
+    St.filesystem = ref Filesystem.empty;
+    St.var_env = ref S.empty_var_env;
+    St.func_env = S.empty_func_env;
+    St.arguments = ref Nil;
+    St.stdin = ref Stdin.empty;
+    St.stdout = ref Stdout.empty;
+    St.result = ref True;
+    St.cwd = ref Nil;
+  }
+
+  function sem_context (sta:state) : S.context = {
+    S.var_env = !(sta.var_env);
+    S.func_env = sta.func_env;
+    S.arguments = !(sta.arguments);
+    S.result = !(sta.result);
+    S.cwd = !(sta.cwd);
   }
 
   lemma context_same: forall sta1 sta2.
@@ -231,7 +232,7 @@ module Interpreter
 
     | IExport id ->
       let old_env = !(sta.var_env) in
-      let var_val = {old_env[id] with C.exported=True} in
+      let var_val = {old_env[id] with S.exported=True} in
       sta.var_env := old_env[id <- var_val];
       sta.result := True
 
@@ -461,7 +462,7 @@ module Interpreter
     }
   = try
       let fenv = interp_function_definitions sta.func_env pro.function_definitions in
-      interp_instruction inp { sta with func_env = fenv } pro.instruction
+      interp_instruction inp { sta with St.func_env = fenv } pro.instruction
     with
       | EExit -> ()
       | EReturn -> ()

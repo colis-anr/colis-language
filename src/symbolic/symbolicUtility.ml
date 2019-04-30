@@ -189,8 +189,6 @@ let dispatch ~name =
 let call name ctx args =
   dispatch ~name {ctx with args}
 
-let dispatch' ~name ~cwd ~env ~args sta =
-  let ctx =
-    let cwd = List.map Feat.from_string cwd in
-    {cwd; args; env=Env.to_map env} in
+let dispatch' name (cwd:Path.normal) env args sta =
+  let ctx = {cwd; args; env} in
   BatSet.of_list (dispatch ~name ctx sta)

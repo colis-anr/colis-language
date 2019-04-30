@@ -12,7 +12,7 @@ type utility = state -> (state * bool) list
     Colis.Semantics.Context.context that are relevant to the utilities **)
 type context = {
   args: string list; (** Command arguments *)
-  cwd: Constraints.Path.normal; (** Current working directory *)
+  cwd: Path.normal; (** Current working directory *)
   env: string Env.IdMap.t; (** Variable environment *)
 }
 
@@ -103,4 +103,4 @@ val print_utility_trace : string -> state -> state
 (**/**)
 
 (** A wrapper of [dispatch] for use in the Why3 driver *)
-val dispatch' : name:string -> cwd:string list -> env:string Env.env -> args:string list -> state -> (state * bool) BatSet.t
+val dispatch' : string -> Path.normal -> string Env.IdMap.t -> string list -> state -> (state * bool) BatSet.t
