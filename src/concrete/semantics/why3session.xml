@@ -1,41 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE why3session PUBLIC "-//Why3//proof session v5//EN"
 "http://why3.lri.fr/why3session.dtd">
-<why3session shape_version="5">
-<prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="0" steplimit="0" memlimit="0"/>
-<prover id="1" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
-<prover id="2" name="Z3" version="4.6.0" timelimit="0" steplimit="0" memlimit="0"/>
+<why3session shape_version="6">
+<prover id="0" name="Alt-Ergo" version="2.2.0" timelimit="0" steplimit="10" memlimit="0"/>
+<prover id="1" name="CVC4" version="1.6" timelimit="1" memlimit="1000"/>
+<prover id="2" name="Z3" version="4.6.0" timelimit="0" memlimit="0"/>
 <file proved="true">
 <path name=".."/>
 <path name="semantics.mlw"/>
 <theory name="Behaviour" proved="true">
  <goal name="VC eq_behaviour" expl="VC for eq_behaviour" proved="true">
- <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02"/></proof>
+ <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02" steps="2974"/></proof>
  </goal>
 </theory>
 <theory name="Buffers" proved="true">
  <goal name="Stdout.VC to_string" expl="VC for to_string" proved="true">
- <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02"/></proof>
+ <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02" steps="7147"/></proof>
  </goal>
  <goal name="Stdout.VC concat" expl="VC for concat" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC concat.0" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="7126"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="Stdout.VC concat_empty_left" expl="VC for concat_empty_left" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC concat_empty_left.0" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="7337"/></proof>
   </goal>
   <goal name="VC concat_empty_left.1" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC concat_empty_left.1.0" expl="postcondition" proved="true">
-   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
+   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="6814"/></proof>
    </goal>
    <goal name="VC concat_empty_left.1.1" expl="postcondition" proved="true">
-   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.05"/></proof>
+   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.05" steps="8865"/></proof>
    </goal>
   </transf>
   </goal>
@@ -44,15 +44,15 @@
  <goal name="Stdout.VC concat_empty_right" expl="VC for concat_empty_right" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC concat_empty_right.0" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="7383"/></proof>
   </goal>
   <goal name="VC concat_empty_right.1" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC concat_empty_right.1.0" expl="postcondition" proved="true">
-   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
+   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="6865"/></proof>
    </goal>
    <goal name="VC concat_empty_right.1.1" expl="postcondition" proved="true">
-   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
+   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="7278"/></proof>
    </goal>
   </transf>
   </goal>
@@ -61,16 +61,16 @@
  <goal name="Stdout.VC concat_aux" expl="VC for concat_aux" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC concat_aux.0" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="7422"/></proof>
   </goal>
   <goal name="VC concat_aux.1" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC concat_aux.1.0" expl="postcondition" proved="true">
-   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
-   <proof prover="2"><result status="valid" time="0.04"/></proof>
+   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="5631"/></proof>
+   <proof prover="2"><result status="valid" time="0.04" steps="18104"/></proof>
    </goal>
    <goal name="VC concat_aux.1.1" expl="postcondition" proved="true">
-   <proof prover="2"><result status="valid" time="0.02"/></proof>
+   <proof prover="2"><result status="valid" time="0.02" steps="22215"/></proof>
    </goal>
   </transf>
   </goal>
@@ -79,18 +79,18 @@
  <goal name="Stdout.VC concat_assoc" expl="VC for concat_assoc" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC concat_assoc.0" expl="assertion" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="4710"/></proof>
   </goal>
   <goal name="VC concat_assoc.1" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.04" steps="7513"/></proof>
   </goal>
   <goal name="VC concat_assoc.2" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC concat_assoc.2.0" expl="postcondition" proved="true">
-   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="5559"/></proof>
    </goal>
    <goal name="VC concat_assoc.2.1" expl="postcondition" proved="true">
-   <proof prover="2"><result status="valid" time="0.05"/></proof>
+   <proof prover="2"><result status="valid" time="0.05" steps="26052"/></proof>
    </goal>
   </transf>
   </goal>
@@ -99,14 +99,14 @@
 </theory>
 <theory name="Arguments" proved="true">
  <goal name="VC nth_argument" expl="VC for nth_argument" proved="true">
- <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+ <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="4906"/></proof>
  </goal>
  <goal name="VC shift_arguments" expl="VC for shift_arguments" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC shift_arguments.0" expl="variant decrease" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC shift_arguments.0.0" expl="variant decrease" proved="true">
-   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="4003"/></proof>
    </goal>
    <goal name="VC shift_arguments.0.1" expl="variant decrease" proved="true">
    <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
@@ -114,7 +114,7 @@
   </transf>
   </goal>
   <goal name="VC shift_arguments.1" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="3344"/></proof>
   </goal>
   <goal name="VC shift_arguments.2" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
@@ -127,20 +127,20 @@
     <proof prover="0"><result status="valid" time="0.00" steps="10"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.0.2" expl="postcondition" proved="true">
-    <proof prover="0"><result status="valid" time="0.00" steps="12"/></proof>
+    <proof prover="0" steplimit="12"><result status="valid" time="0.00" steps="12"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC shift_arguments.2.1" expl="postcondition" proved="true">
    <transf name="split_vc" proved="true" >
     <goal name="VC shift_arguments.2.1.0" expl="postcondition" proved="true">
-    <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+    <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="4269"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.1.1" expl="postcondition" proved="true">
-    <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03"/></proof>
+    <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.03" steps="3416"/></proof>
     </goal>
     <goal name="VC shift_arguments.2.1.2" expl="postcondition" proved="true">
-    <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02"/></proof>
+    <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02" steps="4660"/></proof>
     </goal>
    </transf>
    </goal>
@@ -149,70 +149,70 @@
  </transf>
  </goal>
  <goal name="shift_arguments_0" proved="true">
- <proof prover="0"><result status="valid" time="0.00" steps="2"/></proof>
+ <proof prover="0" steplimit="2"><result status="valid" time="0.00" steps="2"/></proof>
  </goal>
  <goal name="shift_arguments_cons_some" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="shift_arguments_cons_some.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.01" steps="159"/></proof>
+  <proof prover="0" steplimit="159"><result status="valid" time="0.01" steps="159"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="shift_arguments_cons_none" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="shift_arguments_cons_none.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.01" steps="86"/></proof>
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.08"/></proof>
+  <proof prover="0" steplimit="86"><result status="valid" time="0.01" steps="86"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.08" steps="14647"/></proof>
   </goal>
  </transf>
  </goal>
 </theory>
 <theory name="Config" proved="true">
  <goal name="VC config" expl="VC for config" proved="true">
- <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02"/></proof>
+ <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02" steps="1232"/></proof>
  </goal>
  <goal name="VC mk_config" expl="VC for mk_config" proved="true">
- <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02"/></proof>
+ <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.02" steps="3399"/></proof>
  </goal>
 </theory>
 <theory name="Semantics" proved="true">
  <goal name="VC add_var_bindings" expl="VC for add_var_bindings" proved="true">
- <proof prover="1"><result status="valid" time="0.10"/></proof>
+ <proof prover="1"><result status="valid" time="0.10" steps="22300"/></proof>
  </goal>
  <goal name="same_context" proved="true">
- <proof prover="1"><result status="valid" time="0.07"/></proof>
+ <proof prover="1"><result status="valid" time="0.07" steps="19054"/></proof>
  </goal>
  <goal name="VC with_result" expl="VC for with_result" proved="true">
- <proof prover="1"><result status="valid" time="0.04"/></proof>
+ <proof prover="1"><result status="valid" time="0.04" steps="16577"/></proof>
  </goal>
  <goal name="VC behaviour" expl="VC for behaviour" proved="true">
- <proof prover="1"><result status="valid" time="0.05"/></proof>
+ <proof prover="1"><result status="valid" time="0.05" steps="19289"/></proof>
  </goal>
  <goal name="VC no_while_failure" expl="VC for no_while_failure" proved="true">
- <proof prover="1"><result status="valid" time="0.26"/></proof>
+ <proof prover="1"><result status="valid" time="0.26" steps="57088"/></proof>
  </goal>
  <goal name="VC interp_function_definitions" expl="VC for interp_function_definitions" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="VC interp_function_definitions.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.24"/></proof>
+  <proof prover="1"><result status="valid" time="0.24" steps="60239"/></proof>
   </goal>
   <goal name="VC interp_function_definitions.1" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC interp_function_definitions.1.0" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.27"/></proof>
+   <proof prover="1"><result status="valid" time="0.27" steps="56602"/></proof>
    </goal>
    <goal name="VC interp_function_definitions.1.1" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.32"/></proof>
+   <proof prover="1"><result status="valid" time="0.17" steps="56678"/></proof>
    </goal>
   </transf>
   </goal>
  </transf>
  </goal>
  <goal name="eval_foreach_nil" proved="true">
- <proof prover="1"><result status="valid" time="0.26"/></proof>
+ <proof prover="1"><result status="valid" time="0.26" steps="56811"/></proof>
  </goal>
  <goal name="VC eval_foreach_concat" expl="VC for eval_foreach_concat" proved="true">
- <proof prover="1"><result status="valid" time="0.31"/></proof>
+ <proof prover="1"><result status="valid" time="0.31" steps="74056"/></proof>
  </goal>
  <goal name="VC eval_foreach_last" expl="VC for eval_foreach_last" proved="true">
  <transf name="split_vc" proved="true" >
@@ -231,24 +231,24 @@
         <goal name="VC eval_foreach_last.0.0.0.0.0.0.0" expl="postcondition" proved="true">
         <transf name="destruct_term_subst" proved="true" arg1="bhv2">
          <goal name="VC eval_foreach_last.0.0.0.0.0.0.0.0" expl="postcondition" proved="true">
-         <proof prover="1"><result status="valid" time="0.15"/></proof>
+         <proof prover="1"><result status="valid" time="0.15" steps="54179"/></proof>
          </goal>
          <goal name="VC eval_foreach_last.0.0.0.0.0.0.0.1" expl="postcondition" proved="true">
-         <proof prover="1"><result status="valid" time="0.22"/></proof>
+         <proof prover="1"><result status="valid" time="0.22" steps="54179"/></proof>
          </goal>
          <goal name="VC eval_foreach_last.0.0.0.0.0.0.0.2" expl="postcondition" proved="true">
-         <proof prover="1"><result status="valid" time="0.23"/></proof>
+         <proof prover="1"><result status="valid" time="0.23" steps="54179"/></proof>
          </goal>
          <goal name="VC eval_foreach_last.0.0.0.0.0.0.0.3" expl="postcondition" proved="true">
          <transf name="apply" proved="true" arg1="eval_foreach_step" arg2="with" arg3="ctx2,sta2,s,(Nil:list string)">
           <goal name="VC eval_foreach_last.0.0.0.0.0.0.0.3.0" expl="apply premises" proved="true">
-          <proof prover="1"><result status="valid" time="0.15"/></proof>
+          <proof prover="1"><result status="valid" time="0.15" steps="50004"/></proof>
           </goal>
           <goal name="VC eval_foreach_last.0.0.0.0.0.0.0.3.1" expl="apply premises" proved="true">
-          <proof prover="1"><result status="valid" time="0.23"/></proof>
+          <proof prover="1"><result status="valid" time="0.23" steps="53505"/></proof>
           </goal>
           <goal name="VC eval_foreach_last.0.0.0.0.0.0.0.3.2" expl="apply premises" proved="true">
-          <proof prover="1"><result status="valid" time="0.17"/></proof>
+          <proof prover="1"><result status="valid" time="0.17" steps="60498"/></proof>
           </goal>
          </transf>
          </goal>
@@ -265,10 +265,10 @@
    </transf>
    </goal>
    <goal name="VC eval_foreach_last.0.1" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.15"/></proof>
+   <proof prover="1"><result status="valid" time="0.15" steps="55752"/></proof>
    </goal>
    <goal name="VC eval_foreach_last.0.2" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.15"/></proof>
+   <proof prover="1"><result status="valid" time="0.15" steps="55953"/></proof>
    </goal>
   </transf>
   </goal>
@@ -289,24 +289,24 @@
          <goal name="VC eval_foreach_last.1.0.0.0.0.0.0.0" expl="postcondition" proved="true">
          <transf name="apply" proved="true" arg1="eval_foreach_step" arg2="with" arg3="ctx2,sta2,s,(Nil:list string)">
           <goal name="VC eval_foreach_last.1.0.0.0.0.0.0.0.0" expl="apply premises" proved="true">
-          <proof prover="0" timelimit="1" memlimit="1000"><result status="valid" time="0.07" steps="12"/></proof>
+          <proof prover="0" timelimit="1" steplimit="12" memlimit="1000"><result status="valid" time="0.07" steps="12"/></proof>
           </goal>
           <goal name="VC eval_foreach_last.1.0.0.0.0.0.0.0.1" expl="apply premises" proved="true">
-          <proof prover="1"><result status="valid" time="0.25"/></proof>
+          <proof prover="1"><result status="valid" time="0.25" steps="55069"/></proof>
           </goal>
           <goal name="VC eval_foreach_last.1.0.0.0.0.0.0.0.2" expl="apply premises" proved="true">
-          <proof prover="1"><result status="valid" time="0.14"/></proof>
+          <proof prover="1"><result status="valid" time="0.14" steps="62025"/></proof>
           </goal>
          </transf>
          </goal>
          <goal name="VC eval_foreach_last.1.0.0.0.0.0.0.1" expl="postcondition" proved="true">
-         <proof prover="1"><result status="valid" time="0.16"/></proof>
+         <proof prover="1"><result status="valid" time="0.16" steps="55261"/></proof>
          </goal>
          <goal name="VC eval_foreach_last.1.0.0.0.0.0.0.2" expl="postcondition" proved="true">
-         <proof prover="1"><result status="valid" time="0.16"/></proof>
+         <proof prover="1"><result status="valid" time="0.16" steps="55261"/></proof>
          </goal>
          <goal name="VC eval_foreach_last.1.0.0.0.0.0.0.3" expl="postcondition" proved="true">
-         <proof prover="1"><result status="valid" time="0.29"/></proof>
+         <proof prover="1"><result status="valid" time="0.16" steps="55261"/></proof>
          </goal>
         </transf>
         </goal>
@@ -321,10 +321,10 @@
    </transf>
    </goal>
    <goal name="VC eval_foreach_last.1.1" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.37"/></proof>
+   <proof prover="1"><result status="valid" time="0.37" steps="62812"/></proof>
    </goal>
    <goal name="VC eval_foreach_last.1.2" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.33"/></proof>
+   <proof prover="1"><result status="valid" time="0.33" steps="77456"/></proof>
    </goal>
   </transf>
   </goal>
