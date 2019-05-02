@@ -1,4 +1,4 @@
-open Misc
+open Common
 
 let yaml_of_string = Yaml.of_string_exn
 open Protocol_conv_yaml
@@ -34,7 +34,7 @@ let load_from_file filename =
       in_channel_to_string ichan
       |> yaml_of_string
       |> promote_null_to_empty_string
-      |> of_yaml
+      |> of_yaml_exn
     in
     close_in ichan;
     yaml

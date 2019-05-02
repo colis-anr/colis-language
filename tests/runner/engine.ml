@@ -1,4 +1,4 @@
-open Misc
+open Common
 
 let indent s =
   "  > " ^ String.(concat "\n  > " (split_on_char '\n' s))
@@ -9,7 +9,7 @@ let run_test filename : (unit, string) Result.result =
 
   begin
     try
-      Ok (Meta.load_from_file
+      Ok (MetaFile.load_from_file
             (Filename.concat !Options.directory ((Filename.remove_extension filename) ^ ".meta")))
     with Sys_error _ -> Error ("Meta file missing for `" ^ filename ^ "`")
   end
