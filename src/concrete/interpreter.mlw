@@ -62,7 +62,7 @@ module Interpreter
   use int.Int
   use ref.Refint
 
-  use auxiliaries.Auxiliaries
+  use auxiliaries.OptionGet
   use mystring.String
   use syntax.Syntax
   use semantics.Buffers

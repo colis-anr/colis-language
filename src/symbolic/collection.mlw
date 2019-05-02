@@ -6,11 +6,19 @@ module Collection
 
   val predicate mem (x: 'a) (c: t 'a)
 
+  predicate (==) (s1 s2: t 'a) = forall x: 'a. mem x s1 <-> mem x s2
+
+  axiom extensionality:
+    forall s1 s2: t 'a. s1 == s2 -> s1 = s2
+
   function as_set (c: t 'a) : Fset.fset 'a
+
+  axiom as_set_def: forall x: 'a, c. mem x c <-> Fset.mem x (as_set c)
 
   meta coercion function as_set
 
-  axiom as_set_def: forall x: 'a, c. mem x c <-> Fset.mem x (as_set c)
+  axiom mem_def: forall x: 'a, c.
+    mem x c <-> Fset.mem x c.as_set
 
   val constant empty : t 'a
     ensures { forall x. not mem x result }
@@ -38,10 +46,16 @@ module Collection
     ensures { forall x. mem x pos -> p x /\ mem x c }
     ensures { forall x. mem x neg -> not p x /\ mem x c }
 
-  val union (c1 c2: t 'a) : t 'a
+  val function union (c1 c2: t 'a) : t 'a
     ensures { forall x. mem x c1 -> mem x result }
     ensures { forall x. mem x c2 -> mem x result }
     ensures { forall x. mem x result -> mem x c1 \/ mem x c2 }
+
+  lemma union_empty_left: forall c: t 'a.
+    union empty c = c
+
+  lemma union_empty_right: forall c: t 'a.
+    union c empty = c
 
   val fold (f: 'a -> 'b -> 'b) (c: t 'a) (init: 'b) : 'b
 

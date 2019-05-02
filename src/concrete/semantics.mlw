@@ -303,7 +303,7 @@ module Semantics
   use mystring.String
   use syntax.Syntax
 
-  use auxiliaries.Auxiliaries
+  use auxiliaries.OptionGet
   use Arguments
   use Behaviour
   use Buffers
