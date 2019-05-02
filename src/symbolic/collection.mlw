@@ -1,0 +1,51 @@
+module Collection
+  use list.List as List
+  use set.Fset as Fset
+
+  type t 'a
+
+  val predicate mem (x: 'a) (c: t 'a)
+
+  function as_set (c: t 'a) : Fset.fset 'a
+
+  meta coercion function as_set
+
+  axiom as_set_def: forall x: 'a, c. mem x c <-> Fset.mem x (as_set c)
+
+  val constant empty : t 'a
+    ensures { forall x. not mem x result }
+
+  val add (x: 'a) (c: t 'a) : t 'a
+    ensures { mem x result }
+    ensures { forall y. mem y c -> mem y result }
+    ensures { forall y. mem y result -> x = y \/ mem y c }
+
+  val singleton (x: 'a) : t 'a
+    ensures { mem x result }
+    ensures { forall y. mem y result -> y = x }
+
+  val map (f: 'a -> 'b) (c: t 'a) : t 'b
+    ensures { forall x. mem x c -> mem (f x) result }
+    ensures { forall y. mem y result -> exists x. mem x c /\ y = f x }
+
+  val filter (p: 'a -> bool) (c: t 'a) : t 'a
+    ensures { forall x. mem x c -> p x -> mem x result }
+    ensures { forall x. not p x -> not mem x result }
+    ensures { forall x. mem x result -> p x /\ mem x c }
+
+  val partition (p: 'a -> bool) (c: t 'a) : (pos: t 'a, neg: t 'a)
+    ensures { forall x. mem x c -> mem x pos \/ mem x neg }
+    ensures { forall x. mem x pos -> p x /\ mem x c }
+    ensures { forall x. mem x neg -> not p x /\ mem x c }
+
+  val union (c1 c2: t 'a) : t 'a
+    ensures { forall x. mem x c1 -> mem x result }
+    ensures { forall x. mem x c2 -> mem x result }
+    ensures { forall x. mem x result -> mem x c1 \/ mem x c2 }
+
+  val fold (f: 'a -> 'b -> 'b) (c: t 'a) (init: 'b) : 'b
+
+  val bind (f: 'a -> t 'b) (c: t 'a) : t 'b
+    ensures { forall x. mem x c -> forall y. mem y (f x) -> mem y result }
+    ensures { forall y. mem y result -> exists x. mem x c /\ mem y (f x) }
+end

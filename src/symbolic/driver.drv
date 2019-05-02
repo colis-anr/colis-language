@@ -14,21 +14,16 @@ module symbolicInterpreter.Interpreter
   syntax val sym_interp_utility "SymbolicUtility.dispatch' %1 %2 %3 %4 %5"
 end
 
-module symbolicAuxiliaries.Fset
-  syntax type set "%1 BatSet.t"
-  syntax val (==) "BatSet.equal %1 %2"
-  syntax val singleton "BatSet.singleton %1"
-  syntax val add "BatSet.add %1 %2"
-  syntax val empty "BatSet.empty"
-  syntax val map "BatSet.map %1 %2"
-  syntax val fold "BatSet.fold %1 %2 %3"
-  syntax val filter "BatSet.filter %1 %2"
-  syntax val bind "BatSet.fold BatSet.union (BatSet.map %1 %2) BatSet.empty"
-  syntax val partition "BatSet.partition %1 %2"
-  syntax val to_list "BatSet.elements %1"
-  syntax val of_list "BatSet.of_list %1"
-  syntax val choose "BatSet.choose %1"
-  syntax val remove "BatSet.remove %1 %2"
-  syntax val union "BatSet.union %1 %2"
-  syntax val is_empty "BatSet.is_empty %1"
+module collection.Collection
+  syntax type t "%1 list"
+  syntax val mem "List.mem %1 %2"
+  syntax val empty "[]"
+  syntax val add "%1 :: %2"
+  syntax val singleton "[%1]"
+  syntax val map "List.map %1 %2"
+  syntax val filter "List.filter %1 %2"
+  syntax val partition "List.partition %1 %2"
+  syntax val union "List.rev_append %1 %2"
+  syntax val fold "List.fold_right %1 %2 %3"
+  syntax val bind "List.concat (List.map %1 %2)"
 end
