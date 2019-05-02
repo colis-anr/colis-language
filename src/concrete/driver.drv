@@ -10,5 +10,3 @@ module interpreter.Semantics
   syntax function interp_utility "Utilities.interp_utility %1 %2 %3 %4"
 end
 
-(* module interpreter.Interpreter *)
-(* end *)
