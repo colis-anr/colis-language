@@ -169,24 +169,79 @@ module Results
   = let aux sta = {state=sta; context=ctx; data=()} in
     {empty with failure=Cn.map aux stas}
 
-  let function is_state_behaviour (inp:input) (bhv:behaviour) : sym_state 'a -> bool = fun sta ->
-    eq_behaviour bhv
-      (behaviour inp sta.context.result)
+  let function single_behaviour bhv (stas: Cn.t (sym_state 'a)) : t 'a =
+    match bhv with
+    | BNormal -> {empty with normal=stas}
+    | BExit -> {empty with exit=stas}
+    | BReturn -> {empty with return_=stas}
+    | BFailure -> {empty with failure=stas}
+    end
 
-  lemma state_behaviour_normal_exit: forall inp bhv, sta: sym_state 'a.
-    is_state_behaviour inp bhv sta = True ->
-    (bhv <> BReturn /\ bhv <> BFailure)
+  let function inject (inp: input) (stas: Cn.t (sym_state 'a)) : t 'a
+    (* ensures { forall sta bhv. mem sta bhv result <-> Cn.mem sta stas /\ bhv = behaviour inp sta.context.result } *)
+    (* ensures { stas = Cn.union result.normal result.exit by Cn.(stas == union result.normal result.exit) } *)
+    (* ensures { forall s. Cn.mem s result.normal -> Cn.mem s stas /\ behaviour inp s.context.result = BNormal } *)
+    (* ensures { forall s. Cn.mem s result.exit -> Cn.mem s stas /\ behaviour inp s.context.result = BExit } *)
+    (* ensures { result.return_ = Cn.empty } *)
+    (* ensures { result.failure = Cn.empty } *)
+  = let exit, normal = Cn.partition (fun sta -> exit_not_normal inp sta.context.result) stas in
+    (* assert { forall sta. Cn.mem sta exit -> exit_not_normal inp sta.context.result = True }; *)
+    (* assert { forall sta. Cn.mem sta normal -> exit_not_normal inp sta.context.result = False }; *)
+    {empty with normal=normal; exit=exit}
+    (* ensures { forall sta bhv. mem sta bhv result -> Cn.mem sta normal \/ Cn.mem sta exit } *)
 
-  let function inject (inp:input) (stas:Cn.t (sym_state 'a)) : t 'a
-    ensures { stas = Cn.union result.normal result.exit by Cn.(stas == union result.normal result.exit) }
-    ensures { forall s. Cn.mem s result.normal -> Cn.mem s stas /\ behaviour inp s.context.result = BNormal }
-    ensures { forall s. Cn.mem s result.exit -> Cn.mem s stas /\ behaviour inp s.context.result = BExit }
-    ensures { result.return_ = Cn.empty }
-    ensures { result.failure = Cn.empty }
-  = {normal = Cn.filter (is_state_behaviour inp BNormal) stas;
-     exit = Cn.filter (is_state_behaviour inp BExit) stas;
-     return_ = Cn.empty;
-     failure = Cn.empty}
+  lemma mem_inject: forall res: t 'a, sta bhv inp stas.
+    res = inject inp stas ->
+    (mem sta bhv res <-> Cn.mem sta stas /\ bhv = behaviour inp sta.context.result)
+
+  lemma inject_normal_union_exit: forall inp, stas: Cn.t (sym_state 'a).
+    stas = Cn.union (inject inp stas).normal (inject inp stas).exit
+    by Cn.(stas == union (inject inp stas).normal (inject inp stas).exit)
+
+  lemma inject_under_condition_normal: forall res: t 'a, inp stas.
+    res = inject inp stas ->
+    inp.under_condition = True ->
+    res.normal = stas
+    by Cn.(res.normal == stas)
+
+  lemma inject_under_condition_exit: forall inp, stas: Cn.t (sym_state 'a).
+    inp.under_condition = True ->
+    (inject inp stas).exit = Cn.empty
+    by Cn.((inject inp stas).exit == Cn.empty)
+
+  lemma inject_outside_condition_normal: forall inp, stas: Cn.t (sym_state 'a).
+    inp.under_condition = False ->
+    (inject inp stas).normal = Cn.filter (fun sta -> sta.context.result) stas
+    by Cn.((inject inp stas).normal == filter (fun sta -> sta.context.result) stas)
+
+  lemma inject_outside_condition_exit: forall inp, stas: Cn.t (sym_state 'a).
+    inp.under_condition = False ->
+    (inject inp stas).exit = Cn.filter (fun sta -> not sta.context.result) stas
+    by Cn.((inject inp stas).exit == filter (fun sta -> not sta.context.result) stas)
+
+  lemma inject_map: forall f: sym_state 'a -> sym_state 'b, res inp sta sta' bhv stas.
+    res = inject inp (Cn.map f stas) ->
+    sta' = f sta ->
+    bhv = behaviour inp (f sta).context.result ->
+    Cn.mem sta stas ->
+    mem sta' bhv res
+
+  lemma inject_map': forall f: sym_state 'a -> sym_state 'b, res inp sta' bhv stas.
+    res = inject inp (Cn.map f stas) ->
+    mem sta' bhv res ->
+    bhv = behaviour inp sta'.context.result /\
+    exists sta. Cn.mem sta stas /\ sta' = f sta
+
+  lemma union_inject: forall res: t 'a, inp stas.
+    res = inject inp stas ->
+    stas = Cn.union res.normal res.exit
+    by
+    Cn.(stas == union res.normal res.exit)
+
+  lemma mem_union_inject: forall sta: sym_state 'a, bhv inp stas rs.
+    mem sta bhv (union (inject inp stas) rs) <->
+    ((Cn.mem sta stas /\ bhv = behaviour inp sta.context.result) \/
+     mem sta bhv rs)
 
   lemma mem_union: forall sta bhv, rs1 rs2:t 'a.
     mem sta bhv (union rs1 rs2) <->
@@ -222,15 +277,6 @@ module Results
      | BReturn  -> Cn.mem sta rs2.return_
      | BFailure -> Cn.mem sta rs2.failure
      end)
-
-  lemma mem_inject: forall sta: sym_state 'a, bhv inp stas.
-    mem sta bhv (inject inp stas) <->
-    Cn.mem sta stas /\ is_state_behaviour inp bhv sta
-
-  lemma mem_union_inject: forall sta: sym_state 'a, bhv inp stas rs.
-    mem sta bhv (union (inject inp stas) rs) <->
-    ((Cn.mem sta stas /\ is_state_behaviour inp bhv sta) \/
-     mem sta bhv rs)
 end
 
 module Interpreter
@@ -526,6 +572,12 @@ module Interpreter
         Rs.inject inp
           Cn.(map for_call_result
                (bind call_utility res))
+        ensures {
+          forall sta' sta'' ss b.
+          eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) ->
+          (sta'', b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' ->
+          Rs.mem {state=sta''; context=with_result b ctx; data=()} (behaviour inp b) result
+        }
       in
       let res_failures' =
         Rs.stas_as_failures ctx res_failures
@@ -562,12 +614,44 @@ module Interpreter
                 return_ = Cn.empty;
               })
         | None -> (* Undefined function *)
-            let set_res arg =
-              let sta', _ = arg in
-              let ctx' = with_result False ctx in
-              {state = sta'; context = ctx'; data = ()}
+            let function f arg =
+              let sta, (_: list string) = arg in
+              {state=sta; context=with_result False ctx; data=()}
             in
-            Rs.inject inp (Cn.map set_res arg_res)
+            let arg_res' =
+              Cn.map f arg_res
+              ensures {
+                forall sta ss.
+                Cn.mem (sta, ss) arg_res ->
+                Cn.mem {state=sta; context=with_result False ctx; data=()} result
+                by
+                Cn.mem (f (sta, ss)) result
+              }
+              ensures {
+                forall sta'.
+                Cn.mem sta' result ->
+                exists sta ss.
+                Cn.mem (sta, ss) arg_res /\ sta'.state = sta
+              }
+              ensures {
+                forall sta' ss.
+                eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) ->
+                ctx.func_env[id] = None ->
+                Cn.mem {state=sta'; context=with_result False ctx; data=()} result
+              }
+            in
+            Rs.single_behaviour (behaviour inp False) arg_res'
+            ensures {
+              forall sta' ss.
+              eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) ->
+              ctx.func_env[id] = None ->
+              Rs.mem {state=sta'; context=with_result False ctx; data=()} (behaviour inp False) result
+              by
+              if inp.under_condition then
+                Cn.mem {state=sta'; context=with_result False ctx; data=()} result.Rs.normal
+              else
+                Cn.mem {state=sta'; context=with_result False ctx; data=()} result.Rs.exit
+            }
         end
       in
       let res_failures = Rs.stas_as_failures ctx arg_res_failures in
