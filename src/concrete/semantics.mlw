@@ -533,13 +533,12 @@ module Semantics
     eval_instruction stk (cnf, inp, ctx, sta) ins1 (sta1, ctx1, bhv) ->
     eval_instruction stk (cnf, inp, ctx, sta) (ISequence ins1 ins2) (sta1, ctx1, bhv)
   
-  | eval_subshell: forall stk cnf inp sta sta' ctx ctx'' ins bhv b.
+  | eval_subshell: forall stk cnf inp sta sta' ctx ctx' ins bhv.
     bhv <> BFailure ->
-    (* Subshells don’t increase the stack, OK? *)
-    eval_instruction stk (cnf, inp, ctx, sta) ins (sta', {ctx'' with result = b}, bhv) ->
-    let ctx' = with_result b ctx in
-    let bhv' = behaviour inp ctx''.result in
-    eval_instruction stk (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx', bhv')
+    eval_instruction stk (cnf, inp, ctx, sta) ins (sta', ctx', bhv) ->
+    let ctx'' = with_result ctx'.result ctx in
+    let bhv' = behaviour inp ctx'.result in
+    eval_instruction stk (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx'', bhv')
 
   | eval_subshell_failure: forall stk cnf inp sta sta' ctx ctx' ins.
     eval_instruction stk (cnf, inp, ctx, sta) ins (sta', ctx', BFailure) ->
