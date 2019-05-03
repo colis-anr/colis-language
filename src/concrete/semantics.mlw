@@ -419,17 +419,22 @@ module Semantics
     | RPrevious -> previous
     end
 
+  let function exit_not_normal inp result =
+    andb (strict inp.under_condition) (notb result)
+
   let function behaviour (inp:input) (result:bool) : behaviour
-    ensures { result = BNormal \/ result = BExit }
-    returns {
-      | BNormal ->
-        inp.under_condition = True \/ result = True
-      | BExit ->
-        inp.under_condition = False /\ result = False
-      | BReturn | BFailure ->
-        false
-    }
-  = if andb (strict inp.under_condition) (notb result)
+    (* ensures { result = BNormal \/ result = BExit } *)
+    (* ensures { *)
+    (*   match result with *)
+    (*   | BNormal -> *)
+    (*     inp.under_condition = True \/ result = True *)
+    (*   | BExit -> *)
+    (*     inp.under_condition = False /\ result = False *)
+    (*   | BReturn | BFailure -> *)
+    (*     false *)
+    (*   end *)
+    (* } *)
+  = if exit_not_normal inp result
     then BExit
     else BNormal
 
@@ -613,7 +618,7 @@ module Semantics
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta', ss) ->
     ctx.func_env[id] = None ->
     let ctx' = with_result False ctx in
-    let bhv = behaviour inp ctx'.result in
+    let bhv = behaviour inp False in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta', ctx', bhv)
 
   | eval_call_function_stack_limit: forall stk cnf inp ctx sta sta1 id es args ins.
