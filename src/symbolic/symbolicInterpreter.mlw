@@ -210,8 +210,8 @@ module Interpreter
   use option.Option
   use int.Int
   use list.List
+  use list.ListRich as L
   use set.Fset
-  use list.Append
   use mystring.String
   use syntax.Syntax
   use auxiliaries.OptionGet
@@ -235,6 +235,27 @@ module Interpreter
       Fset.mem res result
     }
 
+  let rec separate_options' (sta_opts: list (state, option 'a)) : (results: list (state, 'a), failures: list state)
+    variant { sta_opts }
+    ensures {
+      forall sta x.
+      L.mem (sta, x) results <->
+      L.mem (sta, Some x) sta_opts
+    }
+    ensures {
+      forall sta.
+      L.mem sta failures <->
+      L.mem (sta, None) sta_opts
+    }
+  = match sta_opts with
+    | Nil -> Nil, Nil
+    | Cons (sta, opt_x) sta_opts' -> 
+      let results, failures = separate_options' sta_opts' in
+      match opt_x with
+      | Some x -> Cons (sta, x) results, failures
+      | None -> results, Cons sta failures
+      end
+    end
 
   let separate_options (sta_opts: Cn.t (state, option 'a)) : (results: Cn.t (state, 'a), failures: Cn.t state)
     ensures {
@@ -247,14 +268,8 @@ module Interpreter
       mem sta failures <->
       mem (sta, None) sta_opts
     }
-  = let f arg sofar =
-      let results, failures = sofar in
-      match arg with
-      | sta, Some x -> Cn.add (sta, x) results, failures
-      | sta, None -> results, Cn.add sta failures
-      end
-    in
-    Cn.fold f sta_opts (Cn.empty, Cn.empty)
+  = let results, failures = separate_options' (Cn.to_list sta_opts) in
+    Cn.of_list results, Cn.of_list failures
 
   let function get_some (o: option 'a) : 'a
     requires { o <> None }
@@ -333,7 +348,7 @@ module Interpreter
 
   let function state_concat strs1 arg =
     let sta2, strs2 = arg in
-    sta2, Some (strs1++strs2)
+    sta2, Some L.(strs1++strs2)
 
   let function assignment_for_str_sta ctx var arg =
     let sta', (str, result) = arg in
