@@ -1,4 +1,5 @@
 module Collection
+
   use list.ListRich as L
   use set.Fset as S
 
@@ -7,26 +8,20 @@ module Collection
   (** Membership is all we have to characterize a collection *)
   val predicate mem (x: 'a) (c: t 'a)
 
-  predicate (==) (s1 s2: t 'a) = forall x: 'a. mem x s1 <-> mem x s2
+  predicate (==) (s1 s2: t 'a) =
+    forall x: 'a. mem x s1 <-> mem x s2
 
   (* Can it be a lemma? Would require propositional extensionality? *)
-  axiom extensionality:
-    forall s1 s2: t 'a. s1 == s2 -> s1 = s2
-
-  val function to_list (c: t 'a) : L.list 'a
-    ensures { forall x: 'a, c.
-      mem x c <-> L.mem x result
-    }
+  axiom extensionality: forall s1 s2: t 'a. s1 == s2 -> s1 = s2
 
   val function of_list (l: L.list 'a) : t 'a
-    ensures { forall x: 'a, l.
-      L.mem x l <-> mem x result
-    }
+    ensures { forall x. L.mem x l <-> mem x result }
+
+  val function to_list (c: t 'a) : L.list 'a
+    ensures { forall x. mem x c <-> L.mem x result }
 
   val constant empty : t 'a
-    ensures { forall x.
-      not mem x result
-    }
+    ensures { forall x. not mem x result }
 
   val add (x: 'a) (c: t 'a) : t 'a
     ensures { mem x result }
@@ -61,8 +56,6 @@ module Collection
 
   lemma union_empty_right: forall c: t 'a.
     union c empty = c
-
-  val fold (f: 'a -> 'b -> 'b) (c: t 'a) (init: 'b) : 'b
 
   val bind (f: 'a -> t 'b) (c: t 'a) : t 'b
     ensures { forall x. mem x c -> forall y. mem y (f x) -> mem y result }
