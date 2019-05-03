@@ -66,6 +66,7 @@ module Results
 
   use set.Fset as Fset
   use collection.Collection as Cn
+  use list.ListRich as L
   use semantics.Input
   use semantics.Behaviour
   use Semantics
@@ -112,8 +113,36 @@ module Results
       return_ = Cn.union res1.return_ res2.return_;
       failure = Cn.union res1.failure res2.failure; }
 
-  let bind_collection (f: 'a -> t 'b) (c: Cn.t 'a) : t 'b =
-    Cn.fold union (Cn.map f c) empty
+  let rec flatten_list (l: L.list (t 'a)) : t 'a
+    variant { l }
+    ensures { forall res sta bhv. L.mem res l -> mem sta bhv res -> mem sta bhv result }
+    ensures { forall sta bhv. mem sta bhv result -> exists res. L.mem res l /\ mem sta bhv res }
+  = match l with
+    | L.Nil -> empty
+    | L.Cons rs l' ->
+      union rs (flatten_list l')
+    end
+
+  let flatten (c: Cn.t (t 'a)) : t 'a
+    ensures { forall res sta bhv. Cn.mem res c -> mem sta bhv res -> mem sta bhv result }
+    ensures { forall sta bhv. mem sta bhv result -> exists res. Cn.mem res c /\ mem sta bhv res }
+  = flatten_list (Cn.to_list c)
+
+  let bind_collection (f: 'a -> t 'b) (c: Cn.t 'a) : t 'b
+    ensures {
+      forall x sta bhv.
+      Cn.mem x c ->
+      mem sta bhv (f x) ->
+      mem sta bhv result
+    }
+    ensures {
+      forall sta bhv.
+      mem sta bhv result ->
+      exists x.
+      Cn.mem x c /\
+      mem sta bhv (f x)
+    }
+  = flatten (Cn.map f c)
 
   let separate_normal (res:t 'a) : (normal: Cn.t (sym_state 'a), other: t 'a)
     ensures { normal = res.normal }
@@ -418,7 +447,8 @@ module Interpreter
         let ctx' =
           let var_val = {ctx.var_env[id] with exported=True} in
           let var_env' = ctx.var_env[id <- var_val] in
-          {ctx with var_env = var_env'; result = True} in
+          {ctx with var_env = var_env'; result = True}
+        in
         {state = sta; context = ctx'; data=()}
       in
       Rs.({empty with normal = Cn.singleton sta'})
@@ -436,6 +466,12 @@ module Interpreter
         Rs.separate_non_failure
           (interp_instr stk cnf inp ctx sta ins)
       in
+      assert {
+        forall sta' ctx' bhv.
+        bhv <> BFailure ->
+        eval_instruction stk (cnf, inp, ctx, sta) ins (sta', ctx', bhv) ->
+        Cn.mem {state=sta'; context=ctx'; data=()} stas
+      };
       let stas' =
         let aux sta =
           let ctx' = {ctx with result = sta.context.result} in
@@ -443,8 +479,15 @@ module Interpreter
         in
         Cn.map aux stas
       in
-      Rs.(union (inject inp stas')
-            {empty with failure = stas_failure})
+      let old_ctx_with_res sta = {sta with context=with_result sta.context.result ctx} in
+      Rs.(union
+           (inject inp stas')
+           {empty with failure=Cn.map old_ctx_with_res stas_failure})
+      ensures {
+        forall sta' ctx'.
+        eval_instruction stk (cnf, inp, ctx, sta) ins (sta', ctx', BFailure) ->
+        Rs.mem {state=sta'; context=with_result ctx'.result ctx; data=()} BFailure result
+      }
 
     | INoOutput ins ->
       Rs.map (reset_output sta)
