@@ -2,15 +2,10 @@ module Collection
   use list.ListRich as L
   use set.Fset as S
 
-  type t 'a = abstract { to_fset : S.fset 'a }
+  type t 'a
 
   (** Membership is all we have to characterize a collection *)
   val predicate mem (x: 'a) (c: t 'a)
-
-  axiom to_fset_def: forall c: t 'a.
-    forall x. mem x c <-> S.mem x c.to_fset
-
-  meta coercion function to_fset
 
   predicate (==) (s1 s2: t 'a) = forall x: 'a. mem x s1 <-> mem x s2
 

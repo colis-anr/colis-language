@@ -149,9 +149,9 @@ module Results
     (bhv <> BReturn /\ bhv <> BFailure)
 
   let function inject (inp:input) (stas:Cn.t (sym_state 'a)) : t 'a
-    ensures { stas = Fset.union result.normal result.exit by Fset.(stas == union result.normal result.exit) }
-    ensures { forall s. Fset.mem s result.normal -> Fset.mem s stas /\ behaviour inp s.context.result = BNormal }
-    ensures { forall s. Fset.mem s result.exit -> Fset.mem s stas /\ behaviour inp s.context.result = BExit }
+    ensures { stas = Cn.union result.normal result.exit by Cn.(stas == union result.normal result.exit) }
+    ensures { forall s. Cn.mem s result.normal -> Cn.mem s stas /\ behaviour inp s.context.result = BNormal }
+    ensures { forall s. Cn.mem s result.exit -> Cn.mem s stas /\ behaviour inp s.context.result = BExit }
     ensures { result.return_ = Cn.empty }
     ensures { result.failure = Cn.empty }
   = {normal = Cn.filter (is_state_behaviour inp BNormal) stas;
@@ -173,34 +173,34 @@ module Results
   lemma mem_mk_results: forall sta: sym_state 'a, bhv normal exit return_ failure.
     mem sta bhv { normal=normal; exit=exit; return_=return_; failure=failure } <->
     match bhv with
-    | BNormal  -> Fset.mem sta normal
-    | BExit    -> Fset.mem sta exit
-    | BReturn  -> Fset.mem sta return_
-    | BFailure -> Fset.mem sta failure
+    | BNormal  -> Cn.mem sta normal
+    | BExit    -> Cn.mem sta exit
+    | BReturn  -> Cn.mem sta return_
+    | BFailure -> Cn.mem sta failure
     end
 
   lemma mem_union_results: forall sta: sym_state 'a, bhv rs1 rs2.
     mem sta bhv (union rs1 rs2) <->
     (match bhv with
-     | BNormal  -> Fset.mem sta rs1.normal
-     | BExit    -> Fset.mem sta rs1.exit
-     | BReturn  -> Fset.mem sta rs1.return_
-     | BFailure -> Fset.mem sta rs1.failure
+     | BNormal  -> Cn.mem sta rs1.normal
+     | BExit    -> Cn.mem sta rs1.exit
+     | BReturn  -> Cn.mem sta rs1.return_
+     | BFailure -> Cn.mem sta rs1.failure
      end \/
      match bhv with
-     | BNormal  -> Fset.mem sta rs2.normal
-     | BExit    -> Fset.mem sta rs2.exit
-     | BReturn  -> Fset.mem sta rs2.return_
-     | BFailure -> Fset.mem sta rs2.failure
+     | BNormal  -> Cn.mem sta rs2.normal
+     | BExit    -> Cn.mem sta rs2.exit
+     | BReturn  -> Cn.mem sta rs2.return_
+     | BFailure -> Cn.mem sta rs2.failure
      end)
 
   lemma mem_inject: forall sta: sym_state 'a, bhv inp stas.
     mem sta bhv (inject inp stas) <->
-    Fset.mem sta stas /\ is_state_behaviour inp bhv sta
+    Cn.mem sta stas /\ is_state_behaviour inp bhv sta
 
   lemma mem_union_inject: forall sta: sym_state 'a, bhv inp stas rs.
     mem sta bhv (union (inject inp stas) rs) <->
-    ((Fset.mem sta stas /\ is_state_behaviour inp bhv sta) \/
+    ((Cn.mem sta stas /\ is_state_behaviour inp bhv sta) \/
      mem sta bhv rs)
 end
 
@@ -232,10 +232,10 @@ module Interpreter
     ensures {
       forall res.
       interp_utility var_env sta id args = res <->
-      Fset.mem res result
+      Cn.mem res result
     }
 
-  let rec separate_options' (sta_opts: list (state, option 'a)) : (results: list (state, 'a), failures: list state)
+  let rec separate_options_list (sta_opts: list (state, option 'a)) : (results: list (state, 'a), failures: list state)
     variant { sta_opts }
     ensures {
       forall sta x.
@@ -250,7 +250,7 @@ module Interpreter
   = match sta_opts with
     | Nil -> Nil, Nil
     | Cons (sta, opt_x) sta_opts' -> 
-      let results, failures = separate_options' sta_opts' in
+      let results, failures = separate_options_list sta_opts' in
       match opt_x with
       | Some x -> Cons (sta, x) results, failures
       | None -> results, Cons sta failures
@@ -260,15 +260,15 @@ module Interpreter
   let separate_options (sta_opts: Cn.t (state, option 'a)) : (results: Cn.t (state, 'a), failures: Cn.t state)
     ensures {
       forall sta x.
-      mem (sta, x) results <->
-      mem (sta, Some x) sta_opts
+      Cn.mem (sta, x) results <->
+      Cn.mem (sta, Some x) sta_opts
     }
     ensures {
       forall sta.
-      mem sta failures <->
-      mem (sta, None) sta_opts
+      Cn.mem sta failures <->
+      Cn.mem (sta, None) sta_opts
     }
-  = let results, failures = separate_options' (Cn.to_list sta_opts) in
+  = let results, failures = separate_options_list (Cn.to_list sta_opts) in
     Cn.of_list results, Cn.of_list failures
 
   let function get_some (o: option 'a) : 'a
@@ -410,7 +410,7 @@ module Interpreter
       ensures {
         forall sta'.
         eval_str_expr stk True (cnf, inp, ctx, sta) se (sta', None) ->
-        mem {state=sta'; context=ctx; data=()} result.Rs.failure
+        Cn.mem {state=sta'; context=ctx; data=()} result.Rs.failure
       }
 
     | IExport id ->
@@ -665,7 +665,7 @@ module Interpreter
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins }
     ensures { (* Over-approximation *)
       forall sta sta' ctx' bhv.
-      mem sta stas ->
+      Cn.mem sta stas ->
       eval_instruction stk (cnf, inp, sta.context, sta.state) ins (sta', ctx', bhv) ->
       Rs.mem {state=sta'; context=ctx'; data=sta.data} bhv result
     }
@@ -683,7 +683,7 @@ module Interpreter
     ensures { (* Over-approximation *)
       forall sta' res b.
       eval_str_expr stk b (cnf, inp, ctx, sta) se (sta', res) ->
-      mem (sta', res) result
+      Cn.mem (sta', res) result
     }
   = match se with
     | SLiteral str ->
@@ -741,7 +741,7 @@ module Interpreter
     ensures { (* Over-approximation *)
       forall sta' res le.
       eval_list_expr stk (cnf, inp, ctx, sta) le (sta', res) ->
-      mem (sta', res) result
+      Cn.mem (sta', res) result
     }
   = match le with
     | Nil ->
