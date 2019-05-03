@@ -24,6 +24,5 @@ module collection.Collection
   syntax val filter "List.filter %1 %2"
   syntax val partition "List.partition %1 %2"
   syntax val union "List.rev_append %1 %2"
-  syntax val fold "List.fold_right %1 %2 %3"
   syntax val bind "List.concat (List.map %1 %2)"
 end
