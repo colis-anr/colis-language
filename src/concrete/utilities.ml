@@ -34,9 +34,8 @@ let test (sta : state) : string list -> (state * bool) = function
   | _ ->
      unknown_argument ~name:"test" ~arg:"" sta
 
-let interp_utility : env -> state -> string -> string list -> (state * bool) =
-  fun var_env sta name args ->
-  match name with
+let interp_utility (cwd, var_env, args) id sta =
+  match id with
   | "echo" ->
      let stdout =
        match args with

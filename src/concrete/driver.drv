@@ -7,6 +7,6 @@ end
 
 module interpreter.Semantics
   syntax function filter_var_env "Env.filter_var_env (fun v -> v.Interpreter__Semantics.exported) (fun v -> v.Interpreter__Semantics.value) %1"
-  syntax function interp_utility "Utilities.interp_utility %1 %2 %3 %4"
+  syntax function interp_utility "Utilities.interp_utility %1 %2 %3"
 end
 

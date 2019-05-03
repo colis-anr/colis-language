@@ -257,10 +257,10 @@ module Interpreter
   use Results as Rs
 
   (* Implemented in OCaml *)
-  val function sym_interp_utility (id:identifier) (cwd:list feature) (var_env:env string) (args:list string) (sta:state) : Cn.t (state, bool)
+  val function sym_interp_utility (ctx:utility_context) (id:identifier) (sta:state) : Cn.t (state, bool)
     ensures {
       forall res.
-      interp_utility var_env sta id args = res <->
+      interp_utility ctx id sta = res <->
       Cn.mem res result
     }
 
@@ -516,7 +516,7 @@ module Interpreter
       let res' =
         let call_utility arg =
           let sta', args = arg in
-          sym_interp_utility id ctx.cwd (filter_var_env ctx.var_env) args sta'
+          sym_interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) id sta'
         in
         let for_call_result arg =
           let sta'', b = arg in
