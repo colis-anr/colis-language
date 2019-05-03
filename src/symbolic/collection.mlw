@@ -1,27 +1,37 @@
 module Collection
-  use list.List as List
-  use set.Fset as Fset
+  use list.ListRich as L
+  use set.Fset as S
 
-  type t 'a
+  type t 'a = abstract { to_fset : S.fset 'a }
 
+  (** Membership is all we have to characterize a collection *)
   val predicate mem (x: 'a) (c: t 'a)
+
+  axiom to_fset_def: forall c: t 'a.
+    forall x. mem x c <-> S.mem x c.to_fset
+
+  meta coercion function to_fset
 
   predicate (==) (s1 s2: t 'a) = forall x: 'a. mem x s1 <-> mem x s2
 
+  (* Can it be a lemma? Would require propositional extensionality? *)
   axiom extensionality:
     forall s1 s2: t 'a. s1 == s2 -> s1 = s2
 
-  function as_set (c: t 'a) : Fset.fset 'a
+  val function to_list (c: t 'a) : L.list 'a
+    ensures { forall x: 'a, c.
+      mem x c <-> L.mem x result
+    }
 
-  axiom as_set_def: forall x: 'a, c. mem x c <-> Fset.mem x (as_set c)
-
-  meta coercion function as_set
-
-  axiom mem_def: forall x: 'a, c.
-    mem x c <-> Fset.mem x c.as_set
+  val function of_list (l: L.list 'a) : t 'a
+    ensures { forall x: 'a, l.
+      L.mem x l <-> mem x result
+    }
 
   val constant empty : t 'a
-    ensures { forall x. not mem x result }
+    ensures { forall x.
+      not mem x result
+    }
 
   val add (x: 'a) (c: t 'a) : t 'a
     ensures { mem x result }
