@@ -23,25 +23,25 @@ module Collection
   val constant empty : t 'a
     ensures { forall x. not mem x result }
 
-  val add (x: 'a) (c: t 'a) : t 'a
+  val function add (x: 'a) (c: t 'a) : t 'a
     ensures { mem x result }
     ensures { forall y. mem y c -> mem y result }
     ensures { forall y. mem y result -> x = y \/ mem y c }
 
-  val singleton (x: 'a) : t 'a
+  val function singleton (x: 'a) : t 'a
     ensures { mem x result }
     ensures { forall y. mem y result -> y = x }
 
-  val map (f: 'a -> 'b) (c: t 'a) : t 'b
+  val function map (f: 'a -> 'b) (c: t 'a) : t 'b
     ensures { forall x. mem x c -> mem (f x) result }
     ensures { forall y. mem y result -> exists x. mem x c /\ y = f x }
 
-  val filter (p: 'a -> bool) (c: t 'a) : t 'a
+  val function filter (p: 'a -> bool) (c: t 'a) : t 'a
     ensures { forall x. mem x c -> p x -> mem x result }
     ensures { forall x. not p x -> not mem x result }
     ensures { forall x. mem x result -> p x /\ mem x c }
 
-  val partition (p: 'a -> bool) (c: t 'a) : (pos: t 'a, neg: t 'a)
+  val function partition (p: 'a -> bool) (c: t 'a) : (pos: t 'a, neg: t 'a)
     ensures { forall x. mem x c -> mem x pos \/ mem x neg }
     ensures { forall x. mem x pos -> p x /\ mem x c }
     ensures { forall x. mem x neg -> not p x /\ mem x c }
@@ -57,7 +57,7 @@ module Collection
   lemma union_empty_right: forall c: t 'a.
     union c empty = c
 
-  val bind (f: 'a -> t 'b) (c: t 'a) : t 'b
+  val function bind (f: 'a -> t 'b) (c: t 'a) : t 'b
     ensures { forall x. mem x c -> forall y. mem y (f x) -> mem y result }
     ensures { forall y. mem y result -> exists x. mem x c /\ mem y (f x) }
 end
