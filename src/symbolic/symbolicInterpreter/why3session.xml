@@ -93,114 +93,130 @@
   </goal>
  </transf>
  </goal>
+ <goal name="inject_union" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="inject_union.0" proved="true">
+  <proof prover="1"><result status="valid" time="0.89" steps="267203"/></proof>
+  </goal>
+  <goal name="inject_union.1" proved="true">
+  <proof prover="1"><result status="valid" time="0.26" steps="78593"/></proof>
+  </goal>
+ </transf>
+ </goal>
+ <goal name="inject_return_empty" proved="true">
+ <proof prover="0"><result status="valid" time="0.08" steps="10"/></proof>
+ </goal>
+ <goal name="inject_failure_empty" proved="true">
+ <proof prover="0"><result status="valid" time="0.08" steps="10"/></proof>
+ </goal>
  <goal name="inject_normal_union_exit" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="inject_normal_union_exit.0" proved="true">
-  <proof prover="1"><result status="valid" time="1.14" steps="186892"/></proof>
+  <proof prover="1"><result status="valid" time="0.27" steps="79654"/></proof>
   </goal>
   <goal name="inject_normal_union_exit.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.35" steps="79004"/></proof>
+  <proof prover="1"><result status="valid" time="0.35" steps="77948"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="inject_under_condition_normal" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="inject_under_condition_normal.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.93" steps="122390"/></proof>
+  <proof prover="1"><result status="valid" time="0.67" steps="112998"/></proof>
   </goal>
   <goal name="inject_under_condition_normal.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.24" steps="78432"/></proof>
+  <proof prover="1"><result status="valid" time="0.24" steps="79029"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="inject_under_condition_exit" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="inject_under_condition_exit.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.57" steps="118216"/></proof>
+  <proof prover="1"><result status="valid" time="0.57" steps="111698"/></proof>
   </goal>
   <goal name="inject_under_condition_exit.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.36" steps="79332"/></proof>
+  <proof prover="1"><result status="valid" time="0.36" steps="80115"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="inject_outside_condition_normal" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="inject_outside_condition_normal.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.59" steps="127991"/></proof>
+  <proof prover="1"><result status="valid" time="0.59" steps="127967"/></proof>
   </goal>
   <goal name="inject_outside_condition_normal.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.47" steps="82463"/></proof>
+  <proof prover="1"><result status="valid" time="0.47" steps="83254"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="inject_outside_condition_exit" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="inject_outside_condition_exit.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.77" steps="131341"/></proof>
+  <proof prover="1"><result status="valid" time="0.77" steps="132341"/></proof>
   </goal>
   <goal name="inject_outside_condition_exit.1" proved="true">
   <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
-  <proof prover="1"><result status="valid" time="0.21" steps="83350"/></proof>
+  <proof prover="1"><result status="valid" time="0.37" steps="84140"/></proof>
   <proof prover="2" obsolete="true"><result status="timeout" time="1.00" steps="3217636"/></proof>
   <proof prover="3" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="inject_map" proved="true">
- <proof prover="1"><result status="valid" time="0.27" steps="94142"/></proof>
+ <proof prover="1"><result status="valid" time="0.27" steps="94926"/></proof>
  </goal>
  <goal name="inject_map&#39;" proved="true">
- <proof prover="1"><result status="valid" time="0.28" steps="96538"/></proof>
+ <proof prover="1"><result status="valid" time="0.50" steps="97322"/></proof>
  </goal>
  <goal name="union_inject" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="union_inject.0" proved="true">
-  <proof prover="1"><result status="valid" time="0.28" steps="81011"/></proof>
+  <proof prover="1"><result status="valid" time="0.28" steps="81565"/></proof>
   </goal>
   <goal name="union_inject.1" proved="true">
-  <proof prover="1"><result status="valid" time="0.26" steps="78988"/></proof>
+  <proof prover="1"><result status="valid" time="0.26" steps="79510"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="mem_union_inject" proved="true">
- <proof prover="1"><result status="valid" time="0.27" steps="88076"/></proof>
+ <proof prover="1"><result status="valid" time="0.27" steps="88859"/></proof>
  </goal>
  <goal name="mem_union" proved="true">
- <proof prover="1"><result status="valid" time="0.19" steps="79469"/></proof>
+ <proof prover="1"><result status="valid" time="0.19" steps="79871"/></proof>
  </goal>
  <goal name="mem_map" proved="true">
- <proof prover="1"><result status="valid" time="0.40" steps="86672"/></proof>
+ <proof prover="1"><result status="valid" time="0.40" steps="87074"/></proof>
  </goal>
  <goal name="failure_union" proved="true">
- <proof prover="1"><result status="valid" time="0.37" steps="81963"/></proof>
+ <proof prover="1"><result status="valid" time="0.37" steps="82615"/></proof>
  </goal>
  <goal name="mem_mk_results" proved="true">
  <proof prover="0"><result status="valid" time="0.09" steps="70"/></proof>
  </goal>
  <goal name="mem_union_results" proved="true">
- <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.40" steps="96902"/></proof>
+ <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.40" steps="97651"/></proof>
  </goal>
 </theory>
 <theory name="Interpreter">
- <goal name="VC separate_options_list" expl="VC for separate_options_list">
- <transf name="split_vc" >
-  <goal name="VC separate_options_list.0" expl="variant decrease">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.30" steps="83597"/></proof>
+ <goal name="VC separate_options_list" expl="VC for separate_options_list" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC separate_options_list.0" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.30" steps="84879"/></proof>
   </goal>
-  <goal name="VC separate_options_list.1" expl="postcondition">
-  <transf name="destruct_rec" arg1="H">
-   <goal name="VC separate_options_list.1.0" expl="postcondition">
-   <proof prover="1" obsolete="true"><result status="valid" time="0.22" steps="81478"/></proof>
+  <goal name="VC separate_options_list.1" expl="postcondition" proved="true">
+  <transf name="destruct_rec" proved="true" arg1="H">
+   <goal name="VC separate_options_list.1.0" expl="postcondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.22" steps="82759"/></proof>
    </goal>
-   <goal name="VC separate_options_list.1.1" expl="postcondition">
-   <transf name="destruct_rec" arg1="H">
-    <goal name="VC separate_options_list.1.1.0" expl="postcondition">
-    <transf name="destruct_rec" arg1="H">
-     <goal name="VC separate_options_list.1.1.0.0" expl="postcondition">
-     <proof prover="1" obsolete="true"><result status="valid" time="0.44" steps="84496"/></proof>
+   <goal name="VC separate_options_list.1.1" expl="postcondition" proved="true">
+   <transf name="destruct_rec" proved="true" arg1="H">
+    <goal name="VC separate_options_list.1.1.0" expl="postcondition" proved="true">
+    <transf name="destruct_rec" proved="true" arg1="H">
+     <goal name="VC separate_options_list.1.1.0.0" expl="postcondition" proved="true">
+     <proof prover="1"><result status="valid" time="0.44" steps="85777"/></proof>
      </goal>
-     <goal name="VC separate_options_list.1.1.0.1" expl="postcondition">
-     <proof prover="1" obsolete="true"><result status="valid" time="0.44" steps="84826"/></proof>
+     <goal name="VC separate_options_list.1.1.0.1" expl="postcondition" proved="true">
+     <proof prover="1"><result status="valid" time="0.44" steps="86107"/></proof>
      </goal>
     </transf>
     </goal>
@@ -208,20 +224,20 @@
    </goal>
   </transf>
   </goal>
-  <goal name="VC separate_options_list.2" expl="postcondition">
-  <transf name="destruct_rec" arg1="H1">
-   <goal name="VC separate_options_list.2.0" expl="postcondition">
-   <proof prover="1" obsolete="true"><result status="valid" time="0.21" steps="81499"/></proof>
+  <goal name="VC separate_options_list.2" expl="postcondition" proved="true">
+  <transf name="destruct_rec" proved="true" arg1="H1">
+   <goal name="VC separate_options_list.2.0" expl="postcondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.21" steps="82780"/></proof>
    </goal>
-   <goal name="VC separate_options_list.2.1" expl="postcondition">
-   <transf name="destruct_rec" arg1="H1">
-    <goal name="VC separate_options_list.2.1.0" expl="postcondition">
-    <transf name="destruct_rec" arg1="H1">
-     <goal name="VC separate_options_list.2.1.0.0" expl="postcondition">
-     <proof prover="1" obsolete="true"><result status="valid" time="0.31" steps="85290"/></proof>
+   <goal name="VC separate_options_list.2.1" expl="postcondition" proved="true">
+   <transf name="destruct_rec" proved="true" arg1="H1">
+    <goal name="VC separate_options_list.2.1.0" expl="postcondition" proved="true">
+    <transf name="destruct_rec" proved="true" arg1="H1">
+     <goal name="VC separate_options_list.2.1.0.0" expl="postcondition" proved="true">
+     <proof prover="1"><result status="valid" time="0.31" steps="86571"/></proof>
      </goal>
-     <goal name="VC separate_options_list.2.1.0.1" expl="postcondition">
-     <proof prover="1" obsolete="true"><result status="valid" time="0.28" steps="84341"/></proof>
+     <goal name="VC separate_options_list.2.1.0.1" expl="postcondition" proved="true">
+     <proof prover="1"><result status="valid" time="0.28" steps="85622"/></proof>
      </goal>
     </transf>
     </goal>
@@ -231,13 +247,13 @@
   </goal>
  </transf>
  </goal>
- <goal name="VC separate_options" expl="VC for separate_options">
- <transf name="split_vc" >
-  <goal name="VC separate_options.0" expl="postcondition">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.30" steps="92672"/></proof>
+ <goal name="VC separate_options" expl="VC for separate_options" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC separate_options.0" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.30" steps="93953"/></proof>
   </goal>
-  <goal name="VC separate_options.1" expl="postcondition">
-  <proof prover="1" obsolete="true"><result status="valid" time="0.29" steps="92655"/></proof>
+  <goal name="VC separate_options.1" expl="postcondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.29" steps="93936"/></proof>
   </goal>
  </transf>
  </goal>
@@ -265,650 +281,652 @@
  <goal name="VC interp_instr" expl="VC for interp_instr">
  <transf name="split_vc" >
   <goal name="VC interp_instr.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.40" steps="86045"/></proof>
+  <proof prover="1"><result status="valid" time="0.40" steps="86447"/></proof>
   </goal>
   <goal name="VC interp_instr.1" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="79018"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="79412"/></proof>
   </goal>
   <goal name="VC interp_instr.2" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.12" steps="78063"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.12" steps="78457"/></proof>
   </goal>
   <goal name="VC interp_instr.3" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.54" steps="107708"/></proof>
+  <proof prover="1"><result status="valid" time="0.54" steps="108457"/></proof>
   </goal>
   <goal name="VC interp_instr.4" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.40" steps="86068"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.40" steps="86470"/></proof>
   </goal>
   <goal name="VC interp_instr.5" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="79022"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="79416"/></proof>
   </goal>
   <goal name="VC interp_instr.6" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="78067"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="78461"/></proof>
   </goal>
   <goal name="VC interp_instr.7" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.20" steps="59"/></proof>
+  <proof prover="0"><result status="valid" time="0.20" steps="60"/></proof>
   </goal>
   <goal name="VC interp_instr.8" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.41" steps="86063"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.41" steps="86465"/></proof>
   </goal>
   <goal name="VC interp_instr.9" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="79022"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="79416"/></proof>
   </goal>
   <goal name="VC interp_instr.10" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="78067"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="78461"/></proof>
   </goal>
   <goal name="VC interp_instr.11" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.58" steps="110011"/></proof>
+  <proof prover="1"><result status="valid" time="0.37" steps="112159"/></proof>
   </goal>
   <goal name="VC interp_instr.12" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.21" steps="79788"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.21" steps="80349"/></proof>
   </goal>
   <goal name="VC interp_instr.13" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="78833"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="79394"/></proof>
   </goal>
   <goal name="VC interp_instr.14" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.43" steps="86045"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.43" steps="86447"/></proof>
   </goal>
   <goal name="VC interp_instr.15" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="79018"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="79412"/></proof>
   </goal>
   <goal name="VC interp_instr.16" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="78063"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="78457"/></proof>
   </goal>
   <goal name="VC interp_instr.17" expl="assertion" proved="true">
   <proof prover="0"><result status="valid" time="0.24" steps="168"/></proof>
   </goal>
   <goal name="VC interp_instr.18" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.63" steps="213"/></proof>
+  <proof prover="0"><result status="valid" time="0.63" steps="217"/></proof>
   <proof prover="1" obsolete="true"><result status="timeout" time="1.00" steps="318179"/></proof>
   <proof prover="2" obsolete="true"><result status="timeout" time="1.00" steps="3125862"/></proof>
   <proof prover="3" obsolete="true"><result status="timeout" time="1.00"/></proof>
   </goal>
   <goal name="VC interp_instr.19" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.45" steps="86045"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.45" steps="86447"/></proof>
   </goal>
   <goal name="VC interp_instr.20" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.22" steps="79018"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.22" steps="79412"/></proof>
   </goal>
   <goal name="VC interp_instr.21" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.15" steps="78063"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.15" steps="78457"/></proof>
   </goal>
   <goal name="VC interp_instr.22" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.34" steps="86086"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.34" steps="86488"/></proof>
   </goal>
   <goal name="VC interp_instr.23" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="79026"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="79420"/></proof>
   </goal>
   <goal name="VC interp_instr.24" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="78071"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="78465"/></proof>
   </goal>
   <goal name="VC interp_instr.25" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.46" steps="118450"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.39" steps="120799"/></proof>
   </goal>
   <goal name="VC interp_instr.26" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="81138"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="81699"/></proof>
   </goal>
   <goal name="VC interp_instr.27" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.14" steps="80183"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="80744"/></proof>
   </goal>
   <goal name="VC interp_instr.28" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.55" steps="118659"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.51" steps="121063"/></proof>
   </goal>
   <goal name="VC interp_instr.29" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="81346"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="81960"/></proof>
   </goal>
   <goal name="VC interp_instr.30" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="80391"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="81005"/></proof>
   </goal>
   <goal name="VC interp_instr.31" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.44" steps="86068"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.44" steps="86470"/></proof>
   </goal>
   <goal name="VC interp_instr.32" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="79022"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="79416"/></proof>
   </goal>
   <goal name="VC interp_instr.33" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.12" steps="78067"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="78461"/></proof>
   </goal>
   <goal name="VC interp_instr.34" expl="postcondition" proved="true">
   <transf name="case" proved="true" arg1="b">
    <goal name="VC interp_instr.34.0" expl="true case (postcondition)" proved="true">
-   <proof prover="0"><result status="valid" time="1.09" steps="1163"/></proof>
+   <proof prover="0"><result status="valid" time="1.09" steps="1167"/></proof>
    </goal>
    <goal name="VC interp_instr.34.1" expl="false case (postcondition)" proved="true">
-   <proof prover="0"><result status="valid" time="0.97" steps="1350"/></proof>
+   <proof prover="0"><result status="valid" time="0.97" steps="1364"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instr.35" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.51" steps="86068"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.51" steps="86470"/></proof>
   </goal>
   <goal name="VC interp_instr.36" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="79022"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="79416"/></proof>
   </goal>
   <goal name="VC interp_instr.37" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.30" steps="78067"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.30" steps="78461"/></proof>
   </goal>
   <goal name="VC interp_instr.38" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.28" steps="79906"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.28" steps="80300"/></proof>
   </goal>
   <goal name="VC interp_instr.39" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="79081"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="79475"/></proof>
   </goal>
   <goal name="VC interp_instr.40" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="79930"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="80324"/></proof>
   </goal>
   <goal name="VC interp_instr.41" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.31" steps="82167"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.31" steps="82569"/></proof>
   </goal>
   <goal name="VC interp_instr.42" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC interp_instr.42.0" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.26" steps="96092"/></proof>
+   <proof prover="1"><result status="valid" time="0.26" steps="96494"/></proof>
    </goal>
    <goal name="VC interp_instr.42.1" expl="VC for interp_instr" proved="true">
-   <proof prover="1"><result status="valid" time="0.35" steps="100083"/></proof>
+   <proof prover="1"><result status="valid" time="0.61" steps="100485"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="VC interp_instr.43" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.33" steps="98535"/></proof>
+  <proof prover="1"><result status="valid" time="0.33" steps="98937"/></proof>
   </goal>
   <goal name="VC interp_instr.44" expl="postcondition" proved="true">
   <proof prover="0" timelimit="20" memlimit="2500"><result status="valid" time="0.10" steps="62"/></proof>
   </goal>
   <goal name="VC interp_instr.45" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="1.30" steps="203857"/></proof>
+  <proof prover="1"><result status="valid" time="1.30" steps="204281"/></proof>
   </goal>
   <goal name="VC interp_instr.46" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.14" steps="77905"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.14" steps="78299"/></proof>
   </goal>
   <goal name="VC interp_instr.47" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.37" steps="83027"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.37" steps="83429"/></proof>
   </goal>
   <goal name="VC interp_instr.48" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.41" steps="86086"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.41" steps="86488"/></proof>
   </goal>
   <goal name="VC interp_instr.49" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.15" steps="79026"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.27" steps="79420"/></proof>
   </goal>
   <goal name="VC interp_instr.50" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.22" steps="78071"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.22" steps="78465"/></proof>
   </goal>
   <goal name="VC interp_instr.51" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.42" steps="87040"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.42" steps="87442"/></proof>
   </goal>
   <goal name="VC interp_instr.52" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.19" steps="79908"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.19" steps="80302"/></proof>
   </goal>
   <goal name="VC interp_instr.53" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="78953"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="79347"/></proof>
   </goal>
   <goal name="VC interp_instr.54" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.35" steps="89135"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.53" steps="89537"/></proof>
   </goal>
   <goal name="VC interp_instr.55" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.51" steps="89937"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.28" steps="91673"/></proof>
   </goal>
   <goal name="VC interp_instr.56" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="79126"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="79931"/></proof>
   </goal>
   <goal name="VC interp_instr.57" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="78160"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.16" steps="78965"/></proof>
   </goal>
   <goal name="VC interp_instr.58" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.74" steps="120427"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.43" steps="123078"/></proof>
   </goal>
   <goal name="VC interp_instr.59" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.18" steps="81386"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="82000"/></proof>
   </goal>
   <goal name="VC interp_instr.60" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.16" steps="80420"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="81034"/></proof>
   </goal>
   <goal name="VC interp_instr.61" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.22" steps="80973"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.22" steps="81587"/></proof>
   </goal>
   <goal name="VC interp_instr.62" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.27" steps="84456"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.27" steps="85105"/></proof>
   </goal>
   <goal name="VC interp_instr.63" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.44" steps="86209"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.44" steps="86611"/></proof>
   </goal>
   <goal name="VC interp_instr.64" expl="unreachable point" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.16" steps="77903"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.16" steps="78297"/></proof>
   </goal>
   <goal name="VC interp_instr.65" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.33" steps="86063"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.33" steps="86465"/></proof>
   </goal>
   <goal name="VC interp_instr.66" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="79022"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.17" steps="79416"/></proof>
   </goal>
   <goal name="VC interp_instr.67" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.21" steps="78067"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.21" steps="78461"/></proof>
   </goal>
   <goal name="VC interp_instr.68" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.39" steps="94985"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.42" steps="99923"/></proof>
   </goal>
   <goal name="VC interp_instr.69" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="80607"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.20" steps="81168"/></proof>
   </goal>
   <goal name="VC interp_instr.70" expl="precondition" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.23" steps="79652"/></proof>
+  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.14" steps="80213"/></proof>
   </goal>
   <goal name="VC interp_instr.71" expl="postcondition">
   <transf name="split_vc" >
    <goal name="VC interp_instr.71.0" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.0.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="88134"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="88536"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="88128"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="88530"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="93610"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="94012"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="92571"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="92973"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="88862"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="89264"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="92090"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="92492"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90559"/></proof>
+    <proof prover="1"><result status="valid" time="0.49" steps="90961"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="93736"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="94138"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.8" expl="postcondition" proved="true">
     <proof prover="0" timelimit="10"><result status="valid" time="0.13" steps="30"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="91785"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="92187"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="91020"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="91422"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="91508"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="91910"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.53" steps="91104"/></proof>
+    <proof prover="1"><result status="valid" time="0.53" steps="91506"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="94157"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="94559"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="94155"/></proof>
+    <proof prover="1"><result status="valid" time="0.55" steps="94557"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="91307"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="91709"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.52" steps="91216"/></proof>
+    <proof prover="1"><result status="valid" time="0.52" steps="91618"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.52" steps="97682"/></proof>
+    <proof prover="1"><result status="valid" time="0.52" steps="98084"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="93880"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="94282"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="90853"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="91255"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.50" steps="91647"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="92049"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.51" steps="90853"/></proof>
+    <proof prover="1"><result status="valid" time="0.51" steps="91255"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.53" steps="93353"/></proof>
+    <proof prover="1"><result status="valid" time="0.37" steps="93755"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="93687"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="94089"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.52" steps="99541"/></proof>
+    <proof prover="1"><result status="valid" time="0.52" steps="99943"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.52" steps="100470"/></proof>
+    <proof prover="1"><result status="valid" time="0.52" steps="100872"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.53" steps="90879"/></proof>
+    <proof prover="1"><result status="valid" time="0.53" steps="91281"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.50" steps="91919"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="92321"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="89118"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="89520"/></proof>
     </goal>
     <goal name="VC interp_instr.71.0.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="89145"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="89547"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC interp_instr.71.1" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.1.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="87412"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="87838"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="87412"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="87838"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="92781"/></proof>
+    <proof prover="1"><result status="valid" time="0.52" steps="93207"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="91743"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="92169"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="88138"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="88564"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.5" expl="postcondition" proved="true">
-    <proof prover="0" timelimit="20" memlimit="2500"><result status="valid" time="6.77" steps="236"/></proof>
+    <proof prover="0" timelimit="20" memlimit="2500"><result status="valid" time="6.77" steps="240"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.40" steps="89903"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="90329"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="92732"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="93158"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="90030"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="90456"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90658"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="91084"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.37" steps="90133"/></proof>
+    <proof prover="1"><result status="valid" time="0.37" steps="90559"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="90680"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="91106"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90409"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="90835"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="93189"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="93615"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="93187"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="93613"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.52" steps="90502"/></proof>
+    <proof prover="1"><result status="valid" time="0.52" steps="90928"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="90243"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="90669"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="96437"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="96863"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="93016"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="93442"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="90128"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="90554"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="90786"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="91212"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="90128"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="90554"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="92495"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="92921"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="92965"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="93391"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="98648"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="99074"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="99337"/></proof>
+    <proof prover="1"><result status="valid" time="0.49" steps="99763"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="90154"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="90580"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90909"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="91335"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="88211"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="88637"/></proof>
     </goal>
     <goal name="VC interp_instr.71.1.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="88306"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="88732"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC interp_instr.71.2" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.2.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="87313"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="87715"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="87313"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="87715"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="92987"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="93389"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.37" steps="91768"/></proof>
+    <proof prover="1"><result status="valid" time="0.37" steps="92170"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="92208"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="92610"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="91466"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="91868"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="89748"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90150"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="92759"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="93161"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="90057"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="90459"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="90819"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="91221"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90062"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90464"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="90581"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="90983"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90312"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90714"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="93205"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="93607"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="93203"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="93605"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="90520"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="90922"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="90272"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="90674"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="96555"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="96957"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="92906"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="93308"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90042"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="90444"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="90969"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="91371"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90042"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90444"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="92550"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="92952"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="92885"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="93287"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="98745"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="99147"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.37" steps="99666"/></proof>
+    <proof prover="1"><result status="valid" time="0.58" steps="100068"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.29" steps="90068"/></proof>
+    <proof prover="1"><result status="valid" time="0.29" steps="90470"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="90960"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="91362"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="88144"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="88546"/></proof>
     </goal>
     <goal name="VC interp_instr.71.2.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="88333"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="88735"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC interp_instr.71.3" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.3.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="87784"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="88404"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="87784"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="88404"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="93328"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="93948"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="92289"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="92909"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="88510"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="89130"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="91778"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="92398"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.40" steps="90189"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="90809"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.99" steps="170509"/></proof>
+    <proof prover="0"><result status="timeout" time="1.00"/></proof>
+    <proof prover="1"><result status="timeout" time="1.00" steps="266167"/></proof>
+    <proof prover="2"><result status="valid" time="0.48" steps="2000890"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.8" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
      <goal name="VC interp_instr.71.3.8.0" expl="postcondition" proved="true">
-     <proof prover="0" timelimit="20" memlimit="2500"><result status="valid" time="1.46" steps="807"/></proof>
+     <proof prover="0" timelimit="20" memlimit="2500"><result status="valid" time="1.71" steps="806"/></proof>
      </goal>
     </transf>
     </goal>
     <goal name="VC interp_instr.71.3.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.39" steps="91352"/></proof>
+    <proof prover="1"><result status="valid" time="0.39" steps="91972"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="90535"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="91155"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="91082"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="91702"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90773"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="91393"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="93765"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="94385"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="93763"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="94383"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="91024"/></proof>
+    <proof prover="1"><result status="valid" time="0.53" steps="91644"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="90819"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="91439"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="97162"/></proof>
+    <proof prover="1"><result status="valid" time="0.49" steps="97782"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="93419"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="94039"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="90500"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="91120"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="91333"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="91953"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="90500"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="91120"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="93041"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="93661"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="93338"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="93958"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="99050"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="99670"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.54" steps="99975"/></proof>
+    <proof prover="1"><result status="valid" time="0.54" steps="100595"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90526"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="91146"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="91486"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="92106"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="88613"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="89233"/></proof>
     </goal>
     <goal name="VC interp_instr.71.3.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="88836"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="89456"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC interp_instr.71.4" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.4.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="87923"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="88325"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="87923"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="88325"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="93407"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="93809"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="92368"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="92770"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="88649"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="89051"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="91857"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="92259"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90328"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="90730"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="93387"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="93789"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="90655"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="91057"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.9" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
      <goal name="VC interp_instr.71.4.9.0" expl="postcondition" proved="true">
-     <proof prover="0"><result status="valid" time="0.76" steps="346"/></proof>
+     <proof prover="0"><result status="valid" time="1.30" steps="351"/></proof>
      </goal>
     </transf>
     </goal>
@@ -920,155 +938,155 @@
     </transf>
     </goal>
     <goal name="VC interp_instr.71.4.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="91221"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="91623"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.40" steps="90920"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="91322"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.50" steps="93844"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="94246"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="93842"/></proof>
+    <proof prover="1"><result status="valid" time="0.49" steps="94244"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="91127"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="91529"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90898"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="91300"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="97237"/></proof>
+    <proof prover="1"><result status="valid" time="0.49" steps="97639"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="93558"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="93960"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="90639"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="91041"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="91412"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="91814"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="90639"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="91041"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="93120"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="93522"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="93477"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="93879"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="99189"/></proof>
+    <proof prover="1"><result status="valid" time="0.49" steps="99591"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="100106"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="100508"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90665"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="91067"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="91565"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="91967"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="88752"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="89154"/></proof>
     </goal>
     <goal name="VC interp_instr.71.4.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="88931"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="89333"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC interp_instr.71.5" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.5.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="86887"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="87289"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="86887"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="87289"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="92371"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="92773"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="91332"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="91734"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="87613"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="88015"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="90821"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="91223"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="89292"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="89694"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="92351"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="92753"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="89619"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90021"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="90391"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="90793"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="89638"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90040"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="90185"/></proof>
+    <proof prover="1"><result status="valid" time="0.45" steps="90587"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="89884"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90286"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.37" steps="92808"/></proof>
+    <proof prover="1"><result status="valid" time="0.37" steps="93210"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="92806"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="93208"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90091"/></proof>
+    <proof prover="1"><result status="valid" time="0.51" steps="90493"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.74" steps="128880"/></proof>
+    <proof prover="1"><result status="valid" time="0.74" steps="129282"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.50" steps="96201"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="96603"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.37" steps="92522"/></proof>
+    <proof prover="1"><result status="valid" time="0.37" steps="92924"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="89603"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="90005"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="90376"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="90778"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="89603"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="90005"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.40" steps="92084"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="92486"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="92441"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="92843"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="98153"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="98555"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="99070"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="99472"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="89629"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="90031"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="90529"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="90931"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="87716"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="88118"/></proof>
     </goal>
     <goal name="VC interp_instr.71.5.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="87895"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="88297"/></proof>
     </goal>
    </transf>
    </goal>
@@ -1081,96 +1099,96 @@
    <goal name="VC interp_instr.71.9" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.9.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="87526"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="87960"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="87526"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="87960"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.2" expl="postcondition" proved="true">
-    <proof prover="0"><result status="timeout" time="1.00"/></proof>
-    <proof prover="1"><result status="timeout" time="1.00" steps="155299"/></proof>
-    <proof prover="2"><result status="valid" time="0.51" steps="1796792"/></proof>
+    <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
+    <proof prover="1" obsolete="true"><result status="timeout" time="1.00" steps="155299"/></proof>
+    <proof prover="2"><result status="valid" time="0.51" steps="1797401"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="92157"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="92591"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="88373"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="88807"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.39" steps="91615"/></proof>
+    <proof prover="1"><result status="valid" time="0.39" steps="92049"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="89963"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="90397"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="92972"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="93406"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.39" steps="90271"/></proof>
+    <proof prover="1"><result status="valid" time="0.39" steps="90705"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="91030"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="91464"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90275"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90709"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.50" steps="90793"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="91227"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="90526"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="90960"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="93418"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="93852"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="93416"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="93850"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90733"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="91167"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90486"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90920"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="96829"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="97263"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="93184"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="93618"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="90277"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="90711"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="91122"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="91556"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="90277"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="90711"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="92774"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="93208"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="93049"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="93483"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.51" steps="98873"/></proof>
+    <proof prover="1"><result status="valid" time="0.51" steps="99307"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="99806"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="100240"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="90303"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="90737"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="91130"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="91564"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="88343"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="88777"/></proof>
     </goal>
     <goal name="VC interp_instr.71.9.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="88533"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="88967"/></proof>
     </goal>
    </transf>
    </goal>
@@ -1183,188 +1201,188 @@
    <goal name="VC interp_instr.71.13" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.13.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="91575"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="91977"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="87239"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="87641"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="92926"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="93328"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="91700"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="92082"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.28" steps="88149"/></proof>
+    <proof prover="1"><result status="valid" time="0.28" steps="88551"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.37" steps="91412"/></proof>
+    <proof prover="1"><result status="valid" time="0.37" steps="91814"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="89664"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="90066"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="92675"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="93077"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="89973"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="90375"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="90740"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="91142"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="89983"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="90385"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="90506"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="90908"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="90232"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="90634"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="93121"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="93523"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="93119"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="93521"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="90436"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="90838"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="90188"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="90590"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="96501"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="96903"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="92847"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="93249"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="89969"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="90371"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="90901"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="91303"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="89969"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="90371"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="92475"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="92877"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.39" steps="92812"/></proof>
+    <proof prover="1"><result status="valid" time="0.39" steps="93214"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="98713"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="99115"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="99645"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="100047"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.40" steps="89995"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="90397"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90892"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="91294"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.40" steps="88065"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="88467"/></proof>
     </goal>
     <goal name="VC interp_instr.71.13.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.39" steps="88256"/></proof>
+    <proof prover="1"><result status="valid" time="0.39" steps="88658"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="VC interp_instr.71.14" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="VC interp_instr.71.14.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="87239"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="87641"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.39" steps="91518"/></proof>
+    <proof prover="1"><result status="valid" time="0.39" steps="91920"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.40" steps="92926"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="93328"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="91700"/></proof>
+    <proof prover="1"><result status="valid" time="0.41" steps="92082"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="88149"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="88551"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.39" steps="91412"/></proof>
+    <proof prover="1"><result status="valid" time="0.39" steps="91814"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.6" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.34" steps="89664"/></proof>
+    <proof prover="1"><result status="valid" time="0.34" steps="90066"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.7" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.38" steps="92675"/></proof>
+    <proof prover="1"><result status="valid" time="0.38" steps="93077"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="89973"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="90375"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.9" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.30" steps="90740"/></proof>
+    <proof prover="1"><result status="valid" time="0.30" steps="91142"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="89983"/></proof>
+    <proof prover="1"><result status="valid" time="0.43" steps="90385"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.11" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="90506"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="90908"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="90232"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="90634"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="93121"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="93523"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.14" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="93119"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="93521"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.15" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="90436"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="90838"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="90188"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90590"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.35" steps="96501"/></proof>
+    <proof prover="1"><result status="valid" time="0.35" steps="96903"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="92847"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="93249"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="89969"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="90371"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="90901"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="91303"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.31" steps="89969"/></proof>
+    <proof prover="1"><result status="valid" time="0.31" steps="90371"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="92475"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="92877"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.23" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="92812"/></proof>
+    <proof prover="1"><result status="valid" time="0.44" steps="93214"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.24" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.48" steps="98713"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="99115"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="99645"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="100047"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.26" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="89995"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="90397"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="90892"/></proof>
+    <proof prover="1"><result status="valid" time="0.36" steps="91294"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.32" steps="88065"/></proof>
+    <proof prover="1"><result status="valid" time="0.32" steps="88467"/></proof>
     </goal>
     <goal name="VC interp_instr.71.14.29" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.33" steps="88256"/></proof>
+    <proof prover="1"><result status="valid" time="0.33" steps="88658"/></proof>
     </goal>
    </transf>
    </goal>
@@ -1372,17 +1390,104 @@
   </goal>
  </transf>
  </goal>
- <goal name="VC interp_instr&#39;" expl="VC for interp_instr&#39;">
+ <goal name="VC interp_instr&#39;" expl="VC for interp_instr&#39;" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="VC interp_instr&#39;.0" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.29" steps="84838"/></proof>
+  </goal>
+  <goal name="VC interp_instr&#39;.1" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.14" steps="79660"/></proof>
+  </goal>
+  <goal name="VC interp_instr&#39;.2" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.15" steps="78705"/></proof>
+  </goal>
+  <goal name="VC interp_instr&#39;.3" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.24" steps="85238"/></proof>
+  </goal>
+  <goal name="VC interp_instr&#39;.4" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.12" steps="80159"/></proof>
+  </goal>
+  <goal name="VC interp_instr&#39;.5" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.11" steps="79204"/></proof>
+  </goal>
+  <goal name="VC interp_instr&#39;.6" expl="postcondition" proved="true">
+  <transf name="split_vc" proved="true" >
+   <goal name="VC interp_instr&#39;.6.0" expl="postcondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.31" steps="93541"/></proof>
+   </goal>
+   <goal name="VC interp_instr&#39;.6.1" expl="postcondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.69" steps="157984"/></proof>
+   </goal>
+  </transf>
+  </goal>
+ </transf>
  </goal>
  <goal name="VC interp_str_expr" expl="VC for interp_str_expr">
+ <transf name="split_vc" >
+  <goal name="VC interp_str_expr.0" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.40" steps="83254"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.1" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.37" steps="85286"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.2" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.17" steps="79413"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.3" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.17" steps="78458"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.4" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.40" steps="85304"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.5" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.21" steps="79417"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.6" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.17" steps="78462"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.7" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.37" steps="86080"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.8" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.17" steps="80147"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.9" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.18" steps="79192"/></proof>
+  </goal>
+  <goal name="VC interp_str_expr.10" expl="postcondition">
+  </goal>
+ </transf>
  </goal>
  <goal name="VC interp_list_expr" expl="VC for interp_list_expr">
+ <transf name="split_vc" >
+  <goal name="VC interp_list_expr.0" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.33" steps="83923"/></proof>
+  </goal>
+  <goal name="VC interp_list_expr.1" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.16" steps="79449"/></proof>
+  </goal>
+  <goal name="VC interp_list_expr.2" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.16" steps="78494"/></proof>
+  </goal>
+  <goal name="VC interp_list_expr.3" expl="variant decrease" proved="true">
+  <proof prover="0"><result status="valid" time="0.13" steps="64"/></proof>
+  <proof prover="1"><result status="timeout" time="1.00" steps="192978"/></proof>
+  </goal>
+  <goal name="VC interp_list_expr.4" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.15" steps="81054"/></proof>
+  </goal>
+  <goal name="VC interp_list_expr.5" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.15" steps="80099"/></proof>
+  </goal>
+  <goal name="VC interp_list_expr.6" expl="postcondition">
+  </goal>
+ </transf>
  </goal>
- <goal name="VC interp_function_definitions" expl="VC for interp_function_definitions">
- <proof prover="1" timelimit="0" memlimit="0" obsolete="true"><result status="valid" time="0.33" steps="85403"/></proof>
+ <goal name="VC interp_function_definitions" expl="VC for interp_function_definitions" proved="true">
+ <proof prover="1"><result status="valid" time="0.33" steps="88038"/></proof>
  </goal>
- <goal name="VC interp_program" expl="VC for interp_program">
- <proof prover="1" timelimit="0" memlimit="0" obsolete="true"><result status="valid" time="0.41" steps="89067"/></proof>
+ <goal name="VC interp_program" expl="VC for interp_program" proved="true">
+ <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.24" steps="93333"/></proof>
  </goal>
 </theory>
 </file>
