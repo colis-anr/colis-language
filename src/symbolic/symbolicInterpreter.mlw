@@ -841,7 +841,7 @@ module Interpreter
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_string_expr se, -1 }
     ensures { (* Over-approximation *)
-      forall sta' res b.
+      forall sta' res.
       eval_str_expr stk b (cnf, inp, ctx, sta) se (sta', res) ->
       Cn.mem (sta', res) result
     }
@@ -899,7 +899,7 @@ module Interpreter
     requires { stk <= get_some cnf.stack_size }
     variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_list_expr le, -1 }
     ensures { (* Over-approximation *)
-      forall sta' res le.
+      forall sta' res.
       eval_list_expr stk (cnf, inp, ctx, sta) le (sta', res) ->
       Cn.mem (sta', res) result
     }
@@ -907,26 +907,69 @@ module Interpreter
     | Nil ->
       Cn.singleton (sta, Some Nil)
     | Cons (se, sp) le' ->
-      let str_res1: Cn.t (state, (string, bool)), str_res1_failures: Cn.t state =
+      let str_res1, str_res1_failures =
         separate_options
           (interp_str_expr stk True cnf inp ctx sta se : Cn.t (state, option (string, bool)))
       in
-      let lst_res1: Cn.t (state, list string) = (* Non-failure string list results *)
-        Cn.map (fun arg -> state_split_str sp arg) str_res1
-      in
-      let for_sta_strs arg =
-        let sta1, strs1 = arg in
+      let function for_sta_str (arg: (state, (string, bool)))
+        ensures {
+          forall sta2.
+          let sta1, (str1, b1) = arg in
+          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
+          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, None) ->
+          Cn.mem (sta1, None) result
+        }
+        ensures {
+          forall sta2 l2.
+          let sta1, (str1, b1) = arg in
+          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
+          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, Some l2) ->
+          Cn.mem (sta2, Some L.(split sp str1 ++ l2)) result
+        }
+      = let sta1, (str1, _) = arg in
         let lst_res2: Cn.t (state, list string), lst_res2_failures: Cn.t state =
           separate_options
             (interp_list_expr stk cnf inp ctx sta1 le')
         in
-        Cn.(union
-             (map (fun arg -> state_concat strs1 arg) lst_res2)
-             (map (fun sta -> sta, None) lst_res2_failures))
+        let lst_res2' =
+          Cn.map (fun arg -> state_concat (split sp str1) arg) lst_res2
+          (* ensures { *)
+          (*   forall sta2 l2. *)
+          (*   eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) -> *)
+          (*   eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, Some l2) -> *)
+          (*   Cn.mem (sta2, Some L.(split sp str1 ++ l2)) result *)
+          (* } *)
+        in
+        let lst_res2_failures' =
+          Cn.map (fun sta -> sta, None) lst_res2_failures
+          (* ensures { *)
+          (*   forall sta2. *)
+          (*   eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) -> *)
+          (*   eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, None) -> *)
+          (*   Cn.mem (sta1, None) result *)
+          (* } *)
+        in
+        Cn.(union lst_res2' lst_res2_failures')
       in
-      Cn.(union
-           (bind for_sta_strs lst_res1)
-           (map (fun sta -> sta, None) str_res1_failures))
+      let res2 =
+        Cn.bind for_sta_str str_res1
+        ensures {
+          forall sta1 str1 b1 sta2.
+          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
+          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, None) ->
+          Cn.mem (sta1, None) result
+        }
+        ensures {
+          forall sta1 str1 b1 sta2 l2.
+          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
+          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, Some l2) ->
+          Cn.mem (sta2, Some L.(split sp str1 ++ l2)) result
+        }
+      in
+      let str_res1_failures' =
+        Cn.map (fun sta -> sta, None) str_res1_failures
+      in
+      Cn.(union res2 str_res1_failures')
     end
 
   let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)

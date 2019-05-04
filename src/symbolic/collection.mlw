@@ -57,6 +57,12 @@ module Collection
   lemma union_empty_right: forall c: t 'a.
     union c empty = c
 
+  lemma union_left: forall c1 c2: t 'a, x.
+    mem x c1 -> mem x (union c1 c2)
+
+  lemma union_right: forall c1 c2: t 'a, x.
+    mem x c2 -> mem x (union c1 c2)
+
   val function bind (f: 'a -> t 'b) (c: t 'a) : t 'b
     ensures { forall x. mem x c -> forall y. mem y (f x) -> mem y result }
     ensures { forall y. mem y result -> exists x. mem x c /\ mem y (f x) }
