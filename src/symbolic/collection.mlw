@@ -2,6 +2,7 @@ module Collection
 
   use list.ListRich as L
   use set.Fset as S
+  use int.Int
 
   type t 'a
 
@@ -20,8 +21,12 @@ module Collection
   val function to_list (c: t 'a) : L.list 'a
     ensures { forall x. mem x c <-> L.mem x result }
 
+  val constant size (c: t 'a) : int
+    ensures { 0 <= result }
+
   val constant empty : t 'a
     ensures { forall x. not mem x result }
+    ensures { size result = 0 }
 
   val function add (x: 'a) (c: t 'a) : t 'a
     ensures { mem x result }
@@ -31,6 +36,7 @@ module Collection
   val function singleton (x: 'a) : t 'a
     ensures { mem x result }
     ensures { forall y. mem y result -> y = x }
+    ensures { size result = 1 }
 
   val function map (f: 'a -> 'b) (c: t 'a) : t 'b
     ensures { forall x. mem x c -> mem (f x) result }
