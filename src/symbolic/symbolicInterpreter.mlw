@@ -726,39 +726,47 @@ module Interpreter
         separate_options
           (interp_list_expr stk cnf inp ctx sta le)
       in
-      (* Run interpretation of foreach in one state *)
-      let rec interp_foreach (b:bool) (ctx:context) (sta:state) (ss:list string) : Rs.t bool
-        variant { ss }
-      = match ss with
-        | Nil ->
-          Rs.({empty with normal=Cn.singleton {state=sta; context=ctx; data=b}})
-        | Cons s ss' ->
-          let res1_normal, res1_abort =
-            let ctx' = {ctx with var_env = ctx.var_env[id <- s]'} in
-            Rs.separate_normal
-              (interp_instr stk cnf inp ctx' sta ins)
-          in
-          let for_normal sta1 = interp_foreach sta1.context.result sta1.context sta1.state ss' in
-          let for_abort sta  = with_data sta.context.result sta in
-          Rs.(union
-                (bind_collection for_normal res1_normal)
-                (map for_abort res1_abort))
-        end
+      assert {
+        forall sta' ss.
+        eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) -> 
+        Cn.mem (sta', ss) lst_res
+      };
+      let res_loop_cont =
+        (* Execute foreach loop on a result from interp_list_expr *)
+        let function aux arg =
+          let sta', ss = arg in
+          interp_foreach True stk cnf inp ctx sta' id ss ins
+        in
+        Rs.bind_collection aux lst_res
+        ensures {
+          forall sta' ss sta'' ctx' bhv b.
+          eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) -> 
+          eval_foreach stk True (cnf, inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
+          Rs.mem {state=sta''; context=ctx'; data=b} bhv result
+        }
       in
-      (* Execute foreach loop on a result from interp_list_expr *)
-      let interp_foreach' arg =
-        let sta', ss = arg in
-        interp_foreach True ctx sta' ss
+      let res_loop_cont' =
+        let function aux sta'' =
+          let ctx'' = with_result sta''.data sta''.context in
+          with_data () {sta'' with context = ctx''}
+        in
+        Rs.map aux res_loop_cont
+        ensures {
+          forall sta' ss sta'' ctx' bhv b.
+          eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) -> 
+          eval_foreach stk True (cnf, inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
+          Rs.mem {state=sta''; context=with_result b ctx'; data=()} bhv result
+        }
       in
-      (* Move data to result *)
-      let set_result sta'' =
-        let ctx'' = with_result sta''.data sta''.context in
-        with_data () {sta'' with context = ctx'' }
+      let res_failure =
+        Rs.stas_as_failures ctx lst_res_failures
+        ensures {
+          forall sta'.
+          eval_list_expr stk (cnf, inp, ctx, sta) le (sta', None) -> 
+          Rs.mem {state=sta'; context=ctx; data=()} BFailure result
+        }
       in
-      Rs.(union
-           (map set_result
-             (bind_collection interp_foreach' lst_res))
-           (stas_as_failures ctx lst_res_failures))
+      Rs.(union res_loop_cont' res_failure)
 
     | IWhile ins1 ins2 ->
       let loop_limit = match cnf.loop_limit with Some n -> n | None -> absurd end in
@@ -877,6 +885,50 @@ module Interpreter
         {state = sta; context = ctx'; data=()}
       in
       Rs.({empty with return_ = Cn.singleton sta})
+    end
+
+  with interp_foreach (b:bool) (stk:int) (cnf:config) (inp:input) (ctx:context) (sta:state) (id:identifier) (ss:list string) (ins:instruction) : Rs.t bool
+    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, L.length ss }
+    requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
+    requires { stk <= get_some cnf.stack_size }
+    ensures {
+      forall sta' ctx' bhv b'.
+      eval_foreach stk b (cnf, inp, ctx, sta) id ss ins (sta', ctx', bhv) b' ->
+      Rs.mem {state=sta'; context=ctx'; data=b'} bhv result
+    }
+  = match ss with
+    | Nil ->
+      Rs.({empty with normal=Cn.singleton {state=sta; context=ctx; data=b}})
+    | Cons s ss' ->
+      let res1_normal, res1_other =
+        Rs.separate_normal
+          (interp_instr stk cnf inp {ctx with var_env = ctx.var_env[id <- s]'} sta ins)
+      in
+      let res_normal' =
+        let function aux (sta1: sym_state unit) =
+          interp_foreach sta1.context.result stk cnf inp sta1.context sta1.state id ss' ins
+        in
+        Rs.bind_collection aux res1_normal
+        ensures {
+          forall sta1 ctx1 sta2 ctx2 bhv2 b2.
+          eval_instruction stk (cnf, inp, {ctx with var_env=ctx.var_env[id <- s]'}, sta) ins (sta1, ctx1, BNormal) ->
+          eval_foreach stk ctx1.result (cnf, inp, ctx1, sta1) id ss' ins (sta2, ctx2, bhv2) b2 ->
+          Rs.mem {state=sta2; context=ctx2; data=b2} bhv2 result
+        }
+      in
+      let res1_other' =
+        let function aux (sta: sym_state unit) =
+          with_data sta.context.result sta
+        in
+        Rs.map aux res1_other
+        ensures {
+          forall sta1 ctx1 bhv1.
+          eval_instruction stk (cnf, inp, {ctx with var_env=ctx.var_env[id <- s]'}, sta) ins (sta1, ctx1, bhv1) ->
+          bhv1 <> BNormal ->
+          Rs.mem {state=sta1; context=ctx1; data=ctx1.result} bhv1 result
+        }
+      in
+      Rs.union res_normal' res1_other'
     end
 
   with interp_instr' (stk:int) (cnf:config) (inp:input) (stas: Cn.t (sym_state 'a)) (ins:instruction) : Rs.t 'a
