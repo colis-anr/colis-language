@@ -604,7 +604,6 @@ module Semantics
   
   | eval_call_utility: forall stk cnf inp ctx sta sta' sta'' id es ss b.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
-    (* Utilities don’t increase the stack (as long they do not generate instructions) *)
     (sta'', b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' ->
     let ctx' = with_result b ctx in
     let bhv = behaviour inp b in

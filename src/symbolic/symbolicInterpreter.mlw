@@ -113,6 +113,12 @@ module Results
       return_ = Cn.union res1.return_ res2.return_;
       failure = Cn.union res1.failure res2.failure; }
 
+  lemma union_1: forall sta: sym_state 'a, bhv res1 res2.
+    mem sta bhv res1 -> mem sta bhv (union res1 res2)
+
+  lemma union_2: forall sta: sym_state 'a, bhv res1 res2.
+    mem sta bhv res2 -> mem sta bhv (union res1 res2)
+
   let rec flatten_list (l: L.list (t 'a)) : t 'a
     variant { l }
     ensures { forall res sta bhv. L.mem res l -> mem sta bhv res -> mem sta bhv result }
@@ -562,29 +568,29 @@ module Interpreter
           (interp_list_expr stk cnf inp ctx sta le)
       in
       let res' =
-        let call_utility arg =
+        let function aux arg =
           let sta', args = arg in
           sym_interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) id sta'
         in
-        let for_call_result arg =
+        Cn.bind aux res
+      in
+      let res'' =
+        let function aux arg =
           let sta'', b = arg in
-          let ctx' = with_result b ctx in
-          {state=sta''; context=ctx'; data=()}
+          {state=sta''; context=with_result b ctx; data=()}
         in
-        Rs.inject inp
-          Cn.(map for_call_result
-               (bind call_utility res))
-        ensures {
-          forall sta' sta'' ss b.
-          eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) ->
-          (sta'', b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' ->
-          Rs.mem {state=sta''; context=with_result b ctx; data=()} (behaviour inp b) result
-        }
+        Cn.map aux res'
       in
-      let res_failures' =
-        Rs.stas_as_failures ctx res_failures
-      in
-      Rs.union res' res_failures'
+      let res''' = Rs.inject inp res'' in
+      let res_failures' = Rs.stas_as_failures ctx res_failures in
+      Rs.union res''' res_failures'
+      ensures {
+        forall sta' ss sta'' b.
+        eval_list_expr stk (cnf, inp, ctx, sta) le (sta', Some ss) ->
+        (sta'', b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' ->
+        Rs.mem {state=sta''; context=with_result b ctx; data=()} (behaviour inp b) result
+        by Rs.mem {state=sta''; context=with_result b ctx; data=()} (behaviour inp b) res'''
+      }
 
     | ICallFunction id le ->
       let arg_res, arg_res_failures =
