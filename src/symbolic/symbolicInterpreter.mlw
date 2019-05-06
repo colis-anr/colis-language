@@ -839,42 +839,82 @@ module Interpreter
       let str = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
       Cn.singleton (sta, Some (str, b))
     | SSubshell ins ->
-      let res, stas_failures =
-        let sta' = {sta with stdout=Stdout.empty} in
+      let res, stas_failure =
         Rs.separate_non_failure
-          (interp_instr stk cnf inp ctx sta' ins)
+          (interp_instr stk cnf inp ctx {sta with stdout=Stdout.empty} ins)
       in
-      let function for_res (sta1:sym_state unit) =
-        let str = Stdout.to_string sta1.state.stdout in
-        let sta1' = {sta1.state with stdout=sta.stdout} in
-        let b' = sta1.context.result in
-        sta1', Some  (str, b')
+      let res' =
+        let for_res (sta1:sym_state unit)
+        = let str = Stdout.to_string sta1.state.stdout in
+          let sta1' = {sta1.state with stdout=sta.stdout} in
+          let b' = sta1.context.result in
+          sta1', Some (str, b')
+        in
+        Cn.map for_res res
       in
-      let res_non_failure = Cn.map for_res res in
-      let res_failure = Cn.map (fun sta1 -> sta1.state, None) stas_failures in
-      Cn.union res_non_failure res_failure
+      let res_failure' =
+        Cn.map (fun sta1 -> {sta1.state with stdout=sta.stdout}, None) stas_failure
+      in
+      Cn.union res' res_failure'
+      ensures {
+        forall sta1 ctx1.
+        eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BFailure) ->
+        Cn.mem ({sta1 with stdout = sta.stdout}, None) result
+        by Cn.mem ({sta1 with stdout = sta.stdout}, None) res_failure'
+      }
+      ensures {
+        forall sta1 ctx1 bhv1.
+        bhv1 <> BFailure ->
+        eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+        Cn.mem ({sta1 with stdout = sta.stdout}, Some (Stdout.to_string sta1.stdout, ctx1.result)) result
+        by Cn.mem ({sta1 with stdout = sta.stdout}, Some (Stdout.to_string sta1.stdout, ctx1.result)) res'
+      }
     | SConcat se1 se2 ->
-      let res1: Cn.t (state, (string, bool)), res1_failures: Cn.t state =
+      let res1, res1_failure =
         separate_options
           (interp_str_expr stk b cnf inp ctx sta se1)
       in
-      let as_failure sta = sta, None in
-      let for_res1 sta1 str1 b1 : Cn.t (state, option (string, bool)) =
-        let res2, res2_failures =
-          separate_options
-            (interp_str_expr stk b1 cnf inp ctx sta1 se2)
+      let res1' =
+        let for_res1 arg
+          ensures {
+            let sta1, (str1, b1) = arg in
+            forall sta2.
+            eval_str_expr stk b (cnf, inp, ctx, sta) se1 (sta1, Some (str1, b1)) ->
+            eval_str_expr stk b1 (cnf, inp, ctx, sta1) se2 (sta2, None) ->
+            Cn.mem (sta2, None) result
+            (* by Cn.mem (sta2, None) res2_failure' *)
+          }
+          ensures {
+            let sta1, (str1, b1) = arg in
+            forall sta2 str2 b2.
+            eval_str_expr stk b (cnf, inp, ctx, sta) se1 (sta1, Some (str1, b1)) ->
+            eval_str_expr stk b1 (cnf, inp, ctx, sta1) se2 (sta2, Some (str2, b2)) ->
+            Cn.mem (sta2, Some (str1^str2, b2)) result
+            (* by Cn.mem (sta2, Some (str1^str2, b2)) res2' *)
+          }
+        = let sta1, (str1, b1) = arg in
+          let res2, res2_failure =
+            separate_options
+              (interp_str_expr stk b1 cnf inp ctx sta1 se2)
+          in
+          let res2_failure' =
+            Cn.map (fun sta -> sta, None) res2_failure
+          in
+          let res2' =
+            let for_res2 arg2 =
+              let sta2, (str2, b2) = arg2 in
+              sta2, Some (str1^str2, b2)
+            in
+            Cn.map for_res2 res2
+          in
+          Cn.(union res2' res2_failure')
         in
-        let for_res2 arg2 =
-          let sta2, (str2, b2) = arg2 in
-          sta2, Some (str1^str2, b2)
-        in
-        Cn.(union
-              (map for_res2 res2)
-              (map as_failure res2_failures))
+        Cn.bind for_res1 res1
       in
-      let res1' : Cn.t (state, option (string, bool)) =
-        Cn.bind (fun arg1 -> let sta1, (str1, b1) = arg1 in for_res1 sta1 str1 b1) res1 in
-      Cn.(union res1' (map as_failure res1_failures))
+      let res1_failure' =
+        Cn.map (fun sta -> sta, None) res1_failure
+      in
+      Cn.(union res1' res1_failure')
     end
 
   with interp_list_expr (stk:int) (cnf:config) (inp:input) (ctx:context) (sta:state) (le:list_expression)
@@ -896,20 +936,6 @@ module Interpreter
           (interp_str_expr stk True cnf inp ctx sta se : Cn.t (state, option (string, bool)))
       in
       let function for_sta_str (arg: (state, (string, bool)))
-        ensures {
-          forall sta2.
-          let sta1, (str1, b1) = arg in
-          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
-          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, None) ->
-          Cn.mem (sta1, None) result
-        }
-        ensures {
-          forall sta2 l2.
-          let sta1, (str1, b1) = arg in
-          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
-          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, Some l2) ->
-          Cn.mem (sta2, Some L.(split sp str1 ++ l2)) result
-        }
       = let sta1, (str1, _) = arg in
         let lst_res2: Cn.t (state, list string), lst_res2_failures: Cn.t state =
           separate_options
@@ -937,18 +963,6 @@ module Interpreter
       in
       let res2 =
         Cn.bind for_sta_str str_res1
-        ensures {
-          forall sta1 str1 b1 sta2.
-          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
-          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, None) ->
-          Cn.mem (sta1, None) result
-        }
-        ensures {
-          forall sta1 str1 b1 sta2 l2.
-          eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
-          eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, Some l2) ->
-          Cn.mem (sta2, Some L.(split sp str1 ++ l2)) result
-        }
       in
       let str_res1_failures' =
         Cn.map (fun sta -> sta, None) str_res1_failures
