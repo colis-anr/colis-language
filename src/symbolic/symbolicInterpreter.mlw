@@ -445,7 +445,7 @@ module Interpreter
 
   let rec interp_instr (stk:int) (cnf:config) (inp:input) (ctx:context) (sta:state) (ins:instruction)
     : Rs.t unit
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, -1 }
+    variant { get_some cnf.stack_size - stk, size_instr ins, -1 }
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     ensures { (* Over-approximation *)
@@ -870,7 +870,7 @@ module Interpreter
     end
 
   with interp_foreach (b:bool) (stk:int) (cnf:config) (inp:input) (ctx:context) (sta:state) (id:identifier) (ss:list string) (ins:instruction) : Rs.t bool
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, L.length ss }
+    variant { get_some cnf.stack_size - stk, size_instr ins, L.length ss }
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
     ensures {
@@ -914,9 +914,9 @@ module Interpreter
     end
 
   with interp_while b ctr stk cnf inp ctx (sta:state) ins1 ins2 : Rs.t (int, bool)
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, 1+size_instr ins2  }
+    variant { get_some cnf.stack_size - stk, size_instr ins1+size_instr ins2, get_some cnf.loop_limit - ctr  }
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
-    requires { ctr <= get_some cnf.loop_limit }
+    requires { 0 <= ctr <= get_some cnf.loop_limit }
     requires { stk <= get_some cnf.stack_size }
     ensures {
       forall sta' ctx' bhv ctr' b'.
@@ -950,18 +950,12 @@ module Interpreter
       let res1_abort' = Rs.map with_ctr_b res1_abort in
       let res1_false' = Rs.({empty with normal=Cn.map with_ctr_b res1_false}) in
       let res2_abort' = Rs.map with_ctr_b res2_abort in
-      (* let others = *)
-      (*   let res1_false' = Rs.({empty with normal=res1_false}) in *)
-      (*   Rs.(map (with_data ()) *)
-      (*         (union res2_abort *)
-      (*         (union res1_abort res1_false'))) *)
-      (* in *)
       Rs.(union res3 (union res1_abort' (union res1_false' res2_abort')))
 
   with interp_instr' (stk:int) (cnf:config) (inp:input) (stas: Cn.t (sym_state 'a)) (ins:instruction) : Rs.t 'a
+    variant { get_some cnf.stack_size - stk, size_instr ins, Cn.size stas }
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_instr ins, Cn.size stas }
     ensures { (* Over-approximation *)
       forall sta sta' ctx' bhv.
       Cn.mem sta stas ->
@@ -981,9 +975,9 @@ module Interpreter
 
   with interp_str_expr (stk:int) (b:bool) (cnf:config) (inp:input) (ctx:context) (sta:state) (se:string_expression)
     : Cn.t (state, option (string, bool))
+    variant { get_some cnf.stack_size - stk, size_string_expr se, -1 }
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_string_expr se, -1 }
     ensures { (* Over-approximation *)
       forall sta' res.
       eval_str_expr stk b (cnf, inp, ctx, sta) se (sta', res) ->
@@ -1077,9 +1071,9 @@ module Interpreter
 
   with interp_list_expr (stk:int) (cnf:config) (inp:input) (ctx:context) (sta:state) (le:list_expression)
     : Cn.t (state, option (list string))
+    variant { get_some cnf.stack_size - stk, size_list_expr le, -1 }
     requires { cnf.loop_limit <> None /\ cnf.stack_size <> None }
     requires { stk <= get_some cnf.stack_size }
-    variant { get_some cnf.stack_size - stk, get_some cnf.loop_limit + 1, size_list_expr le, -1 }
     ensures { (* Over-approximation *)
       forall sta' res.
       eval_list_expr stk (cnf, inp, ctx, sta) le (sta', res) ->
