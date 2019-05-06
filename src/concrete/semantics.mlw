@@ -644,7 +644,7 @@ module Semantics
     match cnf.stack_size with Some n -> n <> stk | None -> true end ->
     let inp1 = { inp with argument0 = identifier_to_string id } in
     let ctx1 = { ctx with arguments = args } in
-    eval_instruction stk (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
+    eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
     let bhv' = match bhv with BReturn -> BNormal | bhv -> bhv end in
     let ctx' = with_result ctx2.result ctx in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', bhv')
