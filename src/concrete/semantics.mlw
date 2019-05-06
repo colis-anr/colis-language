@@ -614,7 +614,7 @@ module Semantics
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta1, ctx, BFailure)
 
   | eval_call_function_not_found: forall stk cnf inp ctx sta sta' id es ss.
-    eval_list_expr stk (cnf, inp, ctx, sta) es (sta', ss) ->
+    eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
     ctx.func_env[id] = None ->
     let ctx' = with_result False ctx in
     let bhv = behaviour inp False in
