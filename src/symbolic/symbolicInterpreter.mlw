@@ -425,16 +425,7 @@ module Interpreter
 
   let function reset_output sta sta' =
     let sta'' = {sta'.state with stdout = sta.stdout} in
-    {sta' with
-      state = sta''}
-
-  let function state_split_str sp arg =
-    let sta, (str, _:bool) = arg in
-    sta, split sp str
-
-  let function state_concat strs1 arg =
-    let sta2, strs2 = arg in
-    sta2, Some L.(strs1++strs2)
+    {sta' with state = sta''}
 
   let function assignment_for_str_sta ctx var arg =
     let sta', (str, result) = arg in
@@ -882,7 +873,6 @@ module Interpreter
             eval_str_expr stk b (cnf, inp, ctx, sta) se1 (sta1, Some (str1, b1)) ->
             eval_str_expr stk b1 (cnf, inp, ctx, sta1) se2 (sta2, None) ->
             Cn.mem (sta2, None) result
-            (* by Cn.mem (sta2, None) res2_failure' *)
           }
           ensures {
             let sta1, (str1, b1) = arg in
@@ -890,7 +880,6 @@ module Interpreter
             eval_str_expr stk b (cnf, inp, ctx, sta) se1 (sta1, Some (str1, b1)) ->
             eval_str_expr stk b1 (cnf, inp, ctx, sta1) se2 (sta2, Some (str2, b2)) ->
             Cn.mem (sta2, Some (str1^str2, b2)) result
-            (* by Cn.mem (sta2, Some (str1^str2, b2)) res2' *)
           }
         = let sta1, (str1, b1) = arg in
           let res2, res2_failure =
@@ -935,33 +924,35 @@ module Interpreter
         separate_options
           (interp_str_expr stk True cnf inp ctx sta se : Cn.t (state, option (string, bool)))
       in
-      let function for_sta_str (arg: (state, (string, bool)))
-      = let sta1, (str1, _) = arg in
-        let lst_res2: Cn.t (state, list string), lst_res2_failures: Cn.t state =
-          separate_options
-            (interp_list_expr stk cnf inp ctx sta1 le')
-        in
-        let lst_res2' =
-          Cn.map (fun arg -> state_concat (split sp str1) arg) lst_res2
-          (* ensures { *)
-          (*   forall sta2 l2. *)
-          (*   eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) -> *)
-          (*   eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, Some l2) -> *)
-          (*   Cn.mem (sta2, Some L.(split sp str1 ++ l2)) result *)
-          (* } *)
-        in
-        let lst_res2_failures' =
-          Cn.map (fun sta -> sta, None) lst_res2_failures
-          (* ensures { *)
-          (*   forall sta2. *)
-          (*   eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) -> *)
-          (*   eval_list_expr stk (cnf, inp, ctx, sta1) le (sta2, None) -> *)
-          (*   Cn.mem (sta1, None) result *)
-          (* } *)
-        in
-        Cn.(union lst_res2' lst_res2_failures')
-      in
       let res2 =
+        let for_sta_str (arg: (state, (string, bool)))
+          ensures {
+            let sta1, (str1, b1) = arg in
+            forall sta2.
+            eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
+            eval_list_expr stk (cnf, inp, ctx, sta1) le' (sta2, None) ->
+            Cn.mem (sta2, None) result
+          }
+          ensures {
+            let sta1, (str1, b1) = arg in
+            forall sta2 l2.
+            eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str1, b1)) ->
+            eval_list_expr stk (cnf, inp, ctx, sta1) le' (sta2, Some l2) ->
+            Cn.mem (sta2, Some L.(split sp str1++l2)) result
+          }
+        = let sta1, (str1, _) = arg in
+          let lst_res2: Cn.t (state, list string), lst_res2_failures: Cn.t state =
+            separate_options
+              (interp_list_expr stk cnf inp ctx sta1 le')
+          in
+          let lst_res2' =
+            Cn.map (fun arg -> let sta2, strs2 = arg in sta2, Some L.(split sp str1++strs2)) lst_res2
+          in
+          let lst_res2_failures' =
+            Cn.map (fun sta -> sta, None) lst_res2_failures
+          in
+          Cn.(union lst_res2' lst_res2_failures')
+        in
         Cn.bind for_sta_str str_res1
       in
       let str_res1_failures' =
