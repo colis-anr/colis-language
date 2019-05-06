@@ -931,25 +931,101 @@ module Interpreter
         Rs.separate_normal
           (interp_instr stk cnf {inp with under_condition=True} ctx sta ins1)
       in
+      assert {
+        forall sta1 ctx1.
+        eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+        Cn.mem {state=sta1; context=ctx1; data=()} res1_normal
+      };
+      assert {
+        forall sta1 ctx1 bhv1.
+        bhv1 <> BNormal ->
+        eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+        Rs.mem {state=sta1; context=ctx1; data=()} bhv1 res1_abort
+      };
       let res1_true, res1_false =
         Cn.partition (fun sta -> sta.context.result) res1_normal
       in
+      assert {
+        forall sta1 ctx1.
+        eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+        ctx1.result = True ->
+        Cn.mem {state=sta1; context=ctx1; data=()} res1_true
+      };
+      assert {
+        forall sta1 ctx1.
+        eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+        ctx1.result = False ->
+        Cn.mem {state=sta1; context=ctx1; data=()} res1_false
+      };
       let res2_normal, res2_abort =
         Rs.separate_normal
           (interp_instr' stk cnf inp res1_true ins2)
       in
+      assert {
+        forall sta1 ctx1 sta2 ctx2.
+        eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+        ctx1.result = True ->
+        eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
+        Cn.mem {state=sta2; context=ctx2; data=()} res2_normal
+      };
+      assert {
+        forall sta1 ctx1 sta2 ctx2 bhv2.
+        eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+        ctx1.result = True ->
+        eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
+        bhv2 <> BNormal ->
+        Rs.mem {state=sta2; context=ctx2; data=()} bhv2 res2_abort
+      };
       let res3 =
         let function aux (sta2:sym_state unit) =
           interp_while sta2.context.result (ctr+1) stk cnf inp sta2.context sta2.state ins1 ins2
         in
         Rs.bind_collection aux res2_normal
+        ensures {
+          forall sta1 ctx1 sta2 ctx2 sta3 ctx3 bhv3 n b'.
+          match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+          ctx1.result = True ->
+          eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
+          eval_while stk (ctr+1) ctx2.result (cnf, inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) n b' ->
+          Rs.mem {state=sta3;context=ctx3;data=(n, b')} bhv3 result
+        }
       in
       let function with_ctr_b (sta:sym_state unit) =
         {sta with data=(ctr, b)}
       in
-      let res1_abort' = Rs.map with_ctr_b res1_abort in
-      let res1_false' = Rs.({empty with normal=Cn.map with_ctr_b res1_false}) in
-      let res2_abort' = Rs.map with_ctr_b res2_abort in
+      let res1_abort' =
+        Rs.map with_ctr_b res1_abort
+        ensures {
+          forall sta1 ctx1 bhv1.
+          match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          bhv1 <> BNormal ->
+          eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+          Rs.mem {state=sta1;context=ctx1;data=(ctr, b)} bhv1 result
+        }
+      in
+      let res1_false' =
+        Rs.({empty with normal=Cn.map with_ctr_b res1_false})
+        ensures {
+          forall sta1 ctx1.
+          match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          ctx1.result = False ->
+          eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+          Rs.mem {state=sta1;context=ctx1;data=(ctr, b)} BNormal result
+        }
+      in
+      let res2_abort' =
+        Rs.map with_ctr_b res2_abort
+        ensures {
+          forall sta1 ctx1 sta2 ctx2 bhv2.
+          match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+          ctx1.result = True ->
+          eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
+          bhv2 <> BNormal ->
+          Rs.mem {state=sta2;context=ctx2;data=(ctr, b)} bhv2 result
+        }
+      in
       Rs.(union res3 (union res1_abort' (union res1_false' res2_abort')))
 
   with interp_instr' (stk:int) (cnf:config) (inp:input) (stas: Cn.t (sym_state 'a)) (ins:instruction) : Rs.t 'a
