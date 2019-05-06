@@ -711,6 +711,7 @@ module Semantics
   | eval_while_abort_body: forall stk cnf ctr b bhv2 inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2.
     match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
     eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = True ->
     eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
     bhv2 <> BNormal ->
     let b' = b in
@@ -721,8 +722,8 @@ module Semantics
   | eval_while_loop: forall stk cnf ctr n b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
     ctr < n ->
     match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
-    ctx1.result = True ->
     eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = True ->
     eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
     eval_while stk (ctr+1) ctx2.result (cnf, inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) n b3 ->
     eval_while stk ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta3, ctx3, bhv3) n b3
