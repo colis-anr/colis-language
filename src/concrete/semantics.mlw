@@ -783,16 +783,15 @@ module Semantics
     eval_str_expr stk b (cnf, inp, ctx, sta) (SArgument n) (sta, res)
 
   | eval_str_subshell_failure: forall stk cnf b inp ctx ctx1 sta sta1 ins.
-    eval_instruction stk (cnf, inp, ctx, { sta with stdout = Stdout.empty }) ins (sta1, ctx1, BFailure) ->
-    let sta1' = { sta1 with stdout = sta.stdout } in
+    eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BFailure) ->
+    let sta1' = {sta1 with stdout=sta.stdout} in
     eval_str_expr stk b (cnf, inp, ctx, sta) (SSubshell ins) (sta1', None)
 
   | eval_str_subshell: forall stk cnf b inp ctx ctx1 sta sta1 ins bhv1.
     bhv1 <> BFailure ->
-    eval_instruction stk (cnf, inp, ctx, {sta with stdout = Stdout.empty}) ins (sta1, ctx1, bhv1) ->
-    let str = Stdout.to_string sta1.stdout in
-    let sta1' = { sta1 with stdout = sta.stdout } in
-    let res = Some (str, ctx1.result) in
+    eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+    let sta1' = {sta1 with stdout = sta.stdout} in
+    let res = Some (Stdout.to_string sta1.stdout, ctx1.result) in
     eval_str_expr stk b (cnf, inp, ctx, sta) (SSubshell ins) (sta1', res)
 
   | eval_str_concat_failure1 : forall stk cnf b inp ctx sta sta1 e1 e2.
