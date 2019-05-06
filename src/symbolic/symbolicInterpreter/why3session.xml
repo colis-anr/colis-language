@@ -533,7 +533,37 @@
   <proof prover="1" obsolete="true"><result status="timeout" time="1.00" steps="258138"/></proof>
   </goal>
   <goal name="VC interp_instr.61" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="0.35" steps="85456"/></proof>
+  <proof prover="0" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <proof prover="1"><result status="valid" time="0.25" steps="84949"/></proof>
+  <proof prover="2" obsolete="true"><result status="timeout" time="1.00" steps="2904940"/></proof>
+  <proof prover="3" obsolete="true"><result status="timeout" time="1.00"/></proof>
+  <transf name="left" >
+   <goal name="VC interp_instr.61.0" expl="left case">
+   <transf name="split_vc" >
+    <goal name="VC interp_instr.61.0.0" expl="left case">
+    <transf name="instantiate" arg1="config&#39;invariant" arg2="cnf">
+     <goal name="VC interp_instr.61.0.0.0" expl="left case">
+     <transf name="destruct_rec" arg1="Hinst">
+      <goal name="VC interp_instr.61.0.0.0.0" expl="left case">
+      <transf name="destruct_rec" arg1="Hinst1">
+       <goal name="VC interp_instr.61.0.0.0.0.0" expl="left case">
+       <proof prover="1" obsolete="true"><result status="timeout" time="1.00" steps="299690"/></proof>
+       </goal>
+       <goal name="VC interp_instr.61.0.0.0.0.1" expl="left case">
+       <proof prover="1" obsolete="true"><result status="valid" time="0.12" steps="77210"/></proof>
+       </goal>
+      </transf>
+      </goal>
+     </transf>
+     </goal>
+    </transf>
+    </goal>
+    <goal name="VC interp_instr.61.0.1" expl="left case">
+    <proof prover="1" obsolete="true"><result status="valid" time="0.12" steps="77314"/></proof>
+    </goal>
+   </transf>
+   </goal>
+  </transf>
   </goal>
   <goal name="VC interp_instr.62" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.11" steps="78253"/></proof>
@@ -541,15 +571,18 @@
   <goal name="VC interp_instr.63" expl="precondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="VC interp_instr.63.0" expl="precondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.13" steps="77146"/></proof>
+   </goal>
+   <goal name="VC interp_instr.63.1" expl="precondition" proved="true">
    <transf name="instantiate" proved="true" arg1="config&#39;invariant" arg2="cnf">
-    <goal name="VC interp_instr.63.0.0" expl="precondition" proved="true">
+    <goal name="VC interp_instr.63.1.0" expl="precondition" proved="true">
     <transf name="destruct_rec" proved="true" arg1="Hinst">
-     <goal name="VC interp_instr.63.0.0.0" expl="precondition" proved="true">
+     <goal name="VC interp_instr.63.1.0.0" expl="precondition" proved="true">
      <transf name="destruct" proved="true" arg1="Hinst1">
-      <goal name="VC interp_instr.63.0.0.0.0" expl="precondition" proved="true">
+      <goal name="VC interp_instr.63.1.0.0.0" expl="precondition" proved="true">
       <proof prover="1"><result status="valid" time="0.12" steps="77375"/></proof>
       </goal>
-      <goal name="VC interp_instr.63.0.0.0.1" expl="precondition" proved="true">
+      <goal name="VC interp_instr.63.1.0.0.1" expl="precondition" proved="true">
       <proof prover="1"><result status="valid" time="0.21" steps="80647"/></proof>
       </goal>
      </transf>
@@ -561,7 +594,7 @@
   </transf>
   </goal>
   <goal name="VC interp_instr.64" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.13" steps="77313"/></proof>
+  <proof prover="1"><result status="valid" time="0.13" steps="77332"/></proof>
   </goal>
   <goal name="VC interp_instr.65" expl="postcondition" proved="true">
   <proof prover="1" timelimit="0" memlimit="0"><result status="valid" time="1.75" steps="190927"/></proof>
@@ -2096,6 +2129,54 @@
  </transf>
  </goal>
  <goal name="VC interp_while" expl="VC for interp_while">
+ <transf name="split_vc" >
+  <goal name="VC interp_while.0" expl="unreachable point" proved="true">
+  <proof prover="1"><result status="valid" time="0.14" steps="77169"/></proof>
+  </goal>
+  <goal name="VC interp_while.1" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.24" steps="82611"/></proof>
+  </goal>
+  <goal name="VC interp_while.2" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.15" steps="78373"/></proof>
+  </goal>
+  <goal name="VC interp_while.3" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.16" steps="77407"/></proof>
+  </goal>
+  <goal name="VC interp_while.4" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.25" steps="86160"/></proof>
+  </goal>
+  <goal name="VC interp_while.5" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.14" steps="80485"/></proof>
+  </goal>
+  <goal name="VC interp_while.6" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.15" steps="79519"/></proof>
+  </goal>
+  <goal name="VC interp_while.7" expl="variant decrease" proved="true">
+  <proof prover="1"><result status="valid" time="0.15" steps="80072"/></proof>
+  </goal>
+  <goal name="VC interp_while.8" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.15" steps="80997"/></proof>
+  </goal>
+  <goal name="VC interp_while.9" expl="precondition" proved="true">
+  <transf name="split_vc" proved="true" >
+   <goal name="VC interp_while.9.0" expl="precondition" proved="true">
+   <proof prover="1"><result status="valid" time="0.25" steps="83275"/></proof>
+   </goal>
+   <goal name="VC interp_while.9.1" expl="precondition" proved="true">
+   <transf name="split_vc" proved="true" >
+    <goal name="VC interp_while.9.1.0" expl="precondition" proved="true">
+    <proof prover="1"><result status="valid" time="0.19" steps="83554"/></proof>
+    </goal>
+   </transf>
+   </goal>
+  </transf>
+  </goal>
+  <goal name="VC interp_while.10" expl="precondition" proved="true">
+  <proof prover="1"><result status="valid" time="0.16" steps="80070"/></proof>
+  </goal>
+  <goal name="VC interp_while.11" expl="postcondition">
+  </goal>
+ </transf>
  </goal>
  <goal name="VC interp_instr&#39;" expl="VC for interp_instr&#39;" proved="true">
  <transf name="split_vc" proved="true" >
