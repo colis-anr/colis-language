@@ -792,26 +792,66 @@ module Interpreter
 
     | IPipe ins1 ins2 ->
       let stas1, stas1_failure =
-        let sta' = {sta with stdout = Stdout.empty} in
         Rs.separate_non_failure
-          (interp_instr stk cnf inp ctx sta' ins1)
+          (interp_instr stk cnf inp ctx {sta with stdout=Stdout.empty} ins1)
       in
-      let res2 =
-        let stas1' =
-          let set_stdin_stdout sta1 =
-            let sta' = {sta1.state with stdout = sta.stdout; stdin = Stdout.to_stdin sta1.state.stdout} in
-            {state=sta'; context=ctx; data=sta1.state.stdin}
-          in
-          Cn.map set_stdin_stdout stas1
+      assert {
+        forall sta1 ctx1 bhv1.
+        bhv1 <> BFailure ->
+        eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) ->
+        Cn.mem {state=sta1; context=ctx1; data=()} stas1
+      };
+      let stas1': Cn.t (sym_state stdin) = (* data is sta1.state.stdin *)
+        let function aux (sta1: sym_state unit) =
+          {state={sta1.state with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.state.stdout}; context=ctx; data=sta1.state.stdin}
         in
+        Cn.map aux stas1
+        ensures {
+          forall sta1 ctx1 bhv1.
+          bhv1 <> BFailure ->
+          eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) ->
+          Cn.mem
+            {state={sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}; context=ctx; data=sta1.stdin}
+            result
+        }
+      in
+      let res2: Rs.t stdin = (* data is sta1.state.stdin *)
         interp_instr' stk cnf inp stas1' ins2
+        ensures {
+          forall sta1 ctx1 bhv1 sta2 ctx2 bhv2.
+          bhv1 <> BFailure ->
+          eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) -> 
+          eval_instruction stk (cnf, inp, ctx, {sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}) ins2 (sta2, ctx2, bhv2) ->
+          Rs.mem {state=sta2; context=ctx2; data=sta1.stdin} bhv2 result
+        }
       in
-      let revise sta2 =
-        let sta2' = {sta2.state with stdin=sta2.data} in
-        let ctx' = {ctx with result=sta2.context.result} in
-        {state=sta2'; context=ctx'; data=()}
+      let res2' =
+        let function aux sta2 =
+          {state={sta2.state with stdin=sta2.data};
+           context=with_result sta2.context.result ctx;
+           data=()}
+        in
+        Rs.map aux res2
+        ensures {
+          forall sta1 ctx1 bhv1 sta2 ctx2 bhv2.
+          bhv1 <> BFailure ->
+          eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) -> 
+          eval_instruction stk (cnf, inp, ctx, {sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}) ins2 (sta2, ctx2, bhv2) ->
+          Rs.mem {state={sta2 with stdin=sta1.stdin}; context=with_result ctx2.result ctx; data=()} bhv2 result
+        }
       in
-      Rs.(union (map revise res2) {empty with failure = stas1_failure})
+      let sta1_failure' =
+        let function aux (sta1: sym_state unit) =
+          {state={sta1.state with stdout=sta.stdout}; context=ctx; data=()}
+        in
+        Cn.map aux stas1_failure
+        ensures {
+          forall sta1 ctx1.
+          eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, BFailure) -> 
+          Cn.mem {state={sta1 with stdout=sta.stdout}; context=ctx; data=()} result
+        }
+      in
+      Rs.(union res2' {empty with failure=sta1_failure'})
 
     | IExit code ->
       let r =
