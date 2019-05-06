@@ -627,25 +627,24 @@ module Semantics
     let ctx' = ctx in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta1, ctx', BFailure)
 
-  | eval_call_function_failure: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins.
-    eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) ->
-    ctx.func_env[id] = Some ins ->
-    let inp1 = { inp with argument0 = identifier_to_string id } in
-    let ctx1 = { ctx with arguments = args } in
-    match cnf.stack_size with Some n -> n <> stk | None -> true end ->
-    eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, BFailure) ->
-    let ctx' = with_result ctx2.result ctx in
-    eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', BFailure)
+  (* | eval_call_function_failure: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins. *)
+  (*   eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) -> *)
+  (*   ctx.func_env[id] = Some ins -> *)
+  (*   let inp1 = { inp with argument0 = identifier_to_string id } in *)
+  (*   let ctx1 = { ctx with arguments = args } in *)
+  (*   match cnf.stack_size with Some n -> n <> stk | None -> true end -> *)
+  (*   eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, BFailure) -> *)
+  (*   let ctx' = with_result ctx2.result ctx in *)
+  (*   eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', BFailure) *)
 
   | eval_call_function: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
-    bhv <> BFailure ->
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) ->
     ctx.func_env[id] = Some ins ->
     match cnf.stack_size with Some n -> n <> stk | None -> true end ->
     let inp1 = { inp with argument0 = identifier_to_string id } in
     let ctx1 = { ctx with arguments = args } in
     eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
-    let bhv' = match bhv with BReturn -> BNormal | bhv -> bhv end in
+    let bhv' = match bhv with BNormal | BReturn -> BNormal | BExit -> BExit | BFailure -> BFailure end in
     let ctx' = with_result ctx2.result ctx in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', bhv')
   
