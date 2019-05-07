@@ -88,4 +88,4 @@ let interp_utility (cwd, var_env, args) id sta =
      | arg :: _ ->
        unknown_argument ~name:"grep" ~msg:"Only one argument implemented" ~arg sta
      end
-  | _ -> unknown_utility ~name sta
+  | _ -> unknown_utility ~name:id sta

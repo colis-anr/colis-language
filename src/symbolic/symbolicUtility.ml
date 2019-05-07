@@ -206,6 +206,6 @@ let dispatch ~name =
 let call name ctx args =
   dispatch ~name {ctx with args}
 
-let dispatch' name (cwd:Path.normal) env args sta =
+let dispatch' (cwd, env, args) name sta =
   let ctx = {cwd; args; env} in
   BatSet.of_list (dispatch ~name ctx sta)
