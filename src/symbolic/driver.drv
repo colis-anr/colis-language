@@ -6,12 +6,12 @@ module symbolicInterpreter.Constraints
 end
 
 module symbolicInterpreter.Semantics
-  syntax function filter_var_env "Env.filter_var_env (fun v -> v.SymbolicInterpreter__Semantics.exported) (fun v -> v.SymbolicInterpreter__Semantics.value) %1"
+  syntax val filter_var_env "Env.filter_var_env (fun v -> v.SymbolicInterpreter__Semantics.exported) (fun v -> v.SymbolicInterpreter__Semantics.value) %1"
   syntax val interp_utility "assert false"
 end
 
 module symbolicInterpreter.Interpreter
-  syntax val sym_interp_utility "SymbolicUtility.dispatch' %1 %2 %3 %4 %5"
+  syntax val sym_interp_utility "BatSet.to_list (SymbolicUtility.dispatch' %1 %2 %3)"
 end
 
 module collection.Collection
@@ -25,4 +25,7 @@ module collection.Collection
   syntax val partition "List.partition %1 %2"
   syntax val union "List.rev_append %1 %2"
   syntax val bind "List.concat (List.map %1 %2)"
+  syntax val of_list "%1"
+  syntax val to_list "%1"
+  syntax val size "List.length %1"
 end
