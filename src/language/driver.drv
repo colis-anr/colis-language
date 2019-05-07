@@ -2,13 +2,13 @@ module mystring.String
   syntax type string "string"
   syntax val empty "\"\""
   syntax val equal "String.equal %1 %2"
-  syntax function concat_lines "String.concat \"\n\" %1"
-  syntax function split_on_default_ifs "Str.(split (regexp \"[ \t\n]+\") %1)"
-  syntax function (^) "%1 ^ %2"
+  syntax val concat_lines "String.concat \"\n\" %1"
+  syntax val split_on_default_ifs "Str.(split (regexp \"[ \t\n]+\") %1)"
+  syntax val (^) "%1 ^ %2"
 end
 
 module syntax.Identifier
   syntax type identifier "string"
-  syntax function identifier_eq "String.equal %1 %2"
-  syntax function identifier_to_string "%1"
+  syntax val identifier_eq "String.equal %1 %2"
+  syntax val identifier_to_string "%1"
 end
