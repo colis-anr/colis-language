@@ -336,16 +336,14 @@ module Interpreter
           } in
           stk <- stk+1;
           interp_instruction inp' sta' ins;
-          stk <- stk-1
+          stk <- stk-1;
+          () (* Workaround for https://gitlab.inria.fr/why3/why3/issues/315 *)
         with
         | EReturn ->
           stk <- stk-1
-        (*  (\* Adding the following lines causes a weird error: *\) *)
-        (*  (\* File "src/concrete/interpreter.mlw", line 327, characters 8-27: *\) *)
-        (*  (\* This expression makes a ghost modification in the non-ghost variable sta *\) *)
-        (* | EExit -> *)
-        (*   stk <- stk-1; *)
-        (*   raise EExit *)
+        | EExit ->
+          stk <- stk-1;
+          raise EExit
         end
       end
 
