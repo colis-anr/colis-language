@@ -39,4 +39,4 @@ end
 
 module Dummy = (Dummy : S)
 module Naive = (Constraints_implementation_naive : S)
-module Efficient = (Efficient : S)
+module Efficient = (Constraints_implementation_efficient : S)
