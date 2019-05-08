@@ -72,11 +72,15 @@ module E = struct
 
   type t =
     { at_toplevel : bool ;
+      inside_function_body : bool ;
+      cmd_line_arguments : string list ;
       names_called : SSet.t ;
       functions : C.instruction SMap.t }
 
-  let empty =
+  let empty cmd_line_arguments =
     { at_toplevel = true ;
+      inside_function_body = false ;
+      cmd_line_arguments ;
       names_called = SSet.empty ;
       functions = SMap.empty }
 
@@ -108,6 +112,13 @@ module E = struct
   let with_deeper e f =
     let (e', x) = f { e with at_toplevel = false } in
     ({ e' with at_toplevel = e.at_toplevel }, x)
+
+  let is_inside_function_body e =
+    e.inside_function_body
+
+  let with_inside_function_body e f =
+    let (e', x) = f { e with inside_function_body = true } in
+    ({ e' with inside_function_body = e.inside_function_body }, x)
 end
 
 let on_located_with_env (f : E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a Morsmall.Location.located -> (E.t * 'b) =
@@ -227,15 +238,22 @@ and word__to__string_expression e w =
 
 and word_list__to__list_expression e word_list =
   list_fold_map
-    (fun e w ->
-      let (e, (se, sr)) = word__to__string_expression_split_requirement e w in
-      (e, (se,
-           match sr with
-           | Impossible -> unsupported "mixed words"
-           | DoesntCare | NoSplit -> C.DontSplit
-           | Split -> C.Split)))
+    (fun e -> function
+       | [WDoubleQuoted [WVariable ("@", NoAttribute)]] -> (* "$@" *)
+         if E.is_inside_function_body e then
+           unsupported "\"$@\" inside function body"
+         else
+           (e, List.map (fun arg -> (C.SLiteral arg, C.DontSplit)) e.E.cmd_line_arguments)
+       | w ->
+         let (e, (se, sr)) = word__to__string_expression_split_requirement e w in
+         (e, [(se,
+              match sr with
+              | Impossible -> unsupported "mixed words"
+              | DoesntCare | NoSplit -> C.DontSplit
+              | Split -> C.Split)]))
     e
     word_list
+  |> fun (e, l) -> (e, List.flatten l)
 
 and word'_list__to__list_expression e word'_list =
   List.map (fun word' -> word'.Morsmall.Location.value) word'_list
@@ -428,6 +446,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
   | Function (n, c1') ->
      E.check_legal_function_name e n;
      E.with_deeper e @@ fun e ->
+     E.with_inside_function_body e @@ fun e ->
      let (e, i) = command'__to__instruction (E.add_function e n C.itrue) c1' in
      (E.replace_function e n i, C.itrue)
 
@@ -531,10 +550,10 @@ and parse_file_in_env env file =
 let env_instruction__to__program (env, instruction) =
   { C.function_definitions = E.get_functions env ; instruction }
 
-let program__to__program (command'_list : program) : C.program =
-  command'_list__to__instruction E.empty command'_list
+let program__to__program ~cmd_line_arguments (command'_list : program) : C.program =
+  command'_list__to__instruction (E.empty cmd_line_arguments) command'_list
   |> env_instruction__to__program
 
-let parse_file file =
-  parse_file_in_env E.empty file
+let parse_file ~cmd_line_arguments file =
+  parse_file_in_env (E.empty cmd_line_arguments) file
   |> env_instruction__to__program

@@ -71,7 +71,7 @@ val parse_colis_string : string -> colis
 
     @raise {!Errors.ParseError} *)
 
-val parse_shell_file : string -> colis
+val parse_shell_file : cmd_line_arguments:string list -> string -> colis
 (** Reads Shell from a file, converts it to Colis and returns the
    corresponding AST.
 
