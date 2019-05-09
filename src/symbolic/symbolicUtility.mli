@@ -71,6 +71,15 @@ val if_then_else : utility -> utility -> utility -> utility
     if [u1] then [u2] fi *)
 val if_then : utility -> utility -> utility
 
+(** [uneg u] yields the utility that behaves like [u] but inverts its result *)
+val uneg : utility -> utility
+
+(** [uand u1 u2] yields the utility that behaves like [u1 && u2] in a NON-LAZY manner *)
+val uand : utility -> utility -> utility
+
+(** [uor u1 u2] yields the utility that behaves like [u1 || u2] in a NON-LAZY manner *)
+val uor : utility -> utility -> utility
+
 (** compose_non_strict [u1] [u2] yields the utility that behaves like
     [u1]; [u2] in non-strict mode, that is the error code of [u1] is
     ignored *)
