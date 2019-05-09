@@ -9,6 +9,7 @@ let interp_mv ctx src dst : utility =
   under_specifications @@ fun ~root ~root' ->
     let qsrc = Path.from_string src in
     let qdst = Path.from_string dst in
+    (* FIXME: case when qdst end in / but denotes a non existing file *)
     let norm_qsrc = Path.normalize ~cwd:ctx.cwd qsrc in
     let norm_qdst = Path.normalize ~cwd:ctx.cwd qdst in 
     (* FIXME: Put in lib/constraints/common/Path.mli
