@@ -51,6 +51,7 @@ let interp_test_e cwd path_str : utility =
       end;
   ]
 
+(* obsolete
 let interp_test_d cwd path_str : utility =
   under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
@@ -102,6 +103,7 @@ let interp_test_f cwd path_str : utility =
         eq root root'
       end;
   ]
+ *)
 
 let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
   under_specifications @@ fun ~root ~root' ->
@@ -195,9 +197,6 @@ let interp_test_z str : utility =
       end
     ]
 
-let interp_test_h _cwd _path_str : utility =
-  assert false (* FIXME : we need test -h *)
-
 let interp_test_string_equal s1 s2 : utility =
   under_specifications @@ fun ~root ~root' ->
   if s1 = s2 then
@@ -242,10 +241,14 @@ let rec interp_test_expr cwd e : utility =
   Morsmall_utilities.TestParser.(
   match e with
   | Unary("-e",arg) -> interp_test_e cwd arg
-  | Unary("-d",arg) -> interp_test_d cwd arg
-  | Unary("-f",arg) -> interp_test_f cwd arg
+  | Unary("-d",arg) -> interp_test_file_type ~attr:"d" dir ndir cwd arg
+  | Unary("-f",arg) -> interp_test_file_type ~attr:"f" reg nreg cwd arg
   | Unary("-b",arg) -> interp_test_file_type ~attr:"b" block nblock cwd arg
-  | Unary("-h",arg) -> interp_test_h cwd arg (* -h: is a sym link *)
+  | Unary("-c",arg) -> interp_test_file_type ~attr:"c" char nchar cwd arg
+  | Unary("-p",arg) -> interp_test_file_type ~attr:"p" pipe npipe cwd arg
+  | Unary("-S",arg) -> interp_test_file_type ~attr:"S" sock nsock cwd arg
+  | Unary("-h",arg) -> interp_test_file_type ~attr:"h" symlink nsymlink cwd arg
+  | Unary("-L",arg) -> interp_test_file_type ~attr:"L" symlink nsymlink cwd arg
   | Unary("-G",arg) -> interp_test_attribute ~attr:"G" cwd arg
   | Unary("-O",arg) -> interp_test_attribute ~attr:"O" cwd arg
   | Unary("-g",arg) -> interp_test_attribute ~attr:"g" cwd arg
