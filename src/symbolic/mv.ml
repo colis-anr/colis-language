@@ -10,8 +10,8 @@ let interp_mv ctx src dst : utility =
     let qsrc = Path.from_string src in
     let qdst = Path.from_string dst in
     (* FIXME: case when qdst end in / but denotes a non existing file *)
-    let norm_qsrc = Path.normalize ~cwd:ctx.cwd qsrc in
-    let norm_qdst = Path.normalize ~cwd:ctx.cwd qdst in 
+    let _norm_qsrc = Path.normalize ~cwd:ctx.cwd qsrc in
+    let _norm_qdst = Path.normalize ~cwd:ctx.cwd qdst in
     (* FIXME: Put in lib/constraints/common/Path.mli
      *        test that norm_qsrc is not a prefix or equal to norm_qdst *)
     (*        this test should be done on normalized paths in an utility *)
