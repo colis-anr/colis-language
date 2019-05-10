@@ -103,6 +103,8 @@ let parse_colis_string string =
   let lexbuf = Lexing.from_string string in
   parse_colis_lexbuf lexbuf
 
+let convert_shell_file = FromShell.program__to__program
+
 let parse_shell_file = FromShell.parse_file
 
 (* Printers *)

@@ -71,6 +71,11 @@ val parse_colis_string : string -> colis
 
     @raise {!Errors.ParseError} *)
 
+val convert_shell_file : cmd_line_arguments:string list -> Morsmall.AST.program -> colis
+(** Converts the given Shell script to Colis and return the corresponding AST.
+
+    @raise {!Errors.ConversionError} *)
+
 val parse_shell_file : cmd_line_arguments:string list -> string -> colis
 (** Reads Shell from a file, converts it to Colis and returns the
    corresponding AST.
