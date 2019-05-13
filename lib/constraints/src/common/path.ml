@@ -98,3 +98,12 @@ let rec check_normal_rel = function
 let check_normal = function
   | Abs p -> check_normal_rel p
   | Rel _ -> raise (Invalid_argument "Path.check_normal")
+
+let rec check_prefix np nq =
+  match np, nq with
+  | [], [] -> false (* strict prefix *)
+  |  _, [] -> false
+  | [], _  -> true
+  | f1 :: p1, f2 :: p2 -> 
+    (Feat.equal f1 f2) && (check_prefix p1 p2)
+
