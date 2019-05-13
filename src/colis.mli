@@ -117,6 +117,8 @@ type symbolic_config = {
 
 open Symbolic
 
+val print_symbolic_state : Format.formatter -> ?id:string -> Semantics.state -> unit
+
 val print_symbolic_states : initials:Semantics.state list -> (Semantics.state list * Semantics.state list * Semantics.state list) -> unit
 
 val exit_code : (Semantics.state list * Semantics.state list * Semantics.state list) -> int

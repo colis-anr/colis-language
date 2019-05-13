@@ -187,25 +187,25 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let print_symbolic_state label ctr fmt sta =
+let print_symbolic_state_with_ctr label ctr fmt sta =
   let id = sprintf "%s-%d" label !ctr in
   incr ctr;
   fprintf fmt "- @[%a@]@\n" (print_symbolic_state ~id) sta
 
 let print_symbolic_states ~initials (normals, errors, failures) =
     printf "* Initial states@\n";
-  List.iter (print_symbolic_state "initial" (ref 1) Format.std_formatter) initials;
+  List.iter (print_symbolic_state_with_ctr "initial" (ref 1) Format.std_formatter) initials;
   if normals <> [] then begin
     printf "* Success states@\n";
-    List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) normals;
+    List.iter (print_symbolic_state_with_ctr "success" (ref 1) Format.std_formatter) normals;
   end;
   if errors <> [] then begin
     printf "* Error states@\n";
-    List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) errors;
+    List.iter (print_symbolic_state_with_ctr "error" (ref 1) Format.std_formatter) errors;
   end;
   if failures <> [] then begin
     printf "* Incomplete symbolic execution@\n";
-    List.iter (print_symbolic_state "notcovered" (ref 1) Format.std_formatter) failures;
+    List.iter (print_symbolic_state_with_ctr "notcovered" (ref 1) Format.std_formatter) failures;
   end;
   printf "* Summary@\n@\n";
   printf "- Success cases: %d@\n" (List.length normals);
