@@ -198,6 +198,9 @@ let table = Hashtbl.create 10
 let register (module M:SYMBOLIC_UTILITY) =
   Hashtbl.replace table M.name M.interprete
 
+let register' (name, f) =
+  register (module struct let name = name let interprete = f end)
+
 let dispatch ~name =
   try Hashtbl.find table name
   with Not_found -> fun _ -> unknown_utility ~name ()
@@ -206,4 +209,4 @@ let call name ctx args =
   dispatch ~name {ctx with args}
 
 let dispatch' (cwd, env, args) name sta =
-  dispatch ~name {cwd; args; env} sta
+  Collection.of_list (dispatch ~name {cwd; args; env} sta)

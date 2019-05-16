@@ -402,25 +402,5 @@ let interp_dpkg ctx =
   in
   aux ctx.args
 
-
-let register () =
-  (* These calls can be moved to the modules that implement the utilities *)
-  let register' (name, f) = register (module struct let name = name let interprete = f end) in
-  List.iter register' [
-    "true", interp_true;
-    "false", interp_false;
-    "echo", interp_echo;
-    "test", Test_utility.interpret ~bracket:false;
-    "[", Test_utility.interpret ~bracket:true;
-    "touch", interp_touch;
-    "mkdir", interp_mkdir;
-    "which", interp_which_full;
-    "silent-which", interp_silent_which;
-    "rm", interp_rm;
-    "update-alternatives", interp_update_alternatives;
-    "dpkg", interp_dpkg;
-  ];
-  List.iter register [
-      (module Mv);
-      (module DpkgMaintscriptHelper)
-  ]
+(* Symbolic utilties are now registered in module Colis.Symbolic (file src/colis.ml) --
+   this file will ideally disappear. *)

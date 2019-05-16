@@ -32,6 +32,10 @@ end
 (** Register a symbolic utility *)
 val register : (module SYMBOLIC_UTILITY) -> unit
 
+(**/**)
+val register' : (string * (context -> utility)) -> unit
+(**/**)
+
 (** {1 Specifications} *)
 
 (** A case in the specification is either a success or an error *)
@@ -112,4 +116,4 @@ val print_utility_trace : string -> state -> state
 (**/**)
 
 (** A wrapper of [dispatch] for use in the Why3 driver *)
-val dispatch' : (Path.normal * string Env.IdMap.t * string list) -> string -> state -> (state * bool) list
+val dispatch' : (Path.normal * string Env.IdMap.t * string list) -> string -> state -> (state * bool) Collection.t
