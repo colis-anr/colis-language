@@ -163,8 +163,8 @@ let interp_mkdir ctx : utility =
 (******************************************************************************)
 let interp_rm1 cwd arg : utility =
   under_specifications @@ fun ~root ~root' ->
-  let q = Path.from_string arg in
-  match Path.split_last q with
+  let oq = Path.from_string arg in
+  match Path.split_last oq with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
@@ -175,7 +175,7 @@ let interp_rm1 cwd arg : utility =
      let hintx = last_comp_as_hint ~root q in
      let hinty = Feat.to_string f in [
          success_case
-           ~descr:(asprintf "rm %a: remove file" Path.pp q)
+           ~descr:(asprintf "rm %a: remove file" Path.pp oq)
            begin
              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
              exists ~hint:hinty @@ fun y ->
@@ -185,14 +185,14 @@ let interp_rm1 cwd arg : utility =
              & dir x' & fen x' (Feat.Set.singleton f)
            end;
          error_case
-           ~descr:(asprintf "rm %a: target is a directory" Path.pp q)
+           ~descr:(asprintf "rm %a: target is a directory" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
              resolve root cwd q y & dir y
              & eq root root'
            end;
          error_case
-           ~descr:(asprintf "rm %a: target does not exist" Path.pp q)
+           ~descr:(asprintf "rm %a: target does not exist" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
              noresolve root cwd q & eq root root'
@@ -201,8 +201,8 @@ let interp_rm1 cwd arg : utility =
 
 let interp_rm1_r cwd arg : utility =
   under_specifications @@ fun ~root ~root' ->
-  let q = Path.from_string arg in
-  match Path.split_last q with
+  let oq = Path.from_string arg in
+  match Path.split_last oq with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
@@ -213,7 +213,7 @@ let interp_rm1_r cwd arg : utility =
      let hintx = last_comp_as_hint ~root q in
      let hinty = Feat.to_string f in [
          success_case
-           ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp q)
+           ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp oq)
            begin
              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
              exists ~hint:hinty @@ fun y ->
@@ -223,7 +223,7 @@ let interp_rm1_r cwd arg : utility =
              & dir x' & fen x' (Feat.Set.singleton f)
            end;
          error_case
-           ~descr:(asprintf "rm -r %a: target does not exist" Path.pp q)
+           ~descr:(asprintf "rm -r %a: target does not exist" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
              noresolve root cwd q & eq root root'
