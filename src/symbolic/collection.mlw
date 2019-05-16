@@ -7,7 +7,7 @@ module Collection
   type t 'a
 
   (** Membership is all we have to characterize a collection *)
-  val predicate mem (x: 'a) (c: t 'a)
+  predicate mem (x: 'a) (c: t 'a)
 
   predicate (==) (s1 s2: t 'a) =
     forall x: 'a. mem x s1 <-> mem x s2
@@ -33,10 +33,12 @@ module Collection
     ensures { forall y. mem y c -> mem y result }
     ensures { forall y. mem y result -> x = y \/ mem y c }
 
-  val function singleton (x: 'a) : t 'a
+  let function singleton (x: 'a) : t 'a
     ensures { mem x result }
     ensures { forall y. mem y result -> y = x }
     ensures { size result = 1 }
+  = add x empty
+
 
   val function map (f: 'a -> 'b) (c: t 'a) : t 'b
     ensures { forall x. mem x c -> mem (f x) result }

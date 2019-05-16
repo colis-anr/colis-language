@@ -79,8 +79,8 @@ module Symbolic = struct
     let loop_limit = Z.of_int loop_limit in
     let stack_size = Z.of_int stack_size in
     let inp = { Common.Input.empty with argument0 } in
-    let normals, errors, failures = Interpreter.interp_program loop_limit stack_size inp stas' program in
-    normals, errors, failures
+    let normals, errors, failures = Interpreter.interp_program loop_limit stack_size inp (Collection.of_list stas') program in
+    Collection.to_list normals, Collection.to_list errors, Collection.to_list failures
 end
 
 (* Parsers *)

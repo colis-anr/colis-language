@@ -15,17 +15,15 @@ module symbolicInterpreter.Interpreter
 end
 
 module collection.Collection
-  syntax type t "%1 list"
-  syntax val mem "List.mem %1 %2"
-  syntax val empty "[]"
-  syntax val add "%1 :: %2"
-  syntax val singleton "[%1]"
-  syntax val map "List.map %1 %2"
-  syntax val filter "List.filter %1 %2"
-  syntax val partition "List.partition %1 %2"
-  syntax val union "List.rev_append %1 %2"
-  syntax val bind "List.concat (List.map %1 %2)"
-  syntax val of_list "%1"
-  syntax val to_list "%1"
-  syntax val size "List.length %1"
+  syntax type t "%1 Collection.t"
+  syntax val empty "Collection.empty"
+  syntax val add "Collection.add %1 %2"
+  syntax val map "Collection.map %1 %2"
+  syntax val filter "Collection.filter %1 %2"
+  syntax val partition "Collection.partition %1 %2"
+  syntax val union "Collection.union %1 %2"
+  syntax val bind "Collection.bind %1 %2"
+  syntax val of_list "Collection.of_list %1"
+  syntax val to_list "Collection.to_list %1"
+  syntax val size "Collection.size %1"
 end
