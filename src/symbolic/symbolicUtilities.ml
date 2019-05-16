@@ -250,13 +250,13 @@ let interp_rm ctx : utility =
 (*                                which                                       *)
 (******************************************************************************)
 
-let _interp_which_naive ctx : utility =
+let interp_silent_which ctx : utility =
   match ctx.args with
   | [] ->
      under_specifications @@ fun ~root ~root' ->
        [
          error_case
-           ~descr:(asprintf "which without argument (returns 1)")
+           ~descr:(asprintf "silent-which without argument (returns 1)")
            begin
              eq root root'
            end
@@ -265,19 +265,19 @@ let _interp_which_naive ctx : utility =
      under_specifications @@ fun ~root ~root' ->
        [
          success_case
-           ~descr:(asprintf "which '%s': assuming command is found" p)
+           ~descr:(asprintf "silent-which '%s': assuming command is found" p)
            begin
              eq root root'
            end
        ;
          error_case
-           ~descr:(asprintf "which '%s': assuming command is not found" p)
+           ~descr:(asprintf "silent-which '%s': assuming command is not found" p)
            begin
              eq root root'
            end
        ]
   | p :: _ ->
-     unknown_argument ~msg:"more than one argument" ~name:"which" ~arg:p ()
+     unknown_argument ~msg:"more than one argument" ~name:"silent-which" ~arg:p ()
 
 let interp_test_regular_and_x cwd path_str : utility =
   under_specifications @@ fun ~root ~root' ->
@@ -415,6 +415,7 @@ let register () =
     "touch", interp_touch;
     "mkdir", interp_mkdir;
     "which", interp_which_full;
+    "silent-which", interp_silent_which;
     "rm", interp_rm;
     "update-alternatives", interp_update_alternatives;
     "dpkg", interp_dpkg;
