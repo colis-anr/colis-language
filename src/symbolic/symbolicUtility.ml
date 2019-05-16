@@ -107,10 +107,9 @@ let failure ?error_message () =
      spec = Clause.true_ }]
 
 let quantify_over_intermediate_root state conj =
-  if BatOption.eq ~eq:Var.equal state.filesystem.root0 (Some state.filesystem.root) then
-    [conj]
-  else
-    Clause.quantify_over state.filesystem.root conj
+  match state.filesystem.root0 with
+  | Some root0 when Var.equal root0 state.filesystem.root -> [conj]
+  | _ -> Clause.quantify_over state.filesystem.root conj
 
 let apply_output_to_state (state : state) stdout =
   { state with stdout = Stdout.concat state.stdout stdout }
@@ -207,5 +206,4 @@ let call name ctx args =
   dispatch ~name {ctx with args}
 
 let dispatch' (cwd, env, args) name sta =
-  let ctx = {cwd; args; env} in
-  BatSet.of_list (dispatch ~name ctx sta)
+  dispatch ~name {cwd; args; env} sta

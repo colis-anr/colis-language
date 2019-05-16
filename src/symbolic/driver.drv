@@ -11,7 +11,7 @@ module symbolicInterpreter.Semantics
 end
 
 module symbolicInterpreter.Interpreter
-  syntax val sym_interp_utility "BatSet.to_list (SymbolicUtility.dispatch' %1 %2 %3)"
+  syntax val sym_interp_utility "SymbolicUtility.dispatch' %1 %2 %3"
 end
 
 module collection.Collection

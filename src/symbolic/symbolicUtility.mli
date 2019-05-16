@@ -112,4 +112,4 @@ val print_utility_trace : string -> state -> state
 (**/**)
 
 (** A wrapper of [dispatch] for use in the Why3 driver *)
-val dispatch' : (Path.normal * string Env.IdMap.t * string list) -> string -> state -> (state * bool) BatSet.t
+val dispatch' : (Path.normal * string Env.IdMap.t * string list) -> string -> state -> (state * bool) list
