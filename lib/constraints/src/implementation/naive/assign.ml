@@ -30,7 +30,11 @@ let from_lists ?(vars=[]) ?(feats=[]) ?(kinds=[]) ?(feat_sets=[]) () =
           else
             None
   in
-  let (>>=) = BatOption.bind in
+  let (>>=) x f =
+    match x with
+    | None -> None
+    | Some x -> f x
+  in
   map_add_list Var.equal vars Metavar.Map.empty >>= fun vars ->
   map_add_list Feat.equal feats Metavar.Map.empty >>= fun feats ->
   map_add_list Kind.equal kinds Metavar.Map.empty >>= fun kinds ->
@@ -52,7 +56,11 @@ let map_distinct_union equal m1 m2 =
     Invalid_argument _ -> None
 
 let merge aff1 aff2 =
-  let (>>=) = BatOption.bind in
+  let (>>=) x f =
+    match x with
+    | None -> None
+    | Some x -> f x
+  in
   map_distinct_union Var.equal aff1.vars aff2.vars >>= fun vars ->
   map_distinct_union Feat.equal aff1.feats aff2.feats >>= fun feats ->
   map_distinct_union Kind.equal aff1.kinds aff2.kinds >>= fun kinds ->

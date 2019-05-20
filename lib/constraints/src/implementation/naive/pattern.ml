@@ -59,9 +59,9 @@ let rec match_ pls ls =
             match_ pls' ls1
             |> Seq.filter_map
                  (fun  (a2, ls2) ->
-                  BatOption.bind
-                    (Assign.merge a1 a2)
-                    (fun a -> Some (a, ls2))))
+                  match Assign.merge a1 a2 with
+                  | None -> None
+                  | Some a -> Some (a, ls2)))
 
 let find_all ?(pred=(fun _ _ -> true)) pls (es, ls) =
   match_ pls (Literal.Set.elements ls)

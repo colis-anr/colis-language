@@ -35,13 +35,13 @@ let rec split_last_rel = function
 
 let split_last = function
   | Abs q ->
-    BatOption.bind
-      (split_last_rel q)
-      (fun (q, e) -> Some (Abs q, e))
+    (match split_last_rel q with
+     | None -> None
+     | Some (q, e) -> Some (Abs q, e))
   | Rel q ->
-    BatOption.bind
-      (split_last_rel q)
-      (fun (q, e) -> Some (Rel q, e))
+    (match split_last_rel q with
+     | None -> None
+     | Some (q, e) -> Some (Rel q, e))
 
 let from_string s =
   String.split_on_char '/' s
@@ -104,6 +104,5 @@ let rec check_prefix np nq =
   | [], [] -> false (* strict prefix *)
   |  _, [] -> false
   | [], _  -> true
-  | f1 :: p1, f2 :: p2 -> 
+  | f1 :: p1, f2 :: p2 ->
     (Feat.equal f1 f2) && (check_prefix p1 p2)
-

@@ -32,7 +32,6 @@ depexts: [
 ]
 
 depends: [
-  "batteries"
   "camlzip"                {build | with-test}
   "morbig"                 {= "dev"}
   "morsmall"               {= "dev"}
