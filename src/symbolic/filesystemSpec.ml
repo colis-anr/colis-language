@@ -60,7 +60,7 @@ let add_channel cin t =
   with End_of_file -> !t
 
 let rec compile root t =
-  SMap.fold (fun name node -> NaiveClause.and_ @@ compile_node root name node) t NaiveClause.true_
+  SMap.fold (fun name node -> Clause.and_ @@ compile_node root name node) t Clause.true_
 
 and compile_node x name node =
   let f = Feat.from_string name in
