@@ -10,6 +10,9 @@ val equal : 'a map -> t -> t -> bool
 
 val iter : 'a map -> (t -> 'a -> unit) -> unit
 
+val get : 'a map -> t -> 'a
+val set : 'a map -> t -> 'a -> 'a map
+
 (** {2 Maps from global variables to internal variable} *)
 
 type globals

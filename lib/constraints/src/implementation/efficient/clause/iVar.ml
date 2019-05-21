@@ -27,6 +27,16 @@ let iter m f =
        | _ -> ())
     m
 
+let rec get m x =
+  match Map.find x m with
+  | Ancestor v -> v
+  | Son y -> get m y
+
+let rec set m x v =
+  match Map.find x m with
+  | Ancestor _ -> Map.add x (Ancestor v) m
+  | Son y -> set m y v
+
 open Constraints_common
 
 type globals = t Var.Map.t

@@ -20,9 +20,10 @@ let check_kind info =
      The positive Dir kind is the Dir constructor and not Pos Dir. *)
   match info.kind with
   | Neg kinds ->
-    iter_pairs (fun k1 k2 -> violated ~if_:(Kind.equal k1 k2) "kind") kinds;
-    violated ~if_:(List.length kinds = Kind.nb_all)     "kind";
-    violated ~if_:(List.length kinds = Kind.nb_all - 1) "kind"
+    iter_pairs (fun k1 k2 -> violated ~if_:(Kind.equal k1 k2) "kind.uniq") kinds;
+    violated ~if_:(List.sort Kind.compare kinds <> kinds) "kind.sorted";
+    violated ~if_:(List.length kinds = Kind.nb_all)       "kind.size";
+    violated ~if_:(List.length kinds = Kind.nb_all - 1)   "kind.size"
   | Pos Kind.Dir -> violated "kind"
   | _ -> ()
 

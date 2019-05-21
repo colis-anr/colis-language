@@ -26,3 +26,12 @@ and target =
 (* Absence if a subcase of noresolve *)
 
 and feat_tree = unit (* FIXME *)
+
+let empty =
+  { globals = IVar.empty_globals ;
+    info = IVar.empty_map }
+
+let empty_dir =
+  { fen = false ;
+    sims = [] ;
+    feats = Feat.Map.empty }
