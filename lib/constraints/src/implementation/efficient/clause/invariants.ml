@@ -27,37 +27,70 @@ let check_kind info =
   | Pos Kind.Dir -> violated "kind"
   | _ -> ()
 
+let check_nfeats equalities info =
+  (* No nfeats when not directory. Never twice the same nfeat. *)
+  iter_pairs
+    (fun (f, y) (g, z) ->
+       violated
+         ~if_:(Feat.equal f g && IVar.equal equalities y z)
+         "nfeats.uniq")
+    info.nfeats;
+  match info.kind with
+  | Pos _ -> violated ~if_:(info.nfeats <> []) "nfeats.not-dir"
+  | Neg kinds when List.mem Kind.Dir kinds ->
+    violated ~if_:(info.nfeats <> []) "nfeats.not-dir"
+  | _ -> ()
+
+let check_nabs info =
+  (* No nabs when directory (because we moved the information to an other
+     place). No nabs when not directory because subsumed. Never twice the same
+     nabs. *)
+  iter_pairs
+    (fun f g ->
+       violated
+         ~if_:(Feat.equal f g)
+         "nabs.uniq")
+    info.nabs;
+  match info.kind with
+  | Dir _ -> violated ~if_:(info.nabs <> []) "nabs.dir"
+  | Pos _ -> violated ~if_:(info.nabs <> []) "nabs.not-dir"
+  | Neg kinds when List.mem Kind.Dir kinds ->
+    violated ~if_:(info.nabs <> []) "nabs.not-dir"
+  | _ -> ()
+
 let check_nfens info =
-  (* If we have ¬x[F] and ¬x[G],
-     then there is no inclusion between F and G. *)
+  (* If we have ¬x[F] and ¬x[G], then there is no inclusion between F and G.
+     No nfens if fen. No nfens if not directory. *)
   iter_pairs
     (fun fs gs ->
-       violated ~if_:(Feat.Set.subset fs gs) "nfens";
-       violated ~if_:(Feat.Set.subset gs fs) "nfens")
-    info.nfens
+       violated ~if_:(Feat.Set.subset fs gs) "nfens.incl";
+       violated ~if_:(Feat.Set.subset gs fs) "nfens.incl")
+    info.nfens;
+  match info.kind with
+  | Dir { fen = true ; _ } ->
+    violated ~if_:(info.nfens <> []) "nfens.fen"
+  | Pos _ ->
+    violated ~if_:(info.nfens <> []) "nfens.not-dir"
+  | Neg kinds when List.mem Kind.Dir kinds ->
+    violated ~if_:(info.nfens <> []) "nfens.not-dir"
+  | _ -> ()
 
 let check_nsims clause info =
-  (* If we have x ~/F y and x ~/G y,
-     then there is no inclusion between F and G. *)
+  (* If we have x ~/F y and x ~/G y, then there is no inclusion between F and G.
+     No nsims if fen. No nsims if not directory. *)
   iter_pairs
     (fun (fs, y) (gs, z) ->
        if IVar.equal clause.info y z then
-         (violated ~if_:(Feat.Set.subset fs gs) "nsims";
-          violated ~if_:(Feat.Set.subset gs fs) "nsims"))
-    info.nsims
-
-let check_nfens_fen info =
-  (* We cannot have both a fen and nfens. *)
+         (violated ~if_:(Feat.Set.subset fs gs) "nsims.incl";
+          violated ~if_:(Feat.Set.subset gs fs) "nsims.incl"))
+    info.nsims;
   match info.kind with
   | Dir { fen = true ; _ } ->
-    violated ~if_:(info.nfens = []) "nfens_fen"
-  | _ -> ()
-
-let check_nsims_fen info =
-  (* We cannot have both a fen and nsims. *)
-  match info.kind with
-  | Dir { fen = true ; _ } ->
-    violated ~if_:(info.nsims = []) "nsims_fen"
+    violated ~if_:(info.nsims <> []) "nsims.fen"
+  | Pos _ ->
+    violated ~if_:(info.nsims <> []) "nsims.not-dir"
+  | Neg kinds when List.mem Kind.Dir kinds ->
+    violated ~if_:(info.nsims <> []) "nsims.not-dir"
   | _ -> ()
 
 let check_sims_refl clause =
@@ -79,13 +112,16 @@ let check_sims_refl clause =
            dir.sims
        | _ -> ())
 
+let check_nsims_refl _clause = assert false
+
 let check_info clause info =
   check_kind info;
+  check_nfeats clause.info info;
+  check_nabs info;
   check_nfens info;
   check_nsims clause info;
-  check_nfens_fen info;
-  check_nsims_fen info;
-  check_sims_refl clause
+  check_sims_refl clause;
+  check_nsims_refl clause
 
 let check clause =
   IVar.iter clause.info (fun _ -> check_info clause)

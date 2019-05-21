@@ -22,23 +22,56 @@ let update_info x c f =
     (fun info ->
        { c with info = IVar.set c.info x info })
 
-let  kind k x c =
+(* FIXME: new kinds can remove negative information! *)
+
+let set_empty_dir_and_suck_nabs info =
+  let feats =
+    List.fold_left
+      (fun feats f ->
+         Feat.Map.add f Exists feats)
+      Feat.Map.empty
+      info.nabs
+  in
+  { info with
+    nfeats = [] ;
+    kind = Dir { fen = false ; sims = [] ; feats } }
+
+let set_pos_and_empty_negs _info k =
+  { nfeats = [] ;
+    nabs = [] ;
+    nfens = [] ;
+    nsims = [] ; (* FIXME: we need to remove the refl versions. *)
+    kind = Pos k }
+
+let set_ndir_and_empty_negs _info =
+  { nfeats = [] ;
+    nabs = [] ;
+    nfens = [] ;
+    nsims = [] ; (* FIXME: we need to remove the refl versions. *)
+    kind = Neg [Dir] }
+
+let kind k x c =
   update_info x c @@ fun info ->
-  (
-    match info.kind, k with
-    | Any       , Kind.Dir -> [Dir empty_dir]
-    | Any       , _        -> [Pos k]
-    | Neg kinds , _
-      when not (List.mem k kinds) -> [Pos k]
-    | Neg _     , _        -> []
-    | Pos kind  , k
-      when Kind.equal kind k -> [Pos kind]
-    | Pos _     , _        -> []
-    | Dir dir   , Kind.Dir -> [Dir dir]
-    | Dir _     , _        -> []
-  )
-  |> List.map
-    (fun kind -> { info with kind })
+  match k with
+  | Kind.Dir ->
+    (
+      match info.kind with
+      | Any -> [set_empty_dir_and_suck_nabs info]
+      | Neg kinds when List.mem Kind.Dir kinds -> []
+      | Neg _ -> [set_empty_dir_and_suck_nabs info]
+      | Pos _ -> []
+      | Dir _ -> [info]
+    )
+  | _ ->
+    (
+      match info.kind with
+      | Any -> [set_pos_and_empty_negs info k]
+      | Neg kinds when List.mem k kinds -> []
+      | Neg _ -> [set_pos_and_empty_negs info k]
+      | Pos kind when Kind.equal k kind -> [info]
+      | Pos _ -> []
+      | Dir _ -> []
+    )
 
 let rec insert_sorted cmp e = function
   | [] -> [e]
@@ -61,22 +94,33 @@ let rec find_smallest_diff cmp l1 l2 =
 
 let nkind k x c =
   update_info x c @@ fun info ->
-  (
-    match info.kind, k with
-    | Any       , _        -> [Neg [k]]
-    | Neg kinds , _        ->
-      (
+  match k with
+  | Kind.Dir ->
+    (
+      match info.kind with
+      | Any -> [set_ndir_and_empty_negs info]
+      | Neg kinds ->
+        let kinds = insert_sorted Kind.compare Kind.Dir kinds in
+        if List.length kinds = Kind.nb_all - 1 then
+          [set_pos_and_empty_negs info (find_smallest_diff Kind.compare kinds Kind.all)]
+        else
+          [{info with kind = Neg kinds}]
+      | Pos _ -> [info]
+      | Dir _ -> []
+    )
+  | _ ->
+    (
+      match info.kind with
+      | Any ->  assert (Kind.nb_all > 2); [{info with kind = Neg [k]}]
+      | Neg kinds ->
         let kinds = insert_sorted Kind.compare k kinds in
         if List.length kinds = Kind.nb_all - 1 then
-          [Pos (find_smallest_diff Kind.compare kinds Kind.all)]
+          match find_smallest_diff Kind.compare kinds Kind.all with
+          | Kind.Dir -> [set_empty_dir_and_suck_nabs info]
+          | kind -> [set_pos_and_empty_negs info kind]
         else
-          [Neg kinds]
-      )
-    | Pos kind  , _
-      when Kind.equal kind k -> []
-    | Pos kind  , _        -> [Pos kind]
-    | Dir _     , Kind.Dir -> []
-    | Dir dir   , _        -> [Dir dir]
-  )
-  |> List.map
-    (fun kind -> { info with kind })
+          [{info with kind = Neg kinds}]
+      | Pos kind when Kind.equal kind k -> []
+      | Pos _ -> [info]
+      | Dir _ -> [info]
+    )
