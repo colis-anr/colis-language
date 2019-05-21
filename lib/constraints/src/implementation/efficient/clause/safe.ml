@@ -15,9 +15,6 @@ let nfen _x _fs = assert false
 let sim _x _fs _y = assert false
 let nsim _x _fs _y = assert false
 
-let dir _x = assert false
-let ndir _x = assert false
-
 let update_info x c f =
   let info = IVar.get c.info x in
   f info
@@ -84,15 +81,17 @@ let nkind k x c =
   |> List.map
     (fun kind -> { info with kind })
 
-let  reg x =  kind Kind.Reg x
-let nreg x = nkind Kind.Reg x
-let  block x =  kind Kind.Block x
-let nblock x = nkind Kind.Block x
-let  char x =  kind Kind.Char x
-let nchar x = nkind Kind.Char x
-let  pipe x =  kind Kind.Pipe x
-let npipe x = nkind Kind.Pipe x
-let  symlink x =  kind Kind.Symlink x
-let nsymlink x = nkind Kind.Symlink x
-let  sock x =  kind Kind.Sock x
-let nsock x = nkind Kind.Sock x
+let  dir =  kind Kind.Dir
+let ndir = nkind Kind.Dir
+let  reg =  kind Kind.Reg
+let nreg = nkind Kind.Reg
+let  block =  kind Kind.Block
+let nblock = nkind Kind.Block
+let  char =  kind Kind.Char
+let nchar = nkind Kind.Char
+let  pipe =  kind Kind.Pipe
+let npipe = nkind Kind.Pipe
+let  symlink =  kind Kind.Symlink
+let nsymlink = nkind Kind.Symlink
+let  sock =  kind Kind.Sock
+let nsock = nkind Kind.Sock

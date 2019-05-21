@@ -56,19 +56,10 @@ let sim x fs y =
 
 let nsim _x _fs _y = assert false
 
-let (@@@) f g x = f x @@ g
+let kind k x =
+  with_internal x @@ fun x ->
+  kind k x
 
-let  reg = with_internal @@@  reg
-let nreg = with_internal @@@ nreg
-let  dir = with_internal @@@  dir
-let ndir = with_internal @@@ ndir
-let  block = with_internal @@@  block
-let nblock = with_internal @@@ nblock
-let  char = with_internal @@@  char
-let nchar = with_internal @@@ nchar
-let  pipe = with_internal @@@  pipe
-let npipe = with_internal @@@ npipe
-let  symlink = with_internal @@@  symlink
-let nsymlink = with_internal @@@ nsymlink
-let  sock = with_internal @@@  sock
-let nsock = with_internal @@@ nsock
+let nkind k x =
+  with_internal x @@ fun x ->
+  nkind k x
