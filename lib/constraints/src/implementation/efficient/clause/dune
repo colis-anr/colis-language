@@ -1,0 +1,4 @@
+(library
+ (name constraints_implementation_efficient_clause)
+ (public_name colis-language.constraints.implementation.efficient.clause)
+ (libraries colis-language.constraints.common))

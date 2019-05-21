@@ -14,4 +14,8 @@ let pp fmt kind =
 let equal = (=)
 let compare = compare
 
-let all = [Reg; Dir; Char; Sock; Pipe; Symlink]
+let all =
+  [Reg; Dir; Char; Sock; Pipe; Symlink]
+  |> List.sort compare
+
+let nb_all = List.length all
