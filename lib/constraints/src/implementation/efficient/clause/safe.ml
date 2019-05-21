@@ -80,18 +80,3 @@ let nkind k x c =
   )
   |> List.map
     (fun kind -> { info with kind })
-
-let  dir =  kind Kind.Dir
-let ndir = nkind Kind.Dir
-let  reg =  kind Kind.Reg
-let nreg = nkind Kind.Reg
-let  block =  kind Kind.Block
-let nblock = nkind Kind.Block
-let  char =  kind Kind.Char
-let nchar = nkind Kind.Char
-let  pipe =  kind Kind.Pipe
-let npipe = nkind Kind.Pipe
-let  symlink =  kind Kind.Symlink
-let nsymlink = nkind Kind.Symlink
-let  sock =  kind Kind.Sock
-let nsock = nkind Kind.Sock
