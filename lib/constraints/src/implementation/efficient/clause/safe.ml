@@ -1,5 +1,6 @@
 open Constraints_common
 open Core
+open Dnf.Syntax
 
 let get_info x c =
   IVar.get c.info x
@@ -15,23 +16,62 @@ let update_info x c f =
        { c with info = IVar.set c.info x info })
 
 let fold_similar ?(if_=(fun _ -> true)) x f c =
-  Dnf.bind c
-    (fun c ->
-       match (get_info x c).kind with
-       | Dir dir ->
-         List.fold_left
-           (fun c (fs, y) ->
-              Dnf.bind c
-                (if if_ fs then f y else Dnf.single))
-           (Dnf.single c)
-           dir.sims
-       | _ -> assert false)
+  c >>= fun c ->
+  match (get_info x c).kind with
+  | Dir dir ->
+    List.fold_left
+      (fun c (fs, y) ->
+         c >>= (if if_ fs then f y else Dnf.single))
+      (Dnf.single c)
+      dir.sims
+  | _ -> assert false
 
 let eq _x _y _c = assert false
 
 let feat _x _f _y = assert false
 
-let abs _x _f = assert false
+let set_empty_dir_and_suck_nabs info = (* FIXME: remove and put in unsafe_ensure_dir *)
+  let feats =
+    List.fold_left
+      (fun feats f ->
+         Feat.Map.add f Exists feats)
+      Feat.Map.empty
+      info.nabs
+  in
+  { info with
+    nfeats = [] ;
+    kind = Dir { fen = false ; sims = [] ; feats } }
+
+let unsafe_ensure_dir x c = (* FIXME: merge with dir *)
+  match (get_info x c).kind with
+  | Neg kinds when List.mem Kind.Dir kinds -> Dnf.empty
+  | Neg _ | Any ->
+    update_info x c @@ fun info -> Dnf.single (set_empty_dir_and_suck_nabs info)
+  | Pos _ -> Dnf.empty
+  | Dir _ -> Dnf.single c
+
+let unsafe_abs x f c =
+  update_info x c @@ fun info ->
+  match info.kind with
+  | Dir dir ->
+    (
+      match Feat.Map.find_opt f dir.feats with
+      | None | Some (Noresolve _) ->
+         Dnf.single
+           { info with
+             kind = Dir { dir with
+                          feats = Feat.Map.add f (Noresolve (C [])) dir.feats } }
+       | Some Exists | Some (Pointsto _) -> Dnf.empty
+    )
+  | _ -> assert false
+
+let abs x f c = (* FIXME: subsumed by noresolve *)
+  unsafe_ensure_dir x c >>= fun c ->
+  fold_similar
+    x
+    ~if_:(fun fs -> not (Feat.Set.mem f fs))
+    (fun y -> unsafe_abs y f)
+    (unsafe_abs x f c)
 
 let unsafe_nabs_in_nabs x f c =
   update_info x c @@ fun info ->
@@ -78,18 +118,6 @@ let fen _x _fs = assert false
 
 let sim _x _fs _y = assert false
 
-let set_empty_dir_and_suck_nabs info =
-  let feats =
-    List.fold_left
-      (fun feats f ->
-         Feat.Map.add f Exists feats)
-      Feat.Map.empty
-      info.nabs
-  in
-  { info with
-    nfeats = [] ;
-    kind = Dir { fen = false ; sims = [] ; feats } }
-
 let set_pos_and_empty_negs _info k =
   { nfeats = [] ;
     nabs = [] ;
@@ -104,7 +132,7 @@ let set_ndir_and_empty_negs _info =
     nsims = [] ; (* FIXME: we need to remove the refl versions. *)
     kind = Neg [Dir] }
 
-let kind k x c =
+let kind k x c = (* FIXME: separate dir from kind *)
   update_info x c @@ fun info ->
   match k with
   | Kind.Dir ->

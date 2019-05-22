@@ -30,7 +30,7 @@ and target =
   | Noresolve of feat_tree
 (* Absence if a subcase of noresolve *)
 
-and feat_tree = unit (* FIXME *)
+and feat_tree = C of feat_tree list
 
 let empty =
   { globals = IVar.empty_globals ;
