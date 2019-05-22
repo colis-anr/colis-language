@@ -1,6 +1,12 @@
 open Constraints_common
 open Core
 
+let get_info x c =
+  IVar.get c.info x
+
+let set_info x c i =
+  IVar.set c.info x i
+
 let update_info x c f =
   let info = IVar.get c.info x in
   f info
@@ -8,41 +14,69 @@ let update_info x c f =
     (fun info ->
        { c with info = IVar.set c.info x info })
 
+let fold_similar ?(if_=(fun _ -> true)) x f c =
+  Dnf.bind c
+    (fun c ->
+       match (get_info x c).kind with
+       | Dir dir ->
+         List.fold_left
+           (fun c (fs, y) ->
+              Dnf.bind c
+                (if if_ fs then f y else Dnf.single))
+           (Dnf.single c)
+           dir.sims
+       | _ -> assert false)
+
 let eq _x _y _c = assert false
 
 let feat _x _f _y = assert false
-let nfeat _x _f _y = assert false
 
 let abs _x _f = assert false
 
-let nabs x f c =
+let unsafe_nabs_in_nabs x f c =
+  update_info x c @@ fun info ->
+  Dnf.single
+    { info with
+      nabs = ExtList.insert_uniq_sorted Feat.compare f info.nabs }
+
+let unsafe_nabs_in_dir x f c =
   update_info x c @@ fun info ->
   match info.kind with
+  | Dir dir ->
+    Dnf.single
+      { info with
+        kind = Dir { dir with
+                     feats = Feat.Map.add f Exists dir.feats } }
+  | _ -> assert false
+
+let nabs x f c =
+  match (get_info x c).kind with
   | Dir dir ->
     (
       match Feat.Map.find_opt f dir.feats with
       | None ->
-        Dnf.single
-          { info with
-            kind = Dir { dir
-                         with feats = Feat.Map.add f Exists dir.feats } }
-        (* FIXME: propagation *)
-      | Some Exists | Some Pointsto _ -> Dnf.single info
+        (
+          fold_similar
+            x
+            ~if_:(fun fs -> not (Feat.Set.mem f fs))
+            (fun y -> unsafe_nabs_in_dir y f)
+            (unsafe_nabs_in_dir x f c)
+        )
+      | Some Exists | Some Pointsto _ -> Dnf.single c
       | Some (Noresolve _) -> Dnf.empty
     )
   | _ ->
     (
-      Dnf.single
-        { info with
-          nabs = ExtList.insert_uniq_sorted Feat.compare f info.nabs }
-        (* FIXME: propagation *)
+      fold_similar
+        x
+        ~if_:(fun fs -> not (Feat.Set.mem f fs))
+        (fun y -> unsafe_nabs_in_nabs y f)
+        (unsafe_nabs_in_nabs x f c)
     )
 
 let fen _x _fs = assert false
-let nfen _x _fs = assert false
 
 let sim _x _fs _y = assert false
-let nsim _x _fs _y = assert false
 
 let set_empty_dir_and_suck_nabs info =
   let feats =
