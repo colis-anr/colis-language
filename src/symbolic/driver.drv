@@ -13,17 +13,3 @@ end
 module symbolicInterpreter.Interpreter
   syntax val sym_interp_utility "SymbolicUtility.dispatch' %1 %2 %3"
 end
-
-module collection.Collection
-  syntax type t "%1 Collection.t"
-  syntax val empty "Collection.empty"
-  syntax val add "Collection.add %1 %2"
-  syntax val map "Collection.map %1 %2"
-  syntax val filter "Collection.filter %1 %2"
-  syntax val partition "Collection.partition %1 %2"
-  syntax val union "Collection.union %1 %2"
-  syntax val bind "Collection.bind %1 %2"
-  syntax val of_list "Collection.of_list %1"
-  syntax val to_list "Collection.to_list %1"
-  syntax val size "Collection.size %1"
-end
