@@ -15,13 +15,13 @@ let update_info x c f =
     (fun info ->
        { c with info = IVar.set c.info x info })
 
-let fold_similar ?(if_=(fun _ -> true)) x f c =
+let fold_similar ?(if_=(fun _ _ -> true)) x f c =
   c >>= fun c ->
   match (get_info x c).kind with
   | Dir dir ->
     List.fold_left
       (fun c (fs, y) ->
-         c >>= (if if_ fs then f y else Dnf.single))
+         c >>= (if if_ fs y then f fs y else Dnf.single))
       (Dnf.single c)
       dir.sims
   | _ -> assert false
@@ -56,7 +56,7 @@ let unsafe_abs x f c =
   | Dir dir ->
     (
       match Feat.Map.find_opt f dir.feats with
-      | None | Some (Noresolve _) ->
+      | None | Some DontKnow | Some (Noresolve _) ->
          Dnf.single
            { info with
              kind = Dir { dir with
@@ -69,8 +69,8 @@ let abs x f c = (* FIXME: subsumed by noresolve *)
   unsafe_ensure_dir x c >>= fun c ->
   fold_similar
     x
-    ~if_:(fun fs -> not (Feat.Set.mem f fs))
-    (fun y -> unsafe_abs y f)
+    ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
+    (fun _ y -> unsafe_abs y f)
     (unsafe_abs x f c)
 
 let unsafe_nabs_in_nabs x f c =
@@ -94,27 +94,69 @@ let nabs x f c =
   | Dir dir ->
     (
       match Feat.Map.find_opt f dir.feats with
-      | None ->
+      | None | Some DontKnow ->
         (
           fold_similar
             x
-            ~if_:(fun fs -> not (Feat.Set.mem f fs))
-            (fun y -> unsafe_nabs_in_dir y f)
+            ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
+            (fun _ y -> unsafe_nabs_in_dir y f)
             (unsafe_nabs_in_dir x f c)
         )
       | Some Exists | Some Pointsto _ -> Dnf.single c
-      | Some (Noresolve _) -> Dnf.empty
+      | Some (Noresolve _) -> Dnf.empty (* FIXME: wrong. Noresolve doesnt clash with nabs, we have to unfold. *)
     )
   | _ ->
     (
       fold_similar
         x
-        ~if_:(fun fs -> not (Feat.Set.mem f fs))
-        (fun y -> unsafe_nabs_in_nabs y f)
+        ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
+        (fun _ y -> unsafe_nabs_in_nabs y f)
         (unsafe_nabs_in_nabs x f c)
     )
 
-let fen _x _fs = assert false
+let unsafe_fen x fs c =
+  update_info x c @@ fun info ->
+  match info.kind with
+  | Dir dir ->
+    (
+      let (in_, out) =
+        Feat.Map.partition
+          (fun g _ -> Feat.Set.mem g fs)
+          dir.feats
+      in
+      let ok_out = (* FIXME: No need to do it un the unsafe version. *)
+        Feat.Map.for_all
+          (fun _ -> function
+             | Exists | Pointsto _ -> false
+             | DontKnow | Noresolve _ -> true)
+          out
+      in
+      if ok_out then
+        (
+          let in_ =
+            Feat.Set.fold
+              (fun f in_ ->
+                 if Feat.Map.mem f in_ then
+                   in_
+                 else
+                   Feat.Map.add f DontKnow in_)
+              fs
+              in_
+          in
+          Dnf.single
+            { info with kind = Dir { dir with fen = true ; feats = in_ } }
+        )
+      else
+        Dnf.empty
+    )
+  | _ -> assert false
+
+let fen x fs c =
+  unsafe_ensure_dir x c >>= fun c ->
+  fold_similar
+    x
+    (fun gs y -> unsafe_fen y (Feat.Set.union fs gs))
+    (unsafe_fen x fs c)
 
 let sim _x _fs _y = assert false
 

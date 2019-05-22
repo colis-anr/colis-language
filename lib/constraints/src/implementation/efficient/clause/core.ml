@@ -25,12 +25,13 @@ and dir =
     feats : target Feat.Map.t }
 
 and target =
+  | DontKnow
   | Exists
   | Pointsto of IVar.t
   | Noresolve of feat_tree
 (* Absence if a subcase of noresolve *)
 
-and feat_tree = C of feat_tree list
+and feat_tree = C of (Feat.t * feat_tree) list
 
 let empty =
   { globals = IVar.empty_globals ;
