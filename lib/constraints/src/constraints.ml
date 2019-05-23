@@ -1,6 +1,7 @@
 include Constraints_common
 
 module Implementation = Constraints_implementation
+module Interface = Interface
 
 module DummyClause = Interface.Make(Implementation.Dummy)
 module NaiveClause = Interface.Make(Implementation.Naive)
