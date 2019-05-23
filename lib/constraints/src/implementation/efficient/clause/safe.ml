@@ -3,7 +3,6 @@ open Core
 open Dnf.Syntax
 
 let fold_similar ?(if_=(fun _ _ -> true)) x f c =
-  c >>= fun c ->
   match (get_info x c).kind with
   | Dir dir ->
     List.fold_left
@@ -11,59 +10,69 @@ let fold_similar ?(if_=(fun _ _ -> true)) x f c =
          c >>= (if if_ fs y then f fs y else Dnf.single))
       (Dnf.single c)
       dir.sims
-  | _ -> assert false
+  | _ ->
+    Dnf.single c
 
 exception NotImplemented of string
 let not_implemented s = raise (NotImplemented s)
+
+let set_empty_dir_and_suck_nabs info = (* FIXME: remove and put in dir *)
+  let feats =
+    List.fold_left
+      (fun feats f ->
+         Feat.Map.add f Exists feats)
+      Feat.Map.empty
+      info.nabs
+  in
+  { info with
+    nfeats = [] ;
+    kind = Dir { fen = false ; sims = [] ; feats } }
+
+let dir x c = (* FIXME: No need to handle that case in [kind], then. *)
+  update_info x c @@ fun info ->
+  match info.kind with
+  | Neg kinds when List.mem Kind.Dir kinds ->
+    Dnf.empty
+  | Neg _ | Any ->
+    Dnf.single (set_empty_dir_and_suck_nabs info)
+  | Pos _ ->
+    Dnf.empty
+  | Dir _ ->
+    Dnf.single info
 
 let eq _x _y _c = assert false
 
 let feat _x _f _y = assert false
 
 let abs x f c = (* FIXME: subsumed by noresolve *)
-  Unsafe.ensure_dir x c >>= fun c ->
+  dir x c >>= fun c ->
+  Unsafe.abs x f c >>= fun c ->
   fold_similar
     x
     ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
     (fun _ y -> Unsafe.abs y f)
-    (Unsafe.abs x f c)
+    c
 
 let nabs x f c =
-  match (get_info x c).kind with
-  | Dir dir ->
-    (
-      match Feat.Map.find_opt f dir.feats with
-      | None | Some DontKnow ->
-        (
-          fold_similar
-            x
-            ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
-            (fun _ y -> Unsafe.nabs_in_dir y f)
-            (Unsafe.nabs_in_dir x f c)
-        )
-      | Some Exists | Some Pointsto _ -> Dnf.single c
-      | Some (Noresolve _) -> Dnf.empty (* FIXME: wrong. Noresolve doesnt clash with nabs, we have to unfold. *)
-    )
-  | _ ->
-    (
-      fold_similar
-        x
-        ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
-        (fun _ y -> Unsafe.nabs_in_nabs y f)
-        (Unsafe.nabs_in_nabs x f c)
-    )
+  Unsafe.nabs x f c >>= fun c ->
+  fold_similar
+    x
+    ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
+    (fun _ y -> Unsafe.nabs y f)
+    c
 
 let fen x fs c =
-  Unsafe.ensure_dir x c >>= fun c ->
+  dir x c >>= fun c ->
+  Unsafe.fen x fs c >>= fun c ->
   fold_similar
     x
     (fun gs y -> Unsafe.fen y (Feat.Set.union fs gs))
-    (Unsafe.fen x fs c)
+    c
 
 let sim x fs y c =
   (* To have a similarity implies being directories. *)
-  Unsafe.ensure_dir x c >>= fun c ->
-  Unsafe.ensure_dir y c >>= fun c ->
+  dir x c >>= fun c ->
+  dir y c >>= fun c ->
   let info_x = get_info x c in
   let info_y = get_info y c in
   match info_x.kind, info_y.kind with
@@ -100,9 +109,9 @@ let kind k x c = (* FIXME: separate dir from kind *)
   | Kind.Dir ->
     (
       match info.kind with
-      | Any -> Dnf.single (Unsafe.set_empty_dir_and_suck_nabs info)
+      | Any -> Dnf.single (set_empty_dir_and_suck_nabs info)
       | Neg kinds when List.mem Kind.Dir kinds -> Dnf.empty
-      | Neg _ -> Dnf.single (Unsafe.set_empty_dir_and_suck_nabs info)
+      | Neg _ -> Dnf.single (set_empty_dir_and_suck_nabs info)
       | Pos _ -> Dnf.empty
       | Dir _ -> Dnf.single info
     )
@@ -152,7 +161,7 @@ let nkind k x c =
         let kinds = ExtList.insert_uniq_sorted Kind.compare k kinds in
         if List.length kinds = Kind.nb_all - 1 then
           match find_smallest_diff Kind.compare kinds Kind.all with
-          | Kind.Dir -> Dnf.single (Unsafe.set_empty_dir_and_suck_nabs info)
+          | Kind.Dir -> Dnf.single (set_empty_dir_and_suck_nabs info)
           | kind -> Dnf.single (set_pos_and_empty_negs info kind)
         else
           Dnf.single {info with kind = Neg kinds}
