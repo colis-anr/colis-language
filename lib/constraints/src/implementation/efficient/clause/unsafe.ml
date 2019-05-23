@@ -7,6 +7,8 @@ let abs x f c =
   | Dir dir ->
     (
       match Feat.Map.find_opt f dir.feats with
+      | None when dir.fen ->
+        Dnf.single info
       | None | Some DontKnow | Some (Noresolve _) ->
         Dnf.single
           { info with
@@ -22,6 +24,8 @@ let nabs x f c =
   | Dir dir ->
     (
       match Feat.Map.find_opt f dir.feats with
+      | None when dir.fen ->
+        Dnf.empty
       | None | Some DontKnow ->
         Dnf.single
           { info with

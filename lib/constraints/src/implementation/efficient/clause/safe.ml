@@ -40,9 +40,7 @@ let dir x c = (* FIXME: No need to handle that case in [kind], then. *)
   | Dir _ ->
     Dnf.single info
 
-let eq _x _y _c = assert false
-
-let feat _x _f _y = assert false
+let feat _x _f _y _c = assert false
 
 let abs x f c = (* FIXME: subsumed by noresolve *)
   dir x c >>= fun c ->
@@ -168,4 +166,72 @@ let nkind k x c =
       | Pos kind when Kind.equal kind k -> Dnf.empty
       | Pos _ -> Dnf.single info
       | Dir _ -> Dnf.single info
+    )
+
+(* We basically suck all the information from one of the two variables. At
+   each step, we are in normal form. At the end, we can just remove all
+   information from this variable and state the equality. *)
+(* FIXME: find a way to suck info out of the smallest one. For now, we'll
+   suck them from [y]. *)
+let eq x y c =
+  if IVar.equal c.info x y then
+    Dnf.single c
+  else
+    (
+
+      let info_y = get_info y c in
+
+      let cs = Dnf.single c in
+
+      assert (info_y.nfeats = []); (* FIXME eventually *)
+
+      let cs = List.fold_left (fun cs f -> nabs x f =<< cs) cs info_y.nabs in
+
+      assert (info_y.nfens = []); (* FIXME eventually *)
+      assert (info_y.nsims = []); (* FIXME eventually *)
+
+      match info_y.kind with
+      | Any -> cs
+      | Neg kinds -> List.fold_left (fun cs k -> nkind k x =<< cs) cs kinds
+      | Pos k -> kind k x =<< cs
+      | Dir d ->
+        let cs = dir x =<< cs in
+
+        let cs =
+          if d.fen then
+            (
+              (* FIXME: could be done much more efficiently, by exposing the
+                right low-level function common to eq and fen. *)
+              let gs =
+                Feat.Map.fold
+                  (fun g _ gs -> Feat.Set.add g gs)
+                  d.feats
+                  Feat.Set.empty
+              in
+              fen x gs =<< cs
+            )
+          else
+            cs
+        in
+
+        let cs = List.fold_left (fun cs (hs, z) -> sim x hs z =<< cs) cs d.sims in
+
+        let cs =
+          Feat.Map.fold
+            (fun f t cs ->
+               match t with
+               | DontKnow -> cs
+               | Exists -> nabs x f =<< cs
+               | Pointsto z -> feat x f z =<< cs
+               | Noresolve (C []) -> abs x f =<< cs (* FIXME: once the general case is handled, no need! *)
+               | Noresolve _ -> assert false)
+            d.feats
+            cs
+        in
+
+        List.map
+          (fun c ->
+             { c with
+               info = IVar.set_equal c.info x y (fun _ info_y -> info_y) })
+          cs
     )

@@ -7,6 +7,7 @@ type 'a map
 val empty_map : 'a map
 
 val equal : 'a map -> t -> t -> bool
+val set_equal : 'a map -> t -> t -> ('a -> 'a -> 'a) -> 'a map
 
 val iter : 'a map -> (t -> 'a -> unit) -> unit
 

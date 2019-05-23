@@ -12,5 +12,6 @@ let compose f g =
 
 module Syntax = struct
   let (>>=) = bind
+  let (=<<) f x = bind x f
   let (>=>) = compose
 end

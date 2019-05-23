@@ -8,20 +8,37 @@
 open Constraints_common
 
 val abs : IVar.t -> Feat.t -> Core.t -> Core.t list
-(**  *)
+(** [abs x f] adds the absence [x[f\]↑]] to [x]'s [info].
+
+    It assumes that [x] has kind [Dir d].
+
+    It looks in [d.feats] for [f].
+
+    If there is nothing and if, additionnally, there is a fence in [d], it does
+    nothing.
+
+    Otherwise, if there is nothing, [DontKnow] or [Noresolve _], it adds
+    [Noresolve [\]].
+
+    If there is [Exists] or [Pointsto _], it returns the empty Dnf.
+
+    It does not handle propagation. *)
 
 val nabs : IVar.t -> Feat.t -> Core.t -> Core.t list
 
-(** [nabs x f] adds the negated absence [¬x[f\]] to [x]'s info.
+(** [nabs x f] adds the negated absence [¬x[f\]↑] to [x]'s [info].
 
     It does not assume [x]'s kind. However, its behaviour depends on it.
 
     If [x]'s kind is not [Dir _], it adds [f] to [info.nabs] if it is not here
     already.
 
-    If [x]'s kind is [Dir dir], it looks at [dir.feats] at indice [f].
+    If [x]'s kind is [Dir d], it looks at [d.feats] at indice [f].
 
-    If there is nothing or [DontKnow], [Exists] is added.
+    If there is nothing and if, additionnally, there is a fence in [d], it
+    returns the empty Dnf.
+
+    Otherwise, if there is nothing or [DontKnow], [Exists] is added.
 
     If there is [Exists] or [Pointsto _], nothing is done.
 

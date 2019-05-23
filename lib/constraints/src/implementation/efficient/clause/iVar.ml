@@ -19,6 +19,19 @@ let rec repr m x =
 let equal m x y =
   repr m x = repr m y
 
+let rec set_equal m x y merger =
+  match Map.find x m, Map.find y m with
+  | Ancestor ax, Ancestor ay ->
+    m
+    |> Map.add x (Son y)
+    |> Map.add y (Ancestor (merger ax ay))
+  | Ancestor _, Son fy ->
+    set_equal m x fy merger
+  | Son fx, Ancestor _ ->
+    set_equal m fx y merger
+  | Son fx, Son fy ->
+    set_equal m fx fy merger
+
 let iter m f =
   Map.iter
     (fun x v ->
