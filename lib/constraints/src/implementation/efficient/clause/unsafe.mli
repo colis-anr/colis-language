@@ -63,13 +63,12 @@ val fen : IVar.t -> Feat.Set.t -> Core.t -> Core.t list
 
 val sim : IVar.t -> Feat.Set.t -> IVar.t -> Core.t -> Core.t list
 
-(** [sim x fs y] adds the similarity [x ~fs y] to [x]'s info.
+(** [sim x fs y] adds the similarity [x ~fs y] to [x]'s info and [y ~fs x] to
+    [y]'s info.
 
-    It assumes that [x] has kind [Dir _].
+    It assumes that [x] and [y] have kind [Dir _].
 
     If there is already a similarity, the index is the intersection of the
     current index and [fs].
 
-    It does not handle propagation.
-
-    It does not add [y ~fs x] to [y]'s info. *)
+    It does not handle propagation. *)

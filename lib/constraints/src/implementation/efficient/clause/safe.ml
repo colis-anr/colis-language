@@ -66,26 +66,6 @@ let fen x fs c =
     (fun gs y -> Unsafe.fen y (Feat.Set.union fs gs))
     c
 
-let sim x fs y c =
-  (* To have a similarity implies being directories. *)
-  dir x c >>= fun c ->
-  dir y c >>= fun c ->
-  let info_x = get_info x c in
-  let info_y = get_info y c in
-  match info_x.kind, info_y.kind with
-  | Dir dir_x, Dir dir_y ->
-    (
-      (* There are now two cases. *)
-      match List.find_opt (fun (_, xi) -> IVar.equal c.info y xi) dir_x.sims with
-      | None -> (* No previous similarity between [x] and [y]. *)
-        (
-          assert false (* FIXME *)
-        )
-      | Some _fs' -> (* The general case, which will not be implemented for now. *)
-        not_implemented "sim: general case"
-    )
-  | _ -> assert false
-
 let set_pos_and_empty_negs _info k =
   { nfeats = [] ;
     nabs = [] ;
@@ -190,6 +170,97 @@ let rec feat x f y c =
     )
   | _ -> assert false
 
+and sim_suck_info fs ~from ~to_ cs =
+  let (info_x, d_x) = from in
+  let y = to_ in
+
+  if info_x.nfeats <> [] then
+    not_implemented "sim: nfeats";
+
+  assert (info_x.nabs = []); (* Because directory! *)
+
+  if info_x.nfens <> [] then
+    not_implemented "sim: nfens";
+
+  if info_x.nsims <> [] then
+    not_implemented "sim: nsims";
+
+  let cs =
+    if d_x.fen then
+      (
+        (* FIXME: could be done much more efficiently, by exposing the
+           right low-level function common to eq and fen. *)
+        let gs =
+          Feat.Map.fold
+            (fun g _ gs -> Feat.Set.add g gs)
+            d_x.feats
+            Feat.Set.empty
+        in
+        fen y (Feat.Set.union fs gs) =<< cs
+      )
+    else
+      cs
+  in
+
+  (* Do not suck similarities, this will be handled in [sim]. *)
+
+  let cs =
+    Feat.Map.fold
+      (fun f t cs ->
+         if Feat.Set.mem f fs then
+           cs
+         else
+           match t with
+           | DontKnow -> cs
+           | Exists -> nabs y f =<< cs
+           | Pointsto z -> feat y f z =<< cs
+           | Noresolve (C []) -> abs y f =<< cs (* FIXME: subsumed *)
+           | Noresolve _ -> not_implemented "sim: noresolve")
+      d_x.feats
+      cs
+  in
+
+  cs
+
+and sim x fs y c =
+  (* To have a similarity implies being directories. *)
+  dir x c >>= fun c ->
+  dir y c >>= fun c ->
+  let info_x = get_info x c in
+  let info_y = get_info y c in
+  match info_x.kind, info_y.kind with
+  | Dir d_x, Dir d_y ->
+    (
+      (* There are now two cases. *)
+      match List.find_opt (fun (_, xi) -> IVar.equal c.info y xi) d_x.sims with
+      | None -> (* No previous similarity between [x] and [y]. *)
+        (
+          let cs = Dnf.single c in
+          let cs = sim_suck_info fs ~from:(info_x, d_x) ~to_:y cs in
+          let cs = sim_suck_info fs ~from:(info_y, d_y) ~to_:x cs in
+
+          cs >>=
+          Unsafe.sim x fs y >>= fun c ->
+          List.fold_left
+            (fun cs (gs, xi) ->
+               let fsgs = Feat.Set.union fs gs in
+               cs >>=
+               Unsafe.sim xi fsgs y >>= fun c ->
+               List.fold_left
+                 (fun cs (hs, yj) ->
+                    cs >>=
+                    Unsafe.sim xi (Feat.Set.union fsgs hs) yj)
+                 (Dnf.single c)
+                 d_y.sims
+            )
+            (Dnf.single c)
+            d_x.sims
+        )
+      | Some _fs' -> (* The general case, which will not be implemented for now. *)
+        not_implemented "sim: general case"
+    )
+  | _ -> assert false
+
 (* We basically suck all the information from one of the two variables. At
    each step, we are in normal form. At the end, we can just remove all
    information from this variable and state the equality. *)
@@ -200,7 +271,6 @@ and eq x y c =
     Dnf.single c
   else
     (
-
       let info_y = get_info y c in
 
       let cs = Dnf.single c in

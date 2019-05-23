@@ -87,7 +87,7 @@ let rec sim_update_sims_list fs y eqs = function
     else
       (gs, z) :: sim_update_sims_list fs y eqs l
 
-let sim x fs y c =
+let sim_one_dir x fs y c =
   update_info x c @@ fun info ->
   match info.kind with
   | Dir dir ->
@@ -96,3 +96,8 @@ let sim x fs y c =
         kind = Dir { dir with
                      sims = sim_update_sims_list fs y c.info dir.sims } }
   | _ -> assert false
+
+let sim x fs y =
+  Dnf.compose
+    (sim_one_dir x fs y)
+    (sim_one_dir y fs x)
