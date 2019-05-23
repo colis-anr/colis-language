@@ -50,22 +50,27 @@ let rec set m x v =
   | Ancestor _ -> Map.add x (Ancestor v) m
   | Son y -> set m y v
 
+let add m x v =
+  Map.add x (Ancestor v) m
+
 open Constraints_common
 
 type globals = t Var.Map.t
 
 let empty_globals = Var.Map.empty
 
-let fresh =
-  let i = ref 0 in
-  fun () -> incr i; !i
+let fresh_counter = ref 0
 
-let internalise v m =
-  match Var.Map.find_opt v m with
-  | Some i -> (i, m)
+let fresh info empty_info =
+  incr fresh_counter;
+  (!fresh_counter, add info !fresh_counter empty_info)
+
+let internalise v globals info empty_info =
+  match Var.Map.find_opt v globals with
+  | Some i -> (i, globals, info)
   | None ->
-    let i = fresh () in
-    (i, Var.Map.add v i m)
+    let (i, info) = fresh info empty_info in
+    (i, Var.Map.add v i globals, info)
 
 let quantify_over v m =
   Var.Map.remove v m

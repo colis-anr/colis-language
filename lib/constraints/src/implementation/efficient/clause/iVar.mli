@@ -20,6 +20,10 @@ type globals
 
 val empty_globals : globals
 
-val internalise : Constraints_common.Var.t -> globals -> t * globals
+val internalise :
+  Constraints_common.Var.t ->
+  globals ->
+  'a map -> 'a ->
+  t * globals * 'a map
 
 val quantify_over : Constraints_common.Var.t -> globals -> globals

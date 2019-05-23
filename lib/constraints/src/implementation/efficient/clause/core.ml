@@ -37,6 +37,13 @@ let empty =
   { globals = IVar.empty_globals ;
     info = IVar.empty_map }
 
+let empty_info =
+  { nfeats = [] ;
+    nabs = [] ;
+    nfens = [] ;
+    nsims = [] ;
+    kind = Any }
+
 let empty_dir =
   { fen = false ;
     sims = [] ;
