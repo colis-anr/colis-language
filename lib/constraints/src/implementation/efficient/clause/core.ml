@@ -1,6 +1,6 @@
 open Constraints_common
 
-(* FIXME: neq, nfeat, nfen, nsim *)
+(* FIXME: neq *)
 
 type t =
   { globals : IVar.globals ;

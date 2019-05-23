@@ -26,6 +26,9 @@ let fold_similar ?(if_=(fun _ _ -> true)) x f c =
       dir.sims
   | _ -> assert false
 
+exception NotImplemented of string
+let not_implemented s = raise (NotImplemented s)
+
 let eq _x _y _c = assert false
 
 let feat _x _f _y = assert false
@@ -158,7 +161,45 @@ let fen x fs c =
     (fun gs y -> unsafe_fen y (Feat.Set.union fs gs))
     (unsafe_fen x fs c)
 
-let sim _x _fs _y = assert false
+let rec unsafe_sim_update_sims_list fs y eqs = function
+  | [] -> (* No previous sim between x and y. *)
+    [fs, y]
+  | (gs, z) :: l ->
+    if IVar.equal eqs y z then (* Found the binding! *)
+      (Feat.Set.inter fs gs, z) :: l
+    else
+      (gs, z) :: unsafe_sim_update_sims_list fs y eqs l
+
+let unsafe_sim x fs y c =
+  (update_info x c @@ fun info ->
+   match info.kind with
+   | Dir dir ->
+     Dnf.single
+       { info with
+         kind = Dir { dir with
+                      sims = unsafe_sim_update_sims_list fs y c.info dir.sims } }
+   | _ -> assert false
+  )
+
+let sim x fs y c =
+  (* To have a similarity implies being directories. *)
+  unsafe_ensure_dir x c >>= fun c ->
+  unsafe_ensure_dir y c >>= fun c ->
+  let info_x = get_info x c in
+  let info_y = get_info y c in
+  match info_x.kind, info_y.kind with
+  | Dir dir_x, Dir dir_y ->
+    (
+      (* There are now two cases. *)
+      match List.find_opt (fun (_, xi) -> IVar.equal c.info y xi) dir_x.sims with
+      | None -> (* No previous similarity between [x] and [y]. *)
+        (
+          assert false (* FIXME *)
+        )
+      | Some _fs' -> (* The general case, which will not be implemented for now. *)
+        not_implemented "sim: general case"
+    )
+  | _ -> assert false
 
 let set_pos_and_empty_negs _info k =
   { nfeats = [] ;
