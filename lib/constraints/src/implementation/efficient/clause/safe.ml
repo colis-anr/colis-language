@@ -40,7 +40,6 @@ let dir x c = (* FIXME: No need to handle that case in [kind], then. *)
   | Dir _ ->
     Dnf.single info
 
-let feat _x _f _y _c = assert false
 
 let abs x f c = (* FIXME: subsumed by noresolve *)
   dir x c >>= fun c ->
@@ -168,12 +167,35 @@ let nkind k x c =
       | Dir _ -> Dnf.single info
     )
 
+let rec feat x f y c =
+  dir x c >>= fun c ->
+  let info = get_info x c in
+  match info.kind with
+  | Dir d ->
+    (
+      match Feat.Map.find_opt f d.feats with
+      | None when d.fen ->
+        Dnf.empty
+      | None | Some DontKnow | Some Exists ->
+        set_info x c
+          { info with
+            kind = Dir { d with
+                         feats = Feat.Map.add f (Pointsto y) d.feats } }
+      | Some (Pointsto z) ->
+        eq x z c
+      | Some (Noresolve (C [])) -> (* FIXME: subsumed by the next case *)
+        Dnf.empty
+      | Some (Noresolve _) ->
+        not_implemented "feat: noresolve"
+    )
+  | _ -> assert false
+
 (* We basically suck all the information from one of the two variables. At
    each step, we are in normal form. At the end, we can just remove all
    information from this variable and state the equality. *)
 (* FIXME: find a way to suck info out of the smallest one. For now, we'll
    suck them from [y]. *)
-let eq x y c =
+and eq x y c =
   if IVar.equal c.info x y then
     Dnf.single c
   else
@@ -183,12 +205,16 @@ let eq x y c =
 
       let cs = Dnf.single c in
 
-      assert (info_y.nfeats = []); (* FIXME eventually *)
+      if info_y.nfeats <> [] then
+        not_implemented "eq: nfeats"; (* FIXME eventually *)
 
       let cs = List.fold_left (fun cs f -> nabs x f =<< cs) cs info_y.nabs in
 
-      assert (info_y.nfens = []); (* FIXME eventually *)
-      assert (info_y.nsims = []); (* FIXME eventually *)
+      if info_y.nfens <> [] then
+        not_implemented "eq: nfens"; (* FIXME eventually *)
+
+      if info_y.nsims <> [] then
+        not_implemented "eq: nsims"; (* FIXME eventually *)
 
       match info_y.kind with
       | Any -> cs

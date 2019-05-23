@@ -46,7 +46,7 @@ let get_info x c =
   IVar.get c.info x
 
 let set_info x c i =
-  IVar.set c.info x i
+  [{ c with info = IVar.set c.info x i }]
 
 let update_info x c f =
   let info = IVar.get c.info x in
