@@ -4,13 +4,12 @@ open Core
 let fpf = Format.fprintf
 
 let pp fmt c =
-  fpf fmt "@[<h 2>globals:@\n";
   IVar.iter_globals
     c.globals
     (fun gx x ->
        fpf fmt "%a -> %a@\n"
          Var.pp gx IVar.pp x);
-  fpf fmt "@]";
+  fpf fmt "@\n";
   IVar.iter
     c.info
     (fun x info ->
