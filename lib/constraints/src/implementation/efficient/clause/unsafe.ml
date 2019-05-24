@@ -1,6 +1,16 @@
 open Constraints_common
 open Core
 
+let feat x f y c =
+  update_info x c @@ fun info ->
+  match info.kind with
+  | Dir d ->
+    Dnf.single
+      { info with
+        kind = Dir { d with
+                     feats = Feat.Map.add f (Pointsto y) d.feats } }
+  | _ -> assert false
+
 let abs x f c =
   update_info x c @@ fun info ->
   match info.kind with

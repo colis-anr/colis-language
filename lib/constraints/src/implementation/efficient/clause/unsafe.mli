@@ -7,6 +7,14 @@
 
 open Constraints_common
 
+val feat : IVar.t -> Feat.t -> IVar.t -> Core.t -> Core.t list
+(** [feat x f y] adds the feature [x[f\]y] to [x]'s info.
+
+    It assumes that [x] has kind [Dir d] and that, in [d.feats] at indice [f],
+    there is nothing (when [d.fen = false]) or [DontKnow] or [Exists].
+
+    It does not handle propagation. *)
+
 val abs : IVar.t -> Feat.t -> Core.t -> Core.t list
 (** [abs x f] adds the absence [x[f\]↑]] to [x]'s [info].
 

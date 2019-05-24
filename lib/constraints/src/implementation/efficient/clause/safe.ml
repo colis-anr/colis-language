@@ -157,10 +157,12 @@ let rec feat x f y c =
       | None when d.fen ->
         Dnf.empty
       | None | Some DontKnow | Some Exists ->
-        set_info x c
-          { info with
-            kind = Dir { d with
-                         feats = Feat.Map.add f (Pointsto y) d.feats } }
+        Unsafe.feat x f y c >>= fun c ->
+        fold_similar
+          x
+          ~if_:(fun fs _ -> not (Feat.Set.mem f fs))
+          (fun _ z -> Unsafe.feat z f y)
+          c
       | Some (Pointsto z) ->
         eq x z c
       | Some (Noresolve (C [])) -> (* FIXME: subsumed by the next case *)
