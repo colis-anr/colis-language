@@ -57,10 +57,10 @@ module Make (Clause : Constraints.Interface.S) = struct
                  Log.info (fun m -> m "Test %d succeeded" i);
                  res + 1
                )
-             | conj :: _, Unsat ->
+             | ((_::_) as disj), Unsat ->
                (
                  Log.warn (fun m -> m "Test %d failed" i);
-                 Log.info (fun m -> m "Should be unsat, got %a" pp_sat_conj conj);
+                 Log.info (fun m -> m "Should be unsat, got@\n%a" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt "@\nor@\n") pp_sat_conj) disj);
                  res
                )
              | [], Sat ->

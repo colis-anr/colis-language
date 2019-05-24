@@ -164,7 +164,7 @@ let rec feat x f y c =
           (fun _ z -> Unsafe.feat z f y)
           c
       | Some (Pointsto z) ->
-        eq x z c
+        eq y z c
       | Some (Noresolve (C [])) -> (* FIXME: subsumed by the next case *)
         Dnf.empty
       | Some (Noresolve _) ->
@@ -288,48 +288,52 @@ and eq x y c =
       if info_y.nsims <> [] then
         not_implemented "eq: nsims"; (* FIXME eventually *)
 
-      match info_y.kind with
-      | Any -> cs
-      | Neg kinds -> List.fold_left (fun cs k -> nkind k x =<< cs) cs kinds
-      | Pos k -> kind k x =<< cs
-      | Dir d ->
-        let cs = dir x =<< cs in
+      let cs =
+        match info_y.kind with
+        | Any -> cs
+        | Neg kinds -> List.fold_left (fun cs k -> nkind k x =<< cs) cs kinds
+        | Pos k -> kind k x =<< cs
+        | Dir d ->
+          let cs = dir x =<< cs in
 
-        let cs =
-          if d.fen then
-            (
-              (* FIXME: could be done much more efficiently, by exposing the
-                right low-level function common to eq and fen. *)
-              let gs =
-                Feat.Map.fold
-                  (fun g _ gs -> Feat.Set.add g gs)
-                  d.feats
-                  Feat.Set.empty
-              in
-              fen x gs =<< cs
-            )
-          else
-            cs
-        in
+          let cs =
+            if d.fen then
+              (
+                (* FIXME: could be done much more efficiently, by exposing the
+                   right low-level function common to eq and fen. *)
+                let gs =
+                  Feat.Map.fold
+                    (fun g _ gs -> Feat.Set.add g gs)
+                    d.feats
+                    Feat.Set.empty
+                in
+                fen x gs =<< cs
+              )
+            else
+              cs
+          in
 
-        let cs = List.fold_left (fun cs (hs, z) -> sim x hs z =<< cs) cs d.sims in
+          let cs = List.fold_left (fun cs (hs, z) -> sim x hs z =<< cs) cs d.sims in
 
-        let cs =
-          Feat.Map.fold
-            (fun f t cs ->
-               match t with
-               | DontKnow -> cs
-               | Exists -> nabs x f =<< cs
-               | Pointsto z -> feat x f z =<< cs
-               | Noresolve (C []) -> abs x f =<< cs (* FIXME: once the general case is handled, no need! *)
-               | Noresolve _ -> assert false)
-            d.feats
-            cs
-        in
+          let cs =
+            Feat.Map.fold
+              (fun f t cs ->
+                 match t with
+                 | DontKnow -> cs
+                 | Exists -> nabs x f =<< cs
+                 | Pointsto z -> feat x f z =<< cs
+                 | Noresolve (C []) -> abs x f =<< cs (* FIXME: once the general case is handled, no need! *)
+                 | Noresolve _ -> assert false)
+              d.feats
+              cs
+          in
 
-        List.map
-          (fun c ->
-             { c with
-               info = IVar.set_equal c.info x y (fun _ info_y -> info_y) })
           cs
+      in
+
+      List.map
+        (fun c ->
+           { c with
+             info = IVar.set_equal c.info x y (fun _ info_y -> info_y) })
+        cs
     )
