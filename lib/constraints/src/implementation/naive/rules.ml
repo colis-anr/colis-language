@@ -46,7 +46,7 @@ let accessibility c =
   aux ();
   Hashtbl.fold (fun x ys l -> (x, ys) :: l) res []
 
-let replace_var_in_atom x y = function
+let replace_in_atom ~var:x ~by:y = function
   | Eq (a, b) -> Eq ((if Var.equal a x then y else a), (if Var.equal b x then y else b))
   | Feat (a, f, b) -> Feat ((if Var.equal a x then y else a), f, (if Var.equal b x then y else b))
   | Abs (a, f) -> Abs ((if Var.equal a x then y else a), f)
@@ -54,12 +54,12 @@ let replace_var_in_atom x y = function
   | Fen (a, fs) -> Fen ((if Var.equal a x then y else a), fs)
   | Sim (a, fs, b) -> Sim ((if Var.equal a x then y else a), fs, (if Var.equal b x then y else b))
 
-let replace_var_in_literal x y = function
-  | Pos a -> Pos (replace_var_in_atom x y a)
-  | Neg a -> Neg (replace_var_in_atom x y a)
+let replace_in_literal ~var ~by = function
+  | Pos a -> Pos (replace_in_atom ~var ~by a)
+  | Neg a -> Neg (replace_in_atom ~var ~by a)
 
-let replace_var_in_literal_set x y =
-  Literal.Set.map (replace_var_in_literal x y)
+let replace_in_literal_set ~var ~by =
+  Literal.Set.map (replace_in_literal ~var ~by)
 
 let (&) l s = Literal.Set.add l s
 
@@ -127,6 +127,27 @@ let c_kinds =
     ~prod:clash
     ()
 
+let s_eq_glob =
+  (* Note: this rule is not in the article but is necessary here. This is
+     because we need to check for satifiability of formulas, which is not what
+     is stated in the article. *)
+  make
+    ~pat:[Pos (Eq (x, y))]
+    ~pred:(fun a _ ->
+        not (Var.equal (Assign.var a x) (Assign.var a y)))
+    ~prod:(fun a (es, c) ->
+        let x = Assign.var a x in
+        let y = Assign.var a y in
+        let (x, y) =
+          (* Replace the newest one by the oldest one. *)
+          match Var.compare x y with
+          | c when c < 0 -> (y, x)
+          | c when c > 0 -> (x, y)
+          | _ -> assert false
+        in
+        [es, Pos (Eq (x, y)) & replace_in_literal_set ~var:x ~by:y c])
+    ()
+
 let s_eq =
   make
     ~pat:[Pos (Eq (x, y))]
@@ -136,7 +157,7 @@ let s_eq =
     ~prod:(fun a (es, c) ->
       let x = Assign.var a x in
       let y = Assign.var a y in
-      [Var.Set.remove x es, replace_var_in_literal_set x y c])
+      [Var.Set.remove x es, replace_in_literal_set ~var:x ~by:y c])
     ()
 
 let s_eq_refl =
@@ -156,7 +177,7 @@ let s_feats =
       let y = Assign.var a y in
       let z = Assign.var a z in
       let f = Assign.feat a f in
-      [Var.Set.remove z es, Pos (Feat (x, f, y)) & replace_var_in_literal_set z y c])
+      [Var.Set.remove z es, Pos (Feat (x, f, y)) & replace_in_literal_set ~var:z ~by:y c])
     ()
 
 let s_feats_glob =
@@ -441,6 +462,7 @@ let all = [
     "C-NEq-Refl",   c_neq_refl;
     "C-NSim-Refl",  c_nsim_refl;
     "C-Kinds",      c_kinds;
+    "S-Eq-Glob",    s_eq_glob;
     "S-Eq",         s_eq;
     "S-Eq-Refl",    s_eq_refl;
     "S-Feats",      s_feats;

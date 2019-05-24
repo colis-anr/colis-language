@@ -7,7 +7,7 @@ let true_ = (Var.Set.empty, Literal.Set.empty)
 let quantify_over x (e, c) =
   let x' = Var.fresh ~hint:(Var.hint x) () in
   [Var.Set.add x' e,
-   Rules.replace_var_in_literal_set x x' c]
+   Rules.replace_in_literal_set ~var:x ~by:x' c]
   |> Engine.normalize
   |> Engine.simplify
 
