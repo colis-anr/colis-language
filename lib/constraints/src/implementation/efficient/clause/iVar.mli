@@ -1,5 +1,7 @@
 type t
 
+val pp : Format.formatter -> t -> unit
+
 (** {2 Maps from internal variables} *)
 
 type 'a map
@@ -19,6 +21,8 @@ val set : 'a map -> t -> 'a -> 'a map
 type globals
 
 val empty_globals : globals
+
+val iter_globals : globals -> (Constraints_common.Var.t -> t -> unit) -> unit
 
 val internalise :
   Constraints_common.Var.t ->

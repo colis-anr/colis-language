@@ -1,5 +1,7 @@
 type t = int
 
+let pp = Format.pp_print_int
+
 module Map = Map.Make(struct type t = int let compare = compare end)
 
 type 'a gen = Son of t | Ancestor of 'a
@@ -58,6 +60,9 @@ open Constraints_common
 type globals = t Var.Map.t
 
 let empty_globals = Var.Map.empty
+
+let iter_globals globals f =
+  Var.Map.iter f globals
 
 let fresh_counter = ref 0
 
