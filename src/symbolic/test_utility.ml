@@ -110,7 +110,7 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
   let p = Path.from_string path_str in
   let hintx = last_comp_as_hint ~root p in [
     success_case
-      ~descr:(asprintf "test -%s %a: path resolves to file of appropriate type" attr Path.pp p)
+      ~descr:(asprintf "test -%s %a: path resolves to file of type '%s'" attr Path.pp p attr)
       begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & is_type x &
@@ -123,7 +123,7 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "test -%s %a: path resolves to file of inapproriate type" attr Path.pp p)
+      ~descr:(asprintf "test -%s %a: path resolves to file of type other than '%s'" attr Path.pp p attr)
       begin
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & is_ntype x &
