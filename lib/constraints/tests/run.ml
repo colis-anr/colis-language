@@ -41,7 +41,11 @@ module Make (Clause : Constraints.Interface.S) = struct
     { expectation = Sat ;
       formula = feat x f y & feat x f z & empty y } ;
     { expectation = Unsat ;
-      formula = feat x f y & feat x f z & empty y & nabs z g }
+      formula = feat x f y & feat x f z & empty y & nabs z g } ;
+    { expectation = Unsat ;
+      formula = feat x f y & feat x f z & dir y & ndir z } ;
+    { expectation = Sat ;
+      formula = feat x f y & exists @@ fun x -> abs x f }
   ]
 
   let run_tests ~engine_name () =
