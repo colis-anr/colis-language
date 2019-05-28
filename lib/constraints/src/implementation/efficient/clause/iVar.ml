@@ -42,6 +42,14 @@ let iter m f =
        | _ -> ())
     m
 
+let iter_sons m f =
+  Map.iter
+    (fun x v ->
+       match v with
+       | Son y -> f x y
+       | _ -> ())
+    m
+
 let rec get m x =
   match Map.find x m with
   | Ancestor v -> v

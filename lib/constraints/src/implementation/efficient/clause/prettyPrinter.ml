@@ -10,6 +10,12 @@ let pp fmt c =
        fpf fmt "%a -> %a@\n"
          Var.pp gx IVar.pp x);
   fpf fmt "@\n";
+  IVar.iter_sons
+    c.info
+    (fun x y ->
+       fpf fmt "%a = %a@\n"
+         IVar.pp x IVar.pp y);
+  fpf fmt "@\n";
   IVar.iter
     c.info
     (fun x info ->
