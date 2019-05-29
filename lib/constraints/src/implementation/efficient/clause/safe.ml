@@ -334,6 +334,6 @@ and eq x y c =
       List.map
         (fun c ->
            { c with
-             info = IVar.set_equal c.info x y (fun _ info_y -> info_y) })
+             info = IVar.set_equal c.info x y (fun info_x _ -> info_x) })
         cs
     )
