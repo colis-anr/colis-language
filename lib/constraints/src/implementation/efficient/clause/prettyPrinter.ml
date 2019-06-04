@@ -110,11 +110,11 @@ let pp_as_dot ~name fmt c =
            | DontKnow -> () (* FIXME *)
            | Exists -> () (* FIXME *)
            | Pointsto y ->
-             fpf fmt "%a -> %a [label=%a];@\n" IVar.pp x IVar.pp y Feat.pp f
+             fpf fmt "%a -> %a [label=\"%a\"];@\n" IVar.pp x IVar.pp y Feat.pp f
            | Noresolve (C []) ->
              let y = fresh () in
              fpf fmt "%s [shape=point,style=invis,label=\"\"];@\n" y;
-             fpf fmt "%a -> %s [arrowhead=box,label=%a];@\n" IVar.pp x y Feat.pp f
+             fpf fmt "%a -> %s [arrowhead=box,label=\"%a\"];@\n" IVar.pp x y Feat.pp f
            | Noresolve _ -> () (* FIXME *)
         )
         d.feats
