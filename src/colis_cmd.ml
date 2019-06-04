@@ -119,7 +119,7 @@ let main () =
   let program =
     (match get_source () with
      | Colis -> Colis.parse_colis_file
-     | Shell -> Colis.parse_shell_file)
+     | Shell -> Colis.parse_shell_file ~cmd_line_arguments:(get_arguments ()))
       file
   in
 

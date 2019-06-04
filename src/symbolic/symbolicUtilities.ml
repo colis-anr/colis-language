@@ -157,279 +157,14 @@ let interp_mkdir ctx : utility =
   | [arg] -> interp_mkdir1 ctx.cwd arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"mkdir" ~arg:"" ()
 
-(******************************************************************************)
-(*                                     test                                   *)
-(******************************************************************************)
-
-let interp_test_parse_error args : utility =
-  under_specifications @@ fun ~root ~root' ->
-  [
-    let descr = "test: parse error in `" ^ (String.concat " " args) ^ "`" in
-    error_case
-      ~descr
-      begin
-        eq root root'
-      end;
-  ]
-
-let interp_test_empty () : utility =
-  under_specifications @@ fun ~root ~root' ->
-  [
-    let descr = "test: empty expression" in
-    error_case
-      ~descr
-      begin
-        eq root root'
-      end;
-  ]
-
-let interp_test_e cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
-  let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
-    success_case
-      ~descr:(asprintf "test -e %a: path resolves" Path.pp p)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test -e %a: path does not resolve" Path.pp p)
-      begin
-        noresolve root cwd p &
-        eq root root'
-      end;
-  ]
-
-let interp_test_d cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
-  let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
-    success_case
-      ~descr:(asprintf "test -d %a: path resolves to a dir" Path.pp p)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x & dir x &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test -d %a: path does not resolve" Path.pp p)
-      begin
-        noresolve root cwd p &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test -d %a: path resolves but not to a dir" Path.pp p)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x & ndir x &
-        eq root root'
-      end;
-  ]
-
-let interp_test_f cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
-  let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
-    success_case
-      ~descr:(asprintf "test -f %a: path resolves to a regular file" Path.pp p)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x & reg x &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test -f %a: path does not resolve" Path.pp p)
-      begin
-        noresolve root cwd p &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test -f %a: path resolves but not to a regular file" Path.pp p)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x & nreg x &
-        eq root root'
-      end;
-  ]
-
-let interp_test_attribute ~attr cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
-  let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
-    success_case
-      ~descr:(asprintf "test '%a': path resolves, attribute -%s OK (overapprox to -e)"
-                Path.pp p attr)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test '%a': path does not resolve" Path.pp p)
-      begin
-        noresolve root cwd p &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test '%a': path resolves, attribute -%s not OK (overapprox to -e)"
-                Path.pp p attr)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x &
-        eq root root'
-      end;
-  ]
-
-let interp_test_n str : utility =
-  under_specifications @@ fun ~root ~root' ->
-  if str = "" then
-    [
-      error_case
-        ~descr:(asprintf "test -n '%s': string is empty" str)
-      begin
-        eq root root'
-      end
-    ]
-  else
-    [
-      success_case
-        ~descr:(asprintf "test -n '%s': string is non-empty" str)
-      begin
-        eq root root'
-      end
-    ]
-
-let interp_test_z str : utility =
-  under_specifications @@ fun ~root ~root' ->
-  if str = "" then
-    [
-      success_case
-        ~descr:(asprintf "test -z '%s': string is empty" str)
-      begin
-        eq root root'
-      end
-    ]
-  else
-    [
-      error_case
-        ~descr:(asprintf "test -z '%s': string is non-empty" str)
-      begin
-        eq root root'
-      end
-    ]
-
-let interp_test_h _cwd _path_str : utility =
-  assert false (* FIXME : we need test -h *)
-
-let interp_test_string_equal s1 s2 : utility =
-  under_specifications @@ fun ~root ~root' ->
-  if s1 = s2 then
-    [
-      success_case
-        ~descr:(asprintf "test '%s' = '%s': strings are equal" s1 s2)
-      begin
-        eq root root'
-      end
-    ]
-  else
-    [
-      error_case
-        ~descr:(asprintf "test '%s' = '%s': string are not equal" s1 s2)
-      begin
-        eq root root'
-      end
-    ]
-
-let interp_test_string_notequal s1 s2 : utility =
-  under_specifications @@ fun ~root ~root' ->
-  if s1 <> s2 then
-    [
-      success_case
-        ~descr:(asprintf "test '%s' != '%s': strings are not equal" s1 s2)
-      begin
-        eq root root'
-      end
-    ]
-  else
-    [
-      error_case
-        ~descr:(asprintf "test '%s' != '%s': string are equal" s1 s2)
-      begin
-        eq root root'
-      end
-    ]
-
-let interp_test_neg (u:utility) : utility = fun st ->
-  List.map (fun (s,b) -> (s, not b)) (u st)
-
-let interp_test_and (u1:utility) (u2:utility) : utility = fun st ->
-  List.flatten
-    (List.map
-       (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 && b2)) (u2 s1))
-       (u1 st))
-
-let interp_test_or (u1:utility) (u2:utility) : utility = fun st ->
-  List.flatten
-    (List.map
-       (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 || b2)) (u2 s1))
-       (u1 st))
-
-let rec interp_test_expr cwd e : utility =
-  let name = "test" in
-  let msg what = "unsupported " ^ what in
-  Morsmall_utilities.TestParser.(
-  match e with
-  | Unary("-e",arg) -> interp_test_e cwd arg
-  | Unary("-d",arg) -> interp_test_d cwd arg
-  | Unary("-f",arg) -> interp_test_f cwd arg
-  | Unary("-h",arg) -> interp_test_h cwd arg
-  | Unary("-G",arg) -> interp_test_attribute ~attr:"G" cwd arg
-  | Unary("-O",arg) -> interp_test_attribute ~attr:"O" cwd arg
-  | Unary("-g",arg) -> interp_test_attribute ~attr:"g" cwd arg
-  | Unary("-k",arg) -> interp_test_attribute ~attr:"k" cwd arg
-  | Unary("-r",arg) -> interp_test_attribute ~attr:"r" cwd arg
-  | Unary("-s",arg) -> interp_test_attribute ~attr:"s" cwd arg
-  | Unary("-u",arg) -> interp_test_attribute ~attr:"u" cwd arg
-  | Unary("-w",arg) -> interp_test_attribute ~attr:"w" cwd arg
-  | Unary("-x",arg) -> interp_test_attribute ~attr:"x" cwd arg
-  | Unary("-n",arg) -> interp_test_n arg
-  | Unary("-z",arg) -> interp_test_z arg
-  | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
-  | Binary ("!=",a1,a2) -> interp_test_string_notequal a1 a2
-  | Unary(op,_) ->
-     let msg = msg "unary operator" in
-     unknown_argument ~msg ~name ~arg:op ()
-  | And(e1,e2) ->
-     interp_test_and (interp_test_expr cwd e1) (interp_test_expr cwd e2)
-  | Or(e1,e2) ->
-     interp_test_or (interp_test_expr cwd e1) (interp_test_expr cwd e2)
-  | Not(e1) -> interp_test_neg (interp_test_expr cwd e1)
-  | Binary (op,_e1,_e2) ->
-     let msg = msg "binary operator" in
-     unknown_argument ~msg ~name ~arg:op ()
-  | Single arg ->
-     let msg = msg "single argument" in
-     unknown_argument ~msg ~name ~arg ()
-  )
-
-let interp_test ~bracket ctx : utility =
-  match Morsmall_utilities.TestParser.parse ~bracket ctx.args with
-  | None -> interp_test_empty ()
-  | Some e -> interp_test_expr ctx.cwd e
-  | exception Morsmall_utilities.TestParser.Parse_error ->
-     interp_test_parse_error ctx.args
 
 (******************************************************************************)
 (*                                rm                                          *)
 (******************************************************************************)
 let interp_rm1 cwd arg : utility =
   under_specifications @@ fun ~root ~root' ->
-  let q = Path.from_string arg in
-  match Path.split_last q with
+  let oq = Path.from_string arg in
+  match Path.split_last oq with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
@@ -440,7 +175,7 @@ let interp_rm1 cwd arg : utility =
      let hintx = last_comp_as_hint ~root q in
      let hinty = Feat.to_string f in [
          success_case
-           ~descr:(asprintf "rm %a: remove file" Path.pp q)
+           ~descr:(asprintf "rm %a: remove file" Path.pp oq)
            begin
              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
              exists ~hint:hinty @@ fun y ->
@@ -450,14 +185,14 @@ let interp_rm1 cwd arg : utility =
              & dir x' & fen x' (Feat.Set.singleton f)
            end;
          error_case
-           ~descr:(asprintf "rm %a: target is a directory" Path.pp q)
+           ~descr:(asprintf "rm %a: target is a directory" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
              resolve root cwd q y & dir y
              & eq root root'
            end;
          error_case
-           ~descr:(asprintf "rm %a: target does not exist" Path.pp q)
+           ~descr:(asprintf "rm %a: target does not exist" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
              noresolve root cwd q & eq root root'
@@ -466,8 +201,8 @@ let interp_rm1 cwd arg : utility =
 
 let interp_rm1_r cwd arg : utility =
   under_specifications @@ fun ~root ~root' ->
-  let q = Path.from_string arg in
-  match Path.split_last q with
+  let oq = Path.from_string arg in
+  match Path.split_last oq with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
@@ -478,7 +213,7 @@ let interp_rm1_r cwd arg : utility =
      let hintx = last_comp_as_hint ~root q in
      let hinty = Feat.to_string f in [
          success_case
-           ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp q)
+           ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp oq)
            begin
              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
              exists ~hint:hinty @@ fun y ->
@@ -488,7 +223,7 @@ let interp_rm1_r cwd arg : utility =
              & dir x' & fen x' (Feat.Set.singleton f)
            end;
          error_case
-           ~descr:(asprintf "rm -r %a: target does not exist" Path.pp q)
+           ~descr:(asprintf "rm -r %a: target does not exist" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
              noresolve root cwd q & eq root root'
@@ -515,13 +250,13 @@ let interp_rm ctx : utility =
 (*                                which                                       *)
 (******************************************************************************)
 
-let _interp_which_naive ctx : utility =
+let interp_silent_which ctx : utility =
   match ctx.args with
   | [] ->
      under_specifications @@ fun ~root ~root' ->
        [
          error_case
-           ~descr:(asprintf "which without argument (returns 1)")
+           ~descr:(asprintf "silent-which without argument (returns 1)")
            begin
              eq root root'
            end
@@ -530,19 +265,19 @@ let _interp_which_naive ctx : utility =
      under_specifications @@ fun ~root ~root' ->
        [
          success_case
-           ~descr:(asprintf "which '%s': assuming command is found" p)
+           ~descr:(asprintf "silent-which '%s': assuming command is found" p)
            begin
              eq root root'
            end
        ;
          error_case
-           ~descr:(asprintf "which '%s': assuming command is not found" p)
+           ~descr:(asprintf "silent-which '%s': assuming command is not found" p)
            begin
              eq root root'
            end
        ]
   | p :: _ ->
-     unknown_argument ~msg:"more than one argument" ~name:"which" ~arg:p ()
+     unknown_argument ~msg:"more than one argument" ~name:"silent-which" ~arg:p ()
 
 let interp_test_regular_and_x cwd path_str : utility =
   under_specifications @@ fun ~root ~root' ->
@@ -623,7 +358,7 @@ let interp_which_full ctx : utility =
        | [] -> assert false
        | [a] -> search_as_which ctx.cwd path a
        | a :: rem ->
-          interp_test_and (search_as_which ctx.cwd path a) (aux rem)
+          uand (search_as_which ctx.cwd path a) (aux rem)
      in
      aux ctx.args
 
@@ -675,11 +410,12 @@ let register () =
     "true", interp_true;
     "false", interp_false;
     "echo", interp_echo;
-    "test", interp_test ~bracket:false;
-    "[", interp_test ~bracket:true;
+    "test", Test_utility.interpret ~bracket:false;
+    "[", Test_utility.interpret ~bracket:true;
     "touch", interp_touch;
     "mkdir", interp_mkdir;
     "which", interp_which_full;
+    "silent-which", interp_silent_which;
     "rm", interp_rm;
     "update-alternatives", interp_update_alternatives;
     "dpkg", interp_dpkg;

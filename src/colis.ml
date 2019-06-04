@@ -59,8 +59,8 @@ module Symbolic = struct
     let loop_limit = Z.of_int loop_limit in
     let stack_size = Z.of_int stack_size in
     let inp = { Common.Input.empty with argument0 } in
-    let normals, errors, failures = Interpreter.interp_program loop_limit stack_size inp (BatSet.of_list stas') program in
-    BatSet.(to_list normals, to_list errors, to_list failures)
+    let normals, errors, failures = Interpreter.interp_program loop_limit stack_size inp stas' program in
+    normals, errors, failures
 end
 
 (* Parsers *)
@@ -102,6 +102,8 @@ let parse_colis_file filename =
 let parse_colis_string string =
   let lexbuf = Lexing.from_string string in
   parse_colis_lexbuf lexbuf
+
+let convert_shell_file = FromShell.program__to__program
 
 let parse_shell_file = FromShell.parse_file
 
@@ -185,25 +187,25 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "  %s" sta.stdout.line
   end
 
-let print_symbolic_state label ctr fmt sta =
+let print_symbolic_state_with_ctr label ctr fmt sta =
   let id = sprintf "%s-%d" label !ctr in
   incr ctr;
   fprintf fmt "- @[%a@]@\n" (print_symbolic_state ~id) sta
 
 let print_symbolic_states ~initials (normals, errors, failures) =
     printf "* Initial states@\n";
-  List.iter (print_symbolic_state "initial" (ref 1) Format.std_formatter) initials;
+  List.iter (print_symbolic_state_with_ctr "initial" (ref 1) Format.std_formatter) initials;
   if normals <> [] then begin
     printf "* Success states@\n";
-    List.iter (print_symbolic_state "success" (ref 1) Format.std_formatter) normals;
+    List.iter (print_symbolic_state_with_ctr "success" (ref 1) Format.std_formatter) normals;
   end;
   if errors <> [] then begin
     printf "* Error states@\n";
-    List.iter (print_symbolic_state "error" (ref 1) Format.std_formatter) errors;
+    List.iter (print_symbolic_state_with_ctr "error" (ref 1) Format.std_formatter) errors;
   end;
   if failures <> [] then begin
     printf "* Incomplete symbolic execution@\n";
-    List.iter (print_symbolic_state "notcovered" (ref 1) Format.std_formatter) failures;
+    List.iter (print_symbolic_state_with_ctr "notcovered" (ref 1) Format.std_formatter) failures;
   end;
   printf "* Summary@\n@\n";
   printf "- Success cases: %d@\n" (List.length normals);

@@ -62,7 +62,7 @@ module Interpreter
   use int.Int
   use ref.Refint
 
-  use auxiliaries.Auxiliaries
+  use auxiliaries.OptionGet
   use mystring.String
   use syntax.Syntax
   use semantics.Buffers
@@ -139,14 +139,14 @@ module Interpreter
 
   let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
     returns { () ->
-      interp_utility (filter_var_env !(old sta.var_env)) (old sem_state sta) id args = (sem_state sta, !(sta.result)) /\
+      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
     raises { EExit ->
-      interp_utility (filter_var_env !(old sta.var_env)) (old sem_state sta) id args = (sem_state sta, !(sta.result)) /\
+      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
-  = let sta', b = interp_utility (filter_var_env !(sta.var_env)) (sem_state sta) id args in
+  = let sta', b = interp_utility (!(sta.cwd), filter_var_env !(sta.var_env), args) id (sem_state sta) in
     sta.filesystem := sta'.S.filesystem;
     sta.stdin := sta'.S.stdin;
     sta.stdout := sta'.S.stdout;
@@ -187,24 +187,30 @@ module Interpreter
 
   (** {3 The interpretation of statements} *)
 
-  (** We don’t implement loop boundaries in the concrete interpreter *)
+  (** While loops and call stacks are unbounded in the concrete interpreter *)
   let constant cnf = {loop_limit = None; stack_size = None}
+
+  let ghost ref stk = 0
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
-    returns { () ->
-      eval_instruction 0 (cnf, inp, sem_context (old sta), sem_state (old sta))
+    ensures { (old stk) = stk }
+    raises { EReturn ->  (old stk) = stk }
+    raises { EExit ->  (old stk) = stk }
+    ensures {
+      eval_instruction (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
         ins (sem_state sta, sem_context sta, BNormal)
     }
     raises { EReturn ->
-      eval_instruction 0 (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_instruction (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
         ins (sem_state sta, sem_context sta, BReturn)
     }
     raises { EExit ->
-      eval_instruction 0 (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_instruction (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
         ins (sem_state sta, sem_context sta, BExit)
     }
-  = label L in match ins with
+  = label L in
+    match ins with
 
     | IExit code ->
       match code with
@@ -245,7 +251,9 @@ module Interpreter
 
     | ISequence ins1 ins2 ->
       interp_instruction inp sta ins1;
-      interp_instruction inp sta ins2
+      assert { stk = (stk at L) };
+      interp_instruction inp sta ins2;
+      assert { stk = (stk at L) }
 
     | ISubshell ins ->
       let sta' = {
@@ -315,6 +323,9 @@ module Interpreter
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in
       match sta.func_env[id] with
+      | None ->
+        sta.result := False;
+        maybe_exit inp sta
       | Some ins ->
         try
           let inp' = { inp with argument0 = identifier_to_string id } in
@@ -323,13 +334,17 @@ module Interpreter
             arguments = ref args;
             var_env = ref !(sta.var_env)
           } in
-          interp_instruction inp' sta' ins
+          stk <- stk+1;
+          interp_instruction inp' sta' ins;
+          stk <- stk-1;
+          () (* Workaround for https://gitlab.inria.fr/why3/why3/issues/315 *)
         with
-          EReturn -> ()
+        | EReturn ->
+          stk <- stk-1
+        | EExit ->
+          stk <- stk-1;
+          raise EExit
         end
-      | None ->
-        sta.result := False;
-        maybe_exit inp sta
       end
 
     | IForeach id le ins ->
@@ -338,19 +353,20 @@ module Interpreter
       let ghost sta0 = sem_state sta in
       let ghost ctx0 = sem_context sta in
       for i = 0 to length ss - 1 do
+        invariant { stk = (stk at L) }
         invariant {
-          eval_foreach 0 True
+          eval_foreach stk True
             (cnf, inp, ctx0, sta0)
             id (take i ss) ins
             (sem_state sta, sem_context sta, BNormal)
             !last_result
         }
         invariant { forall sta1, ctx1, bhv1, b1.
-          eval_foreach 0 !last_result
+          eval_foreach stk !last_result
             (cnf, inp, sem_context sta, sem_state sta)
             id (drop i ss) ins
             (sta1, ctx1, bhv1) b1 ->
-          eval_foreach 0 True
+          eval_foreach stk True
             (cnf, inp, ctx0, sta0)
             id ss ins
             (sta1, ctx1, bhv1) b1
@@ -370,34 +386,36 @@ module Interpreter
     | IWhile ins1 ins2 ->
       let ghost sta0 = sem_state sta in
       let ghost ctx0 = sem_context sta in
-      let ctr = ref 0 in
+      let ghost ref ctr = 0 in
       let last_result = ref True in
       while (
         interp_instruction {inp with under_condition=True} sta ins1;
         !(sta.result)
       ) do
+        invariant { stk = (stk at L) }
         invariant { forall sta1 ctx1 b1 bhv n.
-          eval_while 0 !ctr !last_result
+          eval_while stk ctr !last_result
             (cnf, inp, sem_context sta, sem_state sta)
             ins1 ins2
             (sta1, ctx1, bhv) n b1 ->
-          eval_while 0 0 True
+          eval_while stk 0 True
             (cnf, inp, ctx0, sta0)
             ins1 ins2
             (sta1, ctx1, bhv) n b1
         }
         interp_instruction inp sta ins2;
         last_result := !(sta.result);
-        incr ctr
+        ctr <- ctr+1
       done;
       sta.result := !last_result
     end
 
-  with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (string, bool)
+  with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (s: string, b': bool)
     diverges
+    ensures { old stk = stk }
     ensures { sem_context sta = sem_context (old sta) }
-    returns { s, b' ->
-      eval_str_expr 0 b (cnf, inp, sem_context (old sta), sem_state (old sta))
+    ensures {
+      eval_str_expr (old stk) b (cnf, inp, sem_context (old sta), sem_state (old sta))
         se (sem_state sta, Some (s, b'))
     }
   = match se with
@@ -430,18 +448,19 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr 0 b (cnf, inp, sem_context sta, sem_state sta at L1) se1 (sem_state sta, Some (s1, b1)) };
+      assert { eval_str_expr stk b (cnf, inp, sem_context sta, sem_state sta at L1) se1 (sem_state sta, Some (s1, b1)) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr 0 b1 (cnf, inp, sem_context sta, sem_state sta at L2) se2 (sem_state sta, Some (s2, b2)) };
+      assert { eval_str_expr stk b1 (cnf, inp, sem_context sta, sem_state sta at L2) se2 (sem_state sta, Some (s2, b2)) };
       s1^s2, b2
     end
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
     diverges
+    ensures { old stk = stk }
     ensures { sem_context sta = sem_context (old sta) }
-    returns { ss ->
-      eval_list_expr 0 (cnf, inp, sem_context (old sta), sem_state (old sta))
-        le (sem_state sta, Some ss)
+    ensures {
+      eval_list_expr (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
+        le (sem_state sta, Some result)
     }
   = match le with
     | Nil -> Nil
@@ -456,12 +475,13 @@ module Interpreter
 
   let interp_program inp sta pro
     diverges
-    returns { () ->
+    ensures {
       eval_program (cnf, inp, sem_context (old sta), sem_state (old sta))
         pro (sem_state sta, Some !(sta.result))
     }
   = try
       let fenv = interp_function_definitions sta.func_env pro.function_definitions in
+      stk <- 0;
       interp_instruction inp { sta with St.func_env = fenv } pro.instruction
     with
       | EExit -> ()

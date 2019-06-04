@@ -1,14 +1,12 @@
 module semantics.Env
   syntax type env "%1 Env.env"
-  syntax function empty_env "Env.empty %1"
-  syntax function ([]) "Env.get %1 %2"
-  syntax function ([<-]) "Env.set %1 %2 %3"
+  syntax val empty_env "Env.empty %1"
+  syntax val ([]) "Env.get %1 %2"
+  syntax val ([<-]) "Env.set %1 %2 %3"
 end
 
 module interpreter.Semantics
-  syntax function filter_var_env "Env.filter_var_env (fun v -> v.Interpreter__Semantics.exported) (fun v -> v.Interpreter__Semantics.value) %1"
-  syntax function interp_utility "Utilities.interp_utility %1 %2 %3 %4"
+  syntax val filter_var_env "Env.filter_var_env (fun v -> v.Interpreter__Semantics.exported) (fun v -> v.Interpreter__Semantics.value) %1"
+  syntax val interp_utility "Utilities.interp_utility %1 %2 %3"
 end
 
-(* module interpreter.Interpreter *)
-(* end *)

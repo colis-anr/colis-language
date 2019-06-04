@@ -38,6 +38,23 @@ let if_then (cond:utility) (posbranch:utility) =
     (apply_to_list posstates posbranch)
     @ (List.map (function sta -> (sta,true)) negstates)
 
+let uneg (u:utility) : utility = fun st ->
+  List.map (fun (s,b) -> (s, not b)) (u st)
+
+let uand (u1:utility) (u2:utility) : utility = fun st ->
+  List.flatten
+    (List.map
+       (fun (s1,b1) ->
+         List.map (fun (s2,b2) -> (s2, b1 && b2)) (u2 s1))
+       (u1 st))
+
+let uor (u1:utility) (u2:utility) : utility = fun st ->
+  List.flatten
+    (List.map
+       (fun (s1,b1) ->
+         List.map (fun (s2,b2) -> (s2, b1 || b2)) (u2 s1))
+       (u1 st))
+
 let compose_non_strict (u1:utility) (u2:utility) =
   function sta ->
     apply_to_list (List.map fst (u1 sta)) u2
@@ -189,6 +206,6 @@ let dispatch ~name =
 let call name ctx args =
   dispatch ~name {ctx with args}
 
-let dispatch' name (cwd:Path.normal) env args sta =
+let dispatch' (cwd, env, args) name sta =
   let ctx = {cwd; args; env} in
   BatSet.of_list (dispatch ~name ctx sta)

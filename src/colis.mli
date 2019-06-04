@@ -71,7 +71,12 @@ val parse_colis_string : string -> colis
 
     @raise {!Errors.ParseError} *)
 
-val parse_shell_file : string -> colis
+val convert_shell_file : cmd_line_arguments:string list -> Morsmall.AST.program -> colis
+(** Converts the given Shell script to Colis and return the corresponding AST.
+
+    @raise {!Errors.ConversionError} *)
+
+val parse_shell_file : cmd_line_arguments:string list -> string -> colis
 (** Reads Shell from a file, converts it to Colis and returns the
    corresponding AST.
 
@@ -111,6 +116,8 @@ type symbolic_config = {
 }
 
 open Symbolic
+
+val print_symbolic_state : Format.formatter -> ?id:string -> Semantics.state -> unit
 
 val print_symbolic_states : initials:Semantics.state list -> (Semantics.state list * Semantics.state list * Semantics.state list) -> unit
 

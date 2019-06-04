@@ -38,3 +38,8 @@ val check_normal : t -> normal
 val normalize : ?cwd:normal -> t -> normal
 (** Normalizes syntactically the given path, starting at the given CWD. If the
     path is absolute, the CWD is ignored. *)
+
+val check_prefix : normal -> normal -> bool
+(** Returns true iff the first path is a (strict) prefix of the second path.
+ *  Both path are normalized.
+ *)

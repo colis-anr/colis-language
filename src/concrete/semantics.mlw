@@ -303,7 +303,7 @@ module Semantics
   use mystring.String
   use syntax.Syntax
 
-  use auxiliaries.Auxiliaries
+  use auxiliaries.OptionGet
   use Arguments
   use Behaviour
   use Buffers
@@ -398,16 +398,14 @@ module Semantics
     stdout: stdout;
   }
 
-  (** Interprete a command defined in the document *Specification of UNIX Commands*.
- 
-      It acts upon the input and irreversable state, and returns a stdout, a behaviour
-      (True/False), and another irreversable state, see also NOTES[Callees] *)
-  val function interp_utility (env string) state identifier (list string) :
-    (state, bool)
+  type utility_context = (cwd, env string, list string)
 
-  axiom interp_utility_extends_output : forall var_env sta sta' name args b.
-    interp_utility var_env {sta with stdout=Stdout.empty} name args = (sta', b) ->
-    interp_utility var_env sta name args = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
+  (** Interprete a command defined in the document *Specification of UNIX Commands*. *)
+  val function interp_utility utility_context identifier state : (state, bool)
+
+  axiom interp_utility_extends_output : forall ctx id sta sta' b.
+    interp_utility ctx id {sta with stdout=Stdout.empty} = (sta', b) ->
+    interp_utility ctx id sta = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
   function any_filesystem : unit -> filesystem
 
@@ -421,17 +419,22 @@ module Semantics
     | RPrevious -> previous
     end
 
+  let function exit_not_normal inp result =
+    andb (strict inp.under_condition) (notb result)
+
   let function behaviour (inp:input) (result:bool) : behaviour
-    ensures { result = BNormal \/ result = BExit }
-    returns {
-      | BNormal ->
-        inp.under_condition = True \/ result = True
-      | BExit ->
-        inp.under_condition = False /\ result = False
-      | BReturn | BFailure ->
-        false
-    }
-  = if andb (strict inp.under_condition) (notb result)
+    (* ensures { result = BNormal \/ result = BExit } *)
+    (* ensures { *)
+    (*   match result with *)
+    (*   | BNormal -> *)
+    (*     inp.under_condition = True \/ result = True *)
+    (*   | BExit -> *)
+    (*     inp.under_condition = False /\ result = False *)
+    (*   | BReturn | BFailure -> *)
+    (*     false *)
+    (*   end *)
+    (* } *)
+  = if exit_not_normal inp result
     then BExit
     else BNormal
 
@@ -533,13 +536,12 @@ module Semantics
     eval_instruction stk (cnf, inp, ctx, sta) ins1 (sta1, ctx1, bhv) ->
     eval_instruction stk (cnf, inp, ctx, sta) (ISequence ins1 ins2) (sta1, ctx1, bhv)
   
-  | eval_subshell: forall stk cnf inp sta sta' ctx ctx'' ins bhv b.
+  | eval_subshell: forall stk cnf inp sta sta' ctx ctx' ins bhv.
     bhv <> BFailure ->
-    (* Subshells don’t increase the stack, OK? *)
-    eval_instruction stk (cnf, inp, ctx, sta) ins (sta', {ctx'' with result = b}, bhv) ->
-    let ctx' = with_result b ctx in
-    let bhv' = behaviour inp ctx''.result in
-    eval_instruction stk (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx', bhv')
+    eval_instruction stk (cnf, inp, ctx, sta) ins (sta', ctx', bhv) ->
+    let ctx'' = with_result ctx'.result ctx in
+    let bhv' = behaviour inp ctx'.result in
+    eval_instruction stk (cnf, inp, ctx, sta) (ISubshell ins) (sta', ctx'', bhv')
 
   | eval_subshell_failure: forall stk cnf inp sta sta' ctx ctx' ins.
     eval_instruction stk (cnf, inp, ctx, sta) ins (sta', ctx', BFailure) ->
@@ -602,10 +604,9 @@ module Semantics
   
   | eval_call_utility: forall stk cnf inp ctx sta sta' sta'' id es ss b.
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
-    (* Utilities don’t increase the stack (as long they do not generate instructions) *)
-    (sta'', b) = interp_utility (filter_var_env ctx.var_env) sta' id ss ->
+    (sta'', b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' ->
     let ctx' = with_result b ctx in
-    let bhv = behaviour inp ctx'.result in
+    let bhv = behaviour inp b in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)
 
   | eval_call_function_args_failure: forall stk cnf inp ctx sta sta1 id es.
@@ -613,10 +614,10 @@ module Semantics
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta1, ctx, BFailure)
 
   | eval_call_function_not_found: forall stk cnf inp ctx sta sta' id es ss.
-    eval_list_expr stk (cnf, inp, ctx, sta) es (sta', ss) ->
+    eval_list_expr stk (cnf, inp, ctx, sta) es (sta', Some ss) ->
     ctx.func_env[id] = None ->
     let ctx' = with_result False ctx in
-    let bhv = behaviour inp ctx'.result in
+    let bhv = behaviour inp False in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta', ctx', bhv)
 
   | eval_call_function_stack_limit: forall stk cnf inp ctx sta sta1 id es args ins.
@@ -626,25 +627,24 @@ module Semantics
     let ctx' = ctx in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta1, ctx', BFailure)
 
-  | eval_call_function_failure: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins.
-    eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) ->
-    ctx.func_env[id] = Some ins ->
-    let inp1 = { inp with argument0 = identifier_to_string id } in
-    let ctx1 = { ctx with arguments = args } in
-    match cnf.stack_size with Some n -> n <> stk | None -> true end ->
-    eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, BFailure) ->
-    let ctx' = with_result ctx2.result ctx in
-    eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', BFailure)
+  (* | eval_call_function_failure: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins. *)
+  (*   eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) -> *)
+  (*   ctx.func_env[id] = Some ins -> *)
+  (*   let inp1 = { inp with argument0 = identifier_to_string id } in *)
+  (*   let ctx1 = { ctx with arguments = args } in *)
+  (*   match cnf.stack_size with Some n -> n <> stk | None -> true end -> *)
+  (*   eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, BFailure) -> *)
+  (*   let ctx' = with_result ctx2.result ctx in *)
+  (*   eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', BFailure) *)
 
   | eval_call_function: forall stk cnf inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
-    bhv <> BFailure ->
     eval_list_expr stk (cnf, inp, ctx, sta) es (sta1, Some args) ->
     ctx.func_env[id] = Some ins ->
     match cnf.stack_size with Some n -> n <> stk | None -> true end ->
     let inp1 = { inp with argument0 = identifier_to_string id } in
     let ctx1 = { ctx with arguments = args } in
-    eval_instruction stk (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
-    let bhv' = match bhv with BReturn -> BNormal | bhv -> bhv end in
+    eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
+    let bhv' = match bhv with BNormal | BReturn -> BNormal | BExit -> BExit | BFailure -> BFailure end in
     let ctx' = with_result ctx2.result ctx in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', bhv')
   
@@ -711,6 +711,7 @@ module Semantics
   | eval_while_abort_body: forall stk cnf ctr b bhv2 inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2.
     match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
     eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = True ->
     eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
     bhv2 <> BNormal ->
     let b' = b in
@@ -721,8 +722,8 @@ module Semantics
   | eval_while_loop: forall stk cnf ctr n b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
     ctr < n ->
     match cnf.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
-    ctx1.result = True ->
     eval_instruction stk (cnf, {inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = True ->
     eval_instruction stk (cnf, inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
     eval_while stk (ctr+1) ctx2.result (cnf, inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) n b3 ->
     eval_while stk ctr b (cnf, inp, ctx, sta) ins1 ins2 (sta3, ctx3, bhv3) n b3
@@ -781,16 +782,15 @@ module Semantics
     eval_str_expr stk b (cnf, inp, ctx, sta) (SArgument n) (sta, res)
 
   | eval_str_subshell_failure: forall stk cnf b inp ctx ctx1 sta sta1 ins.
-    eval_instruction stk (cnf, inp, ctx, { sta with stdout = Stdout.empty }) ins (sta1, ctx1, BFailure) ->
-    let sta1' = { sta1 with stdout = sta.stdout } in
+    eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BFailure) ->
+    let sta1' = {sta1 with stdout=sta.stdout} in
     eval_str_expr stk b (cnf, inp, ctx, sta) (SSubshell ins) (sta1', None)
 
   | eval_str_subshell: forall stk cnf b inp ctx ctx1 sta sta1 ins bhv1.
     bhv1 <> BFailure ->
-    eval_instruction stk (cnf, inp, ctx, {sta with stdout = Stdout.empty}) ins (sta1, ctx1, bhv1) ->
-    let str = Stdout.to_string sta1.stdout in
-    let sta1' = { sta1 with stdout = sta.stdout } in
-    let res = Some (str, ctx1.result) in
+    eval_instruction stk (cnf, inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+    let sta1' = {sta1 with stdout = sta.stdout} in
+    let res = Some (Stdout.to_string sta1.stdout, ctx1.result) in
     eval_str_expr stk b (cnf, inp, ctx, sta) (SSubshell ins) (sta1', res)
 
   | eval_str_concat_failure1 : forall stk cnf b inp ctx sta sta1 e1 e2.
