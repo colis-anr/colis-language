@@ -87,7 +87,7 @@ let pp_as_dot ~name fmt c =
       IVar.pp x s
   in
   let pp_flat_edge fmt x y =
-    fpf fmt "%a -> %a [style=dotted,arrowhead=none,constraint=false,label=\"%a\"];@\n" IVar.pp x IVar.pp y
+    fpf fmt "{ rank=same; %a -> %a [style=dotted,arrowhead=none,constraint=false,label=\"%a\"]; }@\n" IVar.pp x IVar.pp y
   in
   let pp_kind_and_fen fmt info =
     if info.kind <> Any then
