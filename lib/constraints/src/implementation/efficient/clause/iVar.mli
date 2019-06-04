@@ -1,5 +1,8 @@
 type t
 
+val eq : t -> t -> bool
+val lt : t -> t -> bool
+
 val pp : Format.formatter -> t -> unit
 
 (** {2 Maps from internal variables} *)
@@ -24,6 +27,8 @@ type globals
 val empty_globals : globals
 
 val iter_globals : globals -> (Constraints_common.Var.t -> t -> unit) -> unit
+
+val get_global : globals -> t -> Constraints_common.Var.t option
 
 val internalise :
   Constraints_common.Var.t ->

@@ -24,7 +24,7 @@ let pp fmt c =
          (
            fpf fmt "kind: ";
            match info.kind with
-           | Any -> fpf fmt "*@\n"
+           | Any -> assert false
            | Neg kinds ->
              Format.pp_print_list ~pp_sep:(fun fmt () -> fpf fmt ", ") (fun fmt k -> fpf fmt "¬%a" Kind.pp k) fmt kinds;
              fpf fmt "@\n"
@@ -80,4 +80,66 @@ let pp fmt c =
            info.nsims;
        fpf fmt "@]@\n@?")
 
-let pp_as_dot ~name _ _ = ignore name; assert false
+let pp_as_dot ~name fmt c =
+  let pp_node fmt x s =
+    fpf fmt "%a [label=< <TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\"><TR><TD COLSPAN=\"2\">%s</TD></TR>%a</TABLE> >];@\n"
+      IVar.pp x s
+  in
+  let pp_flat_edge fmt x y =
+    fpf fmt "%a -> %a [style=dotted,arrowhead=none,constraint=false,label=\"%a\"];@\n" IVar.pp x IVar.pp y
+  in
+  let pp_kind_and_fen fmt info =
+    if info.kind <> Any then
+      (
+        match info.kind with
+        | Any -> assert false
+        | Neg kinds ->
+          fpf fmt "<TR>";
+          List.iter (fpf fmt "<TD>¬%a</TD>" Kind.pp) kinds;
+          fpf fmt "</TR>"
+        | Pos kind -> Kind.pp fmt kind
+        | Dir d -> fpf fmt "<TR><TD>dir</TD>%s</TR>" (if d.fen then "<TD>fen</TD>" else "");
+      )
+  in
+  let pp_feats fmt x info_x =
+    match info_x.kind with
+    | Dir d ->
+      Feat.Map.iter
+        (fun f -> function
+           | DontKnow -> () (* FIXME *)
+           | Exists -> () (* FIXME *)
+           | Pointsto y -> fpf fmt "%a -> %a [label=%a];@\n" IVar.pp x IVar.pp y Feat.pp f
+           | Noresolve _ -> () (* FIXME *)
+        )
+        d.feats
+    | _ -> ()
+  in
+  let pp_sims fmt x info_x =
+    match info_x.kind with
+    | Dir d ->
+      List.iter
+        (fun (fs, y) ->
+           if IVar.lt x y then (* only one variable prints this *)
+             pp_flat_edge fmt x y (fun fmt -> fpf fmt "~%a" Feat.Set.pp) fs)
+        d.sims
+    | _ -> ()
+  in
+  (* FIXME: nfeats; nabs; nfens; nsims *)
+  let pp fmt c =
+    IVar.iter
+      c.info
+      (fun x info_x ->
+         pp_node fmt x
+           (match IVar.get_global c.globals x with None -> "∃" | Some gx -> Constraints_common.Var.to_string gx)
+           pp_kind_and_fen info_x);
+    IVar.iter_sons
+      c.info
+      (fun x y ->
+         pp_node fmt x
+           (match IVar.get_global c.globals x with None -> "∃" | Some gx -> Constraints_common.Var.to_string gx)
+           (fun _fmt () -> ()) ();
+         pp_flat_edge fmt x y (fun fmt () -> fpf fmt "=") ());
+    IVar.iter c.info (pp_feats fmt);
+    IVar.iter c.info (pp_sims fmt)
+  in
+  fpf fmt "@[<h 2>digraph %S {@\nnode [shape=plaintext];@\n%a@]@\n}" name pp c

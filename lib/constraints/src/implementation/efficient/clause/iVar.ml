@@ -1,5 +1,8 @@
 type t = int
 
+let eq = (=)
+let lt = (<)
+
 let pp = Format.pp_print_int
 
 module Map = Map.Make(struct type t = int let compare = compare end)
@@ -68,6 +71,11 @@ open Constraints_common
 type globals = t Var.Map.t
 
 let empty_globals = Var.Map.empty
+
+let get_global globals x =
+  Var.Map.bindings globals
+  |> List.find_opt (fun (_, y) -> eq x y)
+  |> function None -> None | Some (gx, _) -> Some gx
 
 let iter_globals globals f =
   Var.Map.iter f globals
