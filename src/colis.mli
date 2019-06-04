@@ -51,6 +51,8 @@ module Symbolic : sig
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> unit SymState.sym_state list -> Language.Syntax.program -> (Semantics.state list * Semantics.state list * Semantics.state list)
 end
 
+module Constraints = Constraints
+
 type colis = Language.Syntax.program
 (** The abstract syntax of Colis programs. *)
 

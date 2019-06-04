@@ -63,6 +63,8 @@ module Symbolic = struct
     normals, errors, failures
 end
 
+module Constraints = Constraints
+
 (* Parsers *)
 
 type colis = Language.Syntax.program
