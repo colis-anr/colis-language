@@ -81,6 +81,7 @@ let pp fmt c =
        fpf fmt "@]@\n@?")
 
 let pp_as_dot ~name fmt c =
+  let fresh = let c = ref 0 in fun () -> incr c; "fresh_" ^ string_of_int !c in
   let pp_node fmt x s =
     fpf fmt "%a [label=< <TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\"><TR><TD COLSPAN=\"2\">%s</TD></TR>%a</TABLE> >];@\n"
       IVar.pp x s
@@ -108,7 +109,12 @@ let pp_as_dot ~name fmt c =
         (fun f -> function
            | DontKnow -> () (* FIXME *)
            | Exists -> () (* FIXME *)
-           | Pointsto y -> fpf fmt "%a -> %a [label=%a];@\n" IVar.pp x IVar.pp y Feat.pp f
+           | Pointsto y ->
+             fpf fmt "%a -> %a [label=%a];@\n" IVar.pp x IVar.pp y Feat.pp f
+           | Noresolve (C []) ->
+             let y = fresh () in
+             fpf fmt "%s [shape=point,style=invis,label=\"\"];@\n" y;
+             fpf fmt "%a -> %s [arrowhead=box,label=%a];@\n" IVar.pp x y Feat.pp f
            | Noresolve _ -> () (* FIXME *)
         )
         d.feats
