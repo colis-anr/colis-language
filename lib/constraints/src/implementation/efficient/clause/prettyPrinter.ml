@@ -98,7 +98,8 @@ let pp_as_dot ~name fmt c =
           fpf fmt "<TR>";
           List.iter (fpf fmt "<TD>¬%a</TD>" Kind.pp) kinds;
           fpf fmt "</TR>"
-        | Pos kind -> Kind.pp fmt kind
+        | Pos kind ->
+          fpf fmt "<TR><TD>%a</TD></TR>" Kind.pp kind
         | Dir d -> fpf fmt "<TR><TD>dir</TD>%s</TR>" (if d.fen then "<TD>fen</TD>" else "");
       )
   in
