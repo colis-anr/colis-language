@@ -14,16 +14,16 @@ let interp_rename ctx src dstpath : utility =
     let qdst = Path.from_string dstpath in
     let _norm_qsrc = Path.normalize ~cwd:ctx.cwd qsrc in
     let _norm_qdst = Path.normalize ~cwd:ctx.cwd qdst in
-    let b_slash = (String.length dstpath) >
+    let _b_slash = (String.length dstpath) >
                     (String.length (Path.strip_trailing_slashes dstpath)) in
-    let b_ancestor = Path.check_prefix _norm_qsrc _norm_qdst in
+    let _b_ancestor = Path.check_prefix _norm_qsrc _norm_qdst in
     match Path.split_last qsrc, Path.split_last qdst with
     | (None, _) ->
        failure ~error_message:"mv: invalid source path ''" ()
     | (_, None) ->
        failure ~error_message:"mv: invalid destination path ''" ()
     | (Some (_, (Here|Up)), _) | (_, Some(_, (Here|Up))) ->
-       failure ~error_message:"mv: paths end in . or .." () 
+       failure ~error_message:"mv: paths end in . or .." ()
     | (Some (qs, Down fs), Some (qd, Down fd)) ->
        let hintxs = last_comp_as_hint ~root qs in
        let hintys = last_comp_as_hint ~root qsrc in
@@ -267,4 +267,3 @@ let rec interprete ctx : utility =
                 ]
             )
          )
-
