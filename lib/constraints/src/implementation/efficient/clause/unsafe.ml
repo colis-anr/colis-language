@@ -43,6 +43,8 @@ let nabs x f c =
                          feats = Feat.Map.add f Exists dir.feats } }
       | Some Exists | Some (Pointsto _) ->
         Dnf.single info
+      | Some (Noresolve (C [])) ->
+        Dnf.empty
       | Some (Noresolve _) ->
         assert false (* FIXME *)
     )
