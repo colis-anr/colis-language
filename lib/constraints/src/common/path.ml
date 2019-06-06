@@ -50,6 +50,15 @@ let from_string s =
     | "" :: p -> Abs (List.map comp_from_string p)
     | p -> Rel (List.map comp_from_string p)
 
+let strip_trailing_slashes s =
+  let sl = String.split_on_char '/' s in
+  let rec remove_empty sl =
+          match sl with 
+          | "" :: sl' -> remove_empty sl'
+          | _ -> sl
+   in
+   String.concat (String.make 1 '/') (List.rev (remove_empty sl)) 
+
 let rel_to_string ?(abs=false) r =
   List.map comp_to_string r
   |> String.concat "/"

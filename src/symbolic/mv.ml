@@ -5,24 +5,25 @@ open SymbolicUtility
 
 let name = "mv"
 
-let interp_mv ctx src dst : utility =
+(* First mv form: renames src file to the dstpath
+ *   assumes that the 'dstpath' is not an existing directory
+ *)
+let interp_rename ctx src dstpath : utility =
   under_specifications @@ fun ~root ~root' ->
     let qsrc = Path.from_string src in
-    let qdst = Path.from_string dst in
-    (* FIXME: case when qdst end in / but denotes a non existing file *)
+    let qdst = Path.from_string dstpath in
     let _norm_qsrc = Path.normalize ~cwd:ctx.cwd qsrc in
     let _norm_qdst = Path.normalize ~cwd:ctx.cwd qdst in
-    (* FIXME: Put in lib/constraints/common/Path.mli
-     *        test that norm_qsrc is not a prefix or equal to norm_qdst *)
-    (*        this test should be done on normalized paths in an utility *)
-    (*        which return true if the source is a parent on the destination *)
+    let b_slash = (String.length dstpath) >
+                    (String.length (Path.strip_trailing_slashes dstpath)) in
+    let b_ancestor = Path.check_prefix _norm_qsrc _norm_qdst in
     match Path.split_last qsrc, Path.split_last qdst with
     | (None, _) ->
        failure ~error_message:"mv: invalid source path ''" ()
     | (_, None) ->
        failure ~error_message:"mv: invalid destination path ''" ()
     | (Some (_, (Here|Up)), _) | (_, Some(_, (Here|Up))) ->
-       failure ~error_message:"mv: not a normalized path" () (* FIXME: check! *)
+       failure ~error_message:"mv: paths end in . or .." () 
     | (Some (qs, Down fs), Some (qd, Down fd)) ->
        let hintxs = last_comp_as_hint ~root qs in
        let hintys = last_comp_as_hint ~root qsrc in
@@ -30,13 +31,11 @@ let interp_mv ctx src dst : utility =
        let hintyd = last_comp_as_hint ~root qdst in [
            (* FIXME: the following two success cases shall be grouped in one *)
            success_case
-             ~descr:(asprintf "mv: rename file '%s' to file '%s'" src dst)
+             ~descr:(asprintf "mv: rename file '%s' to file '%s'" src dstpath)
              begin
                exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
                exists3 ?hint1:hintxd ?hint2:hintyd ?hint3:hintxd @@ fun xd yd xd' ->
                exists3 ?hint1:None ?hint2:hintxs ?hint3:hintxd @@ fun ri xsi xdi ->
-    (* FIXME: if qdst ends with / then rename
-     *        else match below shall be on norm_qsrc and norm_qdst *)
                resolve root ctx.cwd qsrc ys & ndir ys
                & resolve root ctx.cwd qd xd
                & abs xd fd (* FIXME: first case *)
@@ -48,7 +47,7 @@ let interp_mv ctx src dst : utility =
                & feat xd' fd ys
              end;
           success_case
-            ~descr:(asprintf "mv: rename file '%s' to file '%s'" src dst)
+            ~descr:(asprintf "mv: rename file '%s' to file '%s'" src dstpath)
             begin
               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
               exists3 ?hint1:hintxd ?hint2:hintyd ?hint3:None @@ fun xd yd xd' ->
@@ -65,7 +64,7 @@ let interp_mv ctx src dst : utility =
             end;
           (* FIXME: the following two success cases shall be grouped in one *)
           success_case
-            ~descr:(asprintf "mv: file '%s' to directory '%s'" src dst)
+            ~descr:(asprintf "mv: file '%s' to directory '%s'" src dstpath)
             begin
               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
               exists3 ?hint1:hintxd ?hint2:hintyd ?hint3:None @@ fun xd yd yd' ->
@@ -81,7 +80,7 @@ let interp_mv ctx src dst : utility =
               & feat yd' fs ys
             end;
           success_case
-            ~descr:(asprintf "mv: file '%s' to directory '%s'" src dst)
+            ~descr:(asprintf "mv: file '%s' to directory '%s'" src dstpath)
             begin
               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
               exists3 ?hint1:hintxd ?hint2:hintyd ?hint3:None @@ fun xd yd yd' ->
@@ -98,7 +97,7 @@ let interp_mv ctx src dst : utility =
               & feat yd' fs ys
             end;
           success_case
-            ~descr:(asprintf "mv: source '%s' is a directory, destination '%s' is not" src dst)
+            ~descr:(asprintf "mv: source '%s' is a directory, destination '%s' is not" src dstpath)
             begin
               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
               exists2 ?hint1:hintxd ?hint2:None @@ fun xd xd' ->
@@ -113,7 +112,7 @@ let interp_mv ctx src dst : utility =
             end;
           (* FIXME: the following two success cases shall be grouped in one *)
           success_case
-            ~descr:(asprintf "mv: source	'%s' and destination '%s' are directories" src dst)
+            ~descr:(asprintf "mv: source	'%s' and destination '%s' are directories" src dstpath)
             begin
               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
               exists3 ?hint1:hintyd ?hint2:None ?hint3:None @@ fun yd yd' zd ->
@@ -129,7 +128,7 @@ let interp_mv ctx src dst : utility =
               & feat yd' fs ys
             end;
           success_case
-            ~descr:(asprintf "mv: source '%s' and destination '%s' are directories" src dst)
+            ~descr:(asprintf "mv: source '%s' and destination '%s' are directories" src dstpath)
             begin
               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
               exists3 ?hint1:hintyd ?hint2:None ?hint3:None @@ fun yd yd' zd ->
@@ -169,49 +168,103 @@ let interp_mv ctx src dst : utility =
             begin
               exists ?hint:None @@ fun zd ->
               resolve root ctx.cwd (Path.from_string
-                      (String.concat "" [dst; "/"; (Feat.to_string fs)])) zd &
+                      (String.concat "" [dstpath; "/"; (Feat.to_string fs)])) zd &
               fen zd Feat.Set.empty &
               eq root root'
             end
        ]
 
-  let rec interprete ctx : utility =
-    match ctx.args with
-    | [] ->
-      under_specifications @@ fun ~root ~root' ->
-        [
-          error_case
-            ~descr:(asprintf "mv: missing operands")
-            begin
-              eq root root'
-            end
-        ]
-    | "-f" :: args -> interprete {ctx with args}
-    | "-i" :: args ->
-      under_specifications @@ fun ~root ~root' ->
-        [
-          error_case
-            ~descr:(asprintf "mv: option '-i' forbidden")
-            begin
-              eq root root'
-            end
-        ]
-    | [arg] ->
-      under_specifications @@ fun ~root ~root' ->
-        [
-          error_case
-            ~descr:(asprintf "mv: not enough arguments")
-            begin
-              eq root root'
-            end
-        ]
-    | [src; dst] -> interp_mv ctx src dst
-    | _ ->
-      under_specifications @@ fun ~root ~root' ->
-        [
-          error_case
-            ~descr:(asprintf "mv: unknown option or arguments forbidden")
-            begin
-              eq root root'
-            end
-        ]
+
+let interp_mv2dir ctx src dst : utility =
+  (* Assume: dst resolves to an existing directory *)
+  let qsrc = Path.from_string src in
+  match Path.split_last qsrc with
+  | None ->
+     under_specifications @@ fun ~root ~root' ->
+             failure ~error_message:"mv: invalid source path ''" ()
+  | Some (_, (Here|Up)) ->
+     under_specifications @@ fun ~root ~root' ->
+             failure ~error_message:"mv: source path ends in . or .." ()
+  | Some (_, Down fs) ->
+     let stripdst = Path.strip_trailing_slashes dst in
+     let dstpath = String.concat "/" [stripdst; (Feat.to_string fs)] in
+     interp_rename ctx src dstpath
+
+
+let interp_mv2dir_fold ctx sources dst = (* TODO *)
+  under_specifications @@
+    fun ~root ~root' ->
+    [
+      success_case
+        ~descr:(asprintf "mv: several sources")
+        begin
+          eq root root'
+        end
+    ]
+
+
+let rec interprete ctx : utility =
+  match ctx.args with
+  | [] ->
+     under_specifications @@ fun ~root ~root' ->
+                             [
+                               error_case
+                                 ~descr:(asprintf "mv: missing operands")
+                                 begin
+                                   eq root root'
+                                 end
+                             ]
+  | "-f" :: args -> interprete {ctx with args} (* By default option *)
+  | "-i" :: _ ->
+     under_specifications @@ fun ~root ~root' ->
+                             [
+                               error_case
+                                 ~descr:(asprintf "mv: option '-i' forbidden")
+                                 begin
+                                   eq root root'
+                                 end
+                             ]
+  | [_arg] ->
+     under_specifications @@ fun ~root ~root' ->
+                             [
+                               error_case
+                                 ~descr:(asprintf "mv: not enough arguments")
+                                 begin
+                                   eq root root'
+                                 end
+                             ]
+  | [src; dst] ->
+     (if_then_else
+        (call "test" ctx ["-d"; dst])
+        (interp_mv2dir ctx src dst)
+        (interp_rename ctx src dst)
+     )
+  | _ ->
+     (* More than two arguments, then mv in directory *)
+     match (List.rev ctx.args) with
+     | [] -> (* Not reachable *)
+        under_specifications
+        @@ fun ~root ~root' ->
+           [
+             error_case
+               ~descr:(asprintf "mv: missing operands")
+               begin
+                 eq root root'
+               end
+           ]
+     | dir :: srcs ->
+        (if_then_else
+           (call "test" ctx ["-d"; dir])
+           (interp_mv2dir_fold ctx (List.rev srcs) dir)
+           (under_specifications
+             @@ fun ~root ~root' ->
+                [
+                  error_case
+                    ~descr:(asprintf "mv: last argument not a directory")
+                    begin
+                      eq root root'
+                    end
+                ]
+            )
+         )
+
