@@ -73,25 +73,28 @@ let compose_strict (u1:utility) (u2:utility) =
     in (apply_to_list success1 u2) @
          (List.map (function sta -> (sta,false)) failure1)
 
-let print_line msg state =
-  let open Semantics__Buffers in
-  let stdout = Stdout.(output msg state.stdout |> newline) in
-  {state with stdout}
+let print_output ~newline str output =
+  let output = Stdout.output str output in
+  if newline then Stdout.newline output else output
 
-let print_utility_trace msg state =
-  if String.equal msg "" then
-    state
+let print_stdout ~newline str sta =
+  let stdout = print_output ~newline str sta.stdout in
+  let log = print_output ~newline str sta.log in
+  {sta with stdout; log}
+
+let print_error opt sta =
+  match opt with
+  | None -> sta
+  | Some str ->
+    let log = print_output ~newline:true ("[ERR] "^str) sta.log in
+    {sta with log}
+
+let print_utility_trace str sta =
+  if String.equal str "" then
+    sta
   else
-    let msg = "[UTL] "^msg in
-    print_line msg state
-
-let print_error msg state =
-  match msg with
-  | Some msg ->
-    let msg = "[ERR] "^msg in
-    print_line msg state
-  | None ->
-    state
+    let log = print_output ~newline:true ("[UTL] "^str) sta.log in
+    {sta with log}
 
 type case = {
   result : bool;
