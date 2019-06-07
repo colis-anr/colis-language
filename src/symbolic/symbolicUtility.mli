@@ -106,7 +106,13 @@ val unknown_utility : ?msg:string -> name:string -> unit -> utility
 (** Wrapper around [error] in case of unknown argument. *)
 val unknown_argument : ?msg:string -> name:string -> arg:string -> unit -> utility
 
-(** Print to stdout but mark the line with [UTL] *)
+(** Print to stdout and log *)
+val print_stdout : newline:bool -> string -> state -> state
+
+(** (Optionally) print message as error to log (marked as [ERR]) *)
+val print_error : string option -> state -> state
+
+(** Print message as utility trace to log if it is not empty (marked as [UTL]) *)
 val print_utility_trace : string -> state -> state
 
 (**/**)

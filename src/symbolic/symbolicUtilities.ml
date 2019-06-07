@@ -24,11 +24,9 @@ let interp_false : context -> utility =
 
 let interp_echo : context -> utility =
   fun ctx sta ->
-    let open Semantics__Buffers in
-    let open SymbolicInterpreter__Semantics in
-    let str = String.concat " " ctx.args in
-    let stdout = Stdout.(output str sta.stdout |> newline) in
-    [ {sta with stdout}, true ]
+  let str = String.concat " " ctx.args in
+  let sta = print_stdout ~newline:true str sta in
+  [sta, true]
 
 (******************************************************************************)
 (*                                     touch                                  *)
