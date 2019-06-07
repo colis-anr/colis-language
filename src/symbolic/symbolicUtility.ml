@@ -109,34 +109,34 @@ let failure ?error_message () =
      error_message ;
      spec = Clause.true_ }]
 
-let quantify_over_intermediate_root state conj =
-  if BatOption.eq ~eq:Var.equal state.filesystem.root0 (Some state.filesystem.root) then
+let quantify_over_intermediate_root fs conj =
+  if BatOption.eq ~eq:Var.equal fs.SymbolicInterpreter__Filesystem.root0 (Some fs.root) then
     [conj]
   else
-    Clause.quantify_over state.filesystem.root conj
+    Clause.quantify_over fs.root conj
 
-let apply_output_to_state (state : state) stdout =
-  { state with stdout = Stdout.concat state.stdout stdout }
-
-(* Create the corresponding filesystem, update the state and create corresponding
-    result **)
-let apply_clause_to_state state case root clause =
-  let filesystem = {state.filesystem with clause; root} in
-  let state' =
-    { state with filesystem }
-    |> print_error case.error_message
-  in
-  state', case.result
-
-let apply_case_to_state state root case : (state * bool) list =
-  let state = print_utility_trace case.descr state in
-  let state = apply_output_to_state state case.stdout in
+let apply_case_to_state sta root' case : (state * bool) list =
+  (* First print the utility trace *)
+  let sta = print_utility_trace case.descr sta in
+  let sta = {
+    (* output case stdout to stdout and log *)
+    stdout = Stdout.concat sta.stdout case.stdout;
+    log = Stdout.concat sta.log case.stdout;
+    (* don't touch stdin *)
+    stdin = sta.stdin;
+    (* and keep the filesystem for the moment ... *)
+    filesystem = sta.filesystem;
+  } in
+  (* (Optionally) print error message *)
+  let sta = print_error case.error_message sta in
   (* Add the case specification to the current clause *)
-  Clause.add_to_sat_conj case.spec state.filesystem.clause
-  |> List.map (quantify_over_intermediate_root state)
+  Clause.add_to_sat_conj case.spec sta.filesystem.clause
+  |> List.map (quantify_over_intermediate_root sta.filesystem)
   |> List.flatten
-  |> List.map (apply_clause_to_state state case root)
-
+  (* And now update the filesystem with the new clause and root *)
+  |> List.map @@ fun clause ->
+  let filesystem = {sta.filesystem with clause; root=root'} in
+  {sta with filesystem}, case.result
 
 type specifications = root:Var.t -> root':Var.t -> case list
 
