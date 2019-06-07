@@ -45,7 +45,7 @@ module Symbolic = struct
   let to_state ~prune_init_state ~root clause : Semantics.state =
     let root0 = if prune_init_state then None else Some root in
     let filesystem = {Filesystem.root; clause; root0} in
-    {Semantics.filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty}
+    {Semantics.filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty; log=Common.Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
     let open Semantics in
@@ -184,7 +184,16 @@ let print_symbolic_state fmt ?id sta =
     fprintf fmt "stdout: |@\n";
     List.iter (fprintf fmt "  %s@\n")
       (List.rev @@ sta.stdout.lines);
-    fprintf fmt "  %s" sta.stdout.line
+    if sta.stdout.line <> "" then
+      fprintf fmt "  %s@." sta.stdout.line
+  end;
+  (* Print log *)
+  if not (Common.Stdout.is_empty sta.log) then begin
+    fprintf fmt "log: |@\n";
+    List.iter (fprintf fmt "  %s@\n")
+      (List.rev @@ sta.log.lines);
+    if sta.log.line <> "" then
+      fprintf fmt "  %s" sta.log.line
   end
 
 let print_symbolic_state_with_ctr label ctr fmt sta =

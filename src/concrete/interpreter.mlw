@@ -40,6 +40,7 @@ module State
     filesystem : ref filesystem;
     stdin : ref stdin;
     stdout : ref stdout;
+    log : ref stdout;
     (* Semantics.context *)
     var_env : ref var_env;
     func_env : func_env;
@@ -81,6 +82,7 @@ module Interpreter
     S.filesystem = Fs.empty;
     S.stdin = !(sta.stdin);
     S.stdout = !(sta.stdout);
+    S.log = !(sta.log);
   }
 
   let empty_state () = {
@@ -90,6 +92,7 @@ module Interpreter
     St.arguments = ref Nil;
     St.stdin = ref Stdin.empty;
     St.stdout = ref Stdout.empty;
+    St.log = ref Stdout.empty;
     St.result = ref True;
     St.cwd = ref Nil;
   }
@@ -117,6 +120,7 @@ module Interpreter
     !(sta1.filesystem) = !(sta2.filesystem) ->
     !(sta1.stdin) = !(sta2.stdin) ->
     !(sta1.stdout) = !(sta2.stdout) ->
+    !(sta1.log) = !(sta2.log) ->
     sem_state sta1 = sem_state sta2
 
   (** {3 Exceptions for non-normal behaviours} *)
@@ -150,6 +154,7 @@ module Interpreter
     sta.filesystem := sta'.S.filesystem;
     sta.stdin := sta'.S.stdin;
     sta.stdout := sta'.S.stdout;
+    sta.log := sta'.S.log;
     sta.result := b;
     maybe_exit inp sta
 
