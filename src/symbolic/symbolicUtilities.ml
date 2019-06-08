@@ -179,23 +179,23 @@ let interp_rm1 cwd arg : utility =
            begin
              exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
              exists ~hint:hinty @@ fun y ->
-             resolve root cwd q y & ndir y
+             resolve root cwd oq y & ndir y
              & similar root root' cwd q x x'
              & sim x (Feat.Set.singleton f) x'
-             & dir x' & fen x' (Feat.Set.singleton f)
+             & dir x' & abs x' f
            end;
          error_case
            ~descr:(asprintf "rm %a: target is a directory" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
-             resolve root cwd q y & dir y
+             resolve root cwd oq y & dir y
              & eq root root'
            end;
          error_case
            ~descr:(asprintf "rm %a: target does not exist" Path.pp oq)
            begin
              exists ~hint:hinty @@ fun y ->
-             noresolve root cwd q & eq root root'
+             noresolve root cwd oq & eq root root'
            end;
        ]
 
