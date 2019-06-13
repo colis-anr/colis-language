@@ -41,19 +41,18 @@ let if_then (cond:utility) (posbranch:utility) =
 let uneg (u:utility) : utility = fun st ->
   List.map (fun (s,b) -> (s, not b)) (u st)
 
-let uand (u1:utility) (u2:utility) : utility = fun st ->
+let combine_results combinator u1 u2 : utility = fun st ->
   List.flatten
     (List.map
        (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 && b2)) (u2 s1))
+         List.map (fun (s2, b2) -> (s2, combinator b1 b2)) (u2 s1))
        (u1 st))
 
-let uor (u1:utility) (u2:utility) : utility = fun st ->
-  List.flatten
-    (List.map
-       (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 || b2)) (u2 s1))
-       (u1 st))
+let uand =
+  combine_results ( && )
+
+let uor =
+  combine_results ( || )
 
 let compose_non_strict (u1:utility) (u2:utility) =
   function sta ->

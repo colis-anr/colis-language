@@ -230,13 +230,13 @@ let interp_rm1_r cwd arg : utility =
            end;
        ]
 
-let interp_rm_r cwd args : utility =
+let rec interp_rm_r cwd args : utility =
   match args with
   | [] -> error ~msg:"rm: missing operand" ()
   | [arg] -> interp_rm1_r cwd arg
   | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm -r/R" ~arg:"" ()
 
-let interp_rm ctx : utility =
+let rec interp_rm ctx : utility =
   match ctx.args with
   | [] -> error ~msg:"rm: missing operand" ()
   | ("-r" | "-R") :: args -> interp_rm_r ctx.cwd args
