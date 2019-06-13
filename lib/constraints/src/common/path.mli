@@ -18,6 +18,7 @@ val split_last_rel : rel -> (rel * comp) option
 val split_last : t -> (t * comp) option
 
 val from_string : string -> t
+val strip_trailing_slashes : string -> string
 
 val to_string : t -> string
 val rel_to_string : ?abs:bool -> rel -> string

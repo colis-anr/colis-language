@@ -3,7 +3,7 @@
 
 open SymbolicUtility
    
-let name = "dpkg-maintscript-helpers"
+let name = "dpkg-maintscript-helper"
 
 (* infix operator - should go into SymbolicUtility ? *)
 let (||>>) = compose_strict
