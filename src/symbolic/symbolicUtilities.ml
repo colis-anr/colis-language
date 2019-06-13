@@ -194,7 +194,6 @@ let interp_rm1 cwd arg : utility =
          error_case
            ~descr:(asprintf "rm %a: target does not exist" Path.pp oq)
            begin
-             exists ~hint:hinty @@ fun y ->
              noresolve root cwd q & eq root root'
            end;
        ]
