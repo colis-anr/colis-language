@@ -396,6 +396,7 @@ module Semantics
     filesystem: filesystem;
     stdin: stdin;
     stdout: stdout;
+    log: stdout; (** Combines stdout with utility traces and error messages *)
   }
 
   type utility_context = (cwd, env string, list string)
@@ -409,8 +410,8 @@ module Semantics
 
   function any_filesystem : unit -> filesystem
 
-  function mk_state (stdin:stdin) (stdout:stdout) : state =
-    { stdin=stdin; stdout=stdout; filesystem=any_filesystem () }
+  function mk_state (stdin:stdin) (stdout:stdout) (log:stdout) : state =
+    { stdin=stdin; stdout=stdout; log=log; filesystem=any_filesystem () }
 
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with

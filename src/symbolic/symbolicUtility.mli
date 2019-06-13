@@ -80,6 +80,11 @@ val uand : utility -> utility -> utility
 (** [uor u1 u2] yields the utility that behaves like [u1 || u2] in a NON-LAZY manner *)
 val uor : utility -> utility -> utility
 
+(** multiple_times [what] [args] executes [what] on every argument in
+   [args]. It does not stop if one of these executions fails but the
+   global utility fails in the case. *)
+val multiple_times : ('a -> utility) -> 'a list -> utility
+
 (** compose_non_strict [u1] [u2] yields the utility that behaves like
     [u1]; [u2] in non-strict mode, that is the error code of [u1] is
     ignored *)
@@ -106,7 +111,13 @@ val unknown_utility : ?msg:string -> name:string -> unit -> utility
 (** Wrapper around [error] in case of unknown argument. *)
 val unknown_argument : ?msg:string -> name:string -> arg:string -> unit -> utility
 
-(** Print to stdout but mark the line with [UTL] *)
+(** Print to stdout and log *)
+val print_stdout : newline:bool -> string -> state -> state
+
+(** (Optionally) print message as error to log (marked as [ERR]) *)
+val print_error : string option -> state -> state
+
+(** Print message as utility trace to log if it is not empty (marked as [UTL]) *)
 val print_utility_trace : string -> state -> state
 
 (**/**)

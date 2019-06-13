@@ -24,11 +24,9 @@ let interp_false : context -> utility =
 
 let interp_echo : context -> utility =
   fun ctx sta ->
-    let open Semantics__Buffers in
-    let open SymbolicInterpreter__Semantics in
-    let str = String.concat " " ctx.args in
-    let stdout = Stdout.(output str sta.stdout |> newline) in
-    [ {sta with stdout}, true ]
+  let str = String.concat " " ctx.args in
+  let sta = print_stdout ~newline:true str sta in
+  [sta, true]
 
 (******************************************************************************)
 (*                                     touch                                  *)
@@ -194,7 +192,6 @@ let interp_rm1 cwd arg : utility =
          error_case
            ~descr:(asprintf "rm %a: target does not exist" Path.pp oq)
            begin
-             exists ~hint:hinty @@ fun y ->
              noresolve root cwd oq & eq root root'
            end;
        ]
@@ -234,17 +231,14 @@ let interp_rm_r cwd args : utility =
   match args with
   | [] -> error ~msg:"rm: missing operand" ()
   | [arg] -> interp_rm1_r cwd arg
-  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm -r/R" ~arg:"" ()
+  | args -> multiple_times (interp_rm1_r cwd) args
 
 let interp_rm ctx : utility =
   match ctx.args with
   | [] -> error ~msg:"rm: missing operand" ()
   | ("-r" | "-R") :: args -> interp_rm_r ctx.cwd args
   | [arg] -> interp_rm1 ctx.cwd arg
-  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"rm" ~arg:"" ()
-
-
-
+  | args -> multiple_times (interp_rm1 ctx.cwd) args
 
 (******************************************************************************)
 (*                                which                                       *)

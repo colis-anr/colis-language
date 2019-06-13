@@ -31,6 +31,7 @@ let if_then_else (cond:utility) (posbranch:utility) (negbranch:utility) =
     in
     (apply_to_list posstates posbranch)
     @ (apply_to_list negstates negbranch)
+
 let if_then (cond:utility) (posbranch:utility) =
   function sta ->
     let (posstates,negstates) = separate_states (cond sta)
@@ -41,19 +42,26 @@ let if_then (cond:utility) (posbranch:utility) =
 let uneg (u:utility) : utility = fun st ->
   List.map (fun (s,b) -> (s, not b)) (u st)
 
-let uand (u1:utility) (u2:utility) : utility = fun st ->
+let combine_results combinator u1 u2 : utility = fun st ->
   List.flatten
     (List.map
        (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 && b2)) (u2 s1))
+         List.map (fun (s2, b2) -> (s2, combinator b1 b2)) (u2 s1))
        (u1 st))
 
-let uor (u1:utility) (u2:utility) : utility = fun st ->
-  List.flatten
-    (List.map
-       (fun (s1,b1) ->
-         List.map (fun (s2,b2) -> (s2, b1 || b2)) (u2 s1))
-       (u1 st))
+let uand =
+  combine_results ( && )
+
+let uor =
+  combine_results ( || )
+
+let multiple_times what args : utility =
+  let rec aux = function
+    | [] -> assert false (* By precondition. *)
+    | [x] -> what x
+    | x :: xs -> uand (what x) (aux xs)
+  in
+  aux args
 
 let compose_non_strict (u1:utility) (u2:utility) =
   function sta ->
@@ -65,25 +73,28 @@ let compose_strict (u1:utility) (u2:utility) =
     in (apply_to_list success1 u2) @
          (List.map (function sta -> (sta,false)) failure1)
 
-let print_line msg state =
-  let open Semantics__Buffers in
-  let stdout = Stdout.(output msg state.stdout |> newline) in
-  {state with stdout}
+let print_output ~newline str output =
+  let output = Stdout.output str output in
+  if newline then Stdout.newline output else output
 
-let print_utility_trace msg state =
-  if String.equal msg "" then
-    state
+let print_stdout ~newline str sta =
+  let stdout = print_output ~newline str sta.stdout in
+  let log = print_output ~newline str sta.log in
+  {sta with stdout; log}
+
+let print_error opt sta =
+  match opt with
+  | None -> sta
+  | Some str ->
+    let log = print_output ~newline:true ("[ERR] "^str) sta.log in
+    {sta with log}
+
+let print_utility_trace str sta =
+  if String.equal str "" then
+    sta
   else
-    let msg = "[UTL] "^msg in
-    print_line msg state
-
-let print_error msg state =
-  match msg with
-  | Some msg ->
-    let msg = "[ERR] "^msg in
-    print_line msg state
-  | None ->
-    state
+    let log = print_output ~newline:true ("[UTL] "^str) sta.log in
+    {sta with log}
 
 type case = {
   result : bool;
@@ -106,34 +117,34 @@ let failure ?error_message () =
      error_message ;
      spec = Clause.true_ }]
 
-let quantify_over_intermediate_root state conj =
-  if BatOption.eq ~eq:Var.equal state.filesystem.root0 (Some state.filesystem.root) then
+let quantify_over_intermediate_root fs conj =
+  if BatOption.eq ~eq:Var.equal fs.SymbolicInterpreter__Filesystem.root0 (Some fs.root) then
     [conj]
   else
-    Clause.quantify_over state.filesystem.root conj
+    Clause.quantify_over fs.root conj
 
-let apply_output_to_state (state : state) stdout =
-  { state with stdout = Stdout.concat state.stdout stdout }
-
-(* Create the corresponding filesystem, update the state and create corresponding
-    result **)
-let apply_clause_to_state state case root clause =
-  let filesystem = {state.filesystem with clause; root} in
-  let state' =
-    { state with filesystem }
-    |> print_error case.error_message
-  in
-  state', case.result
-
-let apply_case_to_state state root case : (state * bool) list =
-  let state = print_utility_trace case.descr state in
-  let state = apply_output_to_state state case.stdout in
+let apply_case_to_state sta root' case : (state * bool) list =
+  (* First print the utility trace *)
+  let sta = print_utility_trace case.descr sta in
+  let sta = {
+    (* output case stdout to stdout and log *)
+    stdout = Stdout.concat sta.stdout case.stdout;
+    log = Stdout.concat sta.log case.stdout;
+    (* don't touch stdin *)
+    stdin = sta.stdin;
+    (* and keep the filesystem for the moment ... *)
+    filesystem = sta.filesystem;
+  } in
+  (* (Optionally) print error message *)
+  let sta = print_error case.error_message sta in
   (* Add the case specification to the current clause *)
-  Clause.add_to_sat_conj case.spec state.filesystem.clause
-  |> List.map (quantify_over_intermediate_root state)
+  Clause.add_to_sat_conj case.spec sta.filesystem.clause
+  |> List.map (quantify_over_intermediate_root sta.filesystem)
   |> List.flatten
-  |> List.map (apply_clause_to_state state case root)
-
+  (* And now update the filesystem with the new clause and root *)
+  |> List.map @@ fun clause ->
+  let filesystem = {sta.filesystem with clause; root=root'} in
+  {sta with filesystem}, case.result
 
 type specifications = root:Var.t -> root':Var.t -> case list
 
@@ -155,7 +166,8 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
     | None -> (* Empty parent path => root *)
       Some (Var.hint root)
     | Some (_, (Here|Up)) ->
-      None (* We can’t know (if last component in parent path is a symbolic link) *)
+       (* We can’t know (if last component in parent path is a symbolic link) *)
+      None
 
 let error ?msg () : utility =
   fun sta ->
