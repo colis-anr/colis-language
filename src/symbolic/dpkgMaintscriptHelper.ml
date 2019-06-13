@@ -1,8 +1,8 @@
-(** Symbolic execution of dpkg-maintscript-helper. This structure of 
+(** Symbolic execution of dpkg-maintscript-helper. This structure of
     this code follows the implementation of version 1.19.6. *)
 
 open SymbolicUtility
-   
+
 let name = "dpkg-maintscript-helper"
 
 (* infix operator - should go into SymbolicUtility ? *)
@@ -16,7 +16,7 @@ let split_at_dashdash l =
     | head::rest -> split_aux (head::acc) rest
     | [] -> raise NoDashDash
   in split_aux [] l
-   
+
 let starts_on_slash s = String.length s > 0 && s.[0]='/'
 let ends_on_slash s = let n = String.length s in n > 0 && s.[n-1]='/'
 let empty_string s = (String.length s = 0)
@@ -42,10 +42,10 @@ let is_pathprefix p1 p2 =
     false
   else
     p2.[n1]='/' && forall_from_to 0 (n1-1) (function i -> p1.[i]=p2.[i])
-  
+
 let interp_test_fence pathname arity = return true (* FIXME *)
 let symlink_match link target = assert false (* FIXME *)
-                              
+
 exception Error of string
 exception NumberOfArguments
 exception MaintainerScriptArguments
@@ -53,24 +53,24 @@ exception MaintainerScriptArguments
 (***********************************************************************)
 (* dpkg-maintscript-helper supports                                    *)
 (***********************************************************************)
-        
+
 let supports args =
   match args with
   |["rm_conffile"]|["mv_conffile"]|["symlink_to_dir"]|["dir_to_symlink"]
    -> return true
   | _ -> return false
-       
+
 (***********************************************************************)
 (* dpkg-maintscript-helper rm_conffile                                 *)
 (***********************************************************************)
-        
+
 let prepare_rm_conffile ctx conffile package =
   if ensure_package_owns_file package conffile
   then choice
          (call "mv" ctx ["-f"; conffile; conffile^".dpkg-backup"])
          (call "mv" ctx ["-f"; conffile; conffile^".dpkg-remove"])
   else return true
-  
+
 let finish_rm_conffile ctx conffile =
   (if_then
      (call "test" ctx ["-e"; conffile^".dpkg-backup"])
@@ -90,7 +90,7 @@ let finish_rm_conffile ctx conffile =
          (call "rm" ctx ["-f"; conffile^".dpkg-remove"])
        )
     )
-  
+
 let abort_rm_conffile ctx conffile package =
   if ensure_package_owns_file package conffile
   then
@@ -111,7 +111,7 @@ let abort_rm_conffile ctx conffile package =
          ))
   else
     return true
-  
+
 let rm_conffile ctx
       scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (conffile,lastversion,package) =
@@ -158,11 +158,11 @@ let rm_conffile ctx
        then abort_rm_conffile ctx conffile package
        else return true
   | _ -> return true
-       
+
 (***********************************************************************)
 (* dpkg-maintscript-helper mv_conffile                                 *)
 (***********************************************************************)
-        
+
 let prepare_mv_conffile ctx conffile package =
   if_then
     (call "test" ctx ["-e"; conffile])
@@ -172,7 +172,7 @@ let prepare_mv_conffile ctx conffile package =
          (call "mv" ctx ["-f"; conffile; conffile^".dpkg-remove"])
          (return true)
      else return true)
-  
+
 let finish_mv_conffile ctx oldconffile newconffile package =
   (call "rm" ctx ["-f"; oldconffile^".dpkg-remove"])
   ||>>
@@ -193,7 +193,7 @@ let finish_mv_conffile ctx oldconffile newconffile package =
         else return true
        )
     )
-  
+
 let abort_mv_conffile ctx conffile package =
   if ensure_package_owns_file package conffile
   then
@@ -205,7 +205,7 @@ let abort_mv_conffile ctx conffile package =
         (call "mv" ctx [conffile^".dpkg-remove"; conffile])
       )
   else return true
-  
+
 let mv_conffile ctx
       scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (oldconffile,newconffile,lastversion,package) =
@@ -246,11 +246,11 @@ let mv_conffile ctx
      then abort_mv_conffile ctx oldconffile package
      else return true
   | _ -> return true
-       
+
 (***********************************************************************)
 (* dpkg-maintscript-helper symlink_to_dir                              *)
 (***********************************************************************)
-        
+
 let symlink_to_dir ctx
       scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (symlink,symlink_target,lastversion,package) =
@@ -324,11 +324,11 @@ let symlink_to_dir ctx
                   )))
         else return true)
   | _ -> return true
-       
+
 (***********************************************************************)
 (* dpkg-maintscript-helper dir_to_symlink                              *)
 (***********************************************************************)
-        
+
 let prepare_dir_to_symlink ctx package pathname =
   (if List.exists
         (function filename -> is_pathprefix pathname filename)
@@ -350,16 +350,16 @@ let prepare_dir_to_symlink ctx package pathname =
                   ^ "' contains files not owned by '" ^ package
                   ^ "', cannot switch to symlink"))))
   ||>>
-    (call "mv" ctx ["-f"; pathname; pathname^".dpkg-staging-dir"]) 
+    (call "mv" ctx ["-f"; pathname; pathname^".dpkg-staging-dir"])
   ||>>
     (call "mkdir" ctx [pathname])
   ||>>
     (call "touch" ctx [pathname^"/.dpkg-staging-dir"])
-  
+
 let finish_dir_to_symlink _ctx pathname symlink_target = assert false
-                                                       
+
 let abort_dir_to_symlink _ctx pathname = assert false
-                                       
+
 let dir_to_symlink ctx
       scriptarg1 scriptarg2 dms_package default_package dms_name =
   let (pathname,symlink_target,lastversion,package) =
@@ -460,7 +460,7 @@ let interprete ctx =
     with
     | Not_found ->
        raise (Error
-                "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
+                "environment variable DPKG_MAINTSCRIPT_NAME is required")
   in
   match ctx.args with
   | subcmd::restargs ->
@@ -515,4 +515,3 @@ let interprete ctx =
             ~name: "dpkg_maintscript_helper"
             ~arg:"" (* FIXME *)
             ()
-            
