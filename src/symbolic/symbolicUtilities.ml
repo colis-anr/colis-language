@@ -229,14 +229,6 @@ let interp_rm1_r cwd arg : utility =
            end;
        ]
 
-let multiple_times what args : utility =
-  let rec aux = function
-    | [] -> assert false (* By precondition. *)
-    | [x] -> what x
-    | x :: xs -> uand (what x) (aux xs)
-  in
-  aux args
-
 let interp_rm_r cwd args : utility =
   match args with
   | [] -> error ~msg:"rm: missing operand" ()

@@ -80,6 +80,11 @@ val uand : utility -> utility -> utility
 (** [uor u1 u2] yields the utility that behaves like [u1 || u2] in a NON-LAZY manner *)
 val uor : utility -> utility -> utility
 
+(** multiple_times [what] [args] executes [what] on every argument in
+   [args]. It does not stop if one of these executions fails but the
+   global utility fails in the case. *)
+val multiple_times : ('a -> utility) -> 'a list -> utility
+
 (** compose_non_strict [u1] [u2] yields the utility that behaves like
     [u1]; [u2] in non-strict mode, that is the error code of [u1] is
     ignored *)

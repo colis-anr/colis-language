@@ -55,6 +55,14 @@ let uand =
 let uor =
   combine_results ( || )
 
+let multiple_times what args : utility =
+  let rec aux = function
+    | [] -> assert false (* By precondition. *)
+    | [x] -> what x
+    | x :: xs -> uand (what x) (aux xs)
+  in
+  aux args
+
 let compose_non_strict (u1:utility) (u2:utility) =
   function sta ->
     apply_to_list (List.map fst (u1 sta)) u2
