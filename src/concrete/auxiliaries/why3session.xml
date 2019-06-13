@@ -2,14 +2,14 @@
 <!DOCTYPE why3session PUBLIC "-//Why3//proof session v5//EN"
 "http://why3.lri.fr/why3session.dtd">
 <why3session shape_version="6">
-<prover id="0" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
-<prover id="1" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="0" memlimit="1000"/>
+<prover id="0" name="CVC4" version="1.6" timelimit="1" steplimit="9531" memlimit="1000"/>
+<prover id="1" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="48" memlimit="1000"/>
 <file proved="true">
 <path name=".."/>
 <path name="auxiliaries.mlw"/>
 <theory name="TakeDrop" proved="true">
  <goal name="drop0" proved="true">
- <proof prover="0"><result status="valid" time="0.03"/></proof>
+ <proof prover="0" steplimit="4974"><result status="valid" time="0.03" steps="4974"/></proof>
  </goal>
  <goal name="drop_all" proved="true">
  <transf name="induction_ty_lex" proved="true" >
@@ -21,39 +21,39 @@
  <goal name="nth_drop" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="nth_drop.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.05"/></proof>
+  <proof prover="0" steplimit="10461"><result status="valid" time="0.05" steps="10461"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="take_0" proved="true">
- <proof prover="0"><result status="valid" time="0.02"/></proof>
+ <proof prover="0" steplimit="7533"><result status="valid" time="0.02" steps="7533"/></proof>
  </goal>
  <goal name="take_all" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="take_all.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.33"/></proof>
+  <proof prover="0" steplimit="57402"><result status="valid" time="0.52" steps="57402"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="take_drop" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="take_drop.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.50"/></proof>
+  <proof prover="0" steplimit="74924"><result status="valid" time="0.50" steps="74924"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="take_nth_drop" proved="true">
- <proof prover="0"><result status="valid" time="0.04"/></proof>
+ <proof prover="0" steplimit="9693"><result status="valid" time="0.04" steps="9693"/></proof>
  </goal>
  <goal name="take_nth" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="take_nth.0" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="take_nth.0.0" proved="true">
-   <proof prover="0"><result status="valid" time="0.05"/></proof>
+   <proof prover="0"><result status="valid" time="0.05" steps="9531"/></proof>
    </goal>
    <goal name="take_nth.0.1" proved="true">
-   <proof prover="0"><result status="valid" time="0.04"/></proof>
+   <proof prover="0" steplimit="15406"><result status="valid" time="0.04" steps="15406"/></proof>
    </goal>
   </transf>
   </goal>
@@ -62,7 +62,7 @@
  <goal name="some_nth" proved="true">
  <transf name="induction_ty_lex" proved="true" >
   <goal name="some_nth.0" proved="true">
-  <proof prover="0"><result status="valid" time="0.05"/></proof>
+  <proof prover="0" steplimit="13355"><result status="valid" time="0.05" steps="13355"/></proof>
   </goal>
  </transf>
  </goal>
@@ -71,10 +71,10 @@
   <goal name="nth_nth.0" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="nth_nth.0.0" proved="true">
-   <proof prover="1"><result status="valid" time="0.00" steps="18"/></proof>
+   <proof prover="1" steplimit="18"><result status="valid" time="0.00" steps="18"/></proof>
    </goal>
    <goal name="nth_nth.0.1" proved="true">
-   <proof prover="1"><result status="valid" time="0.01" steps="55"/></proof>
+   <proof prover="1" steplimit="55"><result status="valid" time="0.01" steps="55"/></proof>
    </goal>
   </transf>
   </goal>
