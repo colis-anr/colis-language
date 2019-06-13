@@ -28,13 +28,13 @@ let eq x y =
   with_internal_2 x y @@ fun x y ->
   eq x y
 
-let neq _x _y = assert false
+let neq _x _y = not_implemented "neq"
 
 let feat x f y =
   with_internal_2 x y @@ fun x y ->
   feat x f y
 
-let nfeat _x _f _y = assert false
+let nfeat _x _f _y = not_implemented "nfeat"
 
 let abs x f =
   with_internal x @@ fun x ->
@@ -48,13 +48,13 @@ let fen x fs =
   with_internal x @@ fun x ->
   fen x fs
 
-let nfen _x _fs = assert false
+let nfen _x _fs = not_implemented "nfen"
 
 let sim x fs y =
   with_internal_2 x y @@ fun x y ->
   sim x fs y
 
-let nsim _x _fs _y = assert false
+let nsim _x _fs _y = not_implemented "nsim"
 
 let kind k x =
   with_internal x @@ fun x ->
