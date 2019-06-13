@@ -31,6 +31,7 @@ let if_then_else (cond:utility) (posbranch:utility) (negbranch:utility) =
     in
     (apply_to_list posstates posbranch)
     @ (apply_to_list negstates negbranch)
+
 let if_then (cond:utility) (posbranch:utility) =
   function sta ->
     let (posstates,negstates) = separate_states (cond sta)
