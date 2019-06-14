@@ -47,7 +47,7 @@ let interp_test_fence pathname arity = return true (* FIXME *)
 let symlink_match link target = assert false (* FIXME *)
                               
 exception Error of string
-exception NumberOfArguments
+exception NumberOfArguments of string list
 exception MaintainerScriptArguments
 
 (***********************************************************************)
@@ -119,7 +119,7 @@ let rm_conffile ctx
     | [x;y;z] -> (x,y,if empty_string z then default_package else z)
     | [x;y] -> (x,y,default_package)
     | [x] -> (x,"",default_package)
-    | _ -> raise NumberOfArguments
+    | _ -> raise (NumberOfArguments ctx.args)
   in
   if empty_string package then
     raise (Error "couldn't identify the package");
@@ -213,7 +213,7 @@ let mv_conffile ctx
     | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
     | [w;x;y] -> (w,x,y,default_package)
     | [w;x] -> (w,x,"",default_package)
-    | _ -> raise NumberOfArguments
+    | _ -> raise (NumberOfArguments ctx.args)
   in
   if empty_string package then
     raise (Error "couldn't identify the package");
@@ -258,7 +258,7 @@ let symlink_to_dir ctx
     | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
     | [w;x;y] -> (w,x,y,default_package)
     | [w;x] -> (w,x,"",default_package)
-    | _ -> raise NumberOfArguments
+    | _ -> raise (NumberOfArguments ctx.args)
   in
   if empty_string package then
     raise (Error "couldn't identify the package");
@@ -367,7 +367,7 @@ let dir_to_symlink ctx
     | [w;x;y;z] -> (w,x,y,if empty_string z then default_package else z)
     | [w;x;y] -> (w,x,y,default_package)
     | [w;x] -> (w,x,"",default_package)
-    | _ -> raise NumberOfArguments
+    | _ -> raise (NumberOfArguments ctx.args)
   in
   (* checking DPKG_MAINTSCRIPT_NAME done above *)
   (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
@@ -478,16 +478,16 @@ let interprete ctx =
            in
            match subcmd with
            | "rm_conffile"->
-              rm_conffile ctx
+              rm_conffile {ctx with args = List.tl args}
                 scriptarg1 scriptarg2 dms_package default_package dms_name
            | "mv_conffile" ->
-              mv_conffile ctx
+              mv_conffile {ctx with args = List.tl args}
                 scriptarg1 scriptarg2 dms_package default_package dms_name
            | "symlink_to_dir" ->
-              symlink_to_dir ctx
+              symlink_to_dir {ctx with args = List.tl args}
                 scriptarg1 scriptarg2 dms_package default_package dms_name
            | "dir_to_symlink" ->
-              dir_to_symlink ctx
+              dir_to_symlink {ctx with args = List.tl args}
                 scriptarg1 scriptarg2 dms_package default_package dms_name
            | _ -> unknown_argument
                     ~msg:"unknown subcommand"
