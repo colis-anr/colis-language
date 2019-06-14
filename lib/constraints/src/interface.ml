@@ -21,37 +21,45 @@ module type S = sig
 
   val true_ : t
 
-  val eq : Var.t -> Var.t -> t
+  val  eq : Var.t -> Var.t -> t
   val neq : Var.t -> Var.t -> t
-  val feat : Var.t -> Feat.t -> Var.t -> t
+
+  val  feat : Var.t -> Feat.t -> Var.t -> t
   val nfeat : Var.t -> Feat.t -> Var.t -> t
-  val abs : Var.t -> Feat.t -> t
+
+  val  abs : Var.t -> Feat.t -> t
   val nabs : Var.t -> Feat.t -> t
-  val fen : Var.t -> Feat.Set.t -> t
+
+  val  fen : Var.t -> Feat.Set.t -> t
   val nfen : Var.t -> Feat.Set.t -> t
-  val empty : Var.t -> t
+  val  empty : Var.t -> t
   val nempty : Var.t -> t
-  val sim : Var.t -> Feat.Set.t -> Var.t -> t
+
+  val  sim : Var.t -> Feat.Set.t -> Var.t -> t
   val nsim : Var.t -> Feat.Set.t -> Var.t -> t
-  val sim1 : Var.t -> Feat.t -> Var.t -> t
+  val  sim1 : Var.t -> Feat.t -> Var.t -> t
   val nsim1 : Var.t -> Feat.t -> Var.t -> t
-  val sim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
+  val  sim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
   val nsim2 : Var.t -> Feat.t -> Feat.t -> Var.t -> t
 
-  val reg : Var.t -> t
-  val nreg : Var.t -> t
-  val dir : Var.t -> t
+  val  kind : Kind.t -> Var.t -> t
+  val nkind : Kind.t -> Var.t -> t
+
+  val  dir : Var.t -> t
   val ndir : Var.t -> t
-  val block : Var.t -> t
+
+  val  block : Var.t -> t
   val nblock : Var.t -> t
-  val char : Var.t -> t
+  val  char : Var.t -> t
   val nchar : Var.t -> t
-  val symlink : Var.t -> t
-  val nsymlink : Var.t -> t
-  val pipe : Var.t -> t
+  val  pipe : Var.t -> t
   val npipe : Var.t -> t
-  val sock : Var.t -> t
+  val  reg : Var.t -> t
+  val nreg : Var.t -> t
+  val  sock : Var.t -> t
   val nsock : Var.t ->t
+  val  symlink : Var.t -> t
+  val nsymlink : Var.t -> t
 
   (** {2 Macros} *)
 
@@ -86,38 +94,46 @@ module Make (I : Constraints_implementation.S) : S = struct
   type t = sat_conj -> sat_conj list
 
   let true_ x = [x]
-  let eq = I.eq
+
+  let  eq = I.eq
   let neq = I.neq
-  let feat = I.feat
+
+  let  feat = I.feat
   let nfeat = I.nfeat
-  let abs = I.abs
+
+  let  abs = I.abs
   let nabs = I.nabs
-  let fen = I.fen
+
+  let  fen = I.fen
   let nfen = I.nfen
-  let sim = I.sim
+
+  let  sim = I.sim
   let nsim = I.nsim
 
-  let empty x = fen x Feat.Set.empty
+  let  empty x = fen x Feat.Set.empty
   let nempty x = nfen x Feat.Set.empty
-  let sim1 x f y = sim x (Feat.Set.singleton f) y
+  let  sim1 x f y = sim x (Feat.Set.singleton f) y
   let nsim1 x f y = sim x (Feat.Set.singleton f) y
-  let sim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
+  let  sim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
   let nsim2 x f g y = sim x Feat.Set.(add f (singleton g)) y
 
-  let reg = I.reg
-  let nreg = I.nreg
-  let dir = I.dir
-  let ndir = I.ndir
-  let block = I.block
-  let nblock = I.nblock
-  let sock = I.sock
-  let nsock = I.nsock
-  let pipe = I.pipe
-  let npipe = I.npipe
-  let char = I.char
-  let nchar = I.nchar
-  let symlink = I.symlink
-  let nsymlink = I.nsymlink
+  let kind = I.kind
+  let nkind = I.nkind
+
+  let  reg =  kind Kind.Reg
+  let nreg = nkind Kind.Reg
+  let  dir =  kind Kind.Dir
+  let ndir = nkind Kind.Dir
+  let  block =  kind Kind.Block
+  let nblock = nkind Kind.Block
+  let  sock =  kind Kind.Sock
+  let nsock = nkind Kind.Sock
+  let  pipe =  kind Kind.Pipe
+  let npipe = nkind Kind.Pipe
+  let  char =  kind Kind.Char
+  let nchar = nkind Kind.Char
+  let  symlink =  kind Kind.Symlink
+  let nsymlink = nkind Kind.Symlink
 
   let exists ?hint f = fun c ->
     let x = Var.fresh ?hint () in

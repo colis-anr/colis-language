@@ -39,10 +39,10 @@ module Symbolic : sig
   open Constraints
 
   (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
-  val add_fs_spec_to_clause : Var.t -> NaiveClause.sat_conj -> FilesystemSpec.t -> NaiveClause.sat_conj list
+  val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
 
   (* Create a state corresponding to a conjunction *)
-  val to_state : prune_init_state:bool -> root:Var.t -> NaiveClause.sat_conj -> Semantics.state
+  val to_state : prune_init_state:bool -> root:Var.t -> Clause.sat_conj -> Semantics.state
 
   (* Create a symbolic states by adding context to a stringe *)
   val to_symbolic_state : vars:(string * string) list -> arguments:string list -> Semantics.state -> unit SymState.sym_state
@@ -50,6 +50,8 @@ module Symbolic : sig
   (* Wrapper around [Symbolic.Interpreter.interp_program] *)
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> unit SymState.sym_state list -> Language.Syntax.program -> (Semantics.state list * Semantics.state list * Semantics.state list)
 end
+
+module Constraints = Constraints
 
 type colis = Language.Syntax.program
 (** The abstract syntax of Colis programs. *)

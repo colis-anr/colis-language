@@ -24,6 +24,7 @@ module C = struct
   let ifalse = ICallUtility ("false", [])
 
   let ior (i1, i2) = IIf (i1, itrue, i2)
+  let iand  (i1, i2) = IIf (i1, i2, INot itrue)
 
   let rec sexpr_unfold_concat = function
     | SConcat (s1, s2) ->
@@ -375,7 +376,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      E.with_deeper e @@ fun e ->
      let (e1, i1) = command'__to__instruction e  c1' in
      let (e2, i2) = command'__to__instruction e1 c2' in
-     (e2, C.IIf (i1, i2, C.INot C.ifalse))
+     (e2, C.iand (i1, i2))
 
   | Or (c1', c2') ->
      E.with_deeper e @@ fun e ->
