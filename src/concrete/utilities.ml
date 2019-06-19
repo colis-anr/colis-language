@@ -10,21 +10,16 @@ module IdMap = Env.IdMap
 
 type env = string IdMap.t
 
-let unknown_utility ?(msg="command not found") ~name sta =
+let unsupported ~utility msg = fun sta ->
   if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedUtility (name, msg))
+    raise (Errors.Unsupported (utility, msg))
   else
-    let str = name ^ ": " ^ msg in
+    let str = utility ^ ": " ^ msg in
     let stdout = Stdout.(sta.stdout |> output str |> newline) in
     {sta with stdout}, false
 
-let unknown_argument ?(msg="Unknown argument") ~name ~arg sta =
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedArgument (name, msg, arg))
-  else
-    let str = name ^ ": " ^ msg ^ ": " ^ arg in
-    let stdout = Stdout.(sta.stdout |> output str |> newline) in
-    {sta with stdout}, false
+let unknown_utility utility =
+  unsupported ~utility "unknown utility"
 
 let test (sta : state) : string list -> (state * bool) = function
   | [sa; "="; sb] ->
@@ -32,7 +27,7 @@ let test (sta : state) : string list -> (state * bool) = function
   | [sa; "!="; sb] ->
      (sta, sa <> sb)
   | _ ->
-     unknown_argument ~name:"test" ~arg:"" sta
+    unsupported ~utility:"test" "arguments different from . = . and . != ." sta
 
 let interp_utility (cwd, var_env, args) id sta =
   match id with
@@ -64,8 +59,8 @@ let interp_utility (cwd, var_env, args) id sta =
       IdMap.bindings var_env |>
       List.map format_line |>
       List.fold_left print_line sta, true
-    | arg :: _ ->
-      unknown_argument ~name:"env" ~msg:"Not arguments implemented" ~arg sta
+    | _arg :: _ ->
+      unsupported ~utility:"env" "no arguments supported" sta
     end
   | "grep" -> (* Just for testing stdin/stdout handling *)
      begin match args with
@@ -84,8 +79,8 @@ let interp_utility (cwd, var_env, args) id sta =
         let sta' = {sta with stdout; stdin=Stdin.empty} in
         sta', result
      | [] ->
-       unknown_argument ~name:"grep" ~msg:"Missing argument" ~arg:"" sta
-     | arg :: _ ->
-       unknown_argument ~name:"grep" ~msg:"Only one argument implemented" ~arg sta
+       unsupported ~utility:"grep" "missing argument" sta
+     | _arg :: _ ->
+       unsupported ~utility:"grep" "two or more arguments" sta
      end
-  | _ -> unknown_utility ~name:id sta
+  | _ -> unknown_utility id sta

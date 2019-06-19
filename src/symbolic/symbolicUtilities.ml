@@ -91,7 +91,7 @@ let interp_touch1 cwd path_str : utility =
 let interp_touch ctx : utility =
   match ctx.args with
   | [arg] -> interp_touch1 ctx.cwd arg
-  | _ -> unknown_argument ~msg:"multiple arguments"  ~name:"touch" ~arg:"" ()
+  | _ -> unsupported ~utility:"touch" "multiple arguments"
 
 
 (******************************************************************************)
@@ -153,7 +153,7 @@ let interp_mkdir ctx : utility =
   match ctx.args with
   | [] -> error ~msg:"mkdir: missing operand" ()
   | [arg] -> interp_mkdir1 ctx.cwd arg
-  | _ -> unknown_argument ~msg:"multiple arguments" ~name:"mkdir" ~arg:"" ()
+  | _ -> unsupported ~utility:"mkdir" "multiple arguments"
 
 
 (******************************************************************************)
@@ -271,7 +271,7 @@ let interp_silent_which ctx : utility =
            end
        ]
   | p :: _ ->
-     unknown_argument ~msg:"more than one argument" ~name:"silent-which" ~arg:p ()
+     unsupported ~utility:"silent-which" "more than one argument"
 
 let interp_test_regular_and_x cwd path_str : utility =
   under_specifications @@ fun ~root ~root' ->
@@ -343,7 +343,7 @@ let interp_which_full ctx : utility =
            end
        ]
   | ["-a"] ->
-     unknown_argument ~msg:"option `-a`" ~name:"which" ~arg:"-a" ()
+     unsupported ~utility:"which" "option `-a`"
   | _ ->
     (* FIXME     let path = String.split_on_char ':' (IdMap.find "PATH" ctx.env) in *)
      let path = [ "/usr/sbin" ; "/usr/bin" ; "/sbin" ; "/bin" (* ; "/usr/games" *) ] in
@@ -364,12 +364,12 @@ let interp_update_alternatives ctx =
   let name = "update-alternatives" in
   let rec aux = function
     | [] ->
-       (* TODO: return error state *)
-       unknown_argument ~msg:"no sub-command found" ~name ~arg:"(none)" ()
+      (* TODO: return error state *)
+      unsupported ~utility:name "no sub-command found"
     | "--quiet" :: rem->
-       fun st -> aux rem (print_utility_trace (name ^ ": ignored option --quiet") st)
+      fun st -> aux rem (print_utility_trace (name ^ ": ignored option --quiet") st)
     | arg :: _ ->
-       unknown_argument ~msg:"unsupported argument" ~name ~arg ()
+      unsupported ~utility:name ("unsupported argument: " ^ arg)
   in
   aux ctx.args
 
@@ -378,21 +378,21 @@ let interp_update_alternatives ctx =
 (**************************************************************************)
 
 let interp_dpkg ctx =
-  let name = "dpkg" in
+  let utility = "dpkg" in
   let aux = function
-    | ["-L"; pkg_name] ->
-       unknown_argument ~msg:"support for -L not yet implemented" ~name ~arg:pkg_name ()
+    | ["-L"; _pkg_name] ->
+      unsupported ~utility "support for -L not yet implemented"
     | "-L" :: _ ->
-       unknown_argument ~msg:"option -L expects exactly one argument" ~name ~arg:"(any)" ()
-    | ["--compare-versions"; v1; v2] ->
-       unknown_argument ~msg:"support for --compare-versions not yet implemented" ~name ~arg:(v1 ^ " " ^v2) ()
+      unsupported ~utility "option -L expects exactly one argument"
+    | ["--compare-versions"; _v1; _v2] ->
+      unsupported ~utility "support for --compare-versions not yet implemented"
     | "--compare-versions" :: _ ->
-       unknown_argument ~msg:"option --compare-versions expects exactly two arguments" ~name ~arg:"(any)" ()
+      unsupported ~utility "option --compare-versions expects exactly two arguments"
     | [] ->
-       (* TODO: return error state *)
-       unknown_argument ~msg:"no argument found" ~name ~arg:"(none)" ()
+      (* TODO: return error state *)
+      unsupported ~utility "no argument found"
     | arg :: _ ->
-       unknown_argument ~msg:"unsupported argument" ~name ~arg ()
+      unsupported ~utility ("unsupported argument: " ^ arg)
   in
   aux ctx.args
 

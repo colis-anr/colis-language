@@ -237,7 +237,6 @@ let interp_test_string_notequal s1 s2 : utility =
 
 let rec interp_test_expr cwd e : utility =
   let name = "test" in
-  let msg what = "unsupported " ^ what in
   Morsmall_utilities.TestParser.(
   match e with
   | Unary("-e",arg) -> interp_test_e cwd arg
@@ -263,19 +262,16 @@ let rec interp_test_expr cwd e : utility =
   | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
   | Binary ("!=",a1,a2) -> interp_test_string_notequal a1 a2
   | Unary(op,_) ->
-     let msg = msg "unary operator" in
-     unknown_argument ~msg ~name ~arg:op ()
+     unsupported ~utility:name ("unsupported unary operator: " ^ op)
   | And(e1,e2) ->
      uand (interp_test_expr cwd e1) (interp_test_expr cwd e2)
   | Or(e1,e2) ->
      uor (interp_test_expr cwd e1) (interp_test_expr cwd e2)
   | Not(e1) -> uneg (interp_test_expr cwd e1)
   | Binary (op,_e1,_e2) ->
-     let msg = msg "binary operator" in
-     unknown_argument ~msg ~name ~arg:op ()
+     unsupported ~utility:name ("unsupported binary operator: " ^ op)
   | Single arg ->
-     let msg = msg "single argument" in
-     unknown_argument ~msg ~name ~arg ()
+     unsupported ~utility:name ("unsupported single argument: " ^ arg)
   )
 
 let interpret ~bracket ctx : utility =

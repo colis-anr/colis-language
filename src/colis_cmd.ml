@@ -177,13 +177,9 @@ let () =
      eprintf "Conversion error: %s@." msg;
      exit 6
 
-  | UnsupportedUtility (name, msg) ->
-     eprintf "%s: %s@." name msg;
+  | Unsupported (utility, msg) ->
+     eprintf "%s: %s@." utility msg;
      exit 7
-
-  | UnsupportedArgument (name, msg, arg) ->
-     eprintf "%s: %s: %s@." name msg arg;
-     exit 8
 
   | Constraints_common.Log.CPU_time_limit_exceeded ->
      eprintf "CPU time limit exceeded@.";

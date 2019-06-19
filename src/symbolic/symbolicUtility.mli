@@ -106,10 +106,10 @@ val last_comp_as_hint: root:Var.t -> Path.t -> string option
 val error : ?msg:string -> unit -> utility
 
 (** Wrapper around [error] in case of unknown utility. *)
-val unknown_utility : ?msg:string -> name:string -> unit -> utility
+val unknown_utility : string -> utility
 
-(** Wrapper around [error] in case of unknown argument. *)
-val unknown_argument : ?msg:string -> name:string -> arg:string -> unit -> utility
+(** Wrapper around [error] in case of unsupported stuff in a known utility. *)
+val unsupported : utility:string -> string -> utility
 
 (** Print to stdout and log *)
 val print_stdout : newline:bool -> string -> state -> state

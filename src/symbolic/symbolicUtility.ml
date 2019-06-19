@@ -181,17 +181,14 @@ let error ?msg () : utility =
     in
     [ sta', false ]
 
-let unknown_utility ?(msg="Unknown utility") ~name () =
+let unsupported ~utility msg =
   if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedUtility (name, msg))
+    Errors.unsupported ~utility msg
   else
-    error ~msg:(msg ^ ": " ^ name) ()
+    error ~msg:(utility ^ ": " ^ msg) ()
 
-let unknown_argument ?(msg="Unknown argument") ~name ~arg () =
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.UnsupportedArgument (name, msg, arg))
-  else
-    error ~msg:(msg ^ ": " ^ arg) ()
+let unknown_utility utility =
+  unsupported ~utility "unknown utility"
 
 module IdMap = Env.IdMap
 
@@ -213,7 +210,7 @@ let register (module M:SYMBOLIC_UTILITY) =
 
 let dispatch ~name =
   try Hashtbl.find table name
-  with Not_found -> fun _ -> unknown_utility ~name ()
+  with Not_found -> fun _ -> unknown_utility name
 
 let call name ctx args =
   dispatch ~name {ctx with args}
