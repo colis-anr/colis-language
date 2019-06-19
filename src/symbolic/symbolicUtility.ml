@@ -188,7 +188,10 @@ let unsupported ~utility msg =
     error ~msg:(utility ^ ": " ^ msg) ()
 
 let unknown_utility utility =
-  unsupported ~utility "unknown utility"
+  if !Options.fail_on_unknown_utilities then
+    Errors.unsupported ~utility "unknown utility"
+  else
+    error ~msg:(utility ^ ": command not found") ()
 
 module IdMap = Env.IdMap
 

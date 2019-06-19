@@ -4,7 +4,7 @@ input:
 
 output:
   stdout: |
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     /bin does not exist or is not a regular file
     [: command not found
     /home does not exist or is not a regular file

@@ -4,9 +4,9 @@ input:
 
 output:
   stdout: |
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     /bin/ls does not exist or is not executable
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     /etc/passwd does not exist or is not executable
   stderr: ""
   return_code: 0

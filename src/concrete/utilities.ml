@@ -18,8 +18,13 @@ let unsupported ~utility msg = fun sta ->
     let stdout = Stdout.(sta.stdout |> output str |> newline) in
     {sta with stdout}, false
 
-let unknown_utility utility =
-  unsupported ~utility "unknown utility"
+let unknown_utility utility = fun sta ->
+  if !Options.fail_on_unknown_utilities then
+    raise (Errors.Unsupported (utility, "unknown utility"))
+  else
+    let str = utility ^ ": command not found" in
+    let stdout = Stdout.(sta.stdout |> output str |> newline) in
+    {sta with stdout}, false
 
 let test (sta : state) : string list -> (state * bool) = function
   | [sa; "="; sb] ->

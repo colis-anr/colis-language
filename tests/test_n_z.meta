@@ -4,13 +4,13 @@ input:
 
 output:
   stdout: |
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     string '' do not pass the -n test
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     string '' do not pass the -z test
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     string 'a' do not pass the -n test
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     string 'a' do not pass the -z test
   stderr: ""
   return_code: 0

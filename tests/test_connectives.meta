@@ -4,25 +4,25 @@ input:
 
 output:
   stdout: |
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test ! -n '': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n '' -a -n '': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n '' -o -n '': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n '' -a -n 'b': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n '' -o -n 'b': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test ! -n 'a': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n 'a' -a -n '': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n 'a' -o -n '': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n 'a' -a -n 'b': no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     test -n 'a' -o -n 'b': no
   stderr: ""
   return_code: 0

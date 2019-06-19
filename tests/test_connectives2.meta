@@ -4,11 +4,11 @@ input:
 
 output:
   stdout: |
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     false
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     false
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     false
   stderr: ""
   return_code: 0

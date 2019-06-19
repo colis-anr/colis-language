@@ -4,9 +4,9 @@ input:
 
 output:
   stdout: |
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     no
-    test: Unknown argument: 
+    test: arguments different from . = . and . != .
     no
   stderr: ""
   return_code: 0
