@@ -4,35 +4,37 @@ open ColisParser        (* The type token is defined in colis_parser.mli *)
 exception LexerError of string
 
 let reserved_words =
-  [ "arg",      ARG ;
-    "begin",    BEGIN ;
-    "call",     CALL ;
-    "do",       DO ;
-    "done",     DONE ;
-    "else",     ELSE ;
-    "embed",    EMBED ;
-    "end",      END ;
-    "epip",     EPIP ;
-    "exit",     EXIT ;
-    "export",   EXPORT ;
-    "failure",  FAILURE ;
-    "function", FUNCTION ;
-    "fi",       FI ;
-    "for",      FOR ;
-    "if",       IF ;
-    "in",       IN ;
-    "into",     INTO ;
-    "not",      NOT ;
-    "nooutput", NOOUTPUT ;
-    "pipe",     PIPE ;
-    "previous", PREVIOUS ;
-    "process",  PROCESS ;
-    "return",   RETURN ;
-    "shift",    SHIFT ;
-    "split",    SPLIT ;
-    "success",  SUCCESS ;
-    "then",     THEN ;
-    "while",    WHILE ]
+  [ "arg",         ARG ;
+    "begin",       BEGIN ;
+    "call",        CALL ;
+    "do",          DO ;
+    "done",        DONE ;
+    "else",        ELSE ;
+    "embed",       EMBED ;
+    "end",         END ;
+    "endnooutput", ENDNOOUTPUT ;
+    "endpipe",     ENDPIPE ;
+    "endprocess",  ENDPROCESS ;
+    "exit",        EXIT ;
+    "export",      EXPORT ;
+    "failure",     FAILURE ;
+    "function",    FUNCTION ;
+    "fi",          FI ;
+    "for",         FOR ;
+    "if",          IF ;
+    "in",          IN ;
+    "into",        INTO ;
+    "not",         NOT ;
+    "nooutput",    NOOUTPUT ;
+    "pipe",        PIPE ;
+    "previous",    PREVIOUS ;
+    "process",     PROCESS ;
+    "return",      RETURN ;
+    "shift",       SHIFT ;
+    "split",       SPLIT ;
+    "success",     SUCCESS ;
+    "then",        THEN ;
+    "while",       WHILE ]
 
 let promote_reserved_words word =
   try List.assoc word reserved_words
@@ -49,6 +51,8 @@ rule token = parse
   | "(*"                                { comment 1 lexbuf }
   | "*)"                                { raise (LexerError ("mismatched *)")) }
   | ":="                                { ASSTRING }
+  | "&&"                                { AND }
+  | "||"                                { OR }
   | '{'                                 { LBRACE }
   | '}'                                 { RBRACE }
   | '('                                 { LPAREN }

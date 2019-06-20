@@ -3,5 +3,5 @@ begin
     true
   into
     grep ['X']
-  epip
+  endpipe
 end

@@ -13,11 +13,15 @@ let rec concat = function
 
 
 %token SPLIT SUCCESS FAILURE PREVIOUS EXIT NOT IF THEN ELSE EXPORT FI FOR IN FUNCTION CALL
-%token DO DONE WHILE BEGIN END PROCESS PIPE INTO EPIP NOOUTPUT ASSTRING ARG SHIFT
-%token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET EMBED SEMICOLON EOF RETURN
+%token DO DONE WHILE BEGIN END PROCESS ENDPROCESS PIPE ENDPIPE INTO NOOUTPUT ENDNOOUTPUT ASSTRING ARG SHIFT
+%token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET EMBED SEMICOLON EOF RETURN AND OR
 %token<string> LITERAL
 %token<string> IDENTIFIER
 %token<Z.t> NAT
+
+%left AND OR
+%nonassoc NOT
+
 %start program
 %type <Syntax__Syntax.program> program
 %%
@@ -33,20 +37,22 @@ instruction:
   | RETURN exit_code                                          { IReturn($2) }
   | SHIFT option(NAT)                                         { IShift($2) }
   | EXPORT IDENTIFIER                                         { IExport($2) }
-  | IF instruction THEN instruction ELSE instruction FI       { IIf ($2, $4, $6) }
-  | IF instruction THEN instruction FI                        { IIf ($2, $4, ICallUtility("true", [])) }
+  | IF instruction THEN seq ELSE seq FI                       { IIf ($2, $4, $6) }
+  | IF instruction THEN seq FI                                { IIf ($2, $4, ICallUtility("true", [])) }
   | NOT instruction                                           { INot ($2) }
-  | FOR IDENTIFIER IN lexpr DO instruction DONE               { IForeach ($2, $4, $6) }
-  | WHILE instruction DO instruction DONE                     { IWhile ($2, $4) }
+  | FOR IDENTIFIER IN lexpr DO seq DONE                       { IForeach ($2, $4, $6) }
+  | WHILE instruction DO seq DONE                             { IWhile ($2, $4) }
   | BEGIN seq END                                             { $2 }
-  | PROCESS instruction                                       { ISubshell ($2) }
-  | PIPE pipe EPIP                                            { $2 }
-  | NOOUTPUT instruction                                      { INoOutput ($2) }
+  | PROCESS seq ENDPROCESS                                    { ISubshell ($2) }
+  | PIPE pipe ENDPIPE                                         { $2 }
+  | NOOUTPUT seq ENDNOOUTPUT                                  { INoOutput ($2) }
   | IDENTIFIER                                                { ICallUtility ($1, []) }
   | IDENTIFIER lexpr                                          { ICallUtility ($1, $2) }
   | CALL IDENTIFIER                                           { ICallFunction ($2, []) }
   | CALL IDENTIFIER lexpr                                     { ICallFunction ($2, $3) }
   | IDENTIFIER ASSTRING sexpr                                 { IAssignment ($1, $3) }
+  | instruction AND instruction                               { IIf ($1, $3, INot (ICallUtility("true", []))) }
+  | instruction OR instruction                                { IIf ($1, ICallUtility("true", []), $3) }
   | LPAREN instruction RPAREN                                 { $2 }
 ;
 exit_code:

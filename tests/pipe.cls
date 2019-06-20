@@ -12,5 +12,5 @@ pipe
   end
 into
   grep ['bon']
-epip
+endpipe
 end

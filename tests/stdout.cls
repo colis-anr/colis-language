@@ -3,10 +3,10 @@ begin
     echo ['A'];
     echo ['B'];
     echo ['-n'; 'C']
-  end;
-  process begin
+  end endprocess;
+  process
     echo ['D'];
     echo ['-n'; 'E'];
     echo ['F']
-  end
+  endprocess
 end
