@@ -45,10 +45,10 @@ and instruction (fmt:formatter) (i:instruction) : unit =
   | ISubshell i ->
      fprintf fmt "@[process@ %a@]" instruction i
   | IIf(i1,ICallUtility("true", []),i2) ->
-    fprintf fmt "@[<hv 2>%a or@ %a@]"
+    fprintf fmt "@[<hv 2>(%a ||@ %a)@]"
       instruction i1 instruction i2
   | IIf(i1,i2,INot(ICallUtility("true", []))) ->
-    fprintf fmt "@[<hv 2>%a and@ %a@]"
+    fprintf fmt "@[<hv 2>(%a &&@ %a)@]"
       instruction i1 instruction i2
   | IIf(c,i1,ICallUtility("true", [])) ->
      fprintf fmt "@[@[<hv 2>if %a@]@ @[<hv 2>then %a@]@ fi@]"
