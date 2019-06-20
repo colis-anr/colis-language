@@ -1,5 +1,5 @@
 begin
   x := 'A';
-  nooutput begin x := 'B'; echo ['ignore'] end;
+  nooutput x := 'B'; echo ['ignore'] endnooutput;
   echo [x]
 end

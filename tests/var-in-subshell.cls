@@ -1,5 +1,5 @@
 begin
   x := 'A';
-  process x := 'B';
+  process x := 'B' endprocess;
   echo [x]
 end

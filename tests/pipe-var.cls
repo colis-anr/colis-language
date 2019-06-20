@@ -5,6 +5,6 @@ pipe
 into begin
   echo ['X1: ' x];
   x := x 'C'
-end epip;
+end endpipe;
 echo ['X2: ' x]
 end
