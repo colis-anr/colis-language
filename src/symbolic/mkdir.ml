@@ -60,4 +60,4 @@ let interprete ctx : utility =
   match ctx.args with
   | [] -> error ~msg:"mkdir: missing operand" ()
   | [arg] -> interp_mkdir1 ctx.cwd arg
-  | _ -> unsupported ~utility:"mkdir" "multiple arguments"
+  | args -> multiple_times (interp_mkdir1 ctx.cwd) args
