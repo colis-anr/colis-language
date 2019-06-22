@@ -17,5 +17,7 @@ let nkind _ _ () = [()]
 
 let quantify_over _ () = [()]
 
+let make_initial () = ()
+
 let pp _ _ = ()
 let pp_as_dot ~name _ _ = ignore name

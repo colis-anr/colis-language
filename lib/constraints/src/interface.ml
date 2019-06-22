@@ -77,14 +77,25 @@ module type S = sig
 
   val add_to_sat_conj : t -> sat_conj -> sat_conj list
   (** [add_to_sat_conj f c] adds the formula [f] to a satisfiable
-     conjunction [c]. The result is a list of satisfiable conjunctions
-     whose disjunction is equivalent to ([c] &and; [f]). The list
-     might be empty when ([c] &and; [f]) is unsatisfiable. *)
+      conjunction [c]. The result is a list of satisfiable conjunctions
+      whose disjunction is equivalent to ([c] &and; [f]). The list
+      might be empty when ([c] &and; [f]) is unsatisfiable. *)
+
+  val quantify_over : Var.t -> sat_conj -> sat_conj list
+
+  (** {2 Printing} *)
+
+  val make_initial : sat_conj -> sat_conj
+  (** [make_initial] does not change the meaning of the conjunction. However, it
+      marks all variables as initial. Those variables will revert back to
+      non-initial after that if observed. The pretty-printing will then hide
+      everything about initial variables. This is useful if one wants to add a
+      precondition to cut reach unsatisfiability faster but without poluting the
+      printer output when the formula has nothing to do with this precondition.
+  *)
 
   val pp_sat_conj : Format.formatter -> sat_conj -> unit
   val pp_sat_conj_as_dot : name:string -> Format.formatter -> sat_conj -> unit
-
-  val quantify_over : Var.t -> sat_conj -> sat_conj list
 end
 
 module Make (I : Constraints_implementation.S) : S = struct
@@ -164,14 +175,14 @@ module Make (I : Constraints_implementation.S) : S = struct
     match Path.split_first_rel q with
     | None -> eq x z
     | Some (Down f, q) ->
-       exists ~hint:(Feat.to_string f) @@ fun y ->
-       feat x f y & resolve_stack y (x :: pi) q z
+      exists ~hint:(Feat.to_string f) @@ fun y ->
+      feat x f y & resolve_stack y (x :: pi) q z
     | Some (Here, q) ->
-       resolve_stack x pi q z
+      resolve_stack x pi q z
     | Some (Up, q) ->
-       match pi with
-       | [] -> resolve_stack x [] q z
-       | y::pi -> dir x & resolve_stack y pi q z
+      match pi with
+      | [] -> resolve_stack x [] q z
+      | y::pi -> dir x & resolve_stack y pi q z
 
   let resolve r cwd q z =
     resolve_stack r [] (Path.concat cwd q) z
@@ -180,19 +191,19 @@ module Make (I : Constraints_implementation.S) : S = struct
     match Path.split_first_rel q with
     | None -> (fun _ -> []) (* false *)
     | Some (Down f, q) ->
-       or_
-         (ndir x)
-         (dir x
-          & (or_
-               (abs x f)
-               (exists ~hint:(Feat.to_string f) @@ fun y ->
-                feat x f y & noresolve_stack y (x::pi) q)))
+      or_
+        (ndir x)
+        (dir x
+         & (or_
+              (abs x f)
+              (exists ~hint:(Feat.to_string f) @@ fun y ->
+               feat x f y & noresolve_stack y (x::pi) q)))
     | Some (Here, q) ->
-       noresolve_stack x pi q
+      noresolve_stack x pi q
     | Some (Up, q) ->
-       match pi with
-       | [] -> noresolve_stack x [] q
-       | y::pi -> or_ (ndir x) (noresolve_stack y pi q)
+      match pi with
+      | [] -> noresolve_stack x [] q
+      | y::pi -> or_ (ndir x) (noresolve_stack y pi q)
 
   let noresolve r cwd q =
     dir r & noresolve_stack r [] (Path.concat cwd q)
@@ -200,16 +211,18 @@ module Make (I : Constraints_implementation.S) : S = struct
   let rec similar_normal x x' p z z' =
     match p with
     | [] ->
-       eq x z & eq x' z'
+      eq x z & eq x' z'
     | f::p ->
-       exists2 @@ fun y y' ->
-       feat x f y & feat x' f y' & sim1 x f x' & similar_normal y y' p z z'
+      exists2 @@ fun y y' ->
+      feat x f y & feat x' f y' & sim1 x f x' & similar_normal y y' p z z'
 
   let similar r r' cwd q z z' =
     similar_normal r r' Path.(normalize ~cwd q) z z'
 
+  let quantify_over = I.quantify_over
+
+  let make_initial = I.make_initial
+
   let pp_sat_conj = I.pp
   let pp_sat_conj_as_dot = I.pp_as_dot
-
-  let quantify_over = I.quantify_over
 end

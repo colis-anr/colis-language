@@ -17,6 +17,8 @@ val set_equal : 'a map -> t -> t -> ('a -> 'a -> 'a) -> 'a map
 val iter : 'a map -> (t -> 'a -> unit) -> unit
 val iter_sons : 'a map -> (t -> t -> unit) -> unit
 
+val map : 'a map -> ('a -> 'b) -> 'b map
+
 val get : 'a map -> t -> 'a
 val set : 'a map -> t -> 'a -> 'a map
 

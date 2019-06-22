@@ -1,7 +1,10 @@
 open Constraints_common
 open Core
-
 let fpf = Format.fprintf
+
+let make_initial c =
+  { globals = c.globals ;
+    info = IVar.map c.info (fun info -> { info with initial = true }) }
 
 let pp fmt c =
   IVar.iter_globals
@@ -22,6 +25,8 @@ let pp fmt c =
        fpf fmt "@[<h 2>%a:@\n" IVar.pp x;
        if info.kind <> Any then
          (
+           if info.initial then
+             fpf fmt "initial";
            fpf fmt "kind: ";
            match info.kind with
            | Any -> assert false
@@ -112,7 +117,10 @@ let pp_as_dot ~name fmt c =
            | DontKnow -> () (* FIXME *)
            | Exists -> () (* FIXME *)
            | Pointsto y ->
-             fpf fmt "%a -> %a [label=\"%a\"];@\n" IVar.pp x IVar.pp y Feat.pp f
+             (* only print arrows to non-initial variables. bc initial variables
+                wont be printed at all *)
+             if not (IVar.get c.info y).initial then
+               fpf fmt "%a -> %a [label=\"%a\"];@\n" IVar.pp x IVar.pp y Feat.pp f
            | Noresolve (C []) ->
              let y = fresh () in
              fpf fmt "%s [shape=point,style=invis,label=\"\"];@\n" y;
@@ -137,9 +145,11 @@ let pp_as_dot ~name fmt c =
     IVar.iter
       c.info
       (fun x info_x ->
-         pp_node fmt x
-           (match IVar.get_global c.globals x with None -> "∃" | Some gx -> Constraints_common.Var.to_string gx)
-           pp_kind_and_fen info_x);
+         (* only print non-initial variables *)
+         if not info_x.initial then
+           pp_node fmt x
+             (match IVar.get_global c.globals x with None -> "∃" | Some gx -> Constraints_common.Var.to_string gx)
+             pp_kind_and_fen info_x);
     IVar.iter_sons
       c.info
       (fun x y ->

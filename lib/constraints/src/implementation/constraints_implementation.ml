@@ -21,6 +21,8 @@ module type S = sig
 
   val quantify_over : Var.t -> t -> t list
 
+  val make_initial : t -> t
+
   val pp : Format.formatter -> t -> unit
   val pp_as_dot : name:string -> Format.formatter -> t -> unit
 end

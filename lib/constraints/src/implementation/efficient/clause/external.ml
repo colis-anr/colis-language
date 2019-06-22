@@ -10,7 +10,7 @@ let quantify_over x c =
   [{ c with Core.globals = IVar.quantify_over x c.Core.globals }]
 
 let internalise (x : Var.t) c =
-  let (x, globals, info ) = IVar.internalise x c.Core.globals c.info Core.empty_info in
+  let (x, globals, info) = IVar.internalise x c.Core.globals c.info Core.empty_info in
   (x, Core.{ globals ; info })
 
 let with_internal x f c =

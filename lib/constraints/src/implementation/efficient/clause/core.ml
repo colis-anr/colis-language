@@ -7,7 +7,8 @@ type t =
     info : info IVar.map }
 
 and info =
-  { nfeats : (Feat.t * IVar.t) list ;
+  { initial : bool ;
+    nfeats : (Feat.t * IVar.t) list ;
     nabs : Feat.t list ;
     nfens : Feat.Set.t list ;
     nsims : (Feat.Set.t * IVar.t) list ;
@@ -38,7 +39,8 @@ let empty =
     info = IVar.empty_map }
 
 let empty_info =
-  { nfeats = [] ;
+  { initial = false ;
+    nfeats = [] ;
     nabs = [] ;
     nfens = [] ;
     nsims = [] ;
@@ -50,7 +52,8 @@ let empty_dir =
     feats = Feat.Map.empty }
 
 let get_info x c =
-  IVar.get c.info x
+  let info = IVar.get c.info x in
+  { info with initial = true }
 
 let set_info x c i =
   [{ c with info = IVar.set c.info x i }]

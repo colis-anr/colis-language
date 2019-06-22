@@ -67,14 +67,16 @@ let fen x fs c =
     c
 
 let set_pos_and_empty_negs _info k =
-  { nfeats = [] ;
+  { initial = false ;
+    nfeats = [] ;
     nabs = [] ;
     nfens = [] ;
     nsims = [] ; (* FIXME: we need to remove the refl versions. *)
     kind = Pos k }
 
 let set_ndir_and_empty_negs _info =
-  { nfeats = [] ;
+  { initial = false ;
+    nfeats = [] ;
     nabs = [] ;
     nfens = [] ;
     nsims = [] ; (* FIXME: we need to remove the refl versions. *)

@@ -33,5 +33,7 @@ let nsim x fs y = add (Neg (Sim (x, fs, y)))
 let  kind k x = add (Pos (Kind (x, k)))
 let nkind k x = add (Neg (Kind (x, k)))
 
+let make_initial c = c (* we don't care about initials here. *)
+
 let pp = Conj.pp
 let pp_as_dot = Conj.pp_as_dot
