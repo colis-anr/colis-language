@@ -40,7 +40,6 @@ let dir x c = (* FIXME: No need to handle that case in [kind], then. *)
   | Dir _ ->
     Dnf.single info
 
-
 let abs x f c = (* FIXME: subsumed by noresolve *)
   dir x c >>= fun c ->
   Unsafe.abs x f c >>= fun c ->

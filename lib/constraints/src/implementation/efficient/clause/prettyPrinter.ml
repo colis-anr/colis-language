@@ -26,7 +26,7 @@ let pp fmt c =
        if info.kind <> Any then
          (
            if info.initial then
-             fpf fmt "initial";
+             fpf fmt "initial@\n";
            fpf fmt "kind: ";
            match info.kind with
            | Any -> assert false

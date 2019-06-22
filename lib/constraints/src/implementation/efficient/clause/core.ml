@@ -53,14 +53,14 @@ let empty_dir =
 
 let get_info x c =
   let info = IVar.get c.info x in
-  { info with initial = true }
+  { info with initial = false }
 
 let set_info x c i =
   [{ c with info = IVar.set c.info x i }]
 
 let update_info x c f =
   let info = IVar.get c.info x in
-  f info
+  f { info with initial = false }
   |> List.map
     (fun info ->
        { c with info = IVar.set c.info x info })
