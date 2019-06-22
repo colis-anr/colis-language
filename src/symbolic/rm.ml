@@ -78,8 +78,35 @@ let interp_r cwd args : utility =
   | args -> multiple_times (interp1_r cwd) args
 
 let interp ctx : utility =
-  match ctx.args with
-  | [] -> error ~msg:"rm: missing operand" ()
-  | ("-r" | "-R") :: args -> interp_r ctx.cwd args
-  | [arg] -> interp1 ctx.cwd arg
-  | args -> multiple_times (interp1 ctx.cwd) args
+  let e = ref None in
+  let r = ref false in
+  let f = ref false in
+  let args = ref [] in
+  List.iter
+    (function
+      | "-r" | "-R" -> r := true
+      | "-f" -> f := true
+      | "-rf" | "-fr" | "-Rf" | "-fR" -> r := true; f := true
+      | arg ->
+        if String.length arg > 0 && arg.[0] = '-' && !e = None then
+          e := Some arg
+        else
+          args := arg :: !args)
+    ctx.args;
+  let args = List.rev !args in
+  match !e with
+  | Some arg -> unsupported ~utility:"rm" ("unknown argument: " ^ arg)
+  | None ->
+    if args = [] then
+      error ~msg:"rm: missing operand" ()
+    else
+      let rm =
+        if !r then
+          interp_r ctx.cwd args
+        else
+          multiple_times (interp1 ctx.cwd) args
+      in
+      if !f then
+        uor rm (return true)
+      else
+        rm
