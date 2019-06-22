@@ -6,6 +6,7 @@ let lt = (<)
 let pp = Format.pp_print_int
 
 module Map = Map.Make(struct type t = int let compare = compare end)
+module Set = Set.Make(struct type t = int let compare = compare end)
 
 type 'a gen = Son of t | Ancestor of 'a
 type 'a map = 'a gen Map.t
@@ -60,6 +61,8 @@ let map m f =
       | Son y -> Son y)
     m
 
+let filter m f = Map.filter (fun x _ -> f x) m
+
 let rec get m x =
   match Map.find x m with
   | Ancestor v -> v
@@ -86,6 +89,9 @@ let get_global globals x =
 
 let iter_globals globals f =
   Var.Map.iter f globals
+
+let map_globals globals f =
+  Var.Map.map f globals
 
 let fresh_counter = ref 0
 

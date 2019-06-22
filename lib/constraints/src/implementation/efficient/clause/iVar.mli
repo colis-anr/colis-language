@@ -22,6 +22,10 @@ val map : 'a map -> ('a -> 'b) -> 'b map
 val get : 'a map -> t -> 'a
 val set : 'a map -> t -> 'a -> 'a map
 
+val filter : 'a map -> (t -> bool) -> 'a map
+
+val repr : 'a map -> t -> t
+
 (** {2 Maps from global variables to internal variable} *)
 
 type globals
@@ -29,6 +33,8 @@ type globals
 val empty_globals : globals
 
 val iter_globals : globals -> (Constraints_common.Var.t -> t -> unit) -> unit
+
+val map_globals : globals -> (t -> t) -> globals
 
 val get_global : globals -> t -> Constraints_common.Var.t option
 
@@ -39,3 +45,7 @@ val internalise :
   t * globals * 'a map
 
 val quantify_over : Constraints_common.Var.t -> globals -> globals
+
+(** {2 Sets of internal variables} *)
+
+module Set : Set.S with type elt = t
