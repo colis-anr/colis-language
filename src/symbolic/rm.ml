@@ -71,42 +71,20 @@ let interp1_r cwd arg : utility =
         end;
     ]
 
-let interp_r cwd args : utility =
-  match args with
-  | [] -> error ~msg:"rm: missing operand" ()
-  | [arg] -> interp1_r cwd arg
-  | args -> multiple_times (interp1_r cwd) args
+let interp ctx recursive force = function
+  | [] ->
+    error ~msg:"rm: missing operand" ()
+  | args ->
+    Format.(
+      eprintf "recursive = %B@\nforce = %B@\nargs = [%a]@\n@."
+        recursive force
+        (pp_print_list ~pp_sep:(fun fmt () -> fprintf fmt "; ") (fun fmt -> fprintf fmt "%S")) args
+    );
+    let rm = multiple_times ((if recursive then interp1_r else interp1) ctx.cwd) args in
+    if force then uor rm (return true) else rm
 
 let interp ctx : utility =
-  let e = ref None in
-  let r = ref false in
-  let f = ref false in
-  let args = ref [] in
-  List.iter
-    (function
-      | "-r" | "-R" -> r := true
-      | "-f" -> f := true
-      | "-rf" | "-fr" | "-Rf" | "-fR" -> r := true; f := true
-      | arg ->
-        if String.length arg > 0 && arg.[0] = '-' && !e = None then
-          e := Some arg
-        else
-          args := arg :: !args)
-    ctx.args;
-  let args = List.rev !args in
-  match !e with
-  | Some arg -> unsupported ~utility:"rm" ("unknown argument: " ^ arg)
-  | None ->
-    if args = [] then
-      error ~msg:"rm: missing operand" ()
-    else
-      let rm =
-        if !r then
-          interp_r ctx.cwd args
-        else
-          multiple_times (interp1 ctx.cwd) args
-      in
-      if !f then
-        uor rm (return true)
-      else
-        rm
+  let open CmdParser in
+  let recursive = flag ["r"; "R"; "recursive"] in
+  let force = flag ["f"; "force"] in
+  eval ~utility:"rm" ctx (fun_ interp ctx $ recursive $ force)
