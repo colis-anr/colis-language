@@ -31,7 +31,7 @@ let eval ~utility ctx ?(ignore=[]) ?(refuse=[]) fun_and_args =
         )
         ~help:null_formatter
         ~err
-        ~env:(fun _ -> None) (*(fun var -> Env.IdMap.find_opt var ctx.env)*) (* FIXME *)
+        ~env:(fun var -> Env.IdMap.find_opt var ctx.env)
         ~catch:false
         ~argv:(argv |> Array.of_list)
     )
