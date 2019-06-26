@@ -75,16 +75,14 @@ let interp ctx recursive force = function
   | [] ->
     error ~msg:"rm: missing operand" ()
   | args ->
-    Format.(
-      eprintf "recursive = %B@\nforce = %B@\nargs = [%a]@\n@."
-        recursive force
-        (pp_print_list ~pp_sep:(fun fmt () -> fprintf fmt "; ") (fun fmt -> fprintf fmt "%S")) args
-    );
     let rm = multiple_times ((if recursive then interp1_r else interp1) ctx.cwd) args in
     if force then uor rm (return true) else rm
 
 let interp ctx : utility =
   let open CmdParser in
-  let recursive = flag ["r"; "R"; "recursive"] in
-  let force = flag ["f"; "force"] in
-  eval ~utility:"rm" ctx (fun_ interp ctx $ recursive $ force)
+  eval
+    ~utility:"rm" ctx
+    ~refuse:["-i"]
+    (fun_ interp ctx
+     $ flag ["r"; "R"; "recursive"]
+     $ flag ["f"; "force"])

@@ -9,12 +9,18 @@ let with_formatter_to_string f =
   Format.pp_print_flush fmt ();
   (Buffer.contents buf, v)
 
-let eval ~utility ctx fun_and_args =
-  Format.(
-    eprintf "ctx.args = [%a]@."
-      (pp_print_list ~pp_sep:(fun fmt () -> fprintf fmt "; ") (fun fmt -> fprintf fmt "%S")) ctx.args
-  );
+let eval ~utility ctx ?(ignore=[]) ?(refuse=[]) fun_and_args =
   let pos_args = Cmdliner.Arg.(non_empty & pos_all string [] & info []) in (* any list of strings *)
+  let argv =
+    ctx.args
+    |> List.filter (fun arg -> not (List.mem arg ignore))
+    |> (fun args -> utility :: args)
+  in
+  List.iter
+    (fun arg ->
+       if List.mem arg refuse then
+         Errors.unsupported ~utility ("forbidden argument: " ^ arg))
+    argv;
   let (err, result) =
     with_formatter_to_string @@ fun err ->
     Cmdliner.Term.(
@@ -27,7 +33,7 @@ let eval ~utility ctx fun_and_args =
         ~err
         ~env:(fun _ -> None) (*(fun var -> Env.IdMap.find_opt var ctx.env)*) (* FIXME *)
         ~catch:false
-        ~argv:((utility :: ctx.args) |> Array.of_list)
+        ~argv:(argv |> Array.of_list)
     )
   in
   match result with
@@ -37,12 +43,7 @@ let eval ~utility ctx fun_and_args =
   | `Error (`Parse | `Term) -> unsupported ~utility ("parse error: " ^ err)
   | `Error `Exn -> assert false (* because ~catch:false *)
 
-let flag l =
-  Format.(
-    eprintf "flag: [%a]@."
-      (pp_print_list ~pp_sep:(fun fmt () -> fprintf fmt "; ") (fun fmt -> fprintf fmt "%S")) l
-  );
-  Cmdliner.Arg.(value & flag & info l)
+let flag l = Cmdliner.Arg.(value & flag & info l)
 
 let fun_ f ctx = Cmdliner.Term.const (f ctx)
 let ($) = Cmdliner.Term.($)
