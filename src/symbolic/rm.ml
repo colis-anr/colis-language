@@ -3,6 +3,8 @@ open Constraints
 open Clause
 open SymbolicUtility
 
+let name = "rm"
+
 let interp1 cwd arg : utility =
   under_specifications @@ fun ~root ~root' ->
   let oq = Path.from_string arg in
@@ -68,17 +70,17 @@ let interp1_r cwd arg : utility =
         (noresolve root cwd q & eq root root');
     ]
 
-let interp ctx recursive force = function
+let interprete ctx recursive force = function
   | [] ->
     error ~msg:"rm: missing operand" ()
   | args ->
     let rm = multiple_times ((if recursive then interp1_r else interp1) ctx.cwd) args in
     if force then uor rm (return true) else rm
 
-let interp ctx : utility =
+let interprete ctx : utility =
   let recursive = Cmdliner.Arg.(value & flag & info ["r"; "R"; "recursive"]) in
   let force = Cmdliner.Arg.(value & flag & info ["f"; "force"]) in
   cmdliner_eval_utility
-    ~utility:"rm"
-    Cmdliner.Term.(const (interp ctx) $ recursive $ force)
+    ~utility:name
+    Cmdliner.Term.(const (interprete ctx) $ recursive $ force)
     ctx

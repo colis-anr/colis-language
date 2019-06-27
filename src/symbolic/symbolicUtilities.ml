@@ -263,12 +263,12 @@ let register () =
     "touch", interp_touch;
     "which", interp_which_full;
     "silent-which", interp_silent_which;
-    "rm", Rm.interp;
     "update-alternatives", interp_update_alternatives;
     "dpkg", interp_dpkg;
   ];
   List.iter register [
       (module Mv);
       (module Mkdir);
+      (module Rm) ;
       (module DpkgMaintscriptHelper)
   ]

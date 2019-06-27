@@ -1,1 +1,2 @@
-val interp : SymbolicUtility.context -> SymbolicUtility.utility
+val name : string
+val interprete : SymbolicUtility.context -> SymbolicUtility.utility
