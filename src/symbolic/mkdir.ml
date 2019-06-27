@@ -4,7 +4,7 @@ open Clause
 open SymbolicUtility
 
 let name = "mkdir"
-         
+
 let interp_mkdir1 cwd path_str =
   under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
@@ -51,13 +51,17 @@ let interp_mkdir1 cwd path_str =
       error_case
         ~descr:(asprintf "mkdir %a: parent path does not resolve" Path.pp p)
         begin
-          noresolve root cwd q &
-          eq root root'
+          noresolve root cwd q & eq root root'
         end;
     ]
 
+let interprete parents ctx args : utility =
+  if parents then Errors.unsupported ~utility:name "-p";
+  multiple_times (interp_mkdir1 ctx.cwd) args
+
 let interprete ctx : utility =
-  match ctx.args with
-  | [] -> error ~msg:"mkdir: missing operand" ()
-  | [arg] -> interp_mkdir1 ctx.cwd arg
-  | args -> multiple_times (interp_mkdir1 ctx.cwd) args
+  let parents = Cmdliner.Arg.(value & flag & info ["p"; "parents"]) in
+  cmdliner_eval_utility
+    ~utility:name
+    Cmdliner.Term.(const interprete $ parents)
+    ctx

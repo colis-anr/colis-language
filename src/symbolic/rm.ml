@@ -67,20 +67,19 @@ let interp1_r cwd arg : utility =
         end;
       error_case
         ~descr:(asprintf "rm -r %a: target does not exist" Path.pp oq)
-        (noresolve root cwd q & eq root root');
+        begin
+          noresolve root cwd q & eq root root'
+        end;
     ]
 
-let interprete ctx recursive force = function
-  | [] ->
-    error ~msg:"rm: missing operand" ()
-  | args ->
-    let rm = multiple_times ((if recursive then interp1_r else interp1) ctx.cwd) args in
-    if force then uor rm (return true) else rm
+let interprete recursive force ctx args =
+  let rm = multiple_times ((if recursive then interp1_r else interp1) ctx.cwd) args in
+  if force then uor rm (return true) else rm
 
 let interprete ctx : utility =
   let recursive = Cmdliner.Arg.(value & flag & info ["r"; "R"; "recursive"]) in
   let force = Cmdliner.Arg.(value & flag & info ["f"; "force"]) in
   cmdliner_eval_utility
     ~utility:name
-    Cmdliner.Term.(const (interprete ctx) $ recursive $ force)
+    Cmdliner.Term.(const interprete $ recursive $ force)
     ctx

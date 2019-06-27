@@ -222,6 +222,8 @@ let dispatch' (cwd, env, args) name sta =
   let ctx = {cwd; args; env} in
   BatSet.of_list (dispatch ~name ctx sta)
 
+(**/**)
+
 let null_formatter = Format.make_formatter (fun _ _ _ -> ()) (fun () -> ())
 
 let with_formatter_to_string f =
@@ -231,15 +233,19 @@ let with_formatter_to_string f =
   Format.pp_print_flush fmt ();
   (Buffer.contents buf, v)
 
-let cmdliner_eval_utility ~utility fun_and_args ctx =
-  let pos_args = Cmdliner.Arg.(non_empty & pos_all string [] & info []) in (* any list of strings *)
+let cmdliner_eval_utility ~utility ?(empty_pos_args=false) fun_and_args ctx =
+  let pos_args = Cmdliner.Arg.(
+      (if empty_pos_args then value else non_empty)
+      & pos_all string []
+      & info [])
+  in
   let argv = ctx.args |> List.cons utility |> Array.of_list in
   let (err, result) =
     with_formatter_to_string @@ fun err ->
     Cmdliner.Term.(
       eval
         (
-          fun_and_args $ pos_args,
+          fun_and_args $ const ctx $ pos_args,
           info utility ~exits:default_exits
         )
         ~argv
