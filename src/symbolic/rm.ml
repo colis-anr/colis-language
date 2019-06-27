@@ -65,10 +65,7 @@ let interp1_r cwd arg : utility =
         end;
       error_case
         ~descr:(asprintf "rm -r %a: target does not exist" Path.pp oq)
-        begin
-          exists ~hint:hinty @@ fun y ->
-          noresolve root cwd q & eq root root'
-        end;
+        (noresolve root cwd q & eq root root');
     ]
 
 let interp ctx recursive force = function
@@ -79,10 +76,9 @@ let interp ctx recursive force = function
     if force then uor rm (return true) else rm
 
 let interp ctx : utility =
-  let open CmdParser in
-  eval
-    ~utility:"rm" ctx
-    ~refuse:["-i"]
-    (fun_ interp ctx
-     $ flag ["r"; "R"; "recursive"]
-     $ flag ["f"; "force"])
+  let recursive = Cmdliner.Arg.(value & flag & info ["r"; "R"; "recursive"]) in
+  let force = Cmdliner.Arg.(value & flag & info ["f"; "force"]) in
+  cmdliner_eval_utility
+    ~utility:"rm"
+    Cmdliner.Term.(const (interp ctx) $ recursive $ force)
+    ctx

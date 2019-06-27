@@ -221,3 +221,35 @@ let call name ctx args =
 let dispatch' (cwd, env, args) name sta =
   let ctx = {cwd; args; env} in
   BatSet.of_list (dispatch ~name ctx sta)
+
+let null_formatter = Format.make_formatter (fun _ _ _ -> ()) (fun () -> ())
+
+let with_formatter_to_string f =
+  let buf = Buffer.create 8 in
+  let fmt = Format.formatter_of_buffer buf in
+  let v =f fmt in
+  Format.pp_print_flush fmt ();
+  (Buffer.contents buf, v)
+
+let cmdliner_eval_utility ~utility fun_and_args ctx =
+  let pos_args = Cmdliner.Arg.(non_empty & pos_all string [] & info []) in (* any list of strings *)
+  let argv = ctx.args |> List.cons utility |> Array.of_list in
+  let (err, result) =
+    with_formatter_to_string @@ fun err ->
+    Cmdliner.Term.(
+      eval
+        (
+          fun_and_args $ pos_args,
+          info utility ~exits:default_exits
+        )
+        ~argv
+        ~env:(fun var -> Env.IdMap.find_opt var ctx.env)
+        ~help:null_formatter ~err ~catch:false
+    )
+  in
+  match result with
+  | `Ok a -> a
+  | `Version -> Errors.unsupported ~utility "version"
+  | `Help -> Errors.unsupported ~utility "help"
+  | `Error (`Parse | `Term) -> Errors.unsupported ~utility ("parse error: " ^ err)
+  | `Error `Exn -> assert false (* because ~catch:false *)

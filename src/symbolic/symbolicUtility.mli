@@ -124,3 +124,10 @@ val print_utility_trace : string -> state -> state
 
 (** A wrapper of [dispatch] for use in the Why3 driver *)
 val dispatch' : (Path.normal * string Env.IdMap.t * string list) -> string -> state -> (state * bool) BatSet.t
+
+(** {2 Arguments Parsing} *)
+
+val cmdliner_eval_utility :
+  utility:string -> (string list -> utility) Cmdliner.Term.t ->
+  context -> utility
+(** A wrapper around [Cmdliner.Term.eval] for utilities. *)
