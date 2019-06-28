@@ -72,8 +72,6 @@ let register () =
     "true", interp_true;
     "false", interp_false;
     "echo", interp_echo;
-    "test", Test_utility.interpret ~bracket:false;
-    "[", Test_utility.interpret ~bracket:true;
     "update-alternatives", interp_update_alternatives;
     "dpkg", interp_dpkg;
   ];
@@ -82,6 +80,8 @@ let register () =
       (module Mv);
       (module Mkdir);
       (module Rm) ;
+      (module Test) ;
+      (module Test.Bracket) ;
       (module Touch) ;
       (module Which) ;
       (module Which.Silent) ;
