@@ -2,28 +2,6 @@ open SymbolicUtility
 
 module IdMap = Env.IdMap
 
-(******************************************************************************)
-(*                                  true/false                                *)
-(******************************************************************************)
-
-let interp_true : context -> utility =
-  fun _ ->
-    return true
-
-let interp_false : context -> utility =
-  fun _ ->
-    return false
-
-(******************************************************************************)
-(*                                     echo                                   *)
-(******************************************************************************)
-
-let interp_echo : context -> utility =
-  fun ctx sta ->
-  let str = String.concat " " ctx.args in
-  let sta = print_stdout ~newline:true str sta in
-  [sta, true]
-
 (**************************************************************************)
 (*                     update-alternatives                                *)
 (**************************************************************************)
@@ -69,20 +47,20 @@ let register () =
   (* These calls can be moved to the modules that implement the utilities *)
   let register' (name, f) = register (module struct let name = name let interprete = f end) in
   List.iter register' [
-    "true", interp_true;
-    "false", interp_false;
-    "echo", interp_echo;
     "update-alternatives", interp_update_alternatives;
     "dpkg", interp_dpkg;
   ];
   List.iter register [
-      (module DpkgMaintscriptHelper) ;
-      (module Mv);
-      (module Mkdir);
-      (module Rm) ;
-      (module Test) ;
-      (module Test.Bracket) ;
-      (module Touch) ;
-      (module Which) ;
-      (module Which.Silent) ;
+    (module Basics.True) ;
+    (module Basics.False) ;
+    (module Basics.Echo) ;
+    (module DpkgMaintscriptHelper) ;
+    (module Mv);
+    (module Mkdir);
+    (module Rm) ;
+    (module Test) ;
+    (module Test.Bracket) ;
+    (module Touch) ;
+    (module Which) ;
+    (module Which.Silent) ;
   ]
