@@ -412,7 +412,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      more, we have to be carefull because c1' also happens after itself. *)
 
   | Case (word, case_item'_list) ->
-     let fresh_var = "fresh_" ^ (string_of_int (Random.int 10000000)) in
+     let fresh_var = "case_" ^ (string_of_int (Random.int 10000000)) in
      let (e0, sexpr) = word__to__string_expression e word in
      let (e1, instruction) = case_item'_list__to__if_sequence fresh_var e0 case_item'_list in
      (e1, C.(ISequence (IAssignment (fresh_var, sexpr), instruction)))
@@ -488,15 +488,20 @@ and command'_option__to__instruction env = function
   | None -> (env, C.itrue)
   | Some command' -> command'__to__instruction env command'
 
-and pattern__to__instruction fresh_var pattern =
-  List.fold_left
-    (fun instruction -> function
+and pattern__to__instruction fresh_var = function
+  | [] -> unsupported "empty pattern"
+  | pat0 :: pats ->
+    let test_eq_from_pat = function
       | [WLiteral word] ->
-         C.(ior (instruction, ICallUtility ("test", [(SVariable fresh_var, DontSplit); (SLiteral "=", DontSplit); (SLiteral word, DontSplit)])))
+        C.ICallUtility ("test", [(SVariable fresh_var, DontSplit); (SLiteral "=", DontSplit); (SLiteral word, DontSplit)])
       | _ ->
-         unsupported "case when non-literal patterns")
-    C.ifalse
-    pattern
+        unsupported "case when non-literal patterns"
+    in
+    List.fold_left
+      (fun instruction pat ->
+         C.ior (instruction, test_eq_from_pat pat))
+      (test_eq_from_pat pat0)
+      pats
 
 and pattern'__to__instruction fresh_var env pattern' =
   (env, on_located (pattern__to__instruction fresh_var) pattern')
