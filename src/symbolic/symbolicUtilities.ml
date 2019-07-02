@@ -268,6 +268,7 @@ let register () =
     "dpkg", interp_dpkg;
   ];
   List.iter register [
+      (module Cp);
       (module Mv);
       (module Mkdir);
       (module DpkgMaintscriptHelper)
