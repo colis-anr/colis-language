@@ -44,6 +44,7 @@ module Symbolic = struct
       (module Dpkg) ;
       (module DpkgMaintscriptHelper) ;
       (module Mv);
+      (module Cp);
       (module Mkdir);
       (module Rm) ;
       (module Test) ;
