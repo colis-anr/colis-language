@@ -280,3 +280,10 @@ let interpret ~bracket ctx : utility =
   | Some e -> interp_test_expr ctx.cwd e
   | exception Morsmall_utilities.TestParser.Parse_error ->
      interp_test_parse_error ctx.args
+
+let interprete ctx = interpret ~bracket:false ctx
+
+module Bracket = struct
+  let name = "["
+  let interprete ctx = interpret ~bracket:true ctx
+end

@@ -3,6 +3,8 @@ open Constraints
 open Clause
 open SymbolicUtility
 
+let name = "rm"
+
 let interp1 cwd arg : utility =
   under_specifications @@ fun ~root ~root' ->
   let oq = Path.from_string arg in
@@ -66,47 +68,18 @@ let interp1_r cwd arg : utility =
       error_case
         ~descr:(asprintf "rm -r %a: target does not exist" Path.pp oq)
         begin
-          exists ~hint:hinty @@ fun y ->
           noresolve root cwd q & eq root root'
         end;
     ]
 
-let interp_r cwd args : utility =
-  match args with
-  | [] -> error ~msg:"rm: missing operand" ()
-  | [arg] -> interp1_r cwd arg
-  | args -> multiple_times (interp1_r cwd) args
+let interprete recursive force ctx args =
+  let rm = multiple_times ((if recursive then interp1_r else interp1) ctx.cwd) args in
+  if force then uor rm (return true) else rm
 
-let interp ctx : utility =
-  let e = ref None in
-  let r = ref false in
-  let f = ref false in
-  let args = ref [] in
-  List.iter
-    (function
-      | "-r" | "-R" -> r := true
-      | "-f" -> f := true
-      | "-rf" | "-fr" | "-Rf" | "-fR" -> r := true; f := true
-      | arg ->
-        if String.length arg > 0 && arg.[0] = '-' && !e = None then
-          e := Some arg
-        else
-          args := arg :: !args)
-    ctx.args;
-  let args = List.rev !args in
-  match !e with
-  | Some arg -> unsupported ~utility:"rm" ("unknown argument: " ^ arg)
-  | None ->
-    if args = [] then
-      error ~msg:"rm: missing operand" ()
-    else
-      let rm =
-        if !r then
-          interp_r ctx.cwd args
-        else
-          multiple_times (interp1 ctx.cwd) args
-      in
-      if !f then
-        uor rm (return true)
-      else
-        rm
+let interprete ctx : utility =
+  let recursive = Cmdliner.Arg.(value & flag & info ["r"; "R"; "recursive"]) in
+  let force = Cmdliner.Arg.(value & flag & info ["f"; "force"]) in
+  cmdliner_eval_utility
+    ~utility:name
+    Cmdliner.Term.(const interprete $ recursive $ force)
+    ctx

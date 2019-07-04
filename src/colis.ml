@@ -36,7 +36,24 @@ module Symbolic = struct
   module Interpreter = SymbolicInterpreter__Interpreter
   module Utility = SymbolicUtility
 
-  let () = SymbolicUtilities.register ()
+  let () =
+    List.iter SymbolicUtility.register [
+      (module Basics.True) ;
+      (module Basics.False) ;
+      (module Basics.Echo) ;
+      (module Dpkg) ;
+      (module DpkgMaintscriptHelper) ;
+      (module Mv);
+      (module Cp);
+      (module Mkdir);
+      (module Rm) ;
+      (module Test) ;
+      (module Test.Bracket) ;
+      (module Touch) ;
+      (module UpdateAlternatives) ;
+      (module Which) ;
+      (module Which.Silent) ;
+    ]
 
   let add_fs_spec_to_clause root clause fs_spec =
     let fs_clause = FilesystemSpec.compile root fs_spec in

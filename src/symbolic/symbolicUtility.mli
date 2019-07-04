@@ -124,3 +124,14 @@ val print_utility_trace : string -> state -> state
 
 (** A wrapper of [dispatch] for use in the Why3 driver *)
 val dispatch' : (Path.normal * string Env.IdMap.t * string list) -> string -> state -> (state * bool) BatSet.t
+
+(** {2 Arguments Parsing} *)
+
+val cmdliner_eval_utility :
+  utility:string ->
+  ?empty_pos_args:bool ->
+  (context -> string list -> utility) Cmdliner.Term.t ->
+  context -> utility
+(** A wrapper around [Cmdliner.Term.eval] for utilities. [utility] is the name
+    of the utility. [empty_pos_args] describe whether empty positional arguments
+    lists are accepted or not (refused by default). *)

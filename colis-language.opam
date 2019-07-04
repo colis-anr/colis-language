@@ -34,6 +34,7 @@ depexts: [
 depends: [
   "batteries"
   "camlzip"                {build | with-test}
+  "cmdliner"
   "morbig"                 {= "dev"}
   "morsmall"               {= "dev"}
   "ocaml"                  {build & >= "4.05"}
