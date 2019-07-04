@@ -185,7 +185,7 @@ let interp_rename ctx src dstpath : utility =
        List.concat [ unconditional_cases; ancestor_case ; slash_case ]
 
 
-let interp_mv2dir ctx src dst : utility =
+let interp_mv2dir ctx dst src : utility =
   (* Assume: dst resolves to an existing directory *)
   let qsrc = Path.from_string src in
   match Path.split_last qsrc with
@@ -199,78 +199,43 @@ let interp_mv2dir ctx src dst : utility =
      interp_rename ctx src dstpath
 
 
-let interp_mv2dir_fold _ctx _sources _dst = (* TODO *)
-  under_specifications @@
-    fun ~root ~root' ->
-    [
-      success_case
-        ~descr:(asprintf "mv: several sources")
-        begin
-          eq root root'
-        end
-    ]
-
-
-let rec interprete ctx : utility =
-  match ctx.args with
-  | [] ->
-     under_specifications @@ fun ~root ~root' ->
-         [
-           error_case
-             ~descr:(asprintf "mv: missing operands")
-             begin
-               eq root root'
-             end
-         ]
-  | "-f" :: args -> interprete {ctx with args} (* By default option *)
-  | "-i" :: _ ->
-     under_specifications @@ fun ~root ~root' ->
-         [
-           error_case
-             ~descr:(asprintf "mv: option '-i' forbidden")
-             begin
-               eq root root'
-             end
-         ]
-  | [_arg] ->
-     under_specifications @@ fun ~root ~root' ->
-         [
-           error_case
-             ~descr:(asprintf "mv: not enough arguments")
-             begin
-               eq root root'
-             end
-         ]
-  | [src; dst] ->
-     (if_then_else
-        (call "test" ctx ["-d"; dst])
-        (interp_mv2dir ctx src dst)
-        (interp_rename ctx src dst)
-     )
-  | _ ->
-     (* More than two arguments, then mv in directory *)
-     match (List.rev ctx.args) with
-     | [] -> (* Not reachable *)
-        under_specifications @@ fun ~root ~root' ->
-           [
-             error_case
-               ~descr:(asprintf "mv: missing operands")
-               begin
-                 eq root root'
-               end
-           ]
-     | dir :: srcs ->
+let interprete ctx : utility =
+  let e = ref None in
+  let i = ref false in
+  let args_rev = ref [] in
+  List.iter
+    (function
+      | "-i" | "-fi" -> i := true
+      | "-f" | "-if" -> () (* By default behaviour *)
+      | arg ->
+        if String.length arg > 0 && arg.[0] = '-' && !e = None then
+          e := Some arg
+        else
+          args_rev := arg :: !args_rev)
+    ctx.args;
+  if !i then
+    error ~msg:"mv: option `-i` forbidden" ()
+  else 
+    match !e with
+    | Some arg -> unsupported ~utility:"mv" ("unknown argument: " ^ arg)
+    | None -> (
+      let args = List.rev !args_rev in
+      match args with
+      | [] -> error ~msg:"mv: missing operand" ()
+      | [_arg] -> error ~msg:"mv: not enough arguments" ()
+      | [src; dst] ->
+        (if_then_else
+          (call "test" ctx ["-d"; dst])
+          (interp_mv2dir ctx dst src)
+          (interp_rename ctx src dst)
+        )
+      | _ ->
+        (* More than two arguments, then mv in directory *)
+        let dir = List.hd !args_rev in
+        let srcs = List.tl !args_rev in
         (if_then_else
            (call "test" ctx ["-d"; dir])
-           (interp_mv2dir_fold ctx (List.rev srcs) dir)
-           (under_specifications @@ fun ~root ~root' ->
-                [
-                  error_case
-                    ~descr:(asprintf "mv: last argument not a directory")
-                    begin
-                      eq root root'
-                    end
-                ]
-           )
+           (multiple_times (interp_mv2dir ctx dir) (List.rev srcs))
+           (error ~msg:"mv: last argument not a directory" ())
         )
-
+    )
