@@ -341,31 +341,39 @@ module Semantics
   let constant empty_func_env : func_env =
     empty_env None
 
-  type cwd
-  val constant default_cwd : cwd
+  type normalized_path
+  val constant default_cwd : normalized_path
+
+  (** For `cd` *)
+  (** Append `s` to `p` if `s` is relative or just `s` as path if it is absolute *)
+  val function absolute_or_concat_relative (p:normalized_path) (s:string) : normalized_path
+  val function normalized_path_to_string (p:normalized_path) : string
+  val constant identifier_test : identifier
+  val constant string_dash_d : string
+  val constant identifier_pwd : identifier
 
   type context = {
     var_env: var_env;
     func_env: func_env;
     arguments: list string;
+    cwd: normalized_path;
     result: bool; (* previous result ($?) for input state, current result for output state *)
-    cwd: cwd;
   }
 
   lemma same_context: forall c1 c2.
     c1.var_env = c2.var_env ->
     c1.func_env = c2.func_env ->
     c1.arguments = c2.arguments ->
-    c1.result = c2.result ->
     c1.cwd = c2.cwd ->
+    c1.result = c2.result ->
     c1 = c2
 
   let constant empty_context = {
     var_env = empty_env {value=None; exported=False};
     func_env = empty_env None;
     arguments = Nil;
-    result = True;
     cwd = default_cwd;
+    result = True;
   }
 
   let function with_result (res:bool) (ctx:context) : context =
@@ -399,7 +407,7 @@ module Semantics
     log: stdout; (** Combines stdout with utility traces and error messages *)
   }
 
-  type utility_context = (cwd, env string, list string)
+  type utility_context = (normalized_path, env string, list string)
 
   (** Interprete a command defined in the document *Specification of UNIX Commands*. *)
   val function interp_utility utility_context identifier state : (state, bool)
@@ -515,6 +523,24 @@ module Semantics
       with_result True {ctx with var_env = var_env}
     in
     eval_instruction stk (cnf, inp, ctx, sta) (IExport id) (sta', ctx', BNormal)
+
+  | eval_cd_arg_failure : forall stk cnf inp ctx sta se sta'.
+    eval_str_expr stk True (cnf, inp, ctx, sta) se (sta', None) ->
+    eval_instruction stk (cnf, inp, ctx, sta) (ICd se) (sta', ctx, BFailure)
+
+  | eval_cd : forall stk cnf inp ctx sta se sta1 s _b sta2 b.
+    eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (s, _b)) ->
+    (* `test -d (CWD/)s` *)
+    let cwd_p = absolute_or_concat_relative ctx.cwd s in
+    let pwd_s = normalized_path_to_string cwd_p in
+    let args = Cons string_dash_d (Cons pwd_s Nil) in
+    (sta2, b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
+    let ctx1 =
+      if b
+      then {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p}
+      else {ctx with result = False} in
+    let bhv = behaviour inp b in
+    eval_instruction stk (cnf, inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
 
   | eval_assignment: forall stk cnf inp ctx sta sta' id e s b.
     eval_str_expr stk True (cnf, inp, ctx, sta) e (sta', Some (s, b)) ->

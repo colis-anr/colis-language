@@ -8,6 +8,11 @@ end
 module symbolicInterpreter.Semantics
   syntax val filter_var_env "Env.filter_var_env (fun v -> v.SymbolicInterpreter__Semantics.exported) (fun v -> v.SymbolicInterpreter__Semantics.value) %1"
   syntax val interp_utility "assert false"
+  syntax val absolute_or_concat_relative "Constraints.Path.(normalize ~cwd:%1 (from_string %2))"
+  syntax val normalized_path_to_string "Constraints.Path.normal_to_string %1"
+  syntax val identifier_test "\"test\""
+  syntax val string_dash_d "\"-d\""
+  syntax val identifier_pwd "\"PWD\""
 end
 
 module symbolicInterpreter.Interpreter

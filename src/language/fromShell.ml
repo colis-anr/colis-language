@@ -351,7 +351,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        | "cd", [arg, C.DontSplit] ->
           (e, C.ICd arg)
        | "cd", [C.SLiteral "-", _] ->
-          raise (Unsupported "cd -")
+          unsupported "cd -"
        | "cd", _ ->
           unsupported "cd with multiple arguments"
 
