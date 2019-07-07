@@ -16,7 +16,7 @@ module Semantics
   (* Instantiate the concrete semantics with our dummy filesystem *)
   clone export semantics.Semantics with
     type filesystem = unit,
-    type cwd = list string,
+    type normalized_path = list string,
     val default_cwd = Nil,
     axiom interp_utility_extends_output
 end
@@ -45,8 +45,8 @@ module State
     var_env : ref var_env;
     func_env : func_env;
     arguments: ref (list string);
-    result : ref bool;
     cwd : ref (list string);
+    result : ref bool;
   }
 end
 
@@ -93,24 +93,24 @@ module Interpreter
     St.stdin = ref Stdin.empty;
     St.stdout = ref Stdout.empty;
     St.log = ref Stdout.empty;
-    St.result = ref True;
     St.cwd = ref Nil;
+    St.result = ref True;
   }
 
   function sem_context (sta:state) : S.context = {
     S.var_env = !(sta.var_env);
     S.func_env = sta.func_env;
     S.arguments = !(sta.arguments);
-    S.result = !(sta.result);
     S.cwd = !(sta.cwd);
+    S.result = !(sta.result);
   }
 
   lemma context_same: forall sta1 sta2.
     !(sta1.arguments) = !(sta2.arguments) ->
-    !(sta1.result) = !(sta2.result) ->
     !(sta1.var_env) = !(sta2.var_env) ->
     sta1.func_env = sta2.func_env ->
-    sta1.cwd = sta2.cwd ->
+    !(sta1.cwd) = !(sta2.cwd) ->
+    !(sta1.result) = !(sta2.result) ->
     sem_context sta1 = sem_context sta2
 
   (* function sem_state (sta:state) : S.state = *)
@@ -263,6 +263,7 @@ module Interpreter
     | ISubshell ins ->
       let sta' = {
         sta with
+        cwd = ref !(sta.cwd);
         var_env = ref !(sta.var_env);
         arguments = ref !(sta.arguments);
       } in
@@ -304,6 +305,7 @@ module Interpreter
         (* Don't modify fields in sta that correspond to Semantics.context *)
         var_env = ref !(sta.var_env);
         arguments = ref !(sta.arguments);
+        cwd = ref !(sta.cwd);
         result = ref !(sta.result);
       } in
       try
@@ -318,6 +320,7 @@ module Interpreter
         (* Reconstruct and don't modify fields in sta that correspond to Semantics.context *)
         var_env = ref !(sta.var_env);
         arguments = ref !(sta.arguments);
+        cwd = ref !(sta.cwd);
       } in
       interp_instruction inp sta2 ins2
 
@@ -413,6 +416,19 @@ module Interpreter
         ctr <- ctr+1
       done;
       sta.result := !last_result
+
+    | ICd se ->
+      (* TODO --realword should also use Unix.chdir *)
+      let s, _b = interp_str_expr True inp sta se in
+      let cwd_p = absolute_or_concat_relative !(sta.cwd) s in
+      let pwd_s = normalized_path_to_string cwd_p in
+      let args = Cons string_dash_d (Cons pwd_s Nil) in
+      interp_utility {inp with under_condition=True} sta identifier_test args;
+      if !(sta.result) then begin
+        sta.var_env := !(sta.var_env)[identifier_pwd <- pwd_s]';
+        sta.cwd := cwd_p
+      end;
+      maybe_exit inp sta
     end
 
   with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (s: string, b': bool)
@@ -441,6 +457,7 @@ module Interpreter
         stdout = ref Stdout.empty;
         result = ref !(sta.result);
         var_env = ref !(sta.var_env);
+        cwd = ref !(sta.cwd);
         arguments = ref !(sta.arguments);
       } in
       try

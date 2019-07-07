@@ -89,3 +89,16 @@ let interp_utility (cwd, var_env, args) id sta =
        unsupported ~utility:"grep" "two or more arguments" sta
      end
   | _ -> unknown_utility id sta
+
+let absolute_or_concat_relative (p: string list) (s: string) : string list =
+  if String.equal s "" then
+    p
+  else
+    let p' =
+      String.split_on_char '/' s |>
+      List.filter (fun s' -> not (String.equal s' ""))
+    in
+    if s.[0] = '/' then
+      p'
+    else
+      p @ p'

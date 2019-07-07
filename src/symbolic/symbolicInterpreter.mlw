@@ -36,7 +36,7 @@ module Semantics
   (* Instantiate the concrete semantics with the symbolic filesystem *)
   clone export semantics.Semantics with
     type filesystem = filesystem,
-    type cwd = list feature,
+    type normalized_path = list feature,
     val default_cwd = Nil,
     axiom interp_utility_extends_output
 end
@@ -381,6 +381,7 @@ module Interpreter
     | INot ins1
     | INoOutput ins1
     | ISubshell ins1 -> size_instr ins1
+    | ICd se
     | IAssignment _ se  -> size_string_expr se
     | ICallUtility _ le
     | ICallFunction _ le -> size_list_expr le
@@ -563,6 +564,39 @@ module Interpreter
           (interp_instr' stk cnf inp res1_false ins3)
       in
       Rs.union res2 res1_other
+
+    | ICd se ->
+      let res, res_failures =
+        separate_options
+          (interp_str_expr stk True cnf inp ctx sta se)
+      in
+      let res =
+        let function aux arg =
+          let sta, (s, (_:bool)) = arg in
+          let cwd_p = absolute_or_concat_relative ctx.cwd s in
+          let pwd_s = normalized_path_to_string cwd_p in
+          let args = Cons string_dash_d (Cons pwd_s Nil) in
+          let function aux' arg =
+            let sta, b = arg in
+            let ctx =
+              with_result b
+                (if b then
+                  {ctx with
+                    var_env = ctx.var_env[identifier_pwd <- pwd_s]';
+                    cwd = cwd_p}
+                else
+                  ctx)
+            in
+            {state = sta; context = ctx; data = ()}
+          in
+          Cn.map aux'
+            (sym_interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta)
+        in
+        Cn.bind aux res
+      in
+      let res = Rs.inject inp res in
+      let res_failures = Rs.stas_as_failures ctx res_failures in
+      Rs.union res res_failures
 
     | ICallUtility id le ->
       let res, res_failures =
