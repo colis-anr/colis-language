@@ -374,22 +374,20 @@ module Interpreter
     variant { ins }
     ensures { 0 < result }
   = 1 + match ins with
-    | IReturn _
-    | IExit _
-    | IShift _ -> 0
-    | IExport _ -> 0
-    | INot ins1
-    | INoOutput ins1
-    | ISubshell ins1 -> size_instr ins1
-    | ICd se
-    | IAssignment _ se  -> size_string_expr se
-    | ICallUtility _ le
-    | ICallFunction _ le -> size_list_expr le
-    | ISequence ins1 ins2
-    | IPipe ins1 ins2
-    | IWhile ins1 ins2 -> size_instr ins1 + size_instr ins2
-    | IForeach _ le ins -> size_list_expr le + size_instr ins
-    | IIf ins1 ins2 ins3 -> size_instr ins1 + size_instr ins2 + size_instr ins3
+    | IReturn _ | IExit _ | IShift _ | IExport _ ->
+      0
+    | INot ins | INoOutput ins | ISubshell ins ->
+      size_instr ins
+    | ICd se | IAssignment _ se  ->
+      size_string_expr se
+    | ICallUtility _ le | ICallFunction _ le ->
+      size_list_expr le
+    | ISequence ins1 ins2 | IPipe ins1 ins2 | IWhile ins1 ins2 ->
+      size_instr ins1 + size_instr ins2
+    | IForeach _ le ins ->
+      size_list_expr le + size_instr ins
+    | IIf ins1 ins2 ins3 ->
+      size_instr ins1 + size_instr ins2 + size_instr ins3
     end
   with function size_list_expr (le:list_expression): int
     variant { le }
@@ -566,37 +564,86 @@ module Interpreter
       Rs.union res2 res1_other
 
     | ICd se ->
-      let res, res_failures =
+      let res1, res_failures =
         separate_options
           (interp_str_expr stk True cnf inp ctx sta se)
       in
-      let res =
+      assert { [@expl:cd5]
+        forall sta1 str b.
+        eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (str, b)) ->
+        Cn.mem (sta1, (str, b)) res1
+      };
+      let res2 =
         let function aux arg =
-          let sta, (s, (_:bool)) = arg in
+          let sta1, (s, (_:bool)) = arg in
           let cwd_p = absolute_or_concat_relative ctx.cwd s in
           let pwd_s = normalized_path_to_string cwd_p in
           let args = Cons string_dash_d (Cons pwd_s Nil) in
-          let function aux' arg =
-            let sta, b = arg in
-            let ctx =
-              with_result b
-                (if b then
-                  {ctx with
-                    var_env = ctx.var_env[identifier_pwd <- pwd_s]';
-                    cwd = cwd_p}
-                else
-                  ctx)
-            in
-            {state = sta; context = ctx; data = ()}
-          in
-          Cn.map aux'
-            (sym_interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta)
+          let res = sym_interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 in
+          Cn.map (fun sta_b -> (sta_b, cwd_p, pwd_s)) res
         in
-        Cn.bind aux res
+        Cn.bind aux res1
       in
-      let res = Rs.inject inp res in
+      assert { [@expl:cd4]
+        forall sta1 s _b sta2 b.
+        eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (s, _b)) ->
+        let cwd_p = absolute_or_concat_relative ctx.cwd s in
+        let pwd_s = normalized_path_to_string cwd_p in
+        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        (sta2, b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
+        Cn.mem ((sta2, b), cwd_p, pwd_s) res2
+      };
+      let res2 =
+        let function aux' arg =
+          let (sta2, b), cwd_p, pwd_s = arg in
+          let ctx =
+            if b then
+              {ctx with
+                var_env = ctx.var_env[identifier_pwd <- pwd_s]';
+                cwd = cwd_p;
+                result = True}
+            else
+              {ctx with result = False}
+          in
+          {state = sta2; context = ctx; data = ()}
+        in
+        Cn.map aux' res2
+      in
+      assert { [@expl:cd3]
+        forall sta1 s _b sta2 b.
+        eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (s, _b)) ->
+        let cwd_p = absolute_or_concat_relative ctx.cwd s in
+        let pwd_s = normalized_path_to_string cwd_p in
+        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        (sta2, b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
+        let ctx1 =
+          if b
+          then {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p}
+          else {ctx with result = False} in
+        Cn.mem {state=sta2; context=ctx1; data=()} res2
+      };
+      let res3 = Rs.inject inp res2 in
       let res_failures = Rs.stas_as_failures ctx res_failures in
-      Rs.union res res_failures
+      Rs.union res3 res_failures
+      ensures { [@expl:cd2]
+        forall sta1 s _b sta2 b.
+        eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, Some (s, _b)) ->
+        let cwd_p = absolute_or_concat_relative ctx.cwd s in
+        let pwd_s = normalized_path_to_string cwd_p in
+        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        (sta2, b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
+        let ctx1 =
+          if b
+          then {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p}
+          else {ctx with result = False} in
+        let bhv = behaviour inp b in
+        Rs.mem {state=sta2; context=ctx1; data=()} bhv result
+      }
+      ensures { [@expl:cd1]
+        forall sta1.
+        eval_str_expr stk True (cnf, inp, ctx, sta) se (sta1, None) ->
+        Rs.mem {state=sta1; context=ctx; data=()} BFailure result
+      }
 
     | ICallUtility id le ->
       let res, res_failures =
