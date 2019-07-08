@@ -337,11 +337,7 @@ module Interpreter
       | Some ins ->
         try
           let inp' = { inp with argument0 = identifier_to_string id } in
-          let sta' = {
-            sta with
-            arguments = ref args;
-            var_env = ref !(sta.var_env)
-          } in
+          let sta' = { sta with arguments = ref args } in
           stk <- stk+1;
           interp_instruction inp' sta' ins;
           stk <- stk-1;

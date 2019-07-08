@@ -672,7 +672,7 @@ module Semantics
     let ctx1 = { ctx with arguments = args } in
     eval_instruction (stk+1) (cnf, inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
     let bhv' = match bhv with BNormal | BReturn -> BNormal | BExit -> BExit | BFailure -> BFailure end in
-    let ctx' = with_result ctx2.result ctx in
+    let ctx' = { ctx2 with arguments = ctx.arguments } in
     eval_instruction stk (cnf, inp, ctx, sta) (ICallFunction id es) (sta2, ctx', bhv')
   
   | eval_foreach_args_failure: forall stk cnf inp ctx sta sta' id es ins.
