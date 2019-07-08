@@ -33,7 +33,7 @@ depexts: [
 
 depends: [
   "batteries"
-  "camlzip"                {build | with-test}
+  "camlzip"                {(build | with-test) & = "1.07"}  # Version fixed for alt-ergo 2.2.0
   "cmdliner"
   "morbig"                 {= "dev"}
   "morsmall"               {= "dev"}
