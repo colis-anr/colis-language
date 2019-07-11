@@ -1,55 +1,48 @@
 open Constraints_common
 
-(* FIXME: neq *)
+type kind =
+  | Any
+  | Neg of Kind.t list
+  | Pos of Kind.t
+
+type feat =
+  | DontKnow
+  | Absent
+  | Present of IVar.t
+  | Maybe of IVar.t list
+
+type info = {
+  initial : bool ;
+  kind : kind ;
+  feats : feat Feat.Map.t ;
+  fen : bool ;                         (* => dir *)
+  sims : (Feat.Set.t * IVar.t) list ;  (* => dir *)
+  nfeats : (Feat.t * IVar.t) list ;    (* => ¬ dir *)
+  nabs : Feat.t list ;                 (* => ¬ dir *)
+  nfens : Feat.Set.t list ;            (* => ¬ dir *)
+  nsims : (Feat.Set.t * IVar.t) list ; (* => ¬ dir *)
+}
 
 type t =
   { globals : IVar.globals ;
     info : info IVar.map }
 
-and info =
-  { initial : bool ;
-    nfeats : (Feat.t * IVar.t) list ;
-    nabs : Feat.t list ;
-    nfens : Feat.Set.t list ;
-    nsims : (Feat.Set.t * IVar.t) list ;
-    kind : kind }
+let empty = {
+  globals = IVar.empty_globals ;
+  info = IVar.empty_map
+}
 
-and kind =
-  | Any
-  | Neg of Kind.t list
-  | Pos of Kind.t
-  | Dir of dir
-
-and dir =
-  { fen : bool ;
-    sims : (Feat.Set.t * IVar.t) list ;
-    feats : target Feat.Map.t }
-
-and target =
-  | DontKnow
-  | Exists
-  | Pointsto of IVar.t
-  | Noresolve of feat_tree
-(* Absence if a subcase of noresolve *)
-
-and feat_tree = C of (Feat.t * feat_tree) list
-
-let empty =
-  { globals = IVar.empty_globals ;
-    info = IVar.empty_map }
-
-let empty_info =
-  { initial = false ;
-    nfeats = [] ;
-    nabs = [] ;
-    nfens = [] ;
-    nsims = [] ;
-    kind = Any }
-
-let empty_dir =
-  { fen = false ;
-    sims = [] ;
-    feats = Feat.Map.empty }
+let empty_info = {
+  initial = false ;
+  kind = Any ;
+  feats = Feat.Map.empty ;
+  fen = false ;
+  sims = [] ;
+  nfeats = [] ;
+  nabs = [] ;
+  nfens = [] ;
+  nsims = [] ;
+}
 
 let get_info x c =
   let info = IVar.get c.info x in

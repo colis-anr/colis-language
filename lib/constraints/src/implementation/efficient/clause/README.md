@@ -7,6 +7,35 @@ The IVar module contains the definition of internal variables, as well as
 efficient maps from internal variables and maps from Var.t to internal
 variables.
 
+Feature Trees
+-------------
+
+### Model
+
+Let `F` be an infinite set of features. Let `V` be an infinite set of variables.
+Let `K` be a finite set of kinds containing at least `dir` and `reg`.
+
+The feature trees are defined by the following inductive definition:
+
+    FT ::= dir(F ~> FT) | reg | ...
+
+where `F ~> FT` denotes a partial function from `F` to `FT`.
+
+### Syntax & Semantics
+
+We say that `FT, ρ` is a model of a formula `ϕ`, with `ρ : V -> FT` written
+`FT, ρ ⊧ ϕ` if:
+
+|   `x = y`  | `ρ(x) = ρ(y)`                                             |
+|   `x[f]y`  | `ρ(x) = dir(m)` with `m(f) = ρ(y)`                        |
+|   `x[f]↑`  | equivalent to `¬(∃y⋅ x[f]y)` by definition                |
+| `x[f]yz…?` | equivalent to `x[f]↑ ∨ (x[f]y ∧ z=y ∧ ...)` by definition |
+|   `x[F]`   | `dom(ρ(x)) ⊆ F`                                           |
+|  `x ~F y`  | for all `f ∉ F`, `ρ(x)(f) = ρ(y)(f)`                      |
+|  `dir(x)`  | `ρ(x) = dir(_)`                                           |
+|  `reg(x)`  | `ρ(x) = reg`                                              |
+| …          | …                                                         |
+
 Notes on the different literals
 -------------------------------
 
