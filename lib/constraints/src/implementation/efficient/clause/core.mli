@@ -2,6 +2,12 @@
 
 open Constraints_common
 
+(** {2 Variable} *)
+
+type var
+
+val fresh_var : unit -> var
+
 (** {2 Information About a Variable} *)
 
 type info
@@ -10,7 +16,7 @@ type info
 type kind = Any | Neg of Kind.t list | Pos of Kind.t
 val get_kind : info -> kind
 
-type feat = DontKnow | Absent | Present of IVar.t | Maybe of IVar.t list
+type feat = DontKnow | Absent | Present of var | Maybe of var list
 val get_feat : Feat.t -> info -> feat option
 val set_feat : Feat.t -> feat -> info -> info
 val del_feat : Feat.t -> info -> info
@@ -19,20 +25,24 @@ val has_fen : info -> bool
 
 (** {2 Main Structure} *)
 
-type var
-
 type t
 (** Type of an irreducible existential clause. *)
+
+val empty : t
+(** Empty existential clause. That is, "true". *)
+
+val internalise : Constraints_common.Var.t -> t -> (var * t)
 
 val get_info : var -> t -> info
 
 (** {2 Global Helpers} *)
 
-val for_all_similar :
+val update_info_for_all_similarities :
   ?guard:(Feat.Set.t -> bool) ->
   (info -> info) ->
   info ->
   t -> t
-(** [for_all_similar ~guard upd info] takes a clause and applies the [upd]
-    function to all the info records of variables that are similar to the given
-    info (including it) when the guard accepts the similarity indice. *)
+(** [update_info_for_all_similarities ~guard upd info] takes a clause and
+    applies the [upd] function to all the info records of variables that are
+    similar to the given info (including it) when the guard accepts the
+    similarity indice. *)

@@ -4,7 +4,9 @@ type t = Core.t
 
 let true_ = Core.empty
 
-let quantify_over x c =
+let quantify_over _x c = Dnf.single c (* FIXME !!! *)
+
+(* let quantify_over x c =
   let c = { c with Core.globals = IVar.quantify_over x c.Core.globals } in
   (* Garbage collection. We first find all the variables that are accessible
      from global variables. This could be made much more efficient by keeping
@@ -82,14 +84,10 @@ let quantify_over x c =
   let c = Core.{ globals ; info } in
   (* Technically, we do not need to return a list. But that makes the interface
      more consistent. *)
-  [c]
-
-let internalise (x : Var.t) c =
-  let (x, globals, info) = IVar.internalise x c.Core.globals c.info Core.empty_info in
-  (x, Core.{ globals ; info })
+  [c] *)
 
 let with_internal x f c =
-  let (x, c) = internalise x c in
+  let (x, c) = Core.internalise x c in
   f x c
 
 let with_internal_2 x y f =
@@ -97,7 +95,7 @@ let with_internal_2 x y f =
   with_internal y @@ fun y ->
   f x y
 
-open Safe
+open Internal
 
 let eq x y =
   with_internal_2 x y @@ fun x y ->
@@ -118,6 +116,12 @@ let abs x f =
 let nabs x f =
   with_internal x @@ fun x ->
   nabs x f
+
+let maybe x f y =
+  with_internal_2 x y @@ fun x y ->
+  maybe x f y
+
+let nmaybe _x _f _y = not_implemented "nmaybe"
 
 let fen x fs =
   with_internal x @@ fun x ->

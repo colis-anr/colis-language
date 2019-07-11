@@ -1,5 +1,7 @@
 open Constraints_common
-open Dnf.Syntax
+
+exception NotImplemented of string
+let not_implemented s = raise (NotImplemented s)
 
 (* {2 Absence} *)
 
@@ -21,7 +23,7 @@ let abs x f c =
     | None when Core.has_fen info ->
       (* P-Abs + S-Abs-Fen*)
       Core.(
-        for_all_similar
+        update_info_for_all_similarities
         ~guard:(fun fs -> not (Feat.Set.mem f fs))
         (del_feat f)
         info c
@@ -30,7 +32,7 @@ let abs x f c =
     | None | Some DontKnow | Some (Maybe _) | Some Absent ->
       (* (S-Maybe-Abs) + P-Abs *)
       Core.(
-        for_all_similar
+        update_info_for_all_similarities
           ~guard:(fun fs -> not (Feat.Set.mem f fs))
           (set_feat f Absent)
           info c

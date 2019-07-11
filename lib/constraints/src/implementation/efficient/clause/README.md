@@ -36,6 +36,16 @@ We say that `FT, ρ` is a model of a formula `ϕ`, with `ρ : V -> FT` written
 |  `reg(x)`  | `ρ(x) = reg`                                              |
 | …          | …                                                         |
 
+### Remarks
+
+If `FT ⊧ ∀⋅∃y⋅ϕ` then
+
+    x[f]↑ ∨ ∃y⋅(x[f]y ∧ ϕ)
+
+and
+
+    ∃y⋅(x[f]y? ∧ ϕ)
+
 are equivalent.
 
 Rewriting System
@@ -50,6 +60,8 @@ Rewriting System
     {S-Abs-NDir}  x[f]↑ ∧ ¬dir(x) => ¬dir(x)
     {S-Abs-Kind}  x[f]↑ ∧ K(x)    => K(x)     (when K /= dir)
     {S-Abs-Fen}   x[f]↑ ∧ x[F]    => x[F\{f}]
+
+    {S-Maybe-Abs} x[f]y? . x[f]↑  => x[f]↑
 
 ### Propagation Rules
 
