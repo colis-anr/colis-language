@@ -36,6 +36,25 @@ We say that `FT, ρ` is a model of a formula `ϕ`, with `ρ : V -> FT` written
 |  `reg(x)`  | `ρ(x) = reg`                                              |
 | …          | …                                                         |
 
+are equivalent.
+
+Rewriting System
+----------------
+
+### Clash Rules
+
+    {C-Abs-Feat}  x[f]↑ ∧ x[f]y   => ⊥
+
+### Simplification Rules
+
+    {S-Abs-NDir}  x[f]↑ ∧ ¬dir(x) => ¬dir(x)
+    {S-Abs-Kind}  x[f]↑ ∧ K(x)    => K(x)     (when K /= dir)
+    {S-Abs-Fen}   x[f]↑ ∧ x[F]    => x[F\{f}]
+
+### Propagation Rules
+
+    {P-Abs}       x[f]↑ ∧ x ~F y  => x[f]↑ ∧ y[f]↑ ∧ x ~F y  (when f ∉ F)
+
 Notes on the different literals
 -------------------------------
 
