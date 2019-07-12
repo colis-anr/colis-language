@@ -41,3 +41,45 @@ let abs x f c =
     | Some (Present _) ->
       (* C-Abs-Feat *)
       Dnf.empty
+
+(** {2 Kind} *)
+
+let kind x k c =
+  let info = Core.get_info x c in
+  match Core.get_kind info with
+
+  | Pos l when k = l ->
+    Dnf.single c
+
+  | Pos _ ->
+    (* C-Kind-Kind *)
+    Dnf.empty
+
+  | Neg ls when List.mem k ls ->
+    (* C-Kind-NKind *)
+    Dnf.empty
+
+  | _ ->
+    (* (S-NKind-Kind) *)
+    match k with
+
+    | Dir ->
+      Core.(
+        info
+        |> set_kind (Pos Dir)
+        |> set_info x c
+        |> Dnf.single
+      )
+
+    | _ ->
+      Core.(
+        info
+        |> del_feats     (* S-Abs-Kind, S-Maybe-Kind *)
+        |> del_nfeats    (* S-NFeat-Kind *)
+        |> del_nfens     (* S-NFen-Kind *)
+        |> set_info x c
+        |> del_nsims x   (* S-NSim-Kind *)
+        |> Dnf.single
+      )
+
+let dir x = kind x Kind.Dir

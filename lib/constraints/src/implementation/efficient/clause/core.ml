@@ -80,6 +80,28 @@ let get_info x c =
   in
   { (get_info x) with initial = false }
 
+let set_info x c info =
+  let rec set_info x =
+    match IMap.find x c.info with
+    | Info _ -> IMap.add x (Info info) c.info
+    | Son y -> set_info y
+  in
+  { c with info = set_info x }
+
+let update_info x c f =
+  get_info x c |> f |> set_info x c
+
 (** {2 Info Helpers} *)
 
 let has_fen info = info.fen
+
+let del_nsim x y c = (* order of the arguments? *)
+  update_info x c @@ fun info ->
+  { info with nsims = List.filter (fun (_, z) -> z <> y) info.nsims }
+
+let del_nsims x c =
+  let info = get_info x c in
+  List.fold_left
+    (fun c (_, y) -> del_nsim y x c)
+    (set_info x c { info with nsims = [] })
+    info.nsims

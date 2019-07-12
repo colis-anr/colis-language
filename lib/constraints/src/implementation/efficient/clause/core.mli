@@ -15,13 +15,18 @@ type info
 
 type kind = Any | Neg of Kind.t list | Pos of Kind.t
 val get_kind : info -> kind
+val set_kind : kind -> info -> info
 
 type feat = DontKnow | Absent | Present of var | Maybe of var list
 val get_feat : Feat.t -> info -> feat option
 val set_feat : Feat.t -> feat -> info -> info
 val del_feat : Feat.t -> info -> info
+val del_feats : info -> info
 
 val has_fen : info -> bool
+
+val del_nfeats : info -> info
+val del_nfens : info -> info
 
 (** {2 Main Structure} *)
 
@@ -34,6 +39,9 @@ val empty : t
 val internalise : Constraints_common.Var.t -> t -> (var * t)
 
 val get_info : var -> t -> info
+val set_info : var -> t -> info -> t
+
+val del_nsims : var -> t -> t
 
 (** {2 Global Helpers} *)
 
