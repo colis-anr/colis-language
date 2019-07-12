@@ -48,24 +48,83 @@ and
 
 are equivalent.
 
+### Macros
+
+#### Resolve
+
+Defined using an auxiliary macro:
+
+    resolve_s(x,   π,    ε, z) = x = z
+    resolve_s(x,   π,  ./q, z) = resolve_s(x, π, q, z)
+    resolve_s(x,   ε, ../q, z) = resolve_s(x, ε, q, z)
+    resolve_s(x, y⋅π, ../q, z) = resolve_s(y, π, q, z)
+    resolve_s(x,   π,  f/q, z) = ∃y⋅(x[f]y ∧ resolve_s(y, x⋅π, q, z))
+
+And then `resolve` is only a small wrapper:
+
+    resolve(x, cwd, abs(q), z) = resolve_s(x, [],     q, z)
+    resolve(x, cwd, rel(q), z) = resolve_s(x, [], cwd/q, z)
+
+#### Noresolve
+
+Defined using an auxiliary macro:
+
+    noresolve_s(x,   π,    ε) = ⊥
+    noresolve_s(x,   π,  f  ) = x[f]↑
+    noresolve_s(x,   π,  ./q) = noresolve_s(x, π, q)
+    noresolve_s(x,   ε, ../q) = noresolve_s(x, ε, q)
+    noresolve_s(x, y⋅π, ../q) = ¬dir(x) ∨ noresolve_s(y, π, q)
+    noresolve_s(x,   π,  f/q) = ∃y⋅(x[f]y? ∧ noresolve_s(x, y⋅π, q))
+
+We can do something more clever with the `..`. For instance, we could have:
+
+    noresolve_s(x, π, f/../q) =
+
 Rewriting System
 ----------------
 
 ### Clash Rules
 
-    {C-Abs-Feat}  x[f]↑ ∧ x[f]y   => ⊥
+    {C-Abs-Feat}    x[f]↑ ∧ x[f]y    => ⊥
+    {C-Kind-NKind}  K(x) ∧ ¬K(x)     => ⊥
+    {C-Kind-Kind}   K(x) ∧ L(x)      => ⊥                 (when K ≠ L)
+
+### Directory Rules
+
+    {D-Feat}        x[f]y            => x[f]y     ∧ dir(x)
+    {D-Fen}         x[F]             => x[F]      ∧ dir(x)
+    {D-Sim}         x ~F y           => x ~F y    ∧ dir(x)
+
+Also, the two following, but not sure if we want them. Because we will probably
+use the rules R-NAbs and R-NMaybe instead.
+
+    {D-NAbs}        ¬x[f]↑           => ¬x[f]↑    ∧ dir(x)
+    {D-NMaybe}      ¬x[f]yz…?        => ¬x[f]yz…? ∧ dir(x)
 
 ### Simplification Rules
 
-    {S-Abs-NDir}  x[f]↑ ∧ ¬dir(x) => ¬dir(x)
-    {S-Abs-Kind}  x[f]↑ ∧ K(x)    => K(x)     (when K /= dir)
-    {S-Abs-Fen}   x[f]↑ ∧ x[F]    => x[F\{f}]
+    {S-Abs-NDir}    x[f]↑ ∧ ¬dir(x)    => ¬dir(x)
+    {S-Abs-Kind}    x[f]↑ ∧    K(x)    =>    K(x)         (when K ≠ dir)
+    {S-Abs-Fen}     x[f]↑ ∧ x[F]       => x[F\{f}]
 
-    {S-Maybe-Abs} x[f]y? . x[f]↑  => x[f]↑
+    {S-Maybe-Abs}   x[f]yz…? ∧ x[f]↑   => x[f]↑
+    {S-Maybe-NDir}  x[f]yz…? ∧ ¬dir(x) => ¬dir(x)
+    {S-Maybe-Kind}  x[f]yz…? ∧    K(x) =>    K(x)
+
+    {S-NKind-Kind}  ¬K(x) ∧ L(x)       => L(x)         (when K ≠ L)
+
+    {S-NFeat-NDir}  ¬x[f]y ∧ ¬dir(x)   => ¬dir(x)
+    {S-NFeat-Kind}  ¬x[f]y ∧    K(x)   =>    K(x)      (when K ≠ dir)
+
+    {S-NFen-NDir}   ¬x[F] ∧ ¬dir(x)    => ¬dir(x)
+    {S-NFen-Kind}   ¬x[F] ∧    K(x)    =>    K(x)      (when K ≠ dir)
+
+    {S-NSim-NDir}   x ≁F y ∧ ¬dir(x)   => ¬dir(x)
+    {S-NSim-Kind}   x ≁F y ∧    K(x)   =>    K(x)      (when K ≠ dir)
 
 ### Propagation Rules
 
-    {P-Abs}       x[f]↑ ∧ x ~F y  => x[f]↑ ∧ y[f]↑ ∧ x ~F y  (when f ∉ F)
+    {P-Abs}         x[f]↑ ∧ x ~F y   => x[f]↑ ∧ y[f]↑ ∧ x ~F y      (when f ∉ F)
 
 Notes on the different literals
 -------------------------------
