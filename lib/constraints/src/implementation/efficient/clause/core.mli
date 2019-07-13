@@ -25,7 +25,6 @@ val del_feats : info -> info
 
 val has_fen : info -> bool
 
-val del_nfeats : info -> info
 val del_nfens : info -> info
 
 (** {2 Main Structure} *)

@@ -14,25 +14,23 @@ let fresh_var =
 
 type kind =
   | Any
-  | Neg of Kind.t list
+  | Neg of Kind.t list (* uniques, sorted, less than (#kinds - 1) elements *)
   | Pos of Kind.t
 
 type feat =
   | DontKnow
   | Absent
-  | Present of var
+  | Present of var    (* implies dir *)
   | Maybe of var list
 
 type info = {
   initial : bool ;
   kind : kind ;
   feats : feat Feat.Map.t ;
-  fen : bool ;                         (* => dir *)
-  sims : (Feat.Set.t * var) list ;  (* => dir *)
-  nfeats : (Feat.t * var) list ;    (* => ¬ dir *)
-  nabs : Feat.t list ;                 (* => ¬ dir *)
-  nfens : Feat.Set.t list ;            (* => ¬ dir *)
-  nsims : (Feat.Set.t * var) list ; (* => ¬ dir *)
+  fen : bool ;                      (* implies dir *)
+  sims : (Feat.Set.t * var) list ;  (* max 1 for each variable, implies dir *)
+  nfens : Feat.Set.t list ;         (* only if not "not dir" *)
+  nsims : (Feat.Set.t * var) list ; (* only if not "not dir" *)
 }
 
 type info_or_son = Info of info | Son of var
@@ -57,8 +55,6 @@ let empty_info = {
   feats = Feat.Map.empty ;
   fen = false ;
   sims = [] ;
-  nfeats = [] ;
-  nabs = [] ;
   nfens = [] ;
   nsims = [] ;
 }
@@ -95,7 +91,10 @@ let update_info x c f =
 
 let has_fen info = info.fen
 
-let del_nsim x y c = (* order of the arguments? *)
+let del_nfens info =
+  { info with nfens = [] }
+
+let del_nsim x y c = (* FIXME: order of the arguments? *)
   update_info x c @@ fun info ->
   { info with nsims = List.filter (fun (_, z) -> z <> y) info.nsims }
 

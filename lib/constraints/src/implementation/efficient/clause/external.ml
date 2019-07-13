@@ -107,15 +107,17 @@ let feat x f y =
   with_internal_2 x y @@ fun x y ->
   feat x f y
 
-let nfeat _x _f _y = not_implemented "nfeat"
+let nfeat _x _f _y =
+  (* exists @@ fun z -> maybe x f z & neq y z *)
+  not_implemented "nfeat"
 
 let abs x f =
   with_internal x @@ fun x ->
   abs x f
 
-let nabs x f =
-  with_internal x @@ fun x ->
-  nabs x f
+let nabs _x _f =
+  (* exists @@ fun z -> feat x f z *)
+  not_implemented "nabs"
 
 let maybe x f y =
   with_internal_2 x y @@ fun x y ->
