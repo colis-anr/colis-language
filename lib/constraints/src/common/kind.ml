@@ -15,7 +15,7 @@ let equal = (=)
 let compare = compare
 
 let all =
-  [Reg; Dir; Char; Sock; Pipe; Symlink]
+  [Reg; Dir; Char; Sock; Pipe; Symlink; Block]
   |> List.sort compare
 
 let nb_all = List.length all
