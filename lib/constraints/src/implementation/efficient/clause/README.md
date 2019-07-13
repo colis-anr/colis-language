@@ -95,36 +95,38 @@ Rewriting System
     {D-Fen}         x[F]             => x[F]      ∧ dir(x)
     {D-Sim}         x ~F y           => x ~F y    ∧ dir(x)
 
-Also, the two following, but not sure if we want them. Because we will probably
-use the rules R-NAbs and R-NMaybe instead.
-
-    {D-NAbs}        ¬x[f]↑           => ¬x[f]↑    ∧ dir(x)
-    {D-NMaybe}      ¬x[f]yz…?        => ¬x[f]yz…? ∧ dir(x)
-
 ### Simplification Rules
 
-    {S-Abs-NDir}    x[f]↑ ∧ ¬dir(x)    => ¬dir(x)
-    {S-Abs-Kind}    x[f]↑ ∧    K(x)    =>    K(x)         (when K ≠ dir)
-    {S-Abs-Fen}     x[f]↑ ∧ x[F]       => x[F\{f}]
+    {S-Abs-NDir}       x[f]↑ ∧ ¬dir(x) => ¬dir(x)
+    {S-Abs-Kind}       x[f]↑ ∧ K(x)    => K(x)         (when K ≠ dir)
+    {S-Abs-Fen}        x[f]↑ ∧ x[F]    => x[F\{f}]
 
     {S-Maybe-Abs}   x[f]yz…? ∧ x[f]↑   => x[f]↑
     {S-Maybe-NDir}  x[f]yz…? ∧ ¬dir(x) => ¬dir(x)
-    {S-Maybe-Kind}  x[f]yz…? ∧    K(x) =>    K(x)
+    {S-Maybe-Kind}  x[f]yz…? ∧ K(x)    => K(x)
+    {S-Maybe-Fen}   x[f]yz…? ∧ x[F]    => x[F]         (when f ∉ F)
 
-    {S-NKind-Kind}  ¬K(x) ∧ L(x)       => L(x)         (when K ≠ L)
+    {S-NKind-Kind}     ¬K(x) ∧ L(x)    => L(x)         (when K ≠ L)
 
-    {S-NFeat-NDir}  ¬x[f]y ∧ ¬dir(x)   => ¬dir(x)
-    {S-NFeat-Kind}  ¬x[f]y ∧    K(x)   =>    K(x)      (when K ≠ dir)
+    {S-NFen-NDir}      ¬x[F] ∧ ¬dir(x) => ¬dir(x)
+    {S-NFen-Kind}      ¬x[F] ∧ K(x)    => K(x)         (when K ≠ dir)
 
-    {S-NFen-NDir}   ¬x[F] ∧ ¬dir(x)    => ¬dir(x)
-    {S-NFen-Kind}   ¬x[F] ∧    K(x)    =>    K(x)      (when K ≠ dir)
-
-    {S-NSim-NDir}   x ≁F y ∧ ¬dir(x)   => ¬dir(x)
-    {S-NSim-Kind}   x ≁F y ∧    K(x)   =>    K(x)      (when K ≠ dir)
+    {S-NSim-NDir}     x ≁F y ∧ ¬dir(x) => ¬dir(x)
+    {S-NSim-Kind}     x ≁F y ∧ K(x)    => K(x)         (when K ≠ dir)
 
 ### Propagation Rules
 
-    {P-Abs}         x[f]↑ ∧ x ~F y   => x[f]↑ ∧ y[f]↑ ∧ x ~F y      (when f ∉ F)
+    {P-Feat}           x[f]y ∧ x ~F x' =>    x[f]y ∧    x'[f]y   ∧ x ~F x'   (when f ∉ F)
+    {P-Abs}            x[f]↑ ∧ x ~F x' =>    x[f]↑ ∧    x'[f]↑   ∧ x ~F x'   (when f ∉ F)
+    {P-Maybe}       x[f]yz…? ∧ x ~F x' => x[f]yz…? ∧  x'[f]yz…?  ∧ x ~F x'   (when f ∉ F)
+    {P-Fen}             x[G] ∧ x ~F x' =>     x[G] ∧   x'[F∪G]   ∧ x ~F x'
+    {P-Sim}           x ~G y ∧ x ~F x' =>   x ~G y ∧ x' ~(F∪G) y ∧ x ~F x'
+
+### Replacement Rules
+
+    {R-NFeat}       ¬x[f]y => x[f]↑ ∨ ∃z⋅(x[f]z ∧ y ≠ z)
+    {R-NFeat'}      ¬x[f]y => ∃z⋅(x[f]z? ∧ y ≠ z)
+    {R-NAbs}        ¬x[f]↑ => ∃z⋅x[f]z
 
 Notes on the different literals
 -------------------------------
