@@ -7,8 +7,8 @@ let not_implemented s = raise (NotImplemented s)
 
 let abs x f c =
   let info = Core.get_info x c in
-  match Core.get_kind info with
 
+  match Core.get_kind info with
   | Pos k when k <> Kind.Dir ->
     (* S-Abs-Kind *)
     Dnf.single c
@@ -44,25 +44,32 @@ let abs x f c =
 
 (** {2 Kind} *)
 
+let unsafe_kind_not_dir x info k c =
+  Core.(
+    info
+    |> del_feats     (* S-Abs-NDir, S-Maybe-NDir *)
+    |> del_nfens     (* S-NFen-NDir *)
+    |> set_kind k
+    |> set_info x c
+    |> del_nsims x   (* S-NSim-NDir *)
+    |> Dnf.single
+  )
+
 let kind x k c =
   let info = Core.get_info x c in
-  match Core.get_kind info with
 
+  match Core.get_kind info with
   | Pos l when k = l ->
     Dnf.single c
 
   | Pos _ ->
-    (* C-Kind-Kind *)
-    Dnf.empty
+    Dnf.empty (* C-Kind-Kind *)
 
   | Neg ls when List.mem k ls ->
-    (* C-Kind-NKind *)
-    Dnf.empty
+    Dnf.empty (* C-Kind-NKind *)
 
-  | _ ->
-    (* (S-NKind-Kind) *)
+  | _ -> (* (S-NKind-Kind) *)
     match k with
-
     | Dir ->
       Core.(
         info
@@ -72,14 +79,66 @@ let kind x k c =
       )
 
     | _ ->
-      Core.(
-        info
-        |> del_feats     (* S-Abs-Kind, S-Maybe-Kind *)
-        |> del_nfeats    (* S-NFeat-Kind *)
-        |> del_nfens     (* S-NFen-Kind *)
-        |> set_info x c
-        |> del_nsims x   (* S-NSim-Kind *)
-        |> Dnf.single
-      )
+      unsafe_kind_not_dir x info (Pos k) c
 
 let dir x = kind x Kind.Dir
+
+let missing_kind ls =
+  let rec missing_kind = function
+    | l :: ls, k :: ks when Kind.equal l k ->
+      missing_kind (ls, ks)
+    | _, k :: _ ->
+      k
+    | _ ->
+      assert false
+  in
+  missing_kind (ls, Kind.all)
+
+let nkind x k c =
+  let info = Core.get_info x c in
+
+  match Core.get_kind info with
+  | Pos l when k = l ->
+    Dnf.empty (* C-Kind-NKind *)
+
+  | Pos _ ->
+    Dnf.single c (* S-NKind-Kind *)
+
+  | Neg ls when List.mem k ls ->
+    Dnf.single c
+
+  | Neg ls ->
+    (
+      let ls = ExtList.insert_uniq_sorted Kind.compare k ls in
+
+      if List.length ls = Kind.nb_all - 1 then
+        kind x (missing_kind ls) c
+
+      else
+        match k with
+        | Kind.Dir ->
+          unsafe_kind_not_dir x info (Neg ls) c
+
+        | _ ->
+          Core.(
+            info
+            |> set_kind (Neg ls)
+            |> set_info x c
+            |> Dnf.single
+          )
+    )
+
+  | Any ->
+    (
+      match k with
+      | Kind.Dir ->
+        unsafe_kind_not_dir x info (Neg [Dir]) c
+
+      | _ ->
+        Core.(
+          info
+          |> set_kind (Neg [k])
+          |> set_info x c
+          |> Dnf.single
+        )
+    )
