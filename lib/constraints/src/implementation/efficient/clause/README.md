@@ -90,6 +90,9 @@ Rewriting System
     {C-Kind-NKind}  K(x) ∧ ¬K(x)     => ⊥
     {C-Kind-Kind}   K(x) ∧ L(x)      => ⊥                 (when K ≠ L)
 
+    {C-NEq-Refl}    x ≠ x            => ⊥
+    {C-NSim-Refl}   x ≁F x           => ⊥
+
 ### Directory Rules
 
     {D-Feat}        x[f]y            => x[f]y     ∧ dir(x)
@@ -97,6 +100,8 @@ Rewriting System
     {D-Sim}         x ~F y           => x ~F y    ∧ dir(x)
 
 ### Simplification Rules
+
+    {S-Eq-Refl}                x = x   => ⊤
 
     {S-Abs-NDir}       x[f]↑ ∧ ¬dir(x) => ¬dir(x)
     {S-Abs-Kind}       x[f]↑ ∧ K(x)    => K(x)         (when K ≠ dir)
@@ -106,6 +111,8 @@ Rewriting System
     {S-Maybe-NDir}  x[f]yz…? ∧ ¬dir(x) => ¬dir(x)
     {S-Maybe-Kind}  x[f]yz…? ∧ K(x)    => K(x)
     {S-Maybe-Fen}   x[f]yz…? ∧ x[F]    => x[F]         (when f ∉ F)
+
+    {S-Sim-Refl}               x ~F x  => ⊤
 
     {S-NKind-Kind}     ¬K(x) ∧ L(x)    => L(x)         (when K ≠ L)
 

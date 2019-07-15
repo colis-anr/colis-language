@@ -1,16 +1,11 @@
 open Constraints_common
 
-(** {2 Variable} *)
+exception NotImplemented of string
+let not_implemented s = raise (NotImplemented s)
+
+(** {2 Main Structure} *)
 
 type var = int
-
-module IMap = Map.Make(struct type t = int let compare = compare end)
-
-let fresh_var =
-  let c = ref 0 in
-  fun () -> incr c; !c
-
-(** {2 Structure} *)
 
 type kind =
   | Any
@@ -33,6 +28,7 @@ type info = {
   nsims : (Feat.Set.t * var) list ; (* only if not "not dir" *)
 }
 
+module IMap = Map.Make(struct type t = int let compare = compare end)
 type info_or_son = Info of info | Son of var
 
 type t = {
@@ -59,7 +55,24 @@ let empty_info = {
   nsims = [] ;
 }
 
+let fresh_var =
+  let c = ref 0 in
+  fun () -> incr c; !c
+
 (** *)
+
+let find_ancestor_and_info x c =
+  let rec find_ancestor_and_info x =
+    match IMap.find x c.info with
+    | Info info -> (x, info)
+    | Son y -> find_ancestor_and_info y
+  in
+  find_ancestor_and_info x
+
+let equal x y c =
+  let (ax, _) = find_ancestor_and_info x c in
+  let (ay, _) = find_ancestor_and_info y c in
+  ax = ay
 
 let internalise x c =
   match Var.Map.find_opt x c.globals with
@@ -69,12 +82,8 @@ let internalise x c =
   | Some x' -> (x', c)
 
 let get_info x c =
-  let rec get_info x =
-    match IMap.find x c.info with
-    | Info info -> info
-    | Son y -> get_info y
-  in
-  { (get_info x) with initial = false }
+  let (_, info) = find_ancestor_and_info x c in
+  { info with initial = false }
 
 let set_info x c info =
   let rec set_info x =
@@ -103,6 +112,14 @@ let set_fen info = { info with fen = true }
 
 let remove_nfens info =
   { info with nfens = [] }
+
+let not_implemented_nfens info =
+  if info.nfens <> [] then
+    not_implemented "nfens"
+
+let not_implemented_nsims info =
+  if info.nsims <> [] then
+    not_implemented "nsims"
 
 let remove_nsim x y c = (* FIXME: order of the arguments? *)
   update_info x c @@ fun info ->
