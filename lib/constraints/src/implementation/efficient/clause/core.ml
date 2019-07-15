@@ -91,16 +91,16 @@ let update_info x c f =
 
 let has_fen info = info.fen
 
-let del_nfens info =
+let remove_nfens info =
   { info with nfens = [] }
 
-let del_nsim x y c = (* FIXME: order of the arguments? *)
+let remove_nsim x y c = (* FIXME: order of the arguments? *)
   update_info x c @@ fun info ->
   { info with nsims = List.filter (fun (_, z) -> z <> y) info.nsims }
 
-let del_nsims x c =
+let remove_nsims x c =
   let info = get_info x c in
   List.fold_left
-    (fun c (_, y) -> del_nsim y x c)
+    (fun c (_, y) -> remove_nsim y x c)
     (set_info x c { info with nsims = [] })
     info.nsims

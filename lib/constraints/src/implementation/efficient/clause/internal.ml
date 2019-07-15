@@ -47,11 +47,11 @@ let abs x f c =
 let unsafe_kind_not_dir x info k c =
   Core.(
     info
-    |> del_feats     (* S-Abs-NDir, S-Maybe-NDir *)
-    |> del_nfens     (* S-NFen-NDir *)
+    |> remove_all_feats     (* S-Abs-NDir, S-Maybe-NDir *)
+    |> remove_nfens     (* S-NFen-NDir *)
     |> set_kind k
     |> set_info x c
-    |> del_nsims x   (* S-NSim-NDir *)
+    |> remove_nsims x   (* S-NSim-NDir *)
     |> Dnf.single
   )
 
