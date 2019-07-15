@@ -85,6 +85,7 @@ Rewriting System
 
 ### Clash Rules
 
+    {C-Feat-Fen}    x[f]y ∧ x[F]     => ⊥       (when f ∉ F)
     {C-Abs-Feat}    x[f]↑ ∧ x[f]y    => ⊥
     {C-Kind-NKind}  K(x) ∧ ¬K(x)     => ⊥
     {C-Kind-Kind}   K(x) ∧ L(x)      => ⊥                 (when K ≠ L)

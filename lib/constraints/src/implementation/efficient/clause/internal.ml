@@ -1,7 +1,10 @@
 open Constraints_common
+open Dnf.Syntax
 
 exception NotImplemented of string
 let not_implemented s = raise (NotImplemented s)
+
+let do_nothing x = x (* fancy name for identity *)
 
 (* {2 Absence} *)
 
@@ -24,18 +27,20 @@ let abs x f c =
       (* P-Abs + S-Abs-Fen*)
       Core.(
         update_info_for_all_similarities
-        ~guard:(fun fs -> not (Feat.Set.mem f fs))
-        (del_feat f)
-        info c
+          (fun fs -> if Feat.Set.mem f fs
+            then do_nothing
+            else remove_feat f)
+          x info c
       ) |> Dnf.single
 
     | None | Some DontKnow | Some (Maybe _) | Some Absent ->
       (* (S-Maybe-Abs) + P-Abs *)
       Core.(
         update_info_for_all_similarities
-          ~guard:(fun fs -> not (Feat.Set.mem f fs))
-          (set_feat f Absent)
-          info c
+          (fun fs -> if Feat.Set.mem f fs
+            then do_nothing
+            else set_feat f Absent)
+          x info c
       ) |> Dnf.single
 
     | Some (Present _) ->
@@ -142,3 +147,32 @@ let nkind x k c =
           |> Dnf.single
         )
     )
+
+(* {2 Fence} *)
+
+let fen x fs c =
+  dir x c >>= fun c -> (* D-Fen *)
+  let info = Core.get_info x c in
+  (* Check that feats are either in the fence or outside but compatible. *)
+  let ok =
+    Core.for_all_feats
+      (fun f t ->
+         Feat.Set.mem f fs ||
+         match t with
+         | DontKnow | Absent | Maybe _ -> true
+         | Present _ -> false (* C-Feat-Fen *))
+      info
+  in
+  if not ok then
+    Dnf.empty
+  else
+    Core.(
+      update_info_for_all_similarities
+        (fun gs info ->
+           let hs = Feat.Set.union fs gs in
+           info
+           |> remove_feats (fun f -> not (Feat.Set.mem f hs)) (* S-Abs-Fen, S-Maybe-Fen *)
+           |> Feat.Set.fold (fun f -> Core.set_feat_if_none f DontKnow) hs
+           |> set_fen)
+        x info c
+    ) |> Dnf.single

@@ -89,7 +89,17 @@ let update_info x c f =
 
 (** {2 Info Helpers} *)
 
+let get_feat f info = Feat.Map.find f info.feats
+let set_feat f t info = { info with feats = Feat.Map.add f t info.feats }
+let set_feat_if_none f t info = { info with feats = Feat.Map.update f (function Some t -> Some t | None -> Some t) info.feats }
+let for_all_feats p info = Feat.Map.for_all p info.feats
+let remove_feat f info = { info with feats = Feat.Map.remove f info.feats }
+let remove_feats p info = { info with feats = Feat.Map.filter (fun f _ -> p f) info.feats }
+let remove_all_feats info = { info with feats = Feat.Map.empty }
+
 let has_fen info = info.fen
+
+let set_fen info = { info with fen = true }
 
 let remove_nfens info =
   { info with nfens = [] }
@@ -104,3 +114,10 @@ let remove_nsims x c =
     (fun c (_, y) -> remove_nsim y x c)
     (set_info x c { info with nsims = [] })
     info.nsims
+
+let update_info_for_all_similarities upd x info c =
+  List.fold_left
+    (fun c (fs, z) ->
+       update_info z c (upd fs z))
+    (set_info x c (upd Feat.Set.empty x info))
+    info.sims

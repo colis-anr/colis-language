@@ -20,10 +20,14 @@ val set_kind : kind -> info -> info
 type feat = DontKnow | Absent | Present of var | Maybe of var list
 val get_feat : Feat.t -> info -> feat option
 val set_feat : Feat.t -> feat -> info -> info
+val set_feat_if_none : Feat.t -> feat -> info -> info
 val remove_feat : Feat.t -> info -> info
 val remove_feats : (Feat.t -> bool) -> info -> info
+val remove_all_feats : info -> info
+val for_all_feats : (Feat.t -> feat -> bool) -> info -> bool
 
 val has_fen : info -> bool
+val set_fen : info -> info
 
 val remove_nfens : info -> info
 
@@ -45,11 +49,8 @@ val remove_nsims : var -> t -> t
 (** {2 Global Helpers} *)
 
 val update_info_for_all_similarities :
-  ?guard:(Feat.Set.t -> bool) ->
-  (info -> info) ->
-  info ->
-  t -> t
-(** [update_info_for_all_similarities ~guard upd info] takes a clause and
+  (Feat.Set.t -> info -> info) ->
+  var -> info -> t -> t
+(** [update_info_for_all_similarities upd x info] takes a clause and
     applies the [upd] function to all the info records of variables that are
-    similar to the given info (including it) when the guard accepts the
-    similarity indice. *)
+    similar to the given info (including it). *)
