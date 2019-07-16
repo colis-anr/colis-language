@@ -103,24 +103,30 @@ Rewriting System
 
     {S-Eq-Refl}                x = x   => ⊤
 
+    {S-Feats}          x[f]y ∧ x[f]z   => x[f]y ∧ y = z
+
     {S-Abs-NDir}       x[f]↑ ∧ ¬dir(x) => ¬dir(x)
-    {S-Abs-Kind}       x[f]↑ ∧ K(x)    => K(x)         (when K ≠ dir)
+    {S-Abs-Kind}       x[f]↑ ∧ K(x)    => K(x)          (when K ≠ dir)
     {S-Abs-Fen}        x[f]↑ ∧ x[F]    => x[F\{f}]
 
+    {S-Maybe-Feat}  x[f]yz…? ∧ x[f]w   => x[f]w ∧ w = y ∧ w = z ∧ …
     {S-Maybe-Abs}   x[f]yz…? ∧ x[f]↑   => x[f]↑
     {S-Maybe-NDir}  x[f]yz…? ∧ ¬dir(x) => ¬dir(x)
     {S-Maybe-Kind}  x[f]yz…? ∧ K(x)    => K(x)
-    {S-Maybe-Fen}   x[f]yz…? ∧ x[F]    => x[F]         (when f ∉ F)
+    {S-Maybe-Fen}   x[f]yz…? ∧ x[F]    => x[F]          (when f ∉ F)
 
     {S-Sim-Refl}               x ~F x  => ⊤
 
-    {S-NKind-Kind}     ¬K(x) ∧ L(x)    => L(x)         (when K ≠ L)
+    {S-NEq-Kind}        K(x) ∧ x ≠ y   => K(x) ∧ ¬K(y)  (when K ≠ dir)
+    {S-NEq-Dir}       dir(x) ∧ x ≠ y   => dir(x) ∧ (¬dir(y) ∨ x ≁∅ y)
+
+    {S-NKind-Kind}     ¬K(x) ∧ L(x)    => L(x)          (when K ≠ L)
 
     {S-NFen-NDir}      ¬x[F] ∧ ¬dir(x) => ¬dir(x)
-    {S-NFen-Kind}      ¬x[F] ∧ K(x)    => K(x)         (when K ≠ dir)
+    {S-NFen-Kind}      ¬x[F] ∧ K(x)    => K(x)          (when K ≠ dir)
 
     {S-NSim-NDir}     x ≁F y ∧ ¬dir(x) => ¬dir(x)
-    {S-NSim-Kind}     x ≁F y ∧ K(x)    => K(x)         (when K ≠ dir)
+    {S-NSim-Kind}     x ≁F y ∧ K(x)    => K(x)          (when K ≠ dir)
 
 ### Propagation Rules
 

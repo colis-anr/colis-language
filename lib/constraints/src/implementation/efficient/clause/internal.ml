@@ -13,7 +13,7 @@ let implied_by_ndir info c cont =
   | Neg ks when List.mem Kind.Dir ks -> Dnf.single c (* S-*-NDir *)
   | _ -> cont ()
 
-(* {2 Absence} *)
+(** {2 Absence} *)
 
 let abs x f c =
   let info = Core.get_info x c in
@@ -137,7 +137,7 @@ let nkind x k c =
         )
     )
 
-(* {2 Fence} *)
+(** {2 Fence} *)
 
 let fen x fs c =
   dir x c >>= fun c -> (* D-Fen *)
@@ -165,7 +165,31 @@ let fen x fs c =
   else
     Dnf.empty
 
-(* {2 Similarity} *)
+(** {2 Feature} *)
+
+let feat x f y c =
+  dir x c >>= fun c ->
+  let info = Core.get_info x c in
+  match Core.get_feat f info with
+  | None when Core.has_fen info -> Dnf.empty (* C-Feat-Fen *)
+  | Some Absent -> Dnf.empty (* C-Abs-Feat *)
+  | None | Some DontKnow ->
+    info
+    |> Core.set_feat f (Present y)
+    |> Core.set_info x c
+    |> Dnf.single
+  | Some (Present z) ->
+    eq y z c
+  | Some (Maybe zs) ->
+    List.fold_left
+      (fun c z -> eq y z =<< c)       (* S-Maybe-Feat *)
+      (info
+       |> Core.set_feat f (Present y) (* S-Maybe-Feat *)
+       |> Core.set_info x c
+       |> Dnf.single)
+      zs
+
+(** {2 Similarity} *)
 
 let unsafe_sim x fs y c =
   Core.update_info x c @@ fun info ->
