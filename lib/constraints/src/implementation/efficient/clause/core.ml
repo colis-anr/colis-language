@@ -40,6 +40,60 @@ type t = {
   info : info_or_son IMap.t ;
 }
 
+let pp_debug fmt c =
+  let fpf = Format.fprintf in
+  let pp_globals fmt =
+    Var.Map.iter (fpf fmt "%a -> %d@\n" Var.pp)
+  in
+  let pp_eqs fmt =
+    IMap.iter (fun x -> function
+        | Son y -> fpf fmt "%d -> %d@\n" x y
+        | Info _ -> ())
+  in
+  let pp_info fmt info =
+    fpf fmt "initial: %b@\n" info.initial;
+    fpf fmt "kind: ";
+    (match info.kind with
+     | Any -> fpf fmt "*"
+     | Neg ks -> fpf fmt "¬"; Format.pp_print_list ~pp_sep:(fun fmt () -> fpf fmt ", ¬") Kind.pp fmt ks
+     | Pos k -> Kind.pp fmt k);
+    fpf fmt "@\n";
+    fpf fmt "feats:@\n";
+    Feat.Map.iter
+      (fun f t ->
+         fpf fmt "  %a -> " Feat.pp f;
+         (match t with
+          | DontKnow -> fpf fmt "?"
+          | Absent -> fpf fmt "X"
+          | Present y -> fpf fmt "%d" y
+          | Maybe ys -> fpf fmt "maybe: "; Format.pp_print_list ~pp_sep:(fun fmt () -> fpf fmt ", ") Format.pp_print_int fmt ys);
+         fpf fmt "@\n")
+      info.feats;
+    fpf fmt "fen: %b@\n" info.fen;
+    fpf fmt "sims:@\n";
+    List.iter
+      (fun (fs, z) ->
+         fpf fmt "  ~%a %d@\n" Feat.Set.pp fs z)
+      info.sims;
+    fpf fmt "nfens:@\n";
+    List.iter
+      (fun fs ->
+         fpf fmt "  ¬%a@\n" Feat.Set.pp fs)
+      info.nfens;
+    fpf fmt "nsims:@\n";
+    List.iter
+      (fun (fs, z) ->
+         fpf fmt "  ¬~%a %d@\n" Feat.Set.pp fs z)
+      info.nsims
+  in
+  let pp_infos fmt =
+    IMap.iter (fun x -> function
+        | Son _ -> ()
+        | Info info -> fpf fmt "@[<h 2>%d:@\n%a@]@\n" x pp_info info)
+  in
+  fpf fmt "@[<h 2>globals:@\n%a@]@\n@[<h 2>equalities:@\n%a@]@\n@[<h 2>info:@\n%a@]"
+    pp_globals c.globals pp_eqs c.info pp_infos c.info
+
 let empty = {
   globals = Var.Map.empty ;
   info = IMap.empty

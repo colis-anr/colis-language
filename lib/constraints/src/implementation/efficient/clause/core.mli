@@ -127,3 +127,5 @@ val not_implemented_nsims : info -> unit
     FIXME *)
 
 val not_implemented : string -> 'a
+
+val pp_debug : Format.formatter -> t -> unit
