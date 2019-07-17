@@ -255,9 +255,9 @@ and sim x fs y c =
     unsafe_sim x fs y c
     |> Dnf.single
   in
-  transfer_info_but_sims x info_x fs y c >>= fun c ->
+  transfer_info_but_sims info_x fs y c >>= fun c ->
   transfer_sims_manually x info_x fs y c >>= fun c ->
-  transfer_info_but_sims y info_y fs x c >>= fun c ->
+  transfer_info_but_sims info_y fs x c >>= fun c ->
   transfer_sims_manually y info_y fs x c
 
 (** {2 Equality} *)
@@ -269,7 +269,7 @@ and eq x y c =
      invariant. *)
   implied_by_eq x y c @@ fun () -> (* S-Eq-Refl *)
   let info_x = Core.get_info x c in
-  transfer_info_but_sims x info_x Feat.Set.empty y c >>= fun c ->
+  transfer_info_but_sims info_x Feat.Set.empty y c >>= fun c ->
   Core.(
     fold_sims
       (fun gs z c -> sim y gs z =<< c)
@@ -281,7 +281,7 @@ and eq x y c =
 
 (** {2 Info Transfer} *)
 
-and transfer_info_but_sims x info_x fs y c =
+and transfer_info_but_sims info_x fs y c =
   (* This function defines the transfer of info from [x] to [y].
 
      The [fs] set of features will be added to the sets of features in the
@@ -302,12 +302,15 @@ and transfer_info_but_sims x info_x fs y c =
   Core.(
     fold_feats
       (fun f t c ->
+         if Feat.Set.mem f fs then
+           c
+         else
          c >>= fun c ->
          match t with
          | DontKnow -> Dnf.single c
-         | Absent -> abs x f c
-         | Present z -> feat x f z c
-         | Maybe zs -> maybe x f zs c
+         | Absent -> abs y f c
+         | Present z -> feat y f z c
+         | Maybe zs -> maybe y f zs c
       )
       (Dnf.single c)
       info_x
