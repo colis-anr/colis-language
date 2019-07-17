@@ -1,18 +1,24 @@
 open Constraints_common
 let fpf = Format.fprintf
 
-let pp _fmt _c = () (* FIXME *)
+let pp = Core.pp_debug
 
 let pp_as_dot ~name fmt c =
   let fresh = let c = ref 0 in fun () -> incr c; "fresh_" ^ string_of_int !c in
   let pp_node fmt ?text x =
-    let text =
-      match text with
-      | None -> ""
-      | Some text -> "<TR><TD>" ^ text ^ "</TD></TR>"
-    in
-    fpf fmt "%d [label=< <TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">%s%a</TABLE> >];@\n"
-      (Core.hash x) text
+    Format.kasprintf
+      (fun cont ->
+         let text =
+           match text with
+           | None -> ""
+           | Some text -> "<TR><TD>" ^ text ^ "</TD></TR>"
+         in
+         if text <> "" || cont <> "" then
+           fpf fmt "%d [label=< <TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">%s%s</TABLE> >];@\n"
+             (Core.hash x) text cont
+         else
+           fpf fmt "%d [shape=point];@\n" (Core.hash x))
+      "%a"
   in
   let pp_flat_edge fmt x y = (* assumes x and y are hashed *)
     (* let x = Core.hash x in
@@ -38,8 +44,8 @@ let pp_as_dot ~name fmt c =
          | Core.DontKnow -> () (* FIXME *)
          | Absent ->
            let y = fresh () in
-           fpf fmt "%s [shape=point,style=none,label=\"×\"];@\n" y;
-           fpf fmt "%d -> %s [arrowhead=box,label=\"%a\"];@\n" (Core.hash x) y Feat.pp f (* FIXME: <S>? *)
+           fpf fmt "%s [label=\"⊥\"];@\n" y;
+           fpf fmt "%d -> %s [label=< <S>%a</S> >];@\n" (Core.hash x) y Feat.pp f (* FIXME: <S>? *)
          | Present y ->
            (* only print arrows to non-initial variables. bc initial variables
               wont be printed at all *)
