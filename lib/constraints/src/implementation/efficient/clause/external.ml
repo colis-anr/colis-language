@@ -4,6 +4,10 @@ let true_ = Core.empty
 
 let quantify_over _x c = Dnf.single c (* FIXME !!! *)
 
+let exists f c =
+  let x = Core.fresh_var () in
+  Dnf.bind (f x c) (quantify_over x)
+
 (* let quantify_over x c =
   let c = { c with Core.globals = IVar.quantify_over x c.Core.globals } in
   (* Garbage collection. We first find all the variables that are accessible
@@ -124,9 +128,11 @@ let abs x f =
   with_internal x @@ fun x ->
   abs x f
 
-let nabs _x _f =
-  (* exists @@ fun z -> feat x f z *)
-  Core.not_implemented "nabs"
+let nabs x f =
+  (* FIXME: should probably go in Internal. *)
+  with_internal x @@ fun x ->
+  exists @@ fun z ->
+  Internal.feat x f z
 
 let maybe x f ys =
   with_internal_l ys @@ fun ys ->
