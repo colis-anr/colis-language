@@ -59,6 +59,8 @@ let fresh_var =
   let c = ref 0 in
   fun () -> incr c; !c
 
+let hash x = x
+
 (** {2 Variables} *)
 
 let find_ancestor_and_info x c =
@@ -99,9 +101,30 @@ let internalise x c =
        info = IMap.add x' (Info empty_info) c.info })
   | Some x' -> (x', c)
 
+let externalise x c =
+  Var.Map.fold
+    (fun gy y gxs ->
+       if x = y then
+         gy :: gxs
+       else
+         gxs)
+    c.globals
+    []
+
+let make_initial c =
+  { c with
+    info =
+      IMap.map
+        (function
+          | Son y -> Son y
+          | Info info -> Info { info with initial = true })
+        c.info }
+
 let get_info x c =
   let (_, info) = find_ancestor_and_info x c in
   { info with initial = false }
+
+let is_initial info = info.initial
 
 let set_info x c info =
   let rec set_info x =
@@ -114,6 +137,20 @@ let set_info x c info =
 let update_info x c f =
   get_info x c |> f |> set_info x c
 
+let iter f c =
+  IMap.iter
+    (fun x -> function
+       | Son _ -> ()
+       | Info info -> f x info)
+    c.info
+
+let iter_equalities f c =
+  IMap.iter
+    (fun x -> function
+       | Son y -> f x y
+       | Info _ -> ())
+    c.info
+
 (** {2 Info Helpers} *)
 
 (** {3 Kinds} *)
@@ -125,6 +162,8 @@ let set_kind kind info = { info with kind }
 (** {3 Features} *)
 
 let get_feat f info = Feat.Map.find_opt f info.feats
+
+let iter_feats f info = Feat.Map.iter f info.feats
 
 let fold_feats f e info = Feat.Map.fold f info.feats e
 
@@ -155,6 +194,9 @@ let update_sim y upd c info =
     | (fs, z) :: sims -> (fs, z) :: update_sim sims
   in
   { info with sims = update_sim info.sims }
+
+let iter_sims f info =
+  List.iter (fun (fs, z) -> f fs z) info.sims
 
 let fold_sims f e info =
   List.fold_left

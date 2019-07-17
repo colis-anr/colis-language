@@ -2,6 +2,8 @@ type t = Core.t
 
 let true_ = Core.empty
 
+let make_initial = Core.make_initial
+
 let quantify_over _x c = Dnf.single c (* FIXME !!! *)
 
 let exists f c =

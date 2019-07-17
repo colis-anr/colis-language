@@ -20,6 +20,8 @@ val empty : t
 
 val fresh_var : unit -> var
 
+val hash : var -> int
+
 val equal : var -> var -> t -> bool
 
 val identify : var -> var -> (info -> info -> info) ->  t -> t
@@ -27,13 +29,25 @@ val identify : var -> var -> (info -> info -> info) ->  t -> t
 
 val internalise : Constraints_common.Var.t -> t -> (var * t)
 
+val externalise : var -> t -> Constraints_common.Var.t list
+(** Returns the (possibly empty) list of external variables mapping to that
+    particular (not up to equality) internal variable. *)
+
+val make_initial : t -> t
+
+val is_initial : info -> bool
+
 val get_info : var -> t -> info
 
 val set_info : var -> t -> info -> t
 
 val update_info : var -> t -> (info -> info) -> t
 
-(** {2 Local Helpers} *)
+val iter : (var -> info -> unit) -> t -> unit
+
+val iter_equalities : (var -> var -> unit) -> t -> unit
+
+(** {2 Helpers} *)
 
 (** {3 kinds} *)
 
@@ -49,6 +63,7 @@ type feat = DontKnow | Absent | Present of var | Maybe of var list
 
 val get_feat : Feat.t -> info -> feat option
 
+val iter_feats : (Feat.t -> feat -> unit) -> info -> unit
 val fold_feats : (Feat.t -> feat -> 'a -> 'a) -> 'a -> info -> 'a
 
 val for_all_feats : (Feat.t -> feat -> bool) -> info -> bool
@@ -75,6 +90,7 @@ val update_sim : var -> (Feat.Set.t option -> Feat.Set.t) -> t -> info -> info
 (** [update_sim y f c info] updates the sims in [info] by calling [f None] if
     there is no sim for [y] or [Some gs] if there is a sim [~gs y]. *)
 
+val iter_sims : (Feat.Set.t -> var -> unit) -> info -> unit
 val fold_sims : (Feat.Set.t -> var -> 'a -> 'a) -> 'a -> info -> 'a
 
 val update_info_for_all_similarities :
