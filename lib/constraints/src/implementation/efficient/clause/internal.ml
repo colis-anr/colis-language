@@ -269,6 +269,12 @@ and eq x y c =
      invariant. *)
   implied_by_eq x y c @@ fun () -> (* S-Eq-Refl *)
   let info_x = Core.get_info x c in
+  (
+    match Core.get_kind info_x with
+   | Any -> Dnf.single c
+   | Neg ks -> List.fold_left (fun c k -> nkind y k =<< c) (Dnf.single c) ks
+   | Pos k -> kind y k c
+  ) >>= fun c ->
   transfer_info_but_sims info_x Feat.Set.empty y c >>= fun c ->
   Core.(
     fold_sims
