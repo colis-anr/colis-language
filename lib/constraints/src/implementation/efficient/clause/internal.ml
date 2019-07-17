@@ -13,6 +13,20 @@ let implied_by_ndir info c cont =
   | Neg ks when List.mem Kind.Dir ks -> Dnf.single c (* S-*-NDir *)
   | _ -> cont ()
 
+let implied_by_eq x y c cont =
+  if Core.equal x y c then
+    Dnf.single c
+  else
+    cont ()
+
+let unsafe_sim x fs y c =
+  Core.update_info x c @@ fun info ->
+  Core.update_sim y
+    (function
+      | None -> fs
+      | Some gs -> Feat.Set.inter fs gs)
+    c info
+
 (** {2 Absence} *)
 
 let abs x f c =
@@ -22,7 +36,7 @@ let abs x f c =
   | None when Core.has_fen info ->
     Core.(
       update_info_for_all_similarities
-        (fun fs -> if Feat.Set.mem f fs
+        (fun fs _ -> if Feat.Set.mem f fs
           then do_nothing
           else remove_feat f (* P-Abs + S-Abs-Fen *))
         x info c
@@ -31,7 +45,7 @@ let abs x f c =
   | None | Some DontKnow | Some (Maybe _) | Some Absent -> (* S-Maybe-Abs *)
     Core.(
       update_info_for_all_similarities
-        (fun fs -> if Feat.Set.mem f fs
+        (fun fs _ -> if Feat.Set.mem f fs
           then do_nothing
           else set_feat f Absent (* P-Abs *))
         x info c
@@ -154,7 +168,7 @@ let fen x fs c =
   then
     Core.(
       update_info_for_all_similarities
-        (fun gs info ->
+        (fun gs _ info ->
            let hs = Feat.Set.union fs gs in
            info
            |> remove_feats (fun f -> not (Feat.Set.mem f hs)) (* S-Abs-Fen, S-Maybe-Fen *)
@@ -167,7 +181,7 @@ let fen x fs c =
 
 (** {2 Feature} *)
 
-let feat x f y c =
+let rec feat x f y c =
   dir x c >>= fun c ->
   let info = Core.get_info x c in
   match Core.get_feat f info with
@@ -189,77 +203,121 @@ let feat x f y c =
        |> Dnf.single)
       zs
 
+(** {2 Maybe} *)
+
+and maybe x f ys c =
+  let info = Core.get_info x c in
+  implied_by_ndir info c @@ fun () -> (* S-Maybe-Kind, S-Maybe-NDir *)
+  match Core.get_feat f info with
+  | None when Core.has_fen info -> Dnf.single c (* S-Maybe-Fen *)
+  | Some Absent -> Dnf.single c (* S-Maybe-Abs *)
+  | None | Some DontKnow ->
+    info
+    |> Core.set_feat f (Maybe ys)
+    |> Core.set_info x c
+    |> Dnf.single
+  | Some (Maybe zs) ->
+    info
+    |> Core.set_feat f (Maybe (ys @ zs)) (* S-Maybes *)
+    |> Core.set_info x c
+    |> Dnf.single
+  | Some (Present z) ->
+    List.fold_left
+      (fun c y -> eq y z =<< c) (* S-Maybe-Feat *)
+      (Dnf.single c)
+      ys
+
 (** {2 Similarity} *)
 
-let unsafe_sim x fs y c =
-  Core.update_info x c @@ fun info ->
-  Core.update_sim y
-    (function
-      | None -> fs
-      | Some gs -> Feat.Set.inter fs gs)
-    info
+and sim x fs y c =
+  implied_by_eq x y c @@ fun () -> (* S-Sim-Relf *)
+  dir x c >>= fun c -> (* D-Sim *)
+  dir y c >>= fun c -> (* D-Sim *)
+  let info_x = Core.get_info x c in
+  let info_y = Core.get_info y c in
+  let transfer_sims_manually x info_x fs y c =
+    (* Transfer the sims. We don't do that by calling ourselves but
+       manually. *)
+    Core.(
+      fold_sims
+        (fun gs z c ->
+           let hs = Feat.Set.union fs gs in
+           c >>= fun c ->
+           c
+           |> unsafe_sim y hs z
+           |> unsafe_sim z hs y
+           |> Dnf.single)
+        (Dnf.single c)
+        info_x
+    ) >>= fun c ->
 
-let sim x fs y c =
-  if Core.equal x y c then
-    Dnf.single c (* S-Sim-Relf *)
-  else
-    (
-      let transfer_info x info_x y c =
-        (* This function defines the transfer of info from x to y. It will need
-           to be called both ways. *)
+    (* Add our similarity. *)
+    unsafe_sim x fs y c
+    |> Dnf.single
+  in
+  transfer_info_but_sims x info_x fs y c >>= fun c ->
+  transfer_sims_manually x info_x fs y c >>= fun c ->
+  transfer_info_but_sims y info_y fs x c >>= fun c ->
+  transfer_sims_manually y info_y fs x c
 
-        (* Fail in case of nfens or nsims. FIXME. *)
-        Core.not_implemented_nfens info_x;
-        Core.not_implemented_nsims info_x;
+(** {2 Equality} *)
 
-        (* Transfer all feats by calling the appropriate function
-           (feat, abs or maybe). *)
-        Core.(
-          fold_feats
-            (fun f t c ->
-               c >>= fun c ->
-               match t with
-               | DontKnow -> Dnf.single c
-               | Absent -> abs x f c
-               | Present z -> feat x f z c
-               | Maybe zs -> List.fold_left (fun c z -> maybe x f z c) (Dnf.single c) zs
-            )
-            (Dnf.single c)
-            info_x
-        ) >>= fun c ->
+and eq x y c =
+  (* FIXME: there lacks one really important thing here, which is that we need
+     to look at all that who have similarities with [x] and [y] and make sure
+     that, after equality, there is only one similarity still, to keep the
+     invariant. *)
+  implied_by_eq x y c @@ fun () -> (* S-Eq-Refl *)
+  let info_x = Core.get_info x c in
+  transfer_info_but_sims x info_x Feat.Set.empty y c >>= fun c ->
+  Core.(
+    fold_sims
+      (fun gs z c -> sim y gs z =<< c)
+      (Dnf.single c)
+      info_x
+  ) >>= fun c ->
+  Core.identify x y (fun _ info_y -> info_y) c
+  |> Dnf.single
 
-        ( (* Transfer the fen if there is one. *)
-          if Core.has_fen info_x then
-            let gs = Core.fold_feats (fun f _ fs -> Feat.Set.add f fs) Feat.Set.empty info_x in
-            let hs = Feat.Set.union fs gs in
-            fen y hs c
-          else
-            Dnf.single c
-        ) >>= fun c ->
+(** {2 Info Transfer} *)
 
-        (* Transfer the sims. We don't do that by calling ourselves but
-           manually. *)
-        Core.(
-          fold_sims
-            (fun gs z c ->
-               let hs = Feat.Set.union fs gs in
-               c >>= fun c ->
-               c
-               |> unsafe_sim y hs z
-               |> unsafe_sim z hs y
-               |> Dnf.single)
-            (Dnf.single c)
-            info_x
-        ) >>= fun c ->
+and transfer_info_but_sims x info_x fs y c =
+  (* This function defines the transfer of info from [x] to [y].
 
-        (* Add our similarity. *)
-        unsafe_sim x fs y c
-      |> Dnf.single
-      in
-      dir x c >>= fun c -> (* D-Sim *)
-      dir y c >>= fun c -> (* D-Sim *)
-      let info_x = Core.get_info x c in
-      let info_y = Core.get_info y c in
-      transfer_info x info_x y c >>= fun c ->
-      transfer_info x info_y x c
-    )
+     The [fs] set of features will be added to the sets of features in the
+     fence when transfering it.
+
+     It does not handle transfering similarities because that treatment requires
+     a very specific treatment.
+
+     Also, it only handles transfer from [x] to [y], and not the other
+     direction: it will need to be called both ways. *)
+
+  (* Fail in case of nfens or nsims. FIXME. *)
+  Core.not_implemented_nfens info_x;
+  Core.not_implemented_nsims info_x;
+
+  (* Transfer all feats by calling the appropriate function
+     (feat, abs or maybe). *)
+  Core.(
+    fold_feats
+      (fun f t c ->
+         c >>= fun c ->
+         match t with
+         | DontKnow -> Dnf.single c
+         | Absent -> abs x f c
+         | Present z -> feat x f z c
+         | Maybe zs -> maybe x f zs c
+      )
+      (Dnf.single c)
+      info_x
+  ) >>= fun c ->
+
+  ( (* Transfer the fen if there is one. *)
+    if Core.has_fen info_x then
+      let gs = Core.fold_feats (fun f _ fs -> Feat.Set.add f fs) Feat.Set.empty info_x in
+      let hs = Feat.Set.union fs gs in
+      fen y hs c
+    else
+      Dnf.single c
+  )

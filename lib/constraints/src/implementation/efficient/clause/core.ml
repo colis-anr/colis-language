@@ -59,7 +59,7 @@ let fresh_var =
   let c = ref 0 in
   fun () -> incr c; !c
 
-(** *)
+(** {2 Variables} *)
 
 let find_ancestor_and_info x c =
   let rec find_ancestor_and_info x =
@@ -74,11 +74,29 @@ let equal x y c =
   let (ay, _) = find_ancestor_and_info y c in
   ax = ay
 
+let identify x y merge c =
+  let rec identify x y =
+    match IMap.find x c.info, IMap.find y c.info with
+    | Info info_x, Info info_y ->
+      let info =
+        c.info
+        |> IMap.add x (Son y)
+        |> IMap.add y (Info (merge info_x info_y))
+      in
+      { c with info }
+    | Info _, Son y -> identify x y
+    | Son x, Info _ -> identify x y
+    | Son x, Son y -> identify x y
+  in
+  identify x y
+
 let internalise x c =
   match Var.Map.find_opt x c.globals with
   | None ->
     let x' = fresh_var () in
-    (x', { c with globals = Var.Map.add x x' c.globals })
+    (x',
+     { globals = Var.Map.add x x' c.globals ;
+       info = IMap.add x' (Info empty_info) c.info })
   | Some x' -> (x', c)
 
 let get_info x c =
@@ -98,17 +116,59 @@ let update_info x c f =
 
 (** {2 Info Helpers} *)
 
-let get_feat f info = Feat.Map.find f info.feats
-let set_feat f t info = { info with feats = Feat.Map.add f t info.feats }
-let set_feat_if_none f t info = { info with feats = Feat.Map.update f (function Some t -> Some t | None -> Some t) info.feats }
+(** {3 Kinds} *)
+
+let get_kind info = info.kind
+
+let set_kind kind info = { info with kind }
+
+(** {3 Features} *)
+
+let get_feat f info = Feat.Map.find_opt f info.feats
+
+let fold_feats f e info = Feat.Map.fold f info.feats e
+
 let for_all_feats p info = Feat.Map.for_all p info.feats
+
+let set_feat f t info = { info with feats = Feat.Map.add f t info.feats }
+
+let set_feat_if_none f t info = { info with feats = Feat.Map.update f (function Some t -> Some t | None -> Some t) info.feats }
+
 let remove_feat f info = { info with feats = Feat.Map.remove f info.feats }
+
 let remove_feats p info = { info with feats = Feat.Map.filter (fun f _ -> p f) info.feats }
+
 let remove_all_feats info = { info with feats = Feat.Map.empty }
+
+(** {3 Fences} *)
 
 let has_fen info = info.fen
 
 let set_fen info = { info with fen = true }
+
+(** {3 Similarities} *)
+
+let update_sim y upd c info =
+  let rec update_sim = function
+    | [] -> [upd None, y]
+    | (fs, z) :: sims when equal y z c -> (upd (Some fs), z) :: sims
+    | (fs, z) :: sims -> (fs, z) :: update_sim sims
+  in
+  { info with sims = update_sim info.sims }
+
+let fold_sims f e info =
+  List.fold_left
+    (fun e (fs, z) -> f fs z e)
+    e info.sims
+
+let update_info_for_all_similarities upd x info c =
+  List.fold_left
+    (fun c (fs, z) ->
+       update_info z c (upd fs z))
+    (set_info x c (upd Feat.Set.empty x info))
+    info.sims
+
+(** {3 ¬ Fences} *)
 
 let remove_nfens info =
   { info with nfens = [] }
@@ -116,6 +176,8 @@ let remove_nfens info =
 let not_implemented_nfens info =
   if info.nfens <> [] then
     not_implemented "nfens"
+
+(** {3 ¬ Similarities} *)
 
 let not_implemented_nsims info =
   if info.nsims <> [] then
@@ -131,10 +193,3 @@ let remove_nsims x c =
     (fun c (_, y) -> remove_nsim y x c)
     (set_info x c { info with nsims = [] })
     info.nsims
-
-let update_info_for_all_similarities upd x info c =
-  List.fold_left
-    (fun c (fs, z) ->
-       update_info z c (upd fs z))
-    (set_info x c (upd Feat.Set.empty x info))
-    info.sims

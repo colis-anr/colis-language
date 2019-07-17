@@ -1,5 +1,3 @@
-open Constraints_common
-
 type t = Core.t
 
 let true_ = Core.empty
@@ -95,13 +93,24 @@ let with_internal_2 x y f =
   with_internal y @@ fun y ->
   f x y
 
+let with_internal_l xs f c =
+  let (xs, c) =
+    List.fold_left
+      (fun (xs, c) x ->
+         let (x, c) = Core.internalise x c in
+         (x :: xs, c))
+      ([], c) (List.rev xs)
+  in
+  f xs c
+
 open Internal
 
 let eq x y =
   with_internal_2 x y @@ fun x y ->
   eq x y
 
-let neq _x _y = not_implemented "neq"
+let neq _x _y =
+  Core.not_implemented "neq"
 
 let feat x f y =
   with_internal_2 x y @@ fun x y ->
@@ -109,7 +118,7 @@ let feat x f y =
 
 let nfeat _x _f _y =
   (* exists @@ fun z -> maybe x f z & neq y z *)
-  not_implemented "nfeat"
+  Core.not_implemented "nfeat"
 
 let abs x f =
   with_internal x @@ fun x ->
@@ -117,30 +126,33 @@ let abs x f =
 
 let nabs _x _f =
   (* exists @@ fun z -> feat x f z *)
-  not_implemented "nabs"
+  Core.not_implemented "nabs"
 
-let maybe x f y =
-  with_internal_2 x y @@ fun x y ->
-  maybe x f y
+let maybe x f ys =
+  with_internal_l ys @@ fun ys ->
+  maybe x f ys
 
-let nmaybe _x _f _y = not_implemented "nmaybe"
+let nmaybe _x _f _y =
+  Core.not_implemented "nmaybe"
 
 let fen x fs =
   with_internal x @@ fun x ->
   fen x fs
 
-let nfen _x _fs = not_implemented "nfen"
+let nfen _x _fs =
+  Core.not_implemented "nfen"
 
 let sim x fs y =
   with_internal_2 x y @@ fun x y ->
   sim x fs y
 
-let nsim _x _fs _y = not_implemented "nsim"
+let nsim _x _fs _y =
+  Core.not_implemented "nsim"
 
-let kind k x =
+let kind x k =
   with_internal x @@ fun x ->
-  kind k x
+  kind x k
 
-let nkind k x =
+let nkind x k =
   with_internal x @@ fun x ->
-  nkind k x
+  nkind x k

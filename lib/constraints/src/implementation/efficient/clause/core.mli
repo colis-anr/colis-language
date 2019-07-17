@@ -22,6 +22,9 @@ val fresh_var : unit -> var
 
 val equal : var -> var -> t -> bool
 
+val identify : var -> var -> (info -> info -> info) ->  t -> t
+(** Identify two variables. After that, they are "equal" in the structure. The function talking about infos is here to tell to the structure how to merge the info of the two variables. *)
+
 val internalise : Constraints_common.Var.t -> t -> (var * t)
 
 val get_info : var -> t -> info
@@ -68,11 +71,18 @@ val set_fen : info -> info
 
 (** {3 sims} *)
 
-val update_sim : var -> (Feat.Set.t option -> Feat.Set.t) -> info -> info
-(** [update_sim y f info] updates the sims in [info] by calling [f None] is
+val update_sim : var -> (Feat.Set.t option -> Feat.Set.t) -> t -> info -> info
+(** [update_sim y f c info] updates the sims in [info] by calling [f None] if
     there is no sim for [y] or [Some gs] if there is a sim [~gs y]. *)
 
 val fold_sims : (Feat.Set.t -> var -> 'a -> 'a) -> 'a -> info -> 'a
+
+val update_info_for_all_similarities :
+  (Feat.Set.t -> var -> info -> info) ->
+  var -> info -> t -> t
+(** [update_info_for_all_similarities upd x info] takes a clause and
+    applies the [upd] function to all the info records of variables that are
+    similar to the given info (including it). *)
 
 (** {3 nfens} *)
 
@@ -96,11 +106,8 @@ val not_implemented_nsims : info -> unit
    FIXME: should not be required if everything is correctly implemented. They
    are here to denote places where work has to be done to support nsims. *)
 
-(** {2 Global Helpers} *)
+(** {2 Should Disappear}
 
-val update_info_for_all_similarities :
-  (Feat.Set.t -> info -> info) ->
-  var -> info -> t -> t
-(** [update_info_for_all_similarities upd x info] takes a clause and
-    applies the [upd] function to all the info records of variables that are
-    similar to the given info (including it). *)
+    FIXME *)
+
+val not_implemented : string -> 'a

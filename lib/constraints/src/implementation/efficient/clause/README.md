@@ -109,11 +109,12 @@ Rewriting System
     {S-Abs-Kind}       x[f]↑ ∧ K(x)    => K(x)          (when K ≠ dir)
     {S-Abs-Fen}        x[f]↑ ∧ x[F]    => x[F\{f}]
 
-    {S-Maybe-Feat}  x[f]yz…? ∧ x[f]w   => x[f]w ∧ w = y ∧ w = z ∧ …
-    {S-Maybe-Abs}   x[f]yz…? ∧ x[f]↑   => x[f]↑
-    {S-Maybe-NDir}  x[f]yz…? ∧ ¬dir(x) => ¬dir(x)
-    {S-Maybe-Kind}  x[f]yz…? ∧ K(x)    => K(x)
-    {S-Maybe-Fen}   x[f]yz…? ∧ x[F]    => x[F]          (when f ∉ F)
+    {S-Maybe-Feat}    x[f]Y? ∧ x[f]w   => x[f]w ∧ ∧(y∈Y) w = y
+    {S-Maybe-Abs}     x[f]Y? ∧ x[f]↑   => x[f]↑
+    {S-Maybe-NDir}    x[f]Y? ∧ ¬dir(x) => ¬dir(x)
+    {S-Maybe-Kind}    x[f]Y? ∧ K(x)    => K(x)
+    {S-Maybe-Fen}     x[f]Y? ∧ x[F]    => x[F]          (when f ∉ F)
+    {S-Maybes}        x[f]Y? ∧ x[f]Z?  => x[f]{Y∪Z}?
 
     {S-Sim-Refl}               x ~F x  => ⊤
 
