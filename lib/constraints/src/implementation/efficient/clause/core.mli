@@ -18,8 +18,6 @@ val empty : t
 
 (** {2 Variables and information} *)
 
-val fresh_var : unit -> var
-
 val hash : var -> int
 
 val equal : var -> var -> t -> bool
@@ -27,11 +25,15 @@ val equal : var -> var -> t -> bool
 val identify : var -> var -> (info -> info -> info) ->  t -> t
 (** Identify two variables. After that, they are "equal" in the structure. The function talking about infos is here to tell to the structure how to merge the info of the two variables. *)
 
+val fresh_var : t -> (var * t)
+
 val internalise : Constraints_common.Var.t -> t -> (var * t)
 
 val externalise : var -> t -> Constraints_common.Var.t list
 (** Returns the (possibly empty) list of external variables mapping to that
     particular (not up to equality) internal variable. *)
+
+val quantify_over : Constraints_common.Var.t -> t -> t
 
 val make_initial : t -> t
 

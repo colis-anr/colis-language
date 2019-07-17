@@ -4,11 +4,13 @@ let true_ = Core.empty
 
 let make_initial = Core.make_initial
 
-let quantify_over _x c = Dnf.single c (* FIXME !!! *)
+let quantify_over x c =
+  Dnf.single (Core.quantify_over x c) (* FIXME: garbage collection *)
 
 let exists f c =
-  let x = Core.fresh_var () in
-  Dnf.bind (f x c) (quantify_over x)
+  (* fresh_var already returns an existentially quantified variable *)
+  let (x, c) = Core.fresh_var c in
+  f x c
 
 (* let quantify_over x c =
   let c = { c with Core.globals = IVar.quantify_over x c.Core.globals } in

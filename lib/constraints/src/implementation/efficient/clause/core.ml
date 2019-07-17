@@ -110,8 +110,10 @@ let empty_info = {
 }
 
 let fresh_var =
-  let c = ref 0 in
-  fun () -> incr c; !c
+  let x = ref 0 in
+  fun c ->
+    incr x;
+    (!x, { c with info = IMap.add !x (Info empty_info) c.info })
 
 let hash x = x
 
@@ -146,14 +148,12 @@ let identify x y merge c =
   in
   identify x y
 
-let internalise x c =
-  match Var.Map.find_opt x c.globals with
+let internalise gx c =
+  match Var.Map.find_opt gx c.globals with
   | None ->
-    let x' = fresh_var () in
-    (x',
-     { globals = Var.Map.add x x' c.globals ;
-       info = IMap.add x' (Info empty_info) c.info })
-  | Some x' -> (x', c)
+    let (x, c) = fresh_var c in
+    (x, { c with globals = Var.Map.add gx x c.globals })
+  | Some x -> (x, c)
 
 let externalise x c =
   Var.Map.fold
@@ -164,6 +164,9 @@ let externalise x c =
          gxs)
     c.globals
     []
+
+let quantify_over x c =
+  { c with globals = Var.Map.remove x c.globals }
 
 let make_initial c =
   { c with
