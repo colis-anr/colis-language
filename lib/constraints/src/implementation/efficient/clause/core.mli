@@ -37,7 +37,7 @@ val quantify_over : Constraints_common.Var.t -> t -> t
 
 val make_initial : t -> t
 
-val is_initial : info -> bool
+val is_initial : var -> t -> bool
 
 val get_info : var -> t -> info
 

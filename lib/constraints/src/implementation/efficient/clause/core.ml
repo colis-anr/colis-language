@@ -136,6 +136,8 @@ let identify x y merge c =
   let rec identify x y =
     match IMap.find x c.info, IMap.find y c.info with
     | Info info_x, Info info_y ->
+      let info_x = { info_x with initial = false } in
+      let info_y = { info_y with initial = false } in
       let info =
         c.info
         |> IMap.add x (Son y)
@@ -181,7 +183,10 @@ let get_info x c =
   let (_, info) = find_ancestor_and_info x c in
   { info with initial = false }
 
-let is_initial info = info.initial
+let is_initial x c =
+  (* We can't use [get_info] because it sets initial to false. *)
+  let (_, info) = find_ancestor_and_info x c in
+  info.initial
 
 let set_info x c info =
   let rec set_info x =

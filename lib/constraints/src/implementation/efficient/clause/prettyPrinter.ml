@@ -45,14 +45,14 @@ let pp_as_dot ~name fmt c =
          | Absent ->
            let y = fresh () in
            fpf fmt "%s [label=\"⊥\"];@\n" y;
-           fpf fmt "%d -> %s [label=< <S>%a</S> >];@\n" (Core.hash x) y Feat.pp f (* FIXME: <S>? *)
+           fpf fmt "%d -> %s [style=dotted,label=< <S>%a</S> >];@\n" (Core.hash x) y Feat.pp f (* FIXME: <S>? *)
          | Present y ->
            (* only print arrows to non-initial variables. bc initial variables
               wont be printed at all *)
-           if not Core.(is_initial (get_info y c)) then
+           if not (Core.is_initial y c) then
              fpf fmt "%d -> %d [label=\"%a\"];@\n" (Core.hash x) (Core.hash y) Feat.pp f
          | Maybe _ys ->
-           () (* FIXME *)
+           () (* FIXME; style=dashed; label=< <I>%a</I> >; interrogation mark somewhere? *)
       )
       info_x
   in
@@ -68,7 +68,7 @@ let pp_as_dot ~name fmt c =
   let pp fmt c =
     Core.iter
       (fun x info_x ->
-         if not (Core.is_initial info_x) then
+         if not (Core.is_initial x c) then
            let text =
              match Core.externalise x c with
              | [] -> None
@@ -81,6 +81,7 @@ let pp_as_dot ~name fmt c =
            pp_node fmt ?text x
              pp_kind_and_fen info_x)
       c;
+    fpf fmt "@\n";
     Core.iter_equalities
       (fun x y ->
          let text =
@@ -96,7 +97,9 @@ let pp_as_dot ~name fmt c =
            (fun _fmt () -> ()) ();
          pp_flat_edge fmt (Core.hash x) (Core.hash y) (fun fmt () -> fpf fmt "=") ())
       c;
+    fpf fmt "@\n";
     Core.iter (pp_feats fmt) c;
+    fpf fmt "@\n";
     Core.iter (pp_sims fmt) c
   in
-  fpf fmt "@[<h 2>digraph %S {@\nnode [shape=plaintext];@\n%a@]@\n}" name pp c
+  fpf fmt "@[<h 2>digraph %S {@\nnode [shape=plaintext];@\nedge [arrowhead=none];@\n@\n%a@]@\n}" name pp c
