@@ -41,17 +41,10 @@ let interp_mkdir1 cwd path_str =
           eq root root'
         end;
       error_case
-        ~descr:(asprintf "mkdir %a: parent path is file" Path.pp p)
+        ~descr:(asprintf "mkdir %a: parent path is file or does not resolve" Path.pp p)
         begin
-          exists ?hint:hintx @@ fun x ->
-          resolve root cwd q x &
-          ndir x &
-          eq root root'
-        end;
-      error_case
-        ~descr:(asprintf "mkdir %a: parent path does not resolve" Path.pp p)
-        begin
-          noresolve root cwd q & eq root root'
+          maybe_resolve root cwd q (fun x -> ndir x)
+          & eq root root'
         end;
     ]
 

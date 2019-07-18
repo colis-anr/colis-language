@@ -117,17 +117,10 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "test -%s %a: path does not resolve" attr Path.pp p)
+      ~descr:(asprintf "test -%s %a: path does not resolve or to file of type other than '%s'" attr Path.pp p attr)
       begin
-        noresolve root cwd p &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test -%s %a: path resolves to file of type other than '%s'" attr Path.pp p attr)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x & is_ntype x &
-        eq root root'
+        maybe_resolve root cwd p (fun x -> is_ntype x)
+        & eq root root'
       end;
   ]
 
@@ -144,17 +137,8 @@ let interp_test_attribute ~attr cwd path_str : utility =
         eq root root'
       end;
     error_case
-      ~descr:(asprintf "test '%a': path does not resolve" Path.pp p)
+      ~descr:(asprintf "test '%a': path does not resolve or resolves but attribute -%s not OK (overapprox to -e)" Path.pp p attr)
       begin
-        noresolve root cwd p &
-        eq root root'
-      end;
-    error_case
-      ~descr:(asprintf "test '%a': path resolves, attribute -%s not OK (overapprox to -e)"
-                Path.pp p attr)
-      begin
-        exists ?hint:hintx @@ fun x ->
-        resolve root cwd p x &
         eq root root'
       end;
   ]

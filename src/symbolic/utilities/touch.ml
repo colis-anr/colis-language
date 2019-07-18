@@ -6,6 +6,8 @@ open SymbolicUtility
 let name = "touch"
 
 let interp_touch1 cwd path_str : utility =
+  (* FIXME: we can merge two cases here (parent path does not resolve & parent
+     path isn't a directory) *)
   under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   match Path.split_last p with

@@ -29,16 +29,10 @@ let interp1 cwd arg : utility =
           & dir x' & abs x' f
         end;
       error_case
-        ~descr:(asprintf "rm %a: target is a directory" Path.pp oq)
+        ~descr:(asprintf "rm %a: target does not exist or is a directory" Path.pp oq)
         begin
-          exists ~hint:hinty @@ fun y ->
-          resolve root cwd oq y & dir y
+          maybe_resolve root cwd oq (fun y -> dir y)
           & eq root root'
-        end;
-      error_case
-        ~descr:(asprintf "rm %a: target does not exist" Path.pp oq)
-        begin
-          noresolve root cwd oq & eq root root'
         end;
     ]
 
