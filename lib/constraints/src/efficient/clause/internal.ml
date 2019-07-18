@@ -27,6 +27,11 @@ let unsafe_sim x fs y c =
       | Some gs -> Feat.Set.inter fs gs)
     c info
 
+let exists f c =
+  (* fresh_var already returns an existentially quantified variable *)
+  let (x, c) = Core.fresh_var c in
+  f x c
+
 (** {2 Absence} *)
 
 let abs x f c =
@@ -327,3 +332,57 @@ and transfer_info_but_sims info_x fs y c =
     else
       Dnf.single c
   )
+
+(** {2 ¬ Absence} *)
+
+let nabs x f = exists @@ fun y -> feat x f y
+
+(** {2 Macros} *)
+
+let and_ r1 r2 = fun c ->
+  c |> r1 |> List.map r2 |> List.flatten
+
+let (&) = and_
+
+let or_ r1 r2 = fun c ->
+  (c |> r1) @ (c |> r2)
+
+let rec resolve x pi q z =
+  match Path.split_first_rel q with
+  | None -> eq x z
+  | Some (Down f, q) ->
+    exists @@ fun y ->
+    feat x f y & resolve y (x :: pi) q z
+  | Some (Here, q) ->
+    resolve x pi q z
+  | Some (Up, q) ->
+    match pi with
+    | [] -> resolve x [] q z
+    | y::pi -> dir x & resolve y pi q z
+
+let rec noresolve x pi q =
+  match Path.split_first_rel q with
+  | None -> (fun _ -> []) (* false *)
+  | Some (Down f, q) ->
+    (
+      match Path.split_first_rel q with
+      | None ->
+        abs x f
+      | _ ->
+        exists @@ fun y ->
+        maybe x f y & noresolve y (x::pi) q
+    )
+  | Some (Here, q) ->
+    noresolve x pi q
+  | Some (Up, q) ->
+    match pi with
+    | [] -> noresolve x [] q
+    | y::pi -> or_ (nkind x Kind.Dir) (noresolve y pi q)
+
+let rec similar x x' p z z' =
+  match p with
+  | [] ->
+    eq x z & eq x' z'
+  | f::p ->
+    exists @@ fun y -> exists @@ fun y' ->
+    feat x f y & feat x' f y' & sim x (Feat.Set.singleton f) x' & similar y y' p z z'

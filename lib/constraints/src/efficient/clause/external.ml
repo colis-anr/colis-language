@@ -1,8 +1,3 @@
-let exists f c =
-  (* fresh_var already returns an existentially quantified variable *)
-  let (x, c) = Core.fresh_var c in
-  f x c
-
 let with_internal x f c =
   let (x, c) = Core.internalise x c in
   f x c
@@ -34,10 +29,8 @@ let abs x f =
   abs x f
 
 let nabs x f =
-  (* FIXME: should probably go in Internal. *)
   with_internal x @@ fun x ->
-  exists @@ fun z ->
-  Internal.feat x f z
+  nabs x f
 
 let maybe x f y =
   with_internal_2 x y @@ fun x y ->
@@ -67,3 +60,31 @@ let kind x k =
 let nkind x k =
   with_internal x @@ fun x ->
   nkind x k
+
+let  reg x =  kind x Constraints_common.Kind.Reg
+let nreg x = nkind x Constraints_common.Kind.Reg
+let  dir x =  kind x Constraints_common.Kind.Dir
+let ndir x = nkind x Constraints_common.Kind.Dir
+let  block x =  kind x Constraints_common.Kind.Block
+let nblock x = nkind x Constraints_common.Kind.Block
+let  sock x =  kind x Constraints_common.Kind.Sock
+let nsock x = nkind x Constraints_common.Kind.Sock
+let  pipe x =  kind x Constraints_common.Kind.Pipe
+let npipe x = nkind x Constraints_common.Kind.Pipe
+let  char x =  kind x Constraints_common.Kind.Char
+let nchar x = nkind x Constraints_common.Kind.Char
+let  symlink x =  kind x Constraints_common.Kind.Symlink
+let nsymlink x = nkind x Constraints_common.Kind.Symlink
+
+let resolve r cwd q z =
+  with_internal_2 r z @@ fun r z ->
+  resolve r [] (Constraints_common.Path.concat cwd q) z
+
+let noresolve r cwd q =
+  with_internal r @@ fun r ->
+  noresolve r [] (Constraints_common.Path.concat cwd q)
+
+let similar r r' cwd q z z' =
+  with_internal_2 r r' @@ fun r r' ->
+  with_internal_2 z z' @@ fun z z' ->
+  similar r r' Constraints_common.Path.(normalize ~cwd q) z z'
