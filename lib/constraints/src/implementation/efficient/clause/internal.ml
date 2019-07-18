@@ -205,7 +205,7 @@ let rec feat x f y c =
 
 (** {2 Maybe} *)
 
-and maybe x f ys c =
+and maybe x f y c =
   let info = Core.get_info x c in
   implied_by_ndir info c @@ fun () -> (* S-Maybe-Kind, S-Maybe-NDir *)
   match Core.get_feat f info with
@@ -213,19 +213,16 @@ and maybe x f ys c =
   | Some Absent -> Dnf.single c (* S-Maybe-Abs *)
   | None | Some DontKnow ->
     info
-    |> Core.set_feat f (Maybe ys)
+    |> Core.set_feat f (Maybe [y])
     |> Core.set_info x c
     |> Dnf.single
   | Some (Maybe zs) ->
     info
-    |> Core.set_feat f (Maybe (ys @ zs)) (* S-Maybes *)
+    |> Core.set_feat f (Maybe (y :: zs))
     |> Core.set_info x c
     |> Dnf.single
   | Some (Present z) ->
-    List.fold_left
-      (fun c y -> eq y z =<< c) (* S-Maybe-Feat *)
-      (Dnf.single c)
-      ys
+    eq y z c (* S-Maybe-Feat *)
 
 (** {2 Similarity} *)
 
@@ -316,7 +313,7 @@ and transfer_info_but_sims info_x fs y c =
          | DontKnow -> Dnf.single c
          | Absent -> abs y f c
          | Present z -> feat y f z c
-         | Maybe zs -> maybe y f zs c
+         | Maybe zs -> List.fold_left (fun c z -> maybe y f z =<< c) (Dnf.single c) zs
       )
       (Dnf.single c)
       info_x

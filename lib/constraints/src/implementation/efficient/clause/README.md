@@ -26,15 +26,15 @@ where `F ~> FT` denotes a partial function from `F` to `FT`.
 We say that `FT, ρ` is a model of a formula `ϕ`, with `ρ : V -> FT` written
 `FT, ρ ⊧ ϕ` if:
 
-|   `x = y`  | `ρ(x) = ρ(y)`                                             |
-|   `x[f]y`  | `ρ(x) = dir(m)` with `m(f) = ρ(y)`                        |
-|   `x[f]↑`  | equivalent to `¬(∃y⋅ x[f]y)` by definition                |
-| `x[f]yz…?` | equivalent to `x[f]↑ ∨ (x[f]y ∧ z=y ∧ ...)` by definition |
-|   `x[F]`   | `dom(ρ(x)) ⊆ F`                                           |
-|  `x ~F y`  | for all `f ∉ F`, `ρ(x)(f) = ρ(y)(f)`                      |
-|  `dir(x)`  | `ρ(x) = dir(_)`                                           |
-|  `reg(x)`  | `ρ(x) = reg`                                              |
-| …          | …                                                         |
+|  `x = y` | `ρ(x) = ρ(y)`                               |
+|  `x[f]y` | `ρ(x) = dir(m)` with `m(f) = ρ(y)`          |
+|  `x[f]↑` | equivalent to `¬(∃y⋅ x[f]y)` by definition  |
+| `x[f]y?` | equivalent to `x[f]↑ ∨ x[f]y` by definition |
+|  `x[F]`  | `dom(ρ(x)) ⊆ F`                             |
+| `x ~F y` | for all `f ∉ F`, `ρ(x)(f) = ρ(y)(f)`        |
+| `dir(x)` | `ρ(x) = dir(_)`                             |
+| `reg(x)` | `ρ(x) = reg`                                |
+| …        | …                                           |
 
 ### Remarks
 
@@ -109,12 +109,11 @@ Rewriting System
     {S-Abs-Kind}       x[f]↑ ∧ K(x)    => K(x)          (when K ≠ dir)
     {S-Abs-Fen}        x[f]↑ ∧ x[F]    => x[F\{f}]
 
-    {S-Maybe-Feat}    x[f]Y? ∧ x[f]w   => x[f]w ∧ ∧(y∈Y) w = y
-    {S-Maybe-Abs}     x[f]Y? ∧ x[f]↑   => x[f]↑
-    {S-Maybe-NDir}    x[f]Y? ∧ ¬dir(x) => ¬dir(x)
-    {S-Maybe-Kind}    x[f]Y? ∧ K(x)    => K(x)
-    {S-Maybe-Fen}     x[f]Y? ∧ x[F]    => x[F]          (when f ∉ F)
-    {S-Maybes}        x[f]Y? ∧ x[f]Z?  => x[f]{Y∪Z}?
+    {S-Maybe-Feat}    x[f]y? ∧ x[f]z   => x[f]z ∧ y = z
+    {S-Maybe-Abs}     x[f]y? ∧ x[f]↑   => x[f]↑
+    {S-Maybe-NDir}    x[f]y? ∧ ¬dir(x) => ¬dir(x)
+    {S-Maybe-Kind}    x[f]y? ∧ K(x)    => K(x)          (when K ≠ dir)
+    {S-Maybe-Fen}     x[f]y? ∧ x[F]    => x[F]          (when f ∉ F)
 
     {S-Sim-Refl}               x ~F x  => ⊤
 

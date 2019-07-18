@@ -30,6 +30,9 @@ module type S = sig
   val  abs : Var.t -> Feat.t -> t
   val nabs : Var.t -> Feat.t -> t
 
+  val  maybe : Var.t -> Feat.t -> Var.t -> t
+  val nmaybe : Var.t -> Feat.t -> Var.t -> t
+
   val  fen : Var.t -> Feat.Set.t -> t
   val nfen : Var.t -> Feat.Set.t -> t
   val  empty : Var.t -> t
@@ -115,6 +118,9 @@ module Make (I : Constraints_implementation.S) : S = struct
   let  abs = I.abs
   let nabs = I.nabs
 
+  let  maybe = I.maybe
+  let nmaybe = I.nmaybe
+
   let  fen = I.fen
   let nfen = I.nfen
 
@@ -191,13 +197,14 @@ module Make (I : Constraints_implementation.S) : S = struct
     match Path.split_first_rel q with
     | None -> (fun _ -> []) (* false *)
     | Some (Down f, q) ->
-      or_
-        (ndir x)
-        (dir x
-         & (or_
-              (abs x f)
-              (exists ~hint:(Feat.to_string f) @@ fun y ->
-               feat x f y & noresolve_stack y (x::pi) q)))
+      (
+        match Path.split_first_rel q with
+        | None ->
+          abs x f
+        | _ ->
+          exists ~hint:(Feat.to_string f) @@ fun y ->
+          maybe x f y & noresolve_stack y (x::pi) q
+      )
     | Some (Here, q) ->
       noresolve_stack x pi q
     | Some (Up, q) ->

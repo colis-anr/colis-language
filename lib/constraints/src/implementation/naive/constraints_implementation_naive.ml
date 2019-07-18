@@ -24,6 +24,9 @@ let nfeat x f y = add (Neg (Feat (x, f, y)))
 let  abs x f = add (Pos (Abs (x, f)))
 let nabs x f = add (Neg (Abs (x, f)))
 
+let  maybe _x _f _y = assert false
+let nmaybe _x _f _y = assert false
+
 let  fen x fs = add (Pos (Fen (x, fs)))
 let nfen x fs = add (Neg (Fen (x, fs)))
 

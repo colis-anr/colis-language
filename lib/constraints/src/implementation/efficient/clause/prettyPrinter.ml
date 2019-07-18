@@ -45,14 +45,18 @@ let pp_as_dot ~name fmt c =
          | Absent ->
            let y = fresh () in
            fpf fmt "%s [label=\"⊥\"];@\n" y;
-           fpf fmt "%d -> %s [style=dotted,label=< <S>%a</S> >];@\n" (Core.hash x) y Feat.pp f (* FIXME: <S>? *)
+           fpf fmt "%d -> %s [style=dotted,label=< <S>%a</S> >];@\n" (Core.hash x) y Feat.pp f
          | Present y ->
            (* only print arrows to non-initial variables. bc initial variables
               wont be printed at all *)
            if not (Core.is_initial y c) then
              fpf fmt "%d -> %d [label=\"%a\"];@\n" (Core.hash x) (Core.hash y) Feat.pp f
-         | Maybe _ys ->
-           () (* FIXME; style=dashed; label=< <I>%a</I> >; interrogation mark somewhere? *)
+         | Maybe ys ->
+           List.iter
+             (fun y ->
+                if not (Core.is_initial y c) then
+                  fpf fmt "%d -> %d [style=dashed,label=< <I>%a</I>? >];@\n" (Core.hash x) (Core.hash y) Feat.pp f)
+             ys
       )
       info_x
   in

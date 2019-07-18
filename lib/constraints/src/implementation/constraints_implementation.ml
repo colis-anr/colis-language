@@ -11,6 +11,8 @@ module type S = sig
   val nfeat : Var.t -> Feat.t -> Var.t -> t -> t list
   val  abs : Var.t -> Feat.t -> t -> t list
   val nabs : Var.t -> Feat.t -> t -> t list
+  val  maybe : Var.t -> Feat.t -> Var.t -> t -> t list
+  val nmaybe : Var.t -> Feat.t -> Var.t -> t -> t list
   val  fen : Var.t -> Feat.Set.t -> t -> t list
   val nfen : Var.t -> Feat.Set.t -> t -> t list
   val  sim : Var.t -> Feat.Set.t -> Var.t -> t -> t list
@@ -27,6 +29,5 @@ module type S = sig
   val pp_as_dot : name:string -> Format.formatter -> t -> unit
 end
 
-module Dummy = (Dummy : S)
 module Naive = (Constraints_implementation_naive : S)
 module Efficient = (Constraints_implementation_efficient : S)
