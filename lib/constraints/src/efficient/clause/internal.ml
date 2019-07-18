@@ -364,20 +364,33 @@ let rec noresolve x pi q =
   match Path.split_first_rel q with
   | None -> (fun _ -> []) (* false *)
   | Some (Down f, q) ->
-    (
-      match Path.split_first_rel q with
-      | None ->
-        abs x f
-      | _ ->
-        exists @@ fun y ->
-        maybe x f y & noresolve y (x::pi) q
-    )
+    (match Path.split_first_rel q with
+     | None ->
+       abs x f
+     | _ ->
+       exists @@ fun y ->
+       maybe x f y & noresolve y (x::pi) q)
   | Some (Here, q) ->
     noresolve x pi q
   | Some (Up, q) ->
     match pi with
     | [] -> noresolve x [] q
     | y::pi -> or_ (nkind x Kind.Dir) (noresolve y pi q)
+
+let rec maybe_resolve x pi q phi =
+  (* This only makes sense if `⊧ ∃z⋅ϕ(z)`. In particular, it is wrong to think
+     of `noresolve x pi q` as `maybe_resolve x pi q ⊥`.  *)
+  match Path.split_first_rel q with
+  | None -> phi x
+  | Some (Down f, q) ->
+    exists @@ fun y ->
+    maybe x f y & maybe_resolve y (x::pi) q phi
+  | Some (Here, q) ->
+    maybe_resolve x pi q phi
+  | Some (Up, q) ->
+    match pi with
+    | [] -> maybe_resolve x [] q phi
+    | y::pi -> or_ (nkind x Kind.Dir) (maybe_resolve y pi q phi)
 
 let rec similar x x' p z z' =
   match p with

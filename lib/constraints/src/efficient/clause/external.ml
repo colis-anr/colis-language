@@ -84,6 +84,15 @@ let noresolve r cwd q =
   with_internal r @@ fun r ->
   noresolve r [] (Constraints_common.Path.concat cwd q)
 
+let maybe_resolve r cwd q f c =
+  let gz = Constraints_common.Var.fresh () in
+  let (z, c) = Core.internalise gz c in
+  Dnf.bind
+    ((with_internal r @@ fun r ->
+      maybe_resolve r [] (Constraints_common.Path.concat cwd q)
+        (fun x -> Internal.eq x z & f gz)) c)
+    (fun c -> Core.quantify_over gz c |> Dnf.single)
+
 let similar r r' cwd q z z' =
   with_internal_2 r r' @@ fun r r' ->
   with_internal_2 z z' @@ fun z z' ->
