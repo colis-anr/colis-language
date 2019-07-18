@@ -2,4 +2,5 @@
  (name constraints)
  (public_name colis-language.constraints)
  (libraries colis-language.constraints.common
-            colis-language.constraints.implementation))
+            colis-language.constraints.efficient
+            colis-language.constraints.naive))

@@ -1,12 +1,3 @@
-type t = Core.t
-
-let true_ = Core.empty
-
-let make_initial = Core.make_initial
-
-let quantify_over x c =
-  Dnf.single (Core.quantify_over x c) (* FIXME: garbage collection *)
-
 let exists f c =
   (* fresh_var already returns an existentially quantified variable *)
   let (x, c) = Core.fresh_var c in
