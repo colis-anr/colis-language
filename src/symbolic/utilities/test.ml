@@ -119,7 +119,9 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
     error_case
       ~descr:(asprintf "test -%s %a: path does not resolve or to file of type other than '%s'" attr Path.pp p attr)
       begin
-        maybe_resolve root cwd p (fun x -> is_ntype x)
+        exists ?hint:hintx @@ fun x ->
+        maybe_resolve root cwd p x
+        & is_ntype x
         & eq root root'
       end;
   ]

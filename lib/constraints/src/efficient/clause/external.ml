@@ -78,22 +78,17 @@ let nchar x = nkind x Constraints_common.Kind.Char
 let  symlink x =  kind x Constraints_common.Kind.Symlink
 let nsymlink x = nkind x Constraints_common.Kind.Symlink
 
-let resolve r cwd q z =
+let resolve r cwd p z =
   with_internal_2 r z @@ fun r z ->
-  resolve r [] (Constraints_common.Path.concat cwd q) z
+  resolve r [] (Constraints_common.Path.concat cwd p) z
 
-let noresolve r cwd q =
+let noresolve r cwd p =
   with_internal r @@ fun r ->
-  noresolve r [] (Constraints_common.Path.concat cwd q)
+  noresolve r [] (Constraints_common.Path.concat cwd p)
 
-let maybe_resolve r cwd q f c =
-  let gz = Constraints_common.Var.fresh () in
-  let (z, c) = Core.internalise gz c in
-  Dnf.bind
-    ((with_internal r @@ fun r ->
-      maybe_resolve r [] (Constraints_common.Path.concat cwd q)
-        (fun x -> Internal.eq x z & f gz)) c)
-    (fun c -> Core.quantify_over gz c |> Dnf.single)
+let maybe_resolve r cwd p z =
+  with_internal_2 r z @@ fun r z ->
+  maybe_resolve r [] (Constraints_common.Path.concat cwd p) z
 
 let similar r r' cwd q z z' =
   with_internal_2 r r' @@ fun r r' ->

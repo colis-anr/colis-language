@@ -1,16 +1,8 @@
-Efficient Implementation of Feature Tree Constraints
-====================================================
+Feature Tree Constraints
+========================
 
-The module Core contains the type definition of the whole structure.
-
-The IVar module contains the definition of internal variables, as well as
-efficient maps from internal variables and maps from Var.t to internal
-variables.
-
-Feature Trees
--------------
-
-### Model
+Model
+-----
 
 Let `F` be an infinite set of features. Let `V` be an infinite set of variables.
 Let `K` be a finite set of kinds containing at least `dir` and `reg`.
@@ -21,7 +13,8 @@ The feature trees are defined by the following inductive definition:
 
 where `F ~> FT` denotes a partial function from `F` to `FT`.
 
-### Syntax & Semantics
+Syntax & Semantics
+------------------
 
 We say that `FT, ρ` is a model of a formula `ϕ`, with `ρ : V -> FT` written
 `FT, ρ ⊧ ϕ` if:
@@ -42,15 +35,19 @@ If `FT ⊧ ∀⋅∃y⋅ϕ` then
 
     x[f]↑ ∨ ∃y⋅(x[f]y ∧ ϕ)
 
-and
+is equivalent to:
 
     ∃y⋅(x[f]y? ∧ ϕ)
 
-are equivalent.
+Macros
+------
 
-### Macros
+### Resolve
 
-#### Resolve
+    resolve(r, cwd, p, z)
+
+Means: "from the root `r` with current working directory `cwd`, the path `p`
+resolves and what is there is defined by a constraint on `z`."
 
 Defined using an auxiliary macro:
 
@@ -62,12 +59,55 @@ Defined using an auxiliary macro:
 
 And then `resolve` is only a small wrapper:
 
-    resolve(x, cwd, abs(q), z) = resolve_s(x, [],     q, z)
-    resolve(x, cwd, rel(q), z) = resolve_s(x, [], cwd/q, z)
+    resolve(x, cwd, abs(q), z) = resolve_s(x, ε,     q, z)
+    resolve(x, cwd, rel(q), z) = resolve_s(x, ε, cwd/q, z)
 
-#### Noresolve
+### Maybe Resolve
+
+    maybe_resolve(r, cwd, p, z)
+
+Means: "from the root `r` with current working directory `cwd`, the path `p`
+resolves or does not. If it does, what is there is defined by a constraint on
+`z`."
+
+It is to be noted that if `ϕ` is a constraint on `z`,
+`maybe_resolve(r, cwd, p, z) ∧ ϕ(z)` does not mean "if `p` resolves then, it
+goes to `z` and `Φ(z)`". It is only true when `⊧ ∀⋅∃z⋅ϕ(z)`.
 
 Defined using an auxiliary macro:
+
+    maybe_resolve_s(x,   π,    ε, z) = x = z
+    maybe_resolve_s(x,   π,  ./q, z) = maybe_resolve_s(x, π, q, z)
+    maybe_resolve_s(x,   ε, ../q, z) = maybe_resolve_s(x, ε, q, z)
+    maybe_resolve_s(x, y⋅π, ../q, z) = ¬dir(x) ∨ maybe_resolve_s(y, π, q, z)
+    maybe_resolve_s(x,   π,  f/q, z) = ∃y⋅(x[f]y? ∧ maybe_resolve_s(y, x⋅pi, q, z))
+
+Note: we can do something more clever with the `..` than introducing a
+disjunction.
+
+Then, `maybe_resolve` is a small wrapper:
+
+    maybe_resolve(x, cwd, abs(q), z) = maybe_resolve_s(x, ε,     q, z)
+    maybe_resolve(x, cwd, rel(q), z) = maybe_resolve_s(x, ε, cwd/q, z)
+
+### Noresolve
+
+    noresolve(x, cwd, p)
+
+Means: "from the root `r` with current working directory `cwd`, the path `p`
+does not resolve."
+
+To follow up on the note in the previous section, it is to be noted that this is
+not `∃z⋅(maybe_resolve(x, cwd, p, z) ∧ ⊥)`, obviously.
+
+Defined using an auxiliary macro, either using `maybe_resolve`:
+
+    noresolve_s(x, π,    ε) = ⊥
+    noresolve_s(x, π, q/f ) = ∃y⋅(maybe_resolve_s(x, π, q, y) ∧ y[f]↑)
+    noresolve_s(x, π, q/. ) = noresolve_s(x, π, q)
+    noresolve_s(x, π, q/..) = ¬dir(x)
+
+or directly like then others:
 
     noresolve_s(x,   π,    ε) = ⊥
     noresolve_s(x,   π,  f  ) = x[f]↑
@@ -75,10 +115,6 @@ Defined using an auxiliary macro:
     noresolve_s(x,   ε, ../q) = noresolve_s(x, ε, q)
     noresolve_s(x, y⋅π, ../q) = ¬dir(x) ∨ noresolve_s(y, π, q)
     noresolve_s(x,   π,  f/q) = ∃y⋅(x[f]y? ∧ noresolve_s(x, y⋅π, q))
-
-We can do something more clever with the `..`. For instance, we could have:
-
-    noresolve_s(x, π, f/../q) =
 
 Rewriting System
 ----------------

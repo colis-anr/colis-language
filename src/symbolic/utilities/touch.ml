@@ -55,7 +55,9 @@ let interp_touch1 cwd path_str : utility =
       error_case
         ~descr:(asprintf "touch %a: parent path does not resolve or resolves to dir" Path.pp p)
         begin
-          maybe_resolve root cwd q (fun z -> ndir z)
+          exists ?hint:hintx @@ fun x ->
+          maybe_resolve root cwd q x
+          & ndir x
           & eq root root'
         end
     ]

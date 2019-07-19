@@ -32,6 +32,14 @@ let exists f c =
   let (x, c) = Core.fresh_var c in
   f x c
 
+let and_ r1 r2 = fun c ->
+  c |> r1 |> List.map r2 |> List.flatten
+
+let (&) = and_
+
+let or_ r1 r2 = fun c ->
+  (c |> r1) @ (c |> r2)
+
 (** {2 Absence} *)
 
 let abs x f c =
@@ -337,15 +345,20 @@ and transfer_info_but_sims info_x fs y c =
 
 let nabs x f = exists @@ fun y -> feat x f y
 
+(** {2 Non-Equality} *)
+
+let neq _x _y =
+  Core.not_implemented "neq"
+
+let nfeat x f y =
+  exists @@ fun z ->
+  maybe x f z & neq y z
+
+let nmaybe x f y =
+  exists @@ fun z ->
+  feat x f y & neq y z
+
 (** {2 Macros} *)
-
-let and_ r1 r2 = fun c ->
-  c |> r1 |> List.map r2 |> List.flatten
-
-let (&) = and_
-
-let or_ r1 r2 = fun c ->
-  (c |> r1) @ (c |> r2)
 
 let rec resolve x pi q z =
   match Path.split_first_rel q with
@@ -361,6 +374,7 @@ let rec resolve x pi q z =
     | y::pi -> dir x & resolve y pi q z
 
 let rec noresolve x pi q =
+  (* FIXME: redefine using `maybe_resolve`? *)
   match Path.split_first_rel q with
   | None -> (fun _ -> []) (* false *)
   | Some (Down f, q) ->
@@ -377,20 +391,18 @@ let rec noresolve x pi q =
     | [] -> noresolve x [] q
     | y::pi -> or_ (nkind x Kind.Dir) (noresolve y pi q)
 
-let rec maybe_resolve x pi q phi =
-  (* This only makes sense if `⊧ ∃z⋅ϕ(z)`. In particular, it is wrong to think
-     of `noresolve x pi q` as `maybe_resolve x pi q ⊥`.  *)
+let rec maybe_resolve x pi q z =
   match Path.split_first_rel q with
-  | None -> phi x
+  | None -> eq x z
   | Some (Down f, q) ->
     exists @@ fun y ->
-    maybe x f y & maybe_resolve y (x::pi) q phi
+    maybe x f y & maybe_resolve y (x::pi) q z
   | Some (Here, q) ->
-    maybe_resolve x pi q phi
+    maybe_resolve x pi q z
   | Some (Up, q) ->
     match pi with
-    | [] -> maybe_resolve x [] q phi
-    | y::pi -> or_ (nkind x Kind.Dir) (maybe_resolve y pi q phi)
+    | [] -> maybe_resolve x [] q z
+    | y::pi -> or_ (nkind x Kind.Dir) (maybe_resolve y pi q z)
 
 let rec similar x x' p z z' =
   match p with
@@ -399,16 +411,3 @@ let rec similar x x' p z z' =
   | f::p ->
     exists @@ fun y -> exists @@ fun y' ->
     feat x f y & feat x' f y' & sim x (Feat.Set.singleton f) x' & similar y y' p z z'
-
-(** {2 Non-Equality} *)
-
-let neq _x _y =
-  Core.not_implemented "neq"
-
-let nfeat x f y =
-  exists @@ fun z ->
-  maybe x f z & neq y z
-
-let nmaybe x f y =
-  exists @@ fun z ->
-  feat x f y & neq y z
