@@ -16,6 +16,11 @@ let  sim1 x f y = sim x (Feat.Set.singleton f) y
 let quantify_over x c =
   Core.quantify_over x c |> Dnf.single
 
+let simplify = Core.simplify
+
+let quantify_over_and_simplify x c =
+  Core.(c |> quantify_over x |> simplify) |> Dnf.single
+
 let make_initial = Core.make_initial
 
 let exists ?hint f = fun c ->

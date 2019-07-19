@@ -13,16 +13,17 @@ let eq x y =
   with_internal_2 x y @@ fun x y ->
   eq x y
 
-let neq _x _y =
-  Core.not_implemented "neq"
+let neq x y =
+  with_internal_2 x y @@ fun x y ->
+  neq x y
 
 let feat x f y =
   with_internal_2 x y @@ fun x y ->
   feat x f y
 
-let nfeat _x _f _y =
-  (* exists @@ fun z -> maybe x f z & neq y z *)
-  Core.not_implemented "nfeat"
+let nfeat x f y =
+  with_internal_2 x y @@ fun x y ->
+  nfeat x f y
 
 let abs x f =
   with_internal x @@ fun x ->
@@ -36,8 +37,9 @@ let maybe x f y =
   with_internal_2 x y @@ fun x y ->
   maybe x f y
 
-let nmaybe _x _f _y =
-  Core.not_implemented "nmaybe"
+let nmaybe x f y =
+  with_internal_2 x y @@ fun x y ->
+  nmaybe x f y
 
 let fen x fs =
   with_internal x @@ fun x ->

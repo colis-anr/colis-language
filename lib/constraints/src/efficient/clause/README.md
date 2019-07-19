@@ -138,9 +138,9 @@ Rewriting System
 
 ### Replacement Rules
 
-    {R-NFeat}       ¬x[f]y => x[f]↑ ∨ ∃z⋅(x[f]z ∧ y ≠ z)
-    {R-NFeat'}      ¬x[f]y => ∃z⋅(x[f]z? ∧ y ≠ z)
-    {R-NAbs}        ¬x[f]↑ => ∃z⋅x[f]z
+    {R-NFeat}       ¬x[f]y  => ∃z⋅(x[f]z? ∧ y ≠ z)
+    {R-NAbs}        ¬x[f]↑  => ∃z⋅x[f]z
+    {R-NMaybe}      ¬x[f]y? => ∃z⋅(x[f]z ∧ y ≠ z)
 
 Notes on the different literals
 -------------------------------

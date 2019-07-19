@@ -15,4 +15,8 @@ module Set : sig
   val pp : Format.formatter -> t -> unit
 end
 
-module Map : Map.S with type key = t
+module Map : sig
+  include Map.S with type key = t
+
+  val map_filter : ('a -> 'b option) -> 'a t -> 'b t
+end

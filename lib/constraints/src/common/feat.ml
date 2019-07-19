@@ -33,4 +33,12 @@ module Set = struct
     pp_gen ~open_:"{" ~close:"}" ~empty:"∅" fmt fs
 end
 
-module Map = Map.Make(Self)
+module Map = struct
+  include Map.Make(Self)
+
+  let map_filter f m =
+    m
+    |> map f
+    |> filter (fun _ -> (<>) None)
+    |> map (function Some x -> x | None -> assert false)
+end

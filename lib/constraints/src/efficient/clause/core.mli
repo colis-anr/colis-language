@@ -22,6 +22,10 @@ val hash : var -> int
 
 val equal : var -> var -> t -> bool
 
+val syntactic_compare : var -> var -> int
+(** Comparison not in the structure but syntactically. Implies equality in the
+    structure. *)
+
 val identify : var -> var -> (info -> info -> info) ->  t -> t
 (** Identify two variables. After that, they are "equal" in the structure. The function talking about infos is here to tell to the structure how to merge the info of the two variables. *)
 
@@ -32,6 +36,8 @@ val internalise : Constraints_common.Var.t -> t -> (var * t)
 val externalise : var -> t -> Constraints_common.Var.t list
 (** Returns the (possibly empty) list of external variables mapping to that
     particular (not up to equality) internal variable. *)
+
+val fold_globals : (var -> 'a -> 'a) -> t -> 'a -> 'a
 
 val quantify_over : Constraints_common.Var.t -> t -> t
 
@@ -45,9 +51,14 @@ val set_info : var -> t -> info -> t
 
 val update_info : var -> t -> (info -> info) -> t
 
-val iter : (var -> info -> unit) -> t -> unit
+val fold_infos : (var -> info -> 'a -> 'a) -> t -> 'a -> 'a
+
+val filter_infos : (var -> bool) -> t -> t
+
+val iter_infos : (var -> info -> unit) -> t -> unit
 
 val iter_equalities : (var -> var -> unit) -> t -> unit
+
 
 (** {2 Helpers} *)
 
@@ -123,6 +134,11 @@ val not_implemented_nsims : info -> unit
 
    FIXME: should not be required if everything is correctly implemented. They
    are here to denote places where work has to be done to support nsims. *)
+
+(** {2 Garbage Collection} *)
+
+val simplify : t -> t
+(** Removes all variables that are not accessible from the globals. *)
 
 (** {2 Should Disappear}
 

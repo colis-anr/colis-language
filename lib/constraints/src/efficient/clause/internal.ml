@@ -399,3 +399,16 @@ let rec similar x x' p z z' =
   | f::p ->
     exists @@ fun y -> exists @@ fun y' ->
     feat x f y & feat x' f y' & sim x (Feat.Set.singleton f) x' & similar y y' p z z'
+
+(** {2 Non-Equality} *)
+
+let neq _x _y =
+  Core.not_implemented "neq"
+
+let nfeat x f y =
+  exists @@ fun z ->
+  maybe x f z & neq y z
+
+let nmaybe x f y =
+  exists @@ fun z ->
+  feat x f y & neq y z

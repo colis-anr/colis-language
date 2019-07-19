@@ -121,7 +121,7 @@ let quantify_over_intermediate_root fs conj =
   if BatOption.eq ~eq:Var.equal fs.SymbolicInterpreter__Filesystem.root0 (Some fs.root) then
     [conj]
   else
-    Clause.quantify_over fs.root conj
+    Clause.quantify_over_and_simplify fs.root conj
 
 let apply_case_to_state sta root' case : (state * bool) list =
   (* First print the utility trace *)

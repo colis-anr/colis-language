@@ -132,6 +132,8 @@ let equal x y c =
   let (ay, _) = find_ancestor_and_info y c in
   ax = ay
 
+let syntactic_compare = compare
+
 let identify x y merge c =
   let rec identify x y =
     match IMap.find x c.info, IMap.find y c.info with
@@ -167,6 +169,9 @@ let externalise x c =
     c.globals
     []
 
+let fold_globals f c =
+  Var.Map.fold (fun _ -> f) c.globals
+
 let quantify_over x c =
   { c with globals = Var.Map.remove x c.globals }
 
@@ -199,12 +204,24 @@ let set_info x c info =
 let update_info x c f =
   get_info x c |> f |> set_info x c
 
-let iter f c =
+let fold_infos f c e =
+  IMap.fold
+    (fun x i e ->
+       match i with
+       | Son _ -> e
+       | Info info -> f x info e)
+    c.info
+    e
+
+let iter_infos f c =
   IMap.iter
     (fun x -> function
        | Son _ -> ()
        | Info info -> f x info)
     c.info
+
+let filter_infos p c =
+  { c with info = IMap.filter (fun x _ -> p x) c.info }
 
 let iter_equalities f c =
   IMap.iter
@@ -297,3 +314,101 @@ let remove_nsims x c =
     (fun c (_, y) -> remove_nsim y x c)
     (set_info x c { info with nsims = [] })
     info.nsims
+
+(** {2 Garbage Collection} *)
+
+let rec list_map_filter f = function
+  | [] -> []
+  | h :: q ->
+    match f h with
+    | None -> list_map_filter f q
+    | Some h -> h :: list_map_filter f q
+
+module VSet = Set.Make(struct type t = var let compare = syntactic_compare end)
+
+let find_ancestor x c =
+  fst (find_ancestor_and_info x c)
+
+let simplify c =
+  (* The simplification uses the theorem that tells that we can remove all the
+     literals about inaccessible (wrt the feature constraint) variables safely,
+     this is an equivalence. The [simplify] function is thus some sort of
+     garbage collector. It makes the constraint nicer to look at as a human
+     being. Also, by making the constraint smaller, it can improve the speed of
+     subsequent modifications.
+     This operation is pretty costly: #literals * log(#variables). *)
+  let rec gather_accessibles_from accessibles x =
+    fold_feats
+      (fun _ t accessibles ->
+         match t with
+         | DontKnow | Absent -> accessibles
+         | Present y -> gather_accessibles_from accessibles y
+         | Maybe ys -> List.fold_left gather_accessibles_from accessibles ys)
+      (VSet.add x accessibles)
+      (get_info x c)
+  in
+  let accessibles =
+    fold_globals
+      (fun r accessibles ->
+         gather_accessibles_from accessibles r)
+      c
+      VSet.empty
+  in
+  let accessibles = VSet.map (fun x -> find_ancestor x c) accessibles in
+  let is_accessible x =
+    VSet.mem x accessibles
+  in
+  (* To be sure not to remove equalities, we get rid of them first. To do that,
+     we lift everything to the representents in the union-find. *)
+  let globals = Var.Map.map (fun x -> find_ancestor x c) c.globals in
+  let info =
+    c.info
+    |> IMap.filter
+      (fun x -> function
+         (* ...and we filter out all the sons *)
+         | Son _ -> false
+         (* and keep only the ancestors that satisfy [p]. *)
+         | Info _ -> is_accessible x)
+    |> IMap.map
+      (* We then take care of the infos. To do that, we lift everything to the
+         ancestors and then remove everything that is about an ancestor that
+         does not satisfy [p]. *)
+      (function
+        | Son _ -> assert false
+        | Info info ->
+          Info
+            { initial = info.initial ;
+              kind = info.kind ;
+              feats =
+                Feat.Map.map_filter
+                  (function
+                    | DontKnow -> Some DontKnow
+                    | Absent -> Some Absent
+                    | Present y ->
+                      let y =  find_ancestor y c in
+                      if is_accessible y then Some (Present y) else None
+                    | Maybe ys ->
+                      let ys =
+                        ys
+                        |> List.map (fun y -> find_ancestor y c)
+                        |> List.filter is_accessible
+                        |> List.sort_uniq syntactic_compare
+                      in
+                      if ys = [] then None else Some (Maybe ys))
+                  info.feats ;
+              fen = info.fen ;
+              sims =
+                list_map_filter
+                  (fun (fs, y) ->
+                     let y = find_ancestor y c in
+                     if is_accessible y then Some (fs, y) else None)
+                  info.sims ;
+              nfens = info.nfens ;
+              nsims =
+                list_map_filter
+                  (fun (fs, y) ->
+                     let y = find_ancestor y c in
+                     if is_accessible y then Some (fs, y) else None)
+                  info.nsims })
+  in
+  { globals ; info }
