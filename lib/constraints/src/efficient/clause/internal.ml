@@ -180,7 +180,7 @@ let fen x fs c =
       info
   then
     Core.(
-      update_info_for_all_similarities
+      update_info_for_all_similarities (* P-Fen *)
         (fun gs _ info ->
            let hs = Feat.Set.union fs gs in
            info
@@ -201,19 +201,28 @@ let rec feat x f y c =
   | None when Core.has_fen info -> Dnf.empty (* C-Feat-Fen *)
   | Some Absent -> Dnf.empty (* C-Abs-Feat *)
   | None | Some DontKnow ->
-    info
-    |> Core.set_feat f (Present y)
-    |> Core.set_info x c
-    |> Dnf.single
+    Core.(
+      update_info_for_all_similarities
+        (fun fs _ -> if Feat.Set.mem f fs
+          then do_nothing
+          else set_feat f (Present y) (* P-Feat *))
+        x info c
+    ) |> Dnf.single
   | Some (Present z) ->
     eq y z c
   | Some (Maybe zs) ->
+    let c =
+      Core.(
+        update_info_for_all_similarities
+          (fun fs _ -> if Feat.Set.mem f fs
+            then do_nothing
+            else set_feat f (Present y) (* P-Feat *))
+          x info c
+      )
+    in
     List.fold_left
-      (fun c z -> eq y z =<< c)       (* S-Maybe-Feat *)
-      (info
-       |> Core.set_feat f (Present y) (* S-Maybe-Feat *)
-       |> Core.set_info x c
-       |> Dnf.single)
+      (fun c z -> eq y z =<< c) (* S-Maybe-Feat *)
+      (Dnf.single c)
       zs
 
 (** {2 Maybe} *)
@@ -225,15 +234,21 @@ and maybe x f y c =
   | None when Core.has_fen info -> Dnf.single c (* S-Maybe-Fen *)
   | Some Absent -> Dnf.single c (* S-Maybe-Abs *)
   | None | Some DontKnow ->
-    info
-    |> Core.set_feat f (Maybe [y])
-    |> Core.set_info x c
-    |> Dnf.single
+    Core.(
+      update_info_for_all_similarities
+        (fun fs _ -> if Feat.Set.mem f fs
+          then do_nothing
+          else set_feat f (Maybe [y]) (* P-Maybe *))
+        x info c
+    ) |> Dnf.single
   | Some (Maybe zs) ->
-    info
-    |> Core.set_feat f (Maybe (y :: zs))
-    |> Core.set_info x c
-    |> Dnf.single
+    Core.(
+      update_info_for_all_similarities
+        (fun fs _ -> if Feat.Set.mem f fs
+          then do_nothing
+          else set_feat f (Maybe (y :: zs)) (* P-Maybe *))
+        x info c
+    ) |> Dnf.single
   | Some (Present z) ->
     eq y z c (* S-Maybe-Feat *)
 
