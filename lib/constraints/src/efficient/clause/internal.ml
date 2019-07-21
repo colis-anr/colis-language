@@ -288,10 +288,6 @@ and sim x fs y c =
 (** {2 Equality} *)
 
 and eq x y c =
-  (* FIXME: there lacks one really important thing here, which is that we need
-     to look at all that who have similarities with [x] and [y] and make sure
-     that, after equality, there is only one similarity still, to keep the
-     invariant. *)
   implied_by_eq x y c @@ fun () -> (* S-Eq-Refl *)
   let info_x = Core.get_info x c in
   (
@@ -307,6 +303,15 @@ and eq x y c =
       (Dnf.single c)
       info_x
   ) >>= fun c ->
+  (* Remove all similarities that one has with [x], as we already moved them *)
+  let c =
+    Core.(
+      update_info_for_all_similarities
+        (fun _ _ ->
+           remove_sim x c)
+        x info_x c
+    )
+  in
   Core.identify x y (fun _ info_y -> info_y) c
   |> Dnf.single
 

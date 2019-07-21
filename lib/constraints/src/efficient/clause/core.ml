@@ -266,6 +266,14 @@ let set_fen info = { info with fen = true }
 
 (** {3 Similarities} *)
 
+let remove_sim y c info =
+  { info with
+    sims =
+      List.filter
+        (fun (_, z) ->
+           not (equal y z c))
+        info.sims }
+
 let update_sim y upd c info =
   let rec update_sim = function
     | [] -> [upd None, y]

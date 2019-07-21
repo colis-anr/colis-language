@@ -99,6 +99,10 @@ val set_fen : info -> info
 
 (** {3 sims} *)
 
+val remove_sim : var -> t -> info -> info
+(** [remove_sim y c info] removes all references to variables equal to [y] (wrt.
+    structure [c]) in [info]. *)
+
 val update_sim : var -> (Feat.Set.t option -> Feat.Set.t) -> t -> info -> info
 (** [update_sim y f c info] updates the sims in [info] by calling [f None] if
     there is no sim for [y] or [Some gs] if there is a sim [~gs y]. *)
