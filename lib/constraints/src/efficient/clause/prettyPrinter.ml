@@ -18,7 +18,8 @@ let pp_as_dot ~name fmt c =
            fpf fmt "%d [label=< <TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">%s%s</TABLE> >];@\n"
              (Core.hash x) text cont
          else
-           fpf fmt "%d [shape=point];@\n" (Core.hash x))
+           fpf fmt "%d [label=< <TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\"><TR><TD></TD></TR></TABLE> >];@\n"
+             (Core.hash x))
       "%a"
   in
   let pp_flat_edge fmt x y = (* assumes x and y are hashed *)
