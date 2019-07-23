@@ -41,4 +41,9 @@ module Map = struct
     |> map f
     |> filter (fun _ -> (<>) None)
     |> map (function Some x -> x | None -> assert false)
+
+  let update x f m = (* FIXME: for < 4.06 compatibility *)
+    match f (find_opt x m) with
+    | None -> remove x m
+    | Some y -> add x y m
 end

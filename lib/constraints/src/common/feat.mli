@@ -19,4 +19,7 @@ module Map : sig
   include Map.S with type key = t
 
   val map_filter : ('a -> 'b option) -> 'a t -> 'b t
+
+  val update : key -> ('a option -> 'a option) -> 'a t -> 'a t
+  (* FIXME: for < 4.06 compatibility *)
 end
