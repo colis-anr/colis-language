@@ -21,7 +21,7 @@ module Collection
   val function to_list (c: t 'a) : L.list 'a
     ensures { forall x. mem x c <-> L.mem x result }
 
-  val constant size (c: t 'a) : int
+  val constant size (_: t 'a) : int
     ensures { 0 <= result }
 
   val constant empty : t 'a
