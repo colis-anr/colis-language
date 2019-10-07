@@ -192,26 +192,25 @@ module Interpreter
 
   (** {3 The interpretation of statements} *)
 
-  (** While loops and call stacks are unbounded in the concrete interpreter *)
-  let constant cnf = {loop_limit = None; stack_size = None}
-
   let ghost ref stk = 0
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
+    requires { inp.config.loop_limit = None }
+    requires { inp.config.stack_size = None }
     ensures { (old stk) = stk }
     raises { EReturn ->  (old stk) = stk }
     raises { EExit ->  (old stk) = stk }
     ensures {
-      eval_instruction (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_instruction (old stk) (inp, sem_context (old sta), sem_state (old sta))
         ins (sem_state sta, sem_context sta, BNormal)
     }
     raises { EReturn ->
-      eval_instruction (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_instruction (old stk) (inp, sem_context (old sta), sem_state (old sta))
         ins (sem_state sta, sem_context sta, BReturn)
     }
     raises { EExit ->
-      eval_instruction (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_instruction (old stk) (inp, sem_context (old sta), sem_state (old sta))
         ins (sem_state sta, sem_context sta, BExit)
     }
   = label L in
@@ -360,18 +359,18 @@ module Interpreter
         invariant { stk = (stk at L) }
         invariant {
           eval_foreach stk True
-            (cnf, inp, ctx0, sta0)
+            (inp, ctx0, sta0)
             id (take i ss) ins
             (sem_state sta, sem_context sta, BNormal)
             !last_result
         }
         invariant { forall sta1, ctx1, bhv1, b1.
           eval_foreach stk !last_result
-            (cnf, inp, sem_context sta, sem_state sta)
+            (inp, sem_context sta, sem_state sta)
             id (drop i ss) ins
             (sta1, ctx1, bhv1) b1 ->
           eval_foreach stk True
-            (cnf, inp, ctx0, sta0)
+            (inp, ctx0, sta0)
             id ss ins
             (sta1, ctx1, bhv1) b1
         }
@@ -399,11 +398,11 @@ module Interpreter
         invariant { stk = (stk at L) }
         invariant { forall sta1 ctx1 b1 bhv n.
           eval_while stk ctr !last_result
-            (cnf, inp, sem_context sta, sem_state sta)
+            (inp, sem_context sta, sem_state sta)
             ins1 ins2
             (sta1, ctx1, bhv) n b1 ->
           eval_while stk 0 True
-            (cnf, inp, ctx0, sta0)
+            (inp, ctx0, sta0)
             ins1 ins2
             (sta1, ctx1, bhv) n b1
         }
@@ -429,10 +428,12 @@ module Interpreter
 
   with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (s: string, b': bool)
     diverges
+    requires { inp.config.loop_limit = None }
+    requires { inp.config.stack_size = None }
     ensures { old stk = stk }
     ensures { sem_context sta = sem_context (old sta) }
     ensures {
-      eval_str_expr (old stk) b (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_str_expr (old stk) b (inp, sem_context (old sta), sem_state (old sta))
         se (sem_state sta, Some (s, b'))
     }
   = match se with
@@ -466,18 +467,20 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr stk b (cnf, inp, sem_context sta, sem_state sta at L1) se1 (sem_state sta, Some (s1, b1)) };
+      assert { eval_str_expr stk b (inp, sem_context sta, sem_state sta at L1) se1 (sem_state sta, Some (s1, b1)) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr stk b1 (cnf, inp, sem_context sta, sem_state sta at L2) se2 (sem_state sta, Some (s2, b2)) };
+      assert { eval_str_expr stk b1 (inp, sem_context sta, sem_state sta at L2) se2 (sem_state sta, Some (s2, b2)) };
       s1^s2, b2
     end
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
     diverges
+    requires { inp.config.loop_limit = None }
+    requires { inp.config.stack_size = None }
     ensures { old stk = stk }
     ensures { sem_context sta = sem_context (old sta) }
     ensures {
-      eval_list_expr (old stk) (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_list_expr (old stk) (inp, sem_context (old sta), sem_state (old sta))
         le (sem_state sta, Some result)
     }
   = match le with
@@ -493,8 +496,10 @@ module Interpreter
 
   let interp_program inp sta pro
     diverges
+    requires { inp.config.loop_limit = None }
+    requires { inp.config.stack_size = None }
     ensures {
-      eval_program (cnf, inp, sem_context (old sta), sem_state (old sta))
+      eval_program (inp, sem_context (old sta), sem_state (old sta))
         pro (sem_state sta, Some !(sta.result))
     }
   = try
