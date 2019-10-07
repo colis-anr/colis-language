@@ -308,6 +308,7 @@ module Interpreter
   use syntax.Syntax
   use auxiliaries.OptionGet
   use collection.Collection as Cn
+  use semantics.Result
   use semantics.Behaviour
   use semantics.Input
   use semantics.Config
@@ -327,40 +328,40 @@ module Interpreter
       Cn.mem res result
     }
 
-  let rec separate_options_list (sta_opts: list (state, option 'a)) : (results: list (state, 'a), failures: list state)
+  let rec separate_results_list (sta_opts: list (state, result 'a)) : (results: list (state, 'a), failures: list state)
     variant { sta_opts }
     ensures {
       forall sta x.
       L.mem (sta, x) results <->
-      L.mem (sta, Some x) sta_opts
+      L.mem (sta, Success x) sta_opts
     }
     ensures {
       forall sta.
       L.mem sta failures <->
-      L.mem (sta, None) sta_opts
+      L.mem (sta, Error) sta_opts
     }
   = match sta_opts with
     | Nil -> Nil, Nil
     | Cons (sta, opt_x) sta_opts' -> 
-      let results, failures = separate_options_list sta_opts' in
+      let results, failures = separate_results_list sta_opts' in
       match opt_x with
-      | Some x -> Cons (sta, x) results, failures
-      | None -> results, Cons sta failures
+      | Success x -> Cons (sta, x) results, failures
+      | Error -> results, Cons sta failures
       end
     end
 
-  let separate_options (sta_opts: Cn.t (state, option 'a)) : (results: Cn.t (state, 'a), failures: Cn.t state)
+  let separate_results (sta_opts: Cn.t (state, result 'a)) : (results: Cn.t (state, 'a), failures: Cn.t state)
     ensures {
       forall sta x.
       Cn.mem (sta, x) results <->
-      Cn.mem (sta, Some x) sta_opts
+      Cn.mem (sta, Success x) sta_opts
     }
     ensures {
       forall sta.
       Cn.mem sta failures <->
-      Cn.mem (sta, None) sta_opts
+      Cn.mem (sta, Error) sta_opts
     }
-  = let results, failures = separate_options_list (Cn.to_list sta_opts) in
+  = let results, failures = separate_results_list (Cn.to_list sta_opts) in
     Cn.of_list results, Cn.of_list failures
 
   let function get_some (o: option 'a) : 'a
@@ -480,7 +481,7 @@ module Interpreter
 
     | IAssignment var se ->
       let str_stas, str_stas_failure =
-        separate_options
+        separate_results
           (interp_str_expr stk True inp ctx sta se)
       in
       let str_stas_failure = Rs.stas_as_failures ctx str_stas_failure in
@@ -491,7 +492,7 @@ module Interpreter
       Rs.(union res str_stas_failure)
       ensures {
         forall sta'.
-        eval_str_expr stk True (inp, ctx, sta) se (sta', None) ->
+        eval_str_expr stk True (inp, ctx, sta) se (sta', Error) ->
         Cn.mem {state=sta'; context=ctx; data=()} result.Rs.failure
       }
 
@@ -565,12 +566,12 @@ module Interpreter
 
     | ICd se ->
       let res1, res_failures =
-        separate_options
+        separate_results
           (interp_str_expr stk True inp ctx sta se)
       in
       assert { [@expl:cd5]
         forall sta1 str b.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Some (str, b)) ->
+        eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (str, b)) ->
         Cn.mem (sta1, (str, b)) res1
       };
       let res2 =
@@ -586,7 +587,7 @@ module Interpreter
       in
       assert { [@expl:cd4]
         forall sta1 s _b sta2 b.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Some (s, _b)) ->
+        eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
         let args = Cons string_dash_d (Cons pwd_s Nil) in
@@ -611,7 +612,7 @@ module Interpreter
       in
       assert { [@expl:cd3]
         forall sta1 s _b sta2 b.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Some (s, _b)) ->
+        eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
         let args = Cons string_dash_d (Cons pwd_s Nil) in
@@ -627,7 +628,7 @@ module Interpreter
       Rs.union res3 res_failures
       ensures { [@expl:cd2]
         forall sta1 s _b sta2 b.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Some (s, _b)) ->
+        eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
         let args = Cons string_dash_d (Cons pwd_s Nil) in
@@ -641,13 +642,13 @@ module Interpreter
       }
       ensures { [@expl:cd1]
         forall sta1.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, None) ->
+        eval_str_expr stk True (inp, ctx, sta) se (sta1, Error) ->
         Rs.mem {state=sta1; context=ctx; data=()} BFailure result
       }
 
     | ICallUtility id le ->
       let res, res_failures =
-        separate_options
+        separate_results
           (interp_list_expr stk inp ctx sta le)
       in
       let res' =
@@ -669,7 +670,7 @@ module Interpreter
       Rs.union res''' res_failures'
       ensures {
         forall sta' ss sta'' b.
-        eval_list_expr stk (inp, ctx, sta) le (sta', Some ss) ->
+        eval_list_expr stk (inp, ctx, sta) le (sta', Success ss) ->
         (sta'', b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' ->
         Rs.mem {state=sta''; context={ctx with result=b}; data=()} (behaviour inp b) result
         by Rs.mem {state=sta''; context={ctx with result=b}; data=()} (behaviour inp b) res'''
@@ -677,12 +678,12 @@ module Interpreter
 
     | ICallFunction id le ->
       let arg_res, arg_res_failures =
-        separate_options
+        separate_results
           (interp_list_expr stk inp ctx sta le)
       in
       assert { [@expl:callfun1]
         forall sta1 args.
-        eval_list_expr stk (inp, ctx, sta) le (sta1, Some args) ->
+        eval_list_expr stk (inp, ctx, sta) le (sta1, Success args) ->
         Cn.mem (sta1, args) arg_res
       };
       let res =
@@ -696,9 +697,9 @@ module Interpreter
               Rs.({empty with failure = Cn.map aux arg_res})
               ensures { [@expl:callfun2]
                 forall sta1 args ins.
-                eval_list_expr stk (inp, ctx, sta) le (sta1, Some args) ->
+                eval_list_expr stk (inp, ctx, sta) le (sta1, Success args) ->
                 ctx.func_env[id] = Some ins ->
-                match inp.config.stack_size with Some n -> n = stk | None -> false end ->
+                inp.config.stack_size = Some stk ->
                 Rs.mem {state=sta1; context=ctx; data=()} BFailure result
               }
             else (* Execute function *)
@@ -712,9 +713,9 @@ module Interpreter
                 Rs.bind_collection aux arg_res
                 ensures { [@expl:callfun3]
                   forall sta1 args ins sta2 ctx2 bhv2.
-                  eval_list_expr stk (inp, ctx, sta) le (sta1, Some args) ->
+                  eval_list_expr stk (inp, ctx, sta) le (sta1, Success args) ->
                   ctx.func_env[id] = Some ins ->
-                  match inp.config.stack_size with Some n -> n <> stk | None -> true end ->
+                  inp.config.stack_size <> Some stk ->
                   let inp1 = { inp with argument0 = identifier_to_string id } in
                   let ctx1 = { ctx with arguments = args } in
                   eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
@@ -728,9 +729,9 @@ module Interpreter
                 Rs.map aux res2
                 ensures { [@expl:callfun4]
                   forall sta1 args ins sta2 ctx2 bhv2.
-                  eval_list_expr stk (inp, ctx, sta) le (sta1, Some args) ->
+                  eval_list_expr stk (inp, ctx, sta) le (sta1, Success args) ->
                   ctx.func_env[id] = Some ins ->
-                  match inp.config.stack_size with Some n -> n <> stk | None -> true end ->
+                  inp.config.stack_size <> Some stk ->
                   let inp1 = { inp with argument0 = identifier_to_string id } in
                   let ctx1 = { ctx with arguments = args } in
                   eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
@@ -740,9 +741,9 @@ module Interpreter
               Rs.({res2' with normal=Cn.union res2'.normal res2'.return_; return_=Cn.empty})
               ensures { [@expl:callfun5]
                 forall sta1 args ins sta2 ctx2 bhv2.
-                eval_list_expr stk (inp, ctx, sta) le (sta1, Some args) ->
+                eval_list_expr stk (inp, ctx, sta) le (sta1, Success args) ->
                 ctx.func_env[id] = Some ins ->
-                match inp.config.stack_size with Some n -> n <> stk | None -> true end ->
+                inp.config.stack_size <> Some stk ->
                 let inp1 = {inp with argument0=identifier_to_string id} in
                 let ctx1 = {ctx with arguments=args} in
                 eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
@@ -759,7 +760,7 @@ module Interpreter
               Cn.map aux arg_res
               ensures {
                 forall sta' ss.
-                eval_list_expr stk (inp, ctx, sta) le (sta', Some ss) ->
+                eval_list_expr stk (inp, ctx, sta) le (sta', Success ss) ->
                 ctx.func_env[id] = None ->
                 Cn.mem {state=sta'; context={ctx with result=False}; data=()} result
                 by Cn.mem (sta', ss) arg_res
@@ -768,7 +769,7 @@ module Interpreter
             Rs.single_behaviour (behaviour inp False) arg_res'
             ensures {
               forall sta' ss.
-              eval_list_expr stk (inp, ctx, sta) le (sta', Some ss) ->
+              eval_list_expr stk (inp, ctx, sta) le (sta', Success ss) ->
               ctx.func_env[id] = None ->
               Rs.mem {state=sta'; context={ctx with result=False}; data=()} (behaviour inp False) result
             }
@@ -791,12 +792,12 @@ module Interpreter
 
     | IForeach id le ins ->
       let lst_res, lst_res_failures =
-        separate_options
+        separate_results
           (interp_list_expr stk inp ctx sta le)
       in
       assert {
         forall sta' ss.
-        eval_list_expr stk (inp, ctx, sta) le (sta', Some ss) -> 
+        eval_list_expr stk (inp, ctx, sta) le (sta', Success ss) -> 
         Cn.mem (sta', ss) lst_res
       };
       let res_loop_cont =
@@ -808,7 +809,7 @@ module Interpreter
         Rs.bind_collection aux lst_res
         ensures {
           forall sta' ss sta'' ctx' bhv b.
-          eval_list_expr stk (inp, ctx, sta) le (sta', Some ss) -> 
+          eval_list_expr stk (inp, ctx, sta) le (sta', Success ss) -> 
           eval_foreach stk True (inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
           Rs.mem {state=sta''; context=ctx'; data=b} bhv result
         }
@@ -821,7 +822,7 @@ module Interpreter
         Rs.map aux res_loop_cont
         ensures {
           forall sta' ss sta'' ctx' bhv b.
-          eval_list_expr stk (inp, ctx, sta) le (sta', Some ss) -> 
+          eval_list_expr stk (inp, ctx, sta) le (sta', Success ss) -> 
           eval_foreach stk True (inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
           Rs.mem {state=sta''; context={ctx' with result=b}; data=()} bhv result
         }
@@ -830,7 +831,7 @@ module Interpreter
         Rs.stas_as_failures ctx lst_res_failures
         ensures {
           forall sta'.
-          eval_list_expr stk (inp, ctx, sta) le (sta', None) -> 
+          eval_list_expr stk (inp, ctx, sta) le (sta', Error) -> 
           Rs.mem {state=sta'; context=ctx; data=()} BFailure result
         }
       in
@@ -1004,7 +1005,7 @@ module Interpreter
       eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) ctr' b' ->
       Rs.mem {state=sta'; context=ctx'; data=(ctr', b')} bhv result
     }
-  = let loop_limit = match inp.config.loop_limit with Some n -> n | None -> absurd end in
+  = let loop_limit = get_some inp.config.loop_limit in
     if ctr = loop_limit then
       Rs.({empty with failure=Cn.singleton {state=sta; context=ctx; data=(ctr, b)}})
     else
@@ -1064,7 +1065,7 @@ module Interpreter
         Rs.bind_collection aux res2_normal
         ensures {
           forall sta1 ctx1 sta2 ctx2 sta3 ctx3 bhv3 n b'.
-          match inp.config.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          inp.config.loop_limit <> Some ctr ->
           eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
           ctx1.result = True ->
           eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
@@ -1079,7 +1080,7 @@ module Interpreter
         Rs.map with_ctr_b res1_abort
         ensures {
           forall sta1 ctx1 bhv1.
-          match inp.config.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          inp.config.loop_limit <> Some ctr ->
           bhv1 <> BNormal ->
           eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
           Rs.mem {state=sta1;context=ctx1;data=(ctr, b)} bhv1 result
@@ -1089,7 +1090,7 @@ module Interpreter
         Rs.({empty with normal=Cn.map with_ctr_b res1_false})
         ensures {
           forall sta1 ctx1.
-          match inp.config.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          inp.config.loop_limit <> Some ctr ->
           ctx1.result = False ->
           eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
           Rs.mem {state=sta1;context=ctx1;data=(ctr, b)} BNormal result
@@ -1099,7 +1100,7 @@ module Interpreter
         Rs.map with_ctr_b res2_abort
         ensures {
           forall sta1 ctx1 sta2 ctx2 bhv2.
-          match inp.config.loop_limit with None -> true | Some loop_limit -> ctr <> loop_limit end ->
+          inp.config.loop_limit <> Some ctr ->
           eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
           ctx1.result = True ->
           eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
@@ -1131,7 +1132,7 @@ module Interpreter
     Rs.bind_collection interp_instr_with_data stas
 
   with interp_str_expr (stk:int) (b:bool) (inp:input) (ctx:context) (sta:state) (se:string_expression)
-    : Cn.t (state, option (string, bool))
+    : Cn.t (state, result (string, bool))
     variant { get_some inp.config.stack_size - stk, size_string_expr se, -1 }
     requires { inp.config.loop_limit <> None /\ inp.config.stack_size <> None }
     requires { stk <= get_some inp.config.stack_size }
@@ -1142,13 +1143,13 @@ module Interpreter
     }
   = match se with
     | SLiteral str ->
-      Cn.singleton (sta, Some (str, b))
+      Cn.singleton (sta, Success (str, b))
     | SVariable var ->
       let str = ctx.var_env[var]' in
-      Cn.singleton (sta, Some (str, b))
+      Cn.singleton (sta, Success (str, b))
     | SArgument n ->
       let str = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
-      Cn.singleton (sta, Some (str, b))
+      Cn.singleton (sta, Success (str, b))
     | SSubshell ins ->
       let res, stas_failure =
         Rs.separate_non_failure
@@ -1159,30 +1160,30 @@ module Interpreter
         = let str = Stdout.to_string sta1.state.stdout in
           let sta1' = {sta1.state with stdout=sta.stdout} in
           let b' = sta1.context.result in
-          sta1', Some (str, b')
+          sta1', Success (str, b')
         in
         Cn.map for_res res
       in
       let res_failure' =
-        Cn.map (fun sta1 -> {sta1.state with stdout=sta.stdout}, None) stas_failure
+        Cn.map (fun sta1 -> {sta1.state with stdout=sta.stdout}, Error) stas_failure
       in
       Cn.union res' res_failure'
       ensures {
         forall sta1 ctx1.
         eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BFailure) ->
-        Cn.mem ({sta1 with stdout = sta.stdout}, None) result
-        by Cn.mem ({sta1 with stdout = sta.stdout}, None) res_failure'
+        Cn.mem ({sta1 with stdout = sta.stdout}, Error) result
+        by Cn.mem ({sta1 with stdout = sta.stdout}, Error) res_failure'
       }
       ensures {
         forall sta1 ctx1 bhv1.
         bhv1 <> BFailure ->
         eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
-        Cn.mem ({sta1 with stdout = sta.stdout}, Some (Stdout.to_string sta1.stdout, ctx1.result)) result
-        by Cn.mem ({sta1 with stdout = sta.stdout}, Some (Stdout.to_string sta1.stdout, ctx1.result)) res'
+        Cn.mem ({sta1 with stdout = sta.stdout}, Success (Stdout.to_string sta1.stdout, ctx1.result)) result
+        by Cn.mem ({sta1 with stdout = sta.stdout}, Success (Stdout.to_string sta1.stdout, ctx1.result)) res'
       }
     | SConcat se1 se2 ->
       let res1, res1_failure =
-        separate_options
+        separate_results
           (interp_str_expr stk b inp ctx sta se1)
       in
       let res1' =
@@ -1190,29 +1191,29 @@ module Interpreter
           ensures {
             let sta1, (str1, b1) = arg in
             forall sta2.
-            eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Some (str1, b1)) ->
-            eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, None) ->
-            Cn.mem (sta2, None) result
+            eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Success (str1, b1)) ->
+            eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Error) ->
+            Cn.mem (sta2, Error) result
           }
           ensures {
             let sta1, (str1, b1) = arg in
             forall sta2 str2 b2.
-            eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Some (str1, b1)) ->
-            eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Some (str2, b2)) ->
-            Cn.mem (sta2, Some (str1^str2, b2)) result
+            eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Success (str1, b1)) ->
+            eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Success (str2, b2)) ->
+            Cn.mem (sta2, Success (str1^str2, b2)) result
           }
         = let sta1, (str1, b1) = arg in
           let res2, res2_failure =
-            separate_options
+            separate_results
               (interp_str_expr stk b1 inp ctx sta1 se2)
           in
           let res2_failure' =
-            Cn.map (fun sta -> sta, None) res2_failure
+            Cn.map (fun sta -> sta, Error) res2_failure
           in
           let res2' =
             let for_res2 arg2 =
               let sta2, (str2, b2) = arg2 in
-              sta2, Some (str1^str2, b2)
+              sta2, Success (str1^str2, b2)
             in
             Cn.map for_res2 res2
           in
@@ -1221,13 +1222,13 @@ module Interpreter
         Cn.bind for_res1 res1
       in
       let res1_failure' =
-        Cn.map (fun sta -> sta, None) res1_failure
+        Cn.map (fun sta -> sta, Error) res1_failure
       in
       Cn.(union res1' res1_failure')
     end
 
   with interp_list_expr (stk:int) (inp:input) (ctx:context) (sta:state) (le:list_expression)
-    : Cn.t (state, option (list string))
+    : Cn.t (state, result (list string))
     variant { get_some inp.config.stack_size - stk, size_list_expr le, -1 }
     requires { inp.config.loop_limit <> None /\ inp.config.stack_size <> None }
     requires { stk <= get_some inp.config.stack_size }
@@ -1238,45 +1239,45 @@ module Interpreter
     }
   = match le with
     | Nil ->
-      Cn.singleton (sta, Some Nil)
+      Cn.singleton (sta, Success Nil)
     | Cons (se, sp) le' ->
       let str_res1, str_res1_failures =
-        separate_options
-          (interp_str_expr stk True inp ctx sta se : Cn.t (state, option (string, bool)))
+        separate_results
+          (interp_str_expr stk True inp ctx sta se : Cn.t (state, result (string, bool)))
       in
       let res2 =
         let for_sta_str (arg: (state, (string, bool)))
           ensures {
             let sta1, (str1, b1) = arg in
             forall sta2.
-            eval_str_expr stk True (inp, ctx, sta) se (sta1, Some (str1, b1)) ->
-            eval_list_expr stk (inp, ctx, sta1) le' (sta2, None) ->
-            Cn.mem (sta2, None) result
+            eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (str1, b1)) ->
+            eval_list_expr stk (inp, ctx, sta1) le' (sta2, Error) ->
+            Cn.mem (sta2, Error) result
           }
           ensures {
             let sta1, (str1, b1) = arg in
             forall sta2 l2.
-            eval_str_expr stk True (inp, ctx, sta) se (sta1, Some (str1, b1)) ->
-            eval_list_expr stk (inp, ctx, sta1) le' (sta2, Some l2) ->
-            Cn.mem (sta2, Some L.(split sp str1++l2)) result
+            eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (str1, b1)) ->
+            eval_list_expr stk (inp, ctx, sta1) le' (sta2, Success l2) ->
+            Cn.mem (sta2, Success L.(split sp str1++l2)) result
           }
         = let sta1, (str1, _) = arg in
           let lst_res2: Cn.t (state, list string), lst_res2_failures: Cn.t state =
-            separate_options
+            separate_results
               (interp_list_expr stk inp ctx sta1 le')
           in
           let lst_res2' =
-            Cn.map (fun arg -> let sta2, strs2 = arg in sta2, Some L.(split sp str1++strs2)) lst_res2
+            Cn.map (fun arg -> let sta2, strs2 = arg in sta2, Success L.(split sp str1++strs2)) lst_res2
           in
           let lst_res2_failures' =
-            Cn.map (fun sta -> sta, None) lst_res2_failures
+            Cn.map (fun sta -> sta, Error) lst_res2_failures
           in
           Cn.(union lst_res2' lst_res2_failures')
         in
         Cn.bind for_sta_str str_res1
       in
       let str_res1_failures' =
-        Cn.map (fun sta -> sta, None) str_res1_failures
+        Cn.map (fun sta -> sta, Error) str_res1_failures
       in
       Cn.(union res2 str_res1_failures')
     end

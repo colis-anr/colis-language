@@ -197,8 +197,8 @@ module Interpreter
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
-    requires { inp.config.loop_limit = None }
-    requires { inp.config.stack_size = None }
+    requires { inp.config.loop_limit = Infinite }
+    requires { inp.config.stack_size = Infinite }
     ensures { (old stk) = stk }
     raises { EReturn ->  (old stk) = stk }
     raises { EExit ->  (old stk) = stk }
@@ -397,15 +397,13 @@ module Interpreter
         !(sta.result)
       ) do
         invariant { stk = (stk at L) }
+        invariant { 0 <= ctr }
         invariant { forall sta1 ctx1 b1 bhv n.
           eval_while stk ctr !last_result
             (inp, sem_context sta, sem_state sta)
-            ins1 ins2
-            (sta1, ctx1, bhv) n b1 ->
-          eval_while stk 0 True
-            (inp, ctx0, sta0)
-            ins1 ins2
-            (sta1, ctx1, bhv) n b1
+            ins1 ins2 (sta1, ctx1, bhv) n b1 ->
+          eval_while stk 0 True (inp, ctx0, sta0)
+            ins1 ins2 (sta1, ctx1, bhv) n b1
         }
         interp_instruction inp sta ins2;
         last_result := !(sta.result);
@@ -429,8 +427,8 @@ module Interpreter
 
   with interp_str_expr (b:bool) (inp:input) (sta:state) (se:string_expression) : (s: string, b': bool)
     diverges
-    requires { inp.config.loop_limit = None }
-    requires { inp.config.stack_size = None }
+    requires { inp.config.loop_limit = Infinite }
+    requires { inp.config.stack_size = Infinite }
     ensures { old stk = stk }
     ensures { sem_context sta = sem_context (old sta) }
     ensures {
@@ -476,8 +474,8 @@ module Interpreter
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string
     diverges
-    requires { inp.config.loop_limit = None }
-    requires { inp.config.stack_size = None }
+    requires { inp.config.loop_limit = Infinite }
+    requires { inp.config.stack_size = Infinite }
     ensures { old stk = stk }
     ensures { sem_context sta = sem_context (old sta) }
     ensures {
@@ -497,8 +495,8 @@ module Interpreter
 
   let interp_program inp sta pro
     diverges
-    requires { inp.config.loop_limit = None }
-    requires { inp.config.stack_size = None }
+    requires { inp.config.loop_limit = Infinite }
+    requires { inp.config.stack_size = Infinite }
     ensures {
       eval_program (inp, sem_context (old sta), sem_state (old sta))
         pro (sem_state sta, Success !(sta.result))
