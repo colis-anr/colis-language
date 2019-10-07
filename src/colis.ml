@@ -17,6 +17,7 @@ module Common = struct
   module Env = Env
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
+  module Config = Semantics__Config
   module Input = Semantics__Input
 end
 
@@ -73,10 +74,13 @@ module Symbolic = struct
     {SymState.state; context; data=()}
 
   let interp_program ~loop_limit ~stack_size ~argument0 stas' program =
-    let loop_limit = Z.of_int loop_limit in
-    let stack_size = Z.of_int stack_size in
-    let inp = { Common.Input.empty with argument0 } in
-    let normals, errors, failures = Interpreter.interp_program loop_limit stack_size inp stas' program in
+    let inp =
+      let cnf =
+        let loop_limit = Some (Z.of_int loop_limit) in
+        let stack_size = Some (Z.of_int stack_size) in
+        { Common.Config.loop_limit; stack_size } in
+      { (Common.Input.mk cnf) with argument0 } in
+    let normals, errors, failures = Interpreter.interp_program inp stas' program in
     normals, errors, failures
 end
 
@@ -151,7 +155,9 @@ let colis_to_file filename colis =
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Common in
   let open Concrete in
-  let input = { Input.empty with argument0 } in
+  let input =
+    let cnf = {Config.loop_limit = None; stack_size = None } in
+    { (Input.mk cnf) with argument0 } in
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
   state.var_env := Semantics.add_var_bindings true vars Semantics.empty_var_env;
