@@ -122,7 +122,7 @@
   <proof prover="1"><result status="valid" time="0.31" steps="83"/></proof>
   </goal>
   <goal name="interp_instruction&#39;VC.32" expl="precondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.27" steps="61083"/></proof>
+  <proof prover="2"><result status="valid" time="0.12" steps="61083"/></proof>
   </goal>
   <goal name="interp_instruction&#39;VC.33" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.15" steps="61086"/></proof>
@@ -347,7 +347,7 @@
   <proof prover="2"><result status="valid" time="0.17" steps="61877"/></proof>
   </goal>
   <goal name="interp_instruction&#39;VC.107" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.90" steps="90832"/></proof>
+  <proof prover="2"><result status="valid" time="0.66" steps="90832"/></proof>
   </goal>
   <goal name="interp_instruction&#39;VC.108" expl="exceptional postcondition" proved="true">
   <proof prover="2"><result status="valid" time="0.22" steps="61877"/></proof>
@@ -377,7 +377,7 @@
   <proof prover="2"><result status="valid" time="0.16" steps="61877"/></proof>
   </goal>
   <goal name="interp_instruction&#39;VC.117" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.77" steps="88906"/></proof>
+  <proof prover="2"><result status="valid" time="0.59" steps="88906"/></proof>
   </goal>
   <goal name="interp_instruction&#39;VC.118" expl="precondition" proved="true">
   <proof prover="2"><result status="valid" time="0.29" steps="61473"/></proof>
@@ -541,10 +541,10 @@
     <goal name="interp_instruction&#39;VC.159.0.1" expl="apply premises" proved="true">
     <transf name="replace" proved="true" arg1="ss" arg2="(take i ss ++ Cons (nth i ss) (drop (i+1) ss))">
      <goal name="interp_instruction&#39;VC.159.0.1.0" expl="apply premises" proved="true">
-     <proof prover="2"><result status="valid" time="0.91" steps="98211"/></proof>
+     <proof prover="2"><result status="valid" time="0.65" steps="98211"/></proof>
      </goal>
      <goal name="interp_instruction&#39;VC.159.0.1.1" expl="equality hypothesis" proved="true">
-     <proof prover="2"><result status="valid" time="0.53" steps="77299"/></proof>
+     <proof prover="2"><result status="valid" time="0.37" steps="77299"/></proof>
      </goal>
     </transf>
     </goal>
@@ -659,7 +659,7 @@
     <proof prover="2"><result status="valid" time="0.26" steps="65627"/></proof>
     </goal>
     <goal name="interp_instruction&#39;VC.181.0.1" expl="apply premises" proved="true">
-    <proof prover="2"><result status="valid" time="0.64" steps="77182"/></proof>
+    <proof prover="2"><result status="valid" time="0.45" steps="77182"/></proof>
     </goal>
    </transf>
    </goal>

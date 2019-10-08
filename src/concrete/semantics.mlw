@@ -543,9 +543,7 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    let pwd_s = normalized_path_to_string cwd_p in
-    let args = Cons string_dash_d (Cons pwd_s Nil) in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 = (sta2, False) ->
+    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons string_dash_d (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, False) ->
     let ctx1 = {ctx with result = False} in
     let bhv = behaviour inp b in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
@@ -554,10 +552,8 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    let pwd_s = normalized_path_to_string cwd_p in
-    let args = Cons string_dash_d (Cons pwd_s Nil) in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 = (sta2, True) ->
-    let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p} in
+    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons string_dash_d (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, True) ->
+    let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- normalized_path_to_string cwd_p]'; cwd = cwd_p} in
     let bhv = behaviour inp b in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
 
