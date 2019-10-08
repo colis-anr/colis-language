@@ -200,15 +200,37 @@ module Config
 
   use int.Int
   use option.Option
-  
-  type config = { loop_limit: option int; stack_size: option int }
-    invariant { match loop_limit with None -> true | Some n -> 0 <= n end }
-    invariant { match stack_size with None -> true | Some n -> 0 <= n end }
-    by { loop_limit = None; stack_size = None }
+
+  type limit = Finite int | Infinite
+
+  predicate is_positive (l: limit) =
+    match l with
+    | Finite n -> 0 <= n
+    | Infinite -> true
+    end
+
+  let predicate within_limit n l =
+    match l with
+    | Finite n' -> n <= n'
+    | Infinite -> true
+    end
+
+  let get_finite (l: limit) : int
+    requires { l <> Infinite }
+    ensures { Finite result = l }
+  = match l with
+    | Finite x -> x
+    | Infinite -> absurd
+    end
+
+  type config = { loop_limit: limit; stack_size: limit }
+    invariant { is_positive loop_limit }
+    invariant { is_positive stack_size }
+    by { loop_limit = Infinite; stack_size = Infinite }
 
   let function mk_config loop_limit stack_size
-    requires { match loop_limit with None -> true | Some n -> 0 <= n end }
-    requires { match stack_size with None -> true | Some n -> 0 <= n end }
+    requires { is_positive loop_limit }
+    requires { is_positive stack_size }
     ensures { result.loop_limit = loop_limit }
     ensures { result.stack_size = stack_size }
   = { loop_limit = loop_limit; stack_size = stack_size }
@@ -517,17 +539,25 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta', Error) ->
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta', ctx, BFailure)
 
+  | eval_cd_interp_failure : forall stk inp ctx sta se sta1 s _b sta2 b.
+    eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
+    (* `test -d (CWD/)s` *)
+    let cwd_p = absolute_or_concat_relative ctx.cwd s in
+    let pwd_s = normalized_path_to_string cwd_p in
+    let args = Cons string_dash_d (Cons pwd_s Nil) in
+    interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 = (sta2, False) ->
+    let ctx1 = {ctx with result = False} in
+    let bhv = behaviour inp b in
+    eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
+
   | eval_cd : forall stk inp ctx sta se sta1 s _b sta2 b.
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
     let pwd_s = normalized_path_to_string cwd_p in
     let args = Cons string_dash_d (Cons pwd_s Nil) in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 = (sta2, b) ->
-    let ctx1 =
-      if b
-      then {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p}
-      else {ctx with result = False} in
+    interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 = (sta2, True) ->
+    let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p} in
     let bhv = behaviour inp b in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
 
@@ -637,7 +667,7 @@ module Semantics
   | eval_call_function_stack_limit: forall stk inp ctx sta sta1 id es args ins.
     eval_list_expr stk (inp, ctx, sta) es (sta1, Success args) ->
     ctx.func_env[id] = Some ins ->
-    inp.config.stack_size = Some stk ->
+    inp.config.stack_size = Finite stk ->
     eval_instruction stk (inp, ctx, sta) (ICallFunction id es) (sta1, ctx, BFailure)
 
   (* | eval_call_function_failure: forall stk inp ctx ctx2 sta sta1 sta2 id es args ins. *)
@@ -653,7 +683,7 @@ module Semantics
   | eval_call_function: forall stk inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
     eval_list_expr stk (inp, ctx, sta) es (sta1, Success args) ->
     ctx.func_env[id] = Some ins ->
-    inp.config.stack_size <> Some stk ->
+    inp.config.stack_size <> Finite stk ->
     let inp1 = { inp with argument0 = identifier_to_string id } in
     let ctx1 = { ctx with arguments = args } in
     eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
@@ -671,14 +701,14 @@ module Semantics
     let ctx'' = {ctx' with result=b} in
     eval_instruction stk (inp, ctx, sta) (IForeach id es ins) (sta'', ctx'', bhv)
 
-  | eval_while: forall stk inp ctx ctx' sta sta' ins1 ins2 ctr b.
-    eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', BNormal) ctr b ->
+  | eval_while: forall stk inp ctx ctx' sta sta' ins1 ins2 n b.
+    eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', BNormal) n b ->
     let ctx'' = {ctx' with result=b} in
     eval_instruction stk (inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx'', BNormal)
 
-  | eval_while_abort: forall stk inp ctx ctx' sta sta' ins1 ins2 bhv ctr b.
+  | eval_while_abort: forall stk inp ctx ctx' sta sta' ins1 ins2 bhv n b.
     bhv <> BNormal ->
-    eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) ctr b ->
+    eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) n b ->
     eval_instruction stk (inp, ctx, sta) (IWhile ins1 ins2) (sta', ctx', bhv)
 
   (** Semantics of the while loop.
@@ -697,26 +727,30 @@ module Semantics
 
   (** Loop limit *)
   | eval_while_loop_limit: forall stk ctr b inp ctx sta ins1 ins2.
-    inp.config.loop_limit = Some ctr ->
+    0 <= ctr ->
+    inp.config.loop_limit = Finite ctr ->
     eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta, ctx, BFailure) ctr b
 
   (** Condition not normal *)
   | eval_while_abort_condition: forall stk ctr b inp ctx ctx1 sta sta1 ins1 ins2 bhv1.
-    inp.config.loop_limit <> Some ctr ->
-    bhv1 <> BNormal ->
+    0 <= ctr ->
+    inp.config.loop_limit <> Finite ctr ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+    bhv1 <> BNormal ->
     eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta1, ctx1, bhv1) ctr b
 
   (** Condition false *)
   | eval_while_false: forall stk ctr b inp ctx ctx1 sta sta1 ins1 ins2.
-    inp.config.loop_limit <> Some ctr ->
+    0 <= ctr ->
+    inp.config.loop_limit <> Finite ctr ->
     ctx1.result = False ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta1, ctx1, BNormal) ctr b
 
   (** Condition true but while-body not normal *)
   | eval_while_abort_body: forall stk ctr b bhv2 inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2.
-    inp.config.loop_limit <> Some ctr ->
+    0 <= ctr ->
+    inp.config.loop_limit <> Finite ctr ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     ctx1.result = True ->
     eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
@@ -725,8 +759,8 @@ module Semantics
 
   (** Condition true, body normal, loop again *)
   | eval_while_loop: forall stk ctr n b b3 inp ctx ctx1 ctx2 ctx3 sta sta1 sta2 sta3 ins1 ins2 bhv3.
-    ctr < n ->
-    inp.config.loop_limit <> Some ctr ->
+    0 <= ctr <= n ->
+    inp.config.loop_limit <> Finite ctr ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
     ctx1.result = True ->
     eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
@@ -845,7 +879,7 @@ module Semantics
 
   let rec lemma no_while_failure (ctr n:int) (cnf:config) (ins1 ins2:instruction)
     requires { 0 <= ctr <= n }
-    requires { cnf.loop_limit = None }
+    requires { cnf.loop_limit = Infinite }
     variant { n - ctr }
     ensures {
       (forall stk inp ctx ctx' sta sta' bhv.
