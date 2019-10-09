@@ -227,13 +227,6 @@ module Config
     invariant { is_positive loop_limit }
     invariant { is_positive stack_size }
     by { loop_limit = Infinite; stack_size = Infinite }
-
-  let function mk_config loop_limit stack_size
-    requires { is_positive loop_limit }
-    requires { is_positive stack_size }
-    ensures { result.loop_limit = loop_limit }
-    ensures { result.stack_size = stack_size }
-  = { loop_limit = loop_limit; stack_size = stack_size }
 end
 
 (** {2 Read-only context for the evaluation} *)
@@ -247,12 +240,6 @@ module Input
     under_condition: bool; (* evaluation under condition - implying unstrict mode *)
     argument0: string;     (* $0 *)
     config: config;        (* Hide the configuration here *)
-  }
-
-  let constant mk cnf = {
-    argument0 = String.empty;
-    under_condition = False;
-    config = cnf;
   }
 end
 
@@ -440,11 +427,6 @@ module Semantics
     interp_utility ctx id {sta with stdout=Stdout.empty} = (sta', b) ->
     interp_utility ctx id sta = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, b)
 
-  function any_filesystem : unit -> filesystem
-
-  function mk_state (stdin:stdin) (stdout:stdout) (log:stdout) : state =
-    { stdin=stdin; stdout=stdout; log=log; filesystem=any_filesystem () }
-
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with
     | RSuccess -> True
@@ -456,17 +438,6 @@ module Semantics
     andb (strict inp.under_condition) (notb result)
 
   let function behaviour (inp:input) (result:bool) : behaviour
-    (* ensures { result = BNormal \/ result = BExit } *)
-    (* ensures { *)
-    (*   match result with *)
-    (*   | BNormal -> *)
-    (*     inp.under_condition = True \/ result = True *)
-    (*   | BExit -> *)
-    (*     inp.under_condition = False /\ result = False *)
-    (*   | BReturn | BFailure -> *)
-    (*     false *)
-    (*   end *)
-    (* } *)
   = if exit_not_normal inp result
     then BExit
     else BNormal
