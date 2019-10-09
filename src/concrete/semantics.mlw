@@ -544,13 +544,13 @@ module Semantics
     eval_instruction stk (inp, ctx, sta) (ISequence ins1 ins2) (sta2, ctx2, bhv2)
   
   | eval_sequence_abort: forall stk inp sta sta1 ctx ctx1 ins1 ins2 bhv.
-    bhv <> BNormal ->
     eval_instruction stk (inp, ctx, sta) ins1 (sta1, ctx1, bhv) ->
+    bhv <> BNormal ->
     eval_instruction stk (inp, ctx, sta) (ISequence ins1 ins2) (sta1, ctx1, bhv)
   
   | eval_subshell: forall stk inp sta sta' ctx ctx' ins bhv.
-    bhv <> BFailure ->
     eval_instruction stk (inp, ctx, sta) ins (sta', ctx', bhv) ->
+    bhv <> BFailure ->
     let ctx'' = {ctx with result=ctx'.result} in
     let bhv' = behaviour inp ctx'.result in
     eval_instruction stk (inp, ctx, sta) (ISubshell ins) (sta', ctx'', bhv')
@@ -561,31 +561,31 @@ module Semantics
     eval_instruction stk (inp, ctx, sta) (ISubshell ins) (sta', ctx'', BFailure)
 
   | eval_not: forall stk inp ctx ctx' sta sta' ins bhv.
-    (bhv = BNormal \/ bhv = BReturn) ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins (sta', ctx', bhv) ->
+    (bhv = BNormal \/ bhv = BReturn) ->
     let ctx'' = {ctx' with result=notb ctx'.result} in
     eval_instruction stk (inp, ctx, sta) (INot ins) (sta', ctx'', bhv)
 
   | eval_not_transmit: forall stk inp ctx ctx' sta sta' ins bhv.
-    (bhv = BExit \/ bhv = BFailure) ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins (sta', ctx', bhv) ->
+    (bhv = BExit \/ bhv = BFailure) ->
     eval_instruction stk (inp, ctx, sta) (INot ins) (sta', ctx', bhv)
   
   | eval_if_true: forall stk inp ctx ctx1 ctx2 sta sta1 sta2 ins1 ins2 ins3 bhv2.
-    ctx1.result = True ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = True ->
     eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
     eval_instruction stk (inp, ctx, sta) (IIf ins1 ins2 ins3) (sta2, ctx2, bhv2)
   
   | eval_if_false: forall stk inp ctx ctx1 ctx3 sta sta1 sta3 ins1 ins2 ins3 bhv3.
-    ctx1.result = False ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+    ctx1.result = False ->
     eval_instruction stk (inp, ctx1, sta1) ins3 (sta3, ctx3, bhv3) ->
     eval_instruction stk (inp, ctx, sta) (IIf ins1 ins2 ins3) (sta3, ctx3, bhv3)
   
   | eval_if_transmit_condition: forall stk inp ctx ctx1 sta sta1 ins1 ins2 ins3 bhv1.
-    bhv1 <> BNormal ->
     eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+    bhv1 <> BNormal ->
     eval_instruction stk (inp, ctx, sta) (IIf ins1 ins2 ins3) (sta1, ctx1, bhv1)
   
   | eval_nooutput: forall stk inp ctx ctx' sta sta' ins bhv.
