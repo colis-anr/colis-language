@@ -215,7 +215,7 @@ module Config
     | Infinite -> true
     end
 
-  let get_finite (l: limit) : int
+  let function get_finite (l: limit) : int
     requires { l <> Infinite }
     ensures { Finite result = l }
   = match l with
@@ -539,22 +539,22 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta', Error) ->
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta', ctx, BFailure)
 
-  | eval_cd_interp_failure : forall stk inp ctx sta se sta1 s _b sta2 b.
+  | eval_cd_no_dir : forall stk inp ctx sta se sta1 s _b sta2.
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
     interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons string_dash_d (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, False) ->
     let ctx1 = {ctx with result = False} in
-    let bhv = behaviour inp b in
+    let bhv = behaviour inp False in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
 
-  | eval_cd : forall stk inp ctx sta se sta1 s _b sta2 b.
+  | eval_cd : forall stk inp ctx sta se sta1 s _b sta2.
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
     interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons string_dash_d (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, True) ->
     let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- normalized_path_to_string cwd_p]'; cwd = cwd_p} in
-    let bhv = behaviour inp b in
+    let bhv = behaviour inp True in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
 
   | eval_assignment: forall stk inp ctx sta sta' id e s b.
@@ -665,16 +665,6 @@ module Semantics
     ctx.func_env[id] = Some ins ->
     inp.config.stack_size = Finite stk ->
     eval_instruction stk (inp, ctx, sta) (ICallFunction id es) (sta1, ctx, BFailure)
-
-  (* | eval_call_function_failure: forall stk inp ctx ctx2 sta sta1 sta2 id es args ins. *)
-  (*   eval_list_expr stk (inp, ctx, sta) es (sta1, Success args) -> *)
-  (*   ctx.func_env[id] = Some ins -> *)
-  (*   let inp1 = { inp with argument0 = identifier_to_string id } in *)
-  (*   let ctx1 = { ctx with arguments = args } in *)
-  (*   match inp.config.stack_size with Some n -> n <> stk | None -> true end -> *)
-  (*   eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, BFailure) -> *)
-  (*   let ctx' = with_result ctx2.result ctx in *)
-  (*   eval_instruction stk (inp, ctx, sta) (ICallFunction id es) (sta2, ctx', BFailure) *)
 
   | eval_call_function: forall stk inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
     eval_list_expr stk (inp, ctx, sta) es (sta1, Success args) ->
