@@ -69,7 +69,7 @@ RUN eval $(opam env) \
 RUN eval $(opam env) \
   && wget -q -O E.tgz "http://wwwlehre.dhbw-stuttgart.de/~sschulz/WORK/E_DOWNLOAD/V_2.2/E.tgz" \
   && tar xf E.tgz \
-  && ( cd E && ./configure && make ) \
+  && ( cd E && ./configure && make > /dev/null 2>&1 ) \
   && why3 config --add-prover eprover "Eprover-2.2" "$PWD/E/PROVER/eprover"
 
 # Register Alt-ergo
