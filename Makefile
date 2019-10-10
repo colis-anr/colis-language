@@ -58,11 +58,11 @@ clean-why3:
 replay-proofs: $(replay-concrete-proofs) $(replay-symbolic-proofs)
 
 $(replay-concrete-proofs): replay-concrete-proof-%: src/concrete/%.mlw src/concrete/%/why3session.xml
-	why3 replay --use-steps \
+	why3 replay --use-steps --quiet \
 		-L src/language -L src/concrete \
 		src/concrete/$*
 
 $(replay-symbolic-proofs): replay-symbolic-proof-%: src/symbolic/%.mlw src/symbolic/%/why3session.xml
-	why3 replay --use-steps \
+	why3 replay --use-steps --quiet \
 		-L src/language -L src/concrete -L src/symbolic \
 		src/symbolic/$*
