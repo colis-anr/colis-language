@@ -1,7 +1,6 @@
 open Format
 
-module Errors = Errors
-module Options = Options
+module Internals = Colis_internals
 
 module Language = struct
   module Nat = Syntax__Nat
@@ -86,7 +85,7 @@ module Symbolic = struct
     normals, errors, failures
 end
 
-module Constraints = Constraints
+module Constraints = Colis_constraints
 
 (* Parsers *)
 
@@ -101,10 +100,10 @@ let parse_colis_lexbuf ?(filename="-") lexbuf =
   with
   | ColisLexer.LexerError s ->
     let pos = lexbuf.Lexing.lex_curr_p in
-    raise (Errors.ParseError (s, pos))
+    raise (Internals.Errors.ParseError (s, pos))
   | ColisParser.Error ->
     let pos = lexbuf.Lexing.lex_curr_p in
-    raise (Errors.ParseError ("", pos))
+    raise (Internals.Errors.ParseError ("", pos))
 
 let parse_colis_channel ?(filename="-") channel =
   let lexbuf = Lexing.from_channel channel in
@@ -115,7 +114,7 @@ let parse_colis_file filename =
     try
       open_in filename
     with
-      Sys_error msg -> raise (Errors.FileError msg)
+      Sys_error msg -> raise (Internals.Errors.FileError msg)
   in
   try
     let colis = parse_colis_channel ~filename ic in
@@ -194,8 +193,8 @@ let print_symbolic_state fmt ?id sta =
   begin match id with
     | Some id ->
       fprintf fmt "id: %s@\n" id;
-      if !Options.print_states_dir <> "" then
-        let filename = sprintf "%s/%s.dot" !Options.print_states_dir id in
+      if !Colis_internals.Options.print_states_dir <> "" then
+        let filename = sprintf "%s/%s.dot" !Colis_internals.Options.print_states_dir id in
         print_dot filename id sta.filesystem.clause;
     | None -> ()
   end;

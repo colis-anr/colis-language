@@ -1,0 +1,5 @@
+(include_subdirs no)
+
+(library
+ (name colis_internals)
+ (public_name colis-language.internals))

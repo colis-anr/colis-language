@@ -94,7 +94,7 @@ let search_as_which cwd (path:string list) arg : utility =
       interp_test_regular_and_x cwd ("/" ^ Path.rel_to_string a) st
 
 let interprete all ctx args : utility =
-  if all then Errors.unsupported ~utility:name "option `-a`";
+  if all then Colis_internals.Errors.unsupported ~utility:name "option `-a`";
   (* FIXME     let path = String.split_on_char ':' (IdMap.find "PATH" ctx.env) in *)
   let path = [ "/usr/sbin" ; "/usr/bin" ; "/sbin" ; "/bin" (* ; "/usr/games" *) ] in
   let rec aux args =

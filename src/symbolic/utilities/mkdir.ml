@@ -51,7 +51,7 @@ let interp_mkdir1 cwd path_str =
     ]
 
 let interprete parents ctx args : utility =
-  if parents then Errors.unsupported ~utility:name "-p";
+  if parents then Colis_internals.Errors.unsupported ~utility:name "-p";
   multiple_times (interp_mkdir1 ctx.cwd) args
 
 let interprete ctx : utility =

@@ -72,7 +72,7 @@ let set_var, get_vars =
 
 let speclist =
   let open Arg in
-  let open Colis.Options in
+  let open Colis.Internals.Options in
   align [
     "--run",                       Unit (set_action Run),         " Concrete execution (default)";
     "--run-symbolic",              Unit (set_action RunSymbolic), " Symbolic execution";
@@ -106,9 +106,9 @@ let main () =
   (* Parse command line *)
 
   Arg.parse speclist set_file_or_argument usage;
-  if !Colis.Options.real_world && get_action () <> Run then
+  if !Colis.Internals.Options.real_world && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
-  if !Colis.Options.fail_on_unknown_utilities && (get_action () <> Run && get_action () <> RunSymbolic) then
+  if !Colis.Internals.Options.fail_on_unknown_utilities && (get_action () <> Run && get_action () <> RunSymbolic) then
     raise (Arg.Bad "--fail-on-unknown-utilities can only be specified with --run or --run-symbolic");
   if !prune_init_state && get_action () <> RunSymbolic then
     raise (Arg.Bad "--prune-init-state can only be specified with --run-symbolic");
@@ -144,7 +144,7 @@ let main () =
      exit 9 (* FIXME *)
 
 let () =
-  let open Colis.Errors in
+  let open Colis.Internals.Errors in
 
   try
     main ();

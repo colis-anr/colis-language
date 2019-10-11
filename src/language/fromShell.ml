@@ -1,10 +1,12 @@
+open Colis_internals
+
 (* Open Morsmall AST. Import the 'on_located' function. *)
 
 open Morsmall.AST
 let on_located = Morsmall.Location.on_located
 
 let unsupported feature =
-  raise (Errors.ConversionError ("unsupported feature: " ^ feature))
+  raise (Colis_internals.Errors.ConversionError ("unsupported feature: " ^ feature))
 
 (* Put CoLiS' syntax inside a 'C' module so that it doesn't clash with
    Morsmall. Add a constructor for concatenation of lists. *)
