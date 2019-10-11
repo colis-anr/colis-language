@@ -6,5 +6,5 @@ let check_cpu_time_limit () =
     raise Errors.CpuTimeLimitExceeded
 
 let check_memory_limit () =
-  if Gc.allocated_bytes () >= !Options.memory_limit then
+  if (Gc.quick_stat ()).Gc.heap_words >= !Options.memory_limit then
     raise Errors.MemoryLimitExceeded
