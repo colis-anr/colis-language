@@ -87,6 +87,7 @@ let speclist =
     "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
     "--loop-limit",                Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
     "--cpu-time-limit",            Float ((:=) cpu_time_limit),   "LIMIT Set CPU time limit for symbolic execution to LIMIT in seconds (default: none)";
+    "--memory-limit",              String set_memory_limit,       "LIMIT Set memory limit for symbolic execution to LIMIT in bytes (default: none)";
     "--stack-size",                Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
     "--print-states",              String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
     "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
@@ -181,6 +182,10 @@ let () =
      eprintf "%s: %s@." utility msg;
      exit 7
 
-  | CPU_time_limit_exceeded ->
+  | CpuTimeLimitExceeded ->
      eprintf "CPU time limit exceeded@.";
      exit 11
+
+  | MemoryLimitExceeded ->
+    eprintf "Memory limit exceeded@.";
+    exit 12

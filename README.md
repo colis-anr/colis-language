@@ -49,5 +49,6 @@ The tool uses different return codes for different kind of errors.
 |   7  | Unsupported utility or argument (only with option --fail-on-unknown-utility)
 |   8  | *not used anymore*
 |   9  | Error in pretty-printing (Shell or CoLiS)
-|  10  | Symbolic execution: No error states found, but some execution were not covered by symbolic execution
+|  10  | Symbolic execution: no error states found, but some execution were not covered by symbolic execution
 |  11  | Symbolic execution: CPU time limit exceeded
+|  12  | Symbolic execution: memory limit exceeded
