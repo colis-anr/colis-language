@@ -1163,9 +1163,20 @@ module Interpreter
         Rs.separate_non_failure
           (interp_instr stk inp ctx {sta with stdout=Stdout.empty} ins)
       in
+      assert {
+        forall sta1 ctx1 bhv1.
+        eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+        bhv1 <> BFailure ->
+        Cn.mem {state=sta1; context=ctx1; data=()} res
+      };
+      assert {
+        forall sta1 ctx1.
+        eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BFailure) ->
+        Cn.mem {state=sta1; context=ctx1; data=()} stas_failure
+      };
       let res' =
-        let for_res (sta1:sym_state unit)
-        = let str = Stdout.to_string sta1.state.stdout in
+        let for_res (sta1:sym_state unit) =
+          let str = Stdout.to_string sta1.state.stdout in
           let sta1' = {sta1.state with stdout=sta.stdout} in
           let b' = sta1.context.result in
           sta1', Success (str, b')
@@ -1184,8 +1195,8 @@ module Interpreter
       }
       ensures {
         forall sta1 ctx1 bhv1.
-        bhv1 <> BFailure ->
         eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+        bhv1 <> BFailure ->
         Cn.mem ({sta1 with stdout = sta.stdout}, Success (Stdout.to_string sta1.stdout, ctx1.result)) result
         by Cn.mem ({sta1 with stdout = sta.stdout}, Success (Stdout.to_string sta1.stdout, ctx1.result)) res'
       }
