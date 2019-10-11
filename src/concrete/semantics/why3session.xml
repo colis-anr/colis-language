@@ -187,7 +187,7 @@
  <goal name="interp_function_definitions&#39;VC" expl="VC for interp_function_definitions" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="interp_function_definitions&#39;VC.0" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="1" steplimit="59034" memlimit="1000"><result status="valid" time="0.38" steps="59034"/></proof>
+  <proof prover="1" timelimit="1" steplimit="59034" memlimit="1000"><result status="valid" time="0.22" steps="59034"/></proof>
   </goal>
   <goal name="interp_function_definitions&#39;VC.1" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >

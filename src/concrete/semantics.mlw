@@ -775,8 +775,8 @@ module Semantics
     eval_str_expr stk b (inp, ctx, sta) (SSubshell ins) (sta1', Error)
 
   | eval_str_subshell: forall stk b inp ctx ctx1 sta sta1 ins bhv1.
-    bhv1 <> BFailure ->
     eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+    bhv1 <> BFailure ->
     let sta1' = {sta1 with stdout = sta.stdout} in
     let res = Success (Stdout.to_string sta1.stdout, ctx1.result) in
     eval_str_expr stk b (inp, ctx, sta) (SSubshell ins) (sta1', res)
