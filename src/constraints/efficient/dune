@@ -1,5 +1,5 @@
 (library
- (name constraints_efficient)
+ (name colis_constraints_efficient)
  (public_name colis-language.constraints.efficient)
  (libraries
   colis-language.constraints.common

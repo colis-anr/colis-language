@@ -1,4 +1,4 @@
-open Constraints_common open Atom open Literal
+open Colis_constraints_common open Atom open Literal
 
 type t = Conj.t
 

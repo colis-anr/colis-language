@@ -1,5 +1,5 @@
-open Constraints_common
-open Constraints_efficient_clause
+open Colis_constraints_common
+open Colis_constraints_efficient_clause
 include External
 
 type sat_conj = Core.t

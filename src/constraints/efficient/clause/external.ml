@@ -81,38 +81,38 @@ let nkind x k =
   with_internal x @@ fun x ->
   nkind x k
 
-let  reg x =  kind x Constraints_common.Kind.Reg
-let nreg x = nkind x Constraints_common.Kind.Reg
-let  dir x =  kind x Constraints_common.Kind.Dir
-let ndir x = nkind x Constraints_common.Kind.Dir
-let  block x =  kind x Constraints_common.Kind.Block
-let nblock x = nkind x Constraints_common.Kind.Block
-let  sock x =  kind x Constraints_common.Kind.Sock
-let nsock x = nkind x Constraints_common.Kind.Sock
-let  pipe x =  kind x Constraints_common.Kind.Pipe
-let npipe x = nkind x Constraints_common.Kind.Pipe
-let  char x =  kind x Constraints_common.Kind.Char
-let nchar x = nkind x Constraints_common.Kind.Char
-let  symlink x =  kind x Constraints_common.Kind.Symlink
-let nsymlink x = nkind x Constraints_common.Kind.Symlink
+let  reg x =  kind x Colis_constraints_common.Kind.Reg
+let nreg x = nkind x Colis_constraints_common.Kind.Reg
+let  dir x =  kind x Colis_constraints_common.Kind.Dir
+let ndir x = nkind x Colis_constraints_common.Kind.Dir
+let  block x =  kind x Colis_constraints_common.Kind.Block
+let nblock x = nkind x Colis_constraints_common.Kind.Block
+let  sock x =  kind x Colis_constraints_common.Kind.Sock
+let nsock x = nkind x Colis_constraints_common.Kind.Sock
+let  pipe x =  kind x Colis_constraints_common.Kind.Pipe
+let npipe x = nkind x Colis_constraints_common.Kind.Pipe
+let  char x =  kind x Colis_constraints_common.Kind.Char
+let nchar x = nkind x Colis_constraints_common.Kind.Char
+let  symlink x =  kind x Colis_constraints_common.Kind.Symlink
+let nsymlink x = nkind x Colis_constraints_common.Kind.Symlink
 
 let resolve r cwd p z =
   check_if_need_to_stop ();
   with_internal_2 r z @@ fun r z ->
-  resolve r [] (Constraints_common.Path.concat cwd p) z
+  resolve r [] (Colis_constraints_common.Path.concat cwd p) z
 
 let noresolve r cwd p =
   check_if_need_to_stop ();
   with_internal r @@ fun r ->
-  noresolve r [] (Constraints_common.Path.concat cwd p)
+  noresolve r [] (Colis_constraints_common.Path.concat cwd p)
 
 let maybe_resolve r cwd p z =
   check_if_need_to_stop ();
   with_internal_2 r z @@ fun r z ->
-  maybe_resolve r [] (Constraints_common.Path.concat cwd p) z
+  maybe_resolve r [] (Colis_constraints_common.Path.concat cwd p) z
 
 let similar r r' cwd q z z' =
   check_if_need_to_stop ();
   with_internal_2 r r' @@ fun r r' ->
   with_internal_2 z z' @@ fun z z' ->
-  similar r r' Constraints_common.Path.(normalize ~cwd q) z z'
+  similar r r' Colis_constraints_common.Path.(normalize ~cwd q) z z'

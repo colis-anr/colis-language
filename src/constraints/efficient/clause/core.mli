@@ -1,6 +1,6 @@
 (** {1 Core} *)
 
-open Constraints_common
+open Colis_constraints_common
 
 (** {2 Main Structure} *)
 
@@ -31,15 +31,15 @@ val identify : var -> var -> (info -> info -> info) ->  t -> t
 
 val fresh_var : t -> (var * t)
 
-val internalise : Constraints_common.Var.t -> t -> (var * t)
+val internalise : Colis_constraints_common.Var.t -> t -> (var * t)
 
-val externalise : var -> t -> Constraints_common.Var.t list
+val externalise : var -> t -> Colis_constraints_common.Var.t list
 (** Returns the (possibly empty) list of external variables mapping to that
     particular (not up to equality) internal variable. *)
 
 val fold_globals : (var -> 'a -> 'a) -> t -> 'a -> 'a
 
-val quantify_over : Constraints_common.Var.t -> t -> t
+val quantify_over : Colis_constraints_common.Var.t -> t -> t
 
 val make_initial : t -> t
 

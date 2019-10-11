@@ -1,4 +1,4 @@
-open Constraints_common open Atom open Literal
+open Colis_constraints_common open Atom open Literal
 
 let accessibility c =
   (* Create the graph and fill it. *)

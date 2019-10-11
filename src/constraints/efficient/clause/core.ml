@@ -1,4 +1,4 @@
-open Constraints_common
+open Colis_constraints_common
 
 exception NotImplemented of string
 let not_implemented s = raise (NotImplemented s)

@@ -1,4 +1,4 @@
-open Constraints_common
+open Colis_constraints_common
 open Dnf.Syntax
 
 let do_nothing x = x (* fancy name for identity *)
