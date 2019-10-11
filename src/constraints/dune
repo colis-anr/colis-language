@@ -1,5 +1,7 @@
+(include_subdirs no)
+
 (library
- (name constraints)
+ (name colis_constraints)
  (public_name colis-language.constraints)
  (libraries colis-language.constraints.common
             colis-language.constraints.efficient

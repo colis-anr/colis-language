@@ -1,5 +1,5 @@
 open Format
-open Constraints
+open Colis_constraints
 open Clause
 open SymbolicUtility
 
@@ -215,7 +215,7 @@ let interprete ctx : utility =
     ctx.args;
   if !i then
     error ~msg:"mv: option `-i` forbidden" ()
-  else 
+  else
     match !e with
     | Some arg -> unsupported ~utility:"mv" ("unknown argument: " ^ arg)
     | None -> (

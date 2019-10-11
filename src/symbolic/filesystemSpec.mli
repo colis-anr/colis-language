@@ -1,4 +1,4 @@
-open Constraints
+open Colis_constraints
 
 (** Simple specification of filessytems (with a translation to feature constraints) *)
 type t

@@ -36,7 +36,7 @@ module Symbolic : sig
   module Interpreter = SymbolicInterpreter__Interpreter
   module Utility = SymbolicUtility
 
-  open Constraints
+  open Colis_constraints
 
   (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
   val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list

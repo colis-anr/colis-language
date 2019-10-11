@@ -58,7 +58,7 @@ module Symbolic = struct
 
   let add_fs_spec_to_clause root clause fs_spec =
     let fs_clause = FilesystemSpec.compile root fs_spec in
-    Constraints.Clause.add_to_sat_conj fs_clause clause
+    Colis_constraints.Clause.add_to_sat_conj fs_clause clause
 
   let to_state ~prune_init_state ~root clause : Semantics.state =
     let root0 = if prune_init_state then None else Some root in
@@ -171,7 +171,7 @@ let print_dot filename id clause =
   let ch = open_out filename in
   try
     let fmt = formatter_of_out_channel ch in
-    Constraints.Clause.pp_sat_conj_as_dot ~name:id fmt clause;
+    Colis_constraints.Clause.pp_sat_conj_as_dot ~name:id fmt clause;
     close_out ch
   with e ->
     close_out ch;
@@ -184,7 +184,7 @@ type symbolic_config = {
 }
 
 let print_symbolic_filesystem fmt fs =
-  let open Constraints in
+  let open Colis_constraints in
   let open Symbolic.Filesystem in
   fprintf fmt "root: %a@\n" Var.pp fs.root;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
@@ -260,8 +260,8 @@ let exit_code (_, errors, failures) =
 
 let run_symbolic config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Symbolic in
-  let root = Constraints.Var.fresh ~hint:"r" () in
-  let disj = add_fs_spec_to_clause root Constraints.Clause.true_sat_conj fs_spec in
+  let root = Colis_constraints.Var.fresh ~hint:"r" () in
+  let disj = add_fs_spec_to_clause root Colis_constraints.Clause.true_sat_conj fs_spec in
   let stas = List.map (to_state ~prune_init_state:config.prune_init_state ~root) disj in
   let stas' = List.map (to_symbolic_state ~vars ~arguments) stas in
   let results =

@@ -1,15 +1,15 @@
 module symbolicInterpreter.Constraints
-  syntax type clause "Constraints.Clause.sat_conj"
-  syntax type variable "Constraints.Var.t"
-  syntax type feature "Constraints.Feat.t"
-  syntax type path "Constraints.Path.t"
+  syntax type clause "Colis_constraints.Clause.sat_conj"
+  syntax type variable "Colis_constraints.Var.t"
+  syntax type feature "Colis_constraints.Feat.t"
+  syntax type path "Colis_constraints.Path.t"
 end
 
 module symbolicInterpreter.Semantics
   syntax val filter_var_env "Env.filter_var_env (fun v -> v.SymbolicInterpreter__Semantics.exported) (fun v -> v.SymbolicInterpreter__Semantics.value) %1"
   syntax val interp_utility "assert false"
-  syntax val absolute_or_concat_relative "Constraints.Path.(normalize ~cwd:%1 (from_string %2))"
-  syntax val normalized_path_to_string "Constraints.Path.normal_to_string %1"
+  syntax val absolute_or_concat_relative "Colis_constraints.Path.(normalize ~cwd:%1 (from_string %2))"
+  syntax val normalized_path_to_string "Colis_constraints.Path.normal_to_string %1"
   syntax val identifier_test "\"test\""
   syntax val string_dash_d "\"-d\""
   syntax val identifier_pwd "\"PWD\""

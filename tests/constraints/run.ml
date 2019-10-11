@@ -1,5 +1,5 @@
-open Constraints_common
-open Constraints.Clause
+open Colis_constraints
+open Clause
 
 type sat = Sat | Unsat
 type 'a test =
