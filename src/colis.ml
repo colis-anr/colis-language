@@ -53,6 +53,8 @@ module Symbolic = struct
       (module UpdateAlternatives) ;
       (module Which) ;
       (module Which.Silent) ;
+      (* The Dark World *)
+      (module ColisInternalUnsafeTouch)
     ]
 
   let add_fs_spec_to_clause root clause fs_spec =
