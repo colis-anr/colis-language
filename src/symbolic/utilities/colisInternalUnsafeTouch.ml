@@ -13,6 +13,7 @@ let interp1 path_str =
     success_case
       ~descr:(asprintf "colis_internal_unsafe_touch: %a" Path.pp p)
       begin
+        (* FIXME: one could do better and drop the last maybe on the left. *)
         let rec aux x x' = function
           | [] ->
             reg x'
