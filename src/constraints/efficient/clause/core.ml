@@ -99,31 +99,31 @@ let empty = {
   info = IMap.empty
 }
 
-let mk_empty_info ~shadow =
-  {
-    shadow ;
-    kind = Any ;
-    feats = Feat.Map.empty ;
-    fen = false ;
-    sims = [] ;
-    nfens = [] ;
-    nsims = [] ;
-  }
+let shadow = ref false
 
-let empty_info = ref (mk_empty_info ~shadow:false)
+(* FIXME: Could maybe be a ref instead of a function. Faster? *)
+let empty_info () = {
+  shadow  = !shadow;
+  kind = Any ;
+  feats = Feat.Map.empty ;
+  fen = false ;
+  sims = [] ;
+  nfens = [] ;
+  nsims = [] ;
+}
 
 let with_shadow_variables f =
-  let empty_info_bak = !empty_info in
-  empty_info := mk_empty_info ~shadow:true;
+  let shadow_bak = !shadow in
+  shadow := true;
   let v = f () in
-  empty_info := empty_info_bak;
+  shadow := shadow_bak;
   v
 
 let fresh_var =
   let x = ref 0 in
   fun c ->
     incr x;
-    (!x, { c with info = IMap.add !x (Info !empty_info) c.info })
+    (!x, { c with info = IMap.add !x (Info (empty_info ())) c.info })
 
 let hash x = x
 
@@ -148,8 +148,8 @@ let identify x y merge c =
   let rec identify x y =
     match IMap.find x c.info, IMap.find y c.info with
     | Info info_x, Info info_y ->
-      let info_x = { info_x with shadow = false } in
-      let info_y = { info_y with shadow = false } in
+      let info_x = { info_x with shadow = !shadow } in
+      let info_y = { info_y with shadow = !shadow } in
       let info =
         c.info
         |> IMap.add x (Son y)
@@ -187,10 +187,10 @@ let quantify_over x c =
 
 let get_info x c =
   let (_, info) = find_ancestor_and_info x c in
-  { info with shadow = false }
+  { info with shadow = !shadow }
 
-let is_initial x c =
-  (* We can't use [get_info] because it sets initial to false. *)
+let is_shadow x c =
+  (* We can't use [get_info] because it can set the shadow field to false. *)
   let (_, info) = find_ancestor_and_info x c in
   info.shadow
 

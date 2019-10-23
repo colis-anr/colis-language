@@ -45,7 +45,7 @@ val with_shadow_variables : (unit -> 'a) -> 'a
 (** [with_initial f] runs [f] in an environment where all new variables are
     declared to be shadow. *)
 
-val is_initial : var -> t -> bool
+val is_shadow : var -> t -> bool
 
 val get_info : var -> t -> info
 

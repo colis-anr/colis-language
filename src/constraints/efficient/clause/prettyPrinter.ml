@@ -41,40 +41,42 @@ let pp_as_dot ~name fmt c =
       fpf fmt "<TR><TD>full</TD></TR>"
   in
   let pp_feats fmt x info_x =
-    Core.iter_feats
-      (fun f -> function
-         | Core.DontKnow -> () (* FIXME *)
-         | Absent ->
-           let y = fresh () in
-           fpf fmt "%s [label=\"⊥\"];@\n" y;
-           fpf fmt "%d -> %s [style=dotted,label=< <S>%a</S> >];@\n" (Core.hash x) y Feat.pp f
-         | Present y ->
-           (* only print arrows to non-initial variables. bc initial variables
-              wont be printed at all *)
-           if not (Core.is_initial y c) then
-             fpf fmt "%d -> %d [label=\"%a\"];@\n" (Core.hash x) (Core.hash y) Feat.pp f
-         | Maybe ys ->
-           List.iter
-             (fun y ->
-                if not (Core.is_initial y c) then
-                  fpf fmt "%d -> %d [style=dashed,label=< <I>%a</I>? >];@\n" (Core.hash x) (Core.hash y) Feat.pp f)
-             ys
-      )
-      info_x
+    if not (Core.is_shadow x c) then
+      Core.iter_feats
+        (fun f -> function
+           | Core.DontKnow -> () (* FIXME *)
+           | Absent ->
+             let y = fresh () in
+             fpf fmt "%s [label=\"⊥\"];@\n" y;
+             fpf fmt "%d -> %s [style=dotted,label=< <S>%a</S> >];@\n" (Core.hash x) y Feat.pp f
+           | Present y ->
+             (* only print arrows to non-initial variables. bc initial variables
+                wont be printed at all *)
+             if not (Core.is_shadow y c) then
+               fpf fmt "%d -> %d [label=\"%a\"];@\n" (Core.hash x) (Core.hash y) Feat.pp f
+           | Maybe ys ->
+             List.iter
+               (fun y ->
+                  if not (Core.is_shadow y c) then
+                    fpf fmt "%d -> %d [style=dashed,label=< <I>%a</I>? >];@\n" (Core.hash x) (Core.hash y) Feat.pp f)
+               ys
+        )
+        info_x
   in
   let pp_sims fmt x info_x =
-    let x = Core.hash x in
+    let hx = Core.hash x in
     Core.iter_sims
       (fun fs y ->
-         let y = Core.hash y in
-         if x < y then (* only one variable prints this *)
-           pp_flat_edge fmt x y (fun fmt -> fpf fmt "~%a" Feat.Set.pp) fs)
+         let hy = Core.hash y in
+         (* only one variable prints this *)
+         if hx < hy && not (Core.is_shadow x c) && not (Core.is_shadow y c) then
+           pp_flat_edge fmt hx hy (fun fmt -> fpf fmt "~%a" Feat.Set.pp) fs)
       info_x
   in
   let pp fmt c =
     Core.iter_infos
       (fun x info_x ->
-         if not (Core.is_initial x c) then
+         if not (Core.is_shadow x c) then
            let text =
              match Core.externalise x c with
              | [] -> None
