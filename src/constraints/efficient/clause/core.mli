@@ -41,7 +41,9 @@ val fold_globals : (var -> 'a -> 'a) -> t -> 'a -> 'a
 
 val quantify_over : Colis_constraints_common.Var.t -> t -> t
 
-val make_initial : t -> t
+val with_shadow_variables : (unit -> 'a) -> 'a
+(** [with_initial f] runs [f] in an environment where all new variables are
+    declared to be shadow. *)
 
 val is_initial : var -> t -> bool
 

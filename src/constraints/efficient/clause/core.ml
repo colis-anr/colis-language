@@ -19,7 +19,7 @@ type feat =
   | Maybe of var list
 
 type info = {
-  initial : bool ;
+  shadow : bool ;
   kind : kind ;
   feats : feat Feat.Map.t ;
   fen : bool ;                      (* implies dir *)
@@ -51,7 +51,7 @@ let pp_debug fmt c =
         | Info _ -> ())
   in
   let pp_info fmt info =
-    fpf fmt "initial: %b@\n" info.initial;
+    fpf fmt "shadow: %b@\n" info.shadow;
     fpf fmt "kind: ";
     (match info.kind with
      | Any -> fpf fmt "*"
@@ -99,21 +99,31 @@ let empty = {
   info = IMap.empty
 }
 
-let empty_info = {
-  initial = false ;
-  kind = Any ;
-  feats = Feat.Map.empty ;
-  fen = false ;
-  sims = [] ;
-  nfens = [] ;
-  nsims = [] ;
-}
+let mk_empty_info ~shadow =
+  {
+    shadow ;
+    kind = Any ;
+    feats = Feat.Map.empty ;
+    fen = false ;
+    sims = [] ;
+    nfens = [] ;
+    nsims = [] ;
+  }
+
+let empty_info = ref (mk_empty_info ~shadow:false)
+
+let with_shadow_variables f =
+  let empty_info_bak = !empty_info in
+  empty_info := mk_empty_info ~shadow:true;
+  let v = f () in
+  empty_info := empty_info_bak;
+  v
 
 let fresh_var =
   let x = ref 0 in
   fun c ->
     incr x;
-    (!x, { c with info = IMap.add !x (Info empty_info) c.info })
+    (!x, { c with info = IMap.add !x (Info !empty_info) c.info })
 
 let hash x = x
 
@@ -138,8 +148,8 @@ let identify x y merge c =
   let rec identify x y =
     match IMap.find x c.info, IMap.find y c.info with
     | Info info_x, Info info_y ->
-      let info_x = { info_x with initial = false } in
-      let info_y = { info_y with initial = false } in
+      let info_x = { info_x with shadow = false } in
+      let info_y = { info_y with shadow = false } in
       let info =
         c.info
         |> IMap.add x (Son y)
@@ -175,23 +185,14 @@ let fold_globals f c =
 let quantify_over x c =
   { c with globals = Var.Map.remove x c.globals }
 
-let make_initial c =
-  { c with
-    info =
-      IMap.map
-        (function
-          | Son y -> Son y
-          | Info info -> Info { info with initial = true })
-        c.info }
-
 let get_info x c =
   let (_, info) = find_ancestor_and_info x c in
-  { info with initial = false }
+  { info with shadow = false }
 
 let is_initial x c =
   (* We can't use [get_info] because it sets initial to false. *)
   let (_, info) = find_ancestor_and_info x c in
-  info.initial
+  info.shadow
 
 let set_info x c info =
   let rec set_info x =
@@ -385,7 +386,7 @@ let simplify c =
         | Son _ -> assert false
         | Info info ->
           Info
-            { initial = info.initial ;
+            { shadow = info.shadow ;
               kind = info.kind ;
               feats =
                 Feat.Map.map_filter

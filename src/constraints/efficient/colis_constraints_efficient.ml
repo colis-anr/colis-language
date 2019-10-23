@@ -21,7 +21,7 @@ let simplify = Core.simplify
 let quantify_over_and_simplify x c =
   Core.(c |> quantify_over x |> simplify) |> Dnf.single
 
-let make_initial = Core.make_initial
+let with_shadow_variables = Core.with_shadow_variables
 
 let exists ?hint f = fun c ->
   let x = Var.fresh ?hint () in
