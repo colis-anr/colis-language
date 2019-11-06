@@ -153,3 +153,6 @@ val simplify : t -> t
 val not_implemented : string -> 'a
 
 val pp_debug : Format.formatter -> t -> unit
+
+val to_yojson : t -> Yojson.Safe.t
+val of_yojson : Yojson.Safe.t -> (t, string) Result.result

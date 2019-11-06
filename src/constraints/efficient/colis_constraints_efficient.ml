@@ -2,7 +2,7 @@ open Colis_constraints_common
 open Colis_constraints_efficient_clause
 include External
 
-type sat_conj = Core.t
+type sat_conj = Core.t                                       [@@deriving yojson]
 let true_sat_conj = Core.empty
 
 let pp_sat_conj = PrettyPrinter.pp

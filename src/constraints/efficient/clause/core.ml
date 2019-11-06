@@ -6,17 +6,20 @@ let not_implemented s = raise (NotImplemented s)
 (** {2 Main Structure} *)
 
 type var = int
+[@@deriving yojson]
 
 type kind =
   | Any
   | Neg of Kind.t list (* uniques, sorted, less than (#kinds - 1) elements *)
   | Pos of Kind.t
+[@@deriving yojson]
 
 type feat =
   | DontKnow
   | Absent
   | Present of var    (* implies dir *)
   | Maybe of var list
+[@@deriving yojson]
 
 type info = {
   shadow : bool ;
@@ -27,9 +30,12 @@ type info = {
   nfens : Feat.Set.t list ;         (* only if not "not dir" *)
   nsims : (Feat.Set.t * var) list ; (* only if not "not dir" *)
 }
+[@@deriving yojson]
 
-module IMap = Map.Make(struct type t = int let compare = compare end)
+module IMap = Derivable.MakeMap(Derivable.Int)
+
 type info_or_son = Info of info | Son of var
+[@@deriving yojson]
 
 type t = {
   (* Globals: not existentially quantified.
@@ -39,6 +45,7 @@ type t = {
   (* Info: a union-find carrying [info]. *)
   info : info_or_son IMap.t ;
 }
+[@@deriving yojson]
 
 let pp_debug fmt c =
   let fpf = Format.fprintf in

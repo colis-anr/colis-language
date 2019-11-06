@@ -1,6 +1,7 @@
 type t =
   { id : int ;
     hint : string }
+[@@deriving yojson]
 
 let hint v = v.hint
 
@@ -40,7 +41,10 @@ module Self = struct
   type s = t
   type t = s
   let compare = compare
+  let pp = pp
+  let to_yojson = to_yojson
+  let of_yojson = of_yojson
 end
 
-module Set = Set.Make(Self)
-module Map = Map.Make(Self)
+module Set = Derivable.MakeSet(Self)
+module Map = Derivable.MakeMap(Self)

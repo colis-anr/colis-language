@@ -1,4 +1,5 @@
 type t = Reg | Dir | Char | Sock | Pipe | Symlink | Block
+[@@deriving yojson]
 
 let pp fmt kind =
   Format.pp_print_string fmt
