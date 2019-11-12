@@ -34,7 +34,7 @@ let fresh =
   incr free;
   { id = !free ; hint }
 
-let compare = Pervasives.compare
+let compare = compare
 let equal = (=)
 
 module Self = struct
