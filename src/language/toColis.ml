@@ -44,13 +44,13 @@ and instruction (fmt:formatter) (i:instruction) : unit =
      fprintf fmt "@[<v 2>begin@ %a ;@ %a@]@ end" sequence i1 sequence i2
   | ISubshell i ->
      fprintf fmt "@[process@ %a@]" instruction i
-  | IIf(i1,ICallUtility("true", []),i2) ->
+  | IIf(i1,ICallUtility(":", []),i2) ->
     fprintf fmt "@[<hv 2>(%a ||@ %a)@]"
       instruction i1 instruction i2
-  | IIf(i1,i2,INot(ICallUtility("true", []))) ->
+  | IIf(i1,i2,INot(ICallUtility(":", []))) ->
     fprintf fmt "@[<hv 2>(%a &&@ %a)@]"
       instruction i1 instruction i2
-  | IIf(c,i1,ICallUtility("true", [])) ->
+  | IIf(c,i1,ICallUtility(":", [])) ->
      fprintf fmt "@[@[<hv 2>if %a@]@ @[<hv 2>then %a@]@ fi@]"
              instruction c instruction i1
   | IIf(c,i1,i2) ->

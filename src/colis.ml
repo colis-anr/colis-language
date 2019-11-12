@@ -39,6 +39,7 @@ module Symbolic = struct
   let () =
     List.iter SymbolicUtility.register [
       (module Basics.True) ;
+      (module Basics.Colon) ;
       (module Basics.False) ;
       (module Basics.Echo) ;
       (module Dpkg) ;

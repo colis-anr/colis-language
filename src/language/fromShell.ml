@@ -22,11 +22,12 @@ module C = struct
     | [] -> failwith "isequence_l"
     | i :: is -> List.fold_left (fun i1 i2 -> ISequence (i1, i2)) i is
 
+  let icolon = ICallUtility (":", [])
   let itrue = ICallUtility ("true", [])
   let ifalse = ICallUtility ("false", [])
 
-  let ior (i1, i2) = IIf (i1, itrue, i2)
-  let iand  (i1, i2) = IIf (i1, i2, INot itrue)
+  let ior (i1, i2) = IIf (i1, icolon, i2)
+  let iand  (i1, i2) = IIf (i1, i2, INot icolon)
 
   let rec sexpr_unfold_concat = function
     | SConcat (s1, s2) ->
@@ -427,7 +428,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      E.with_deeper e @@ fun e ->
      let (e1, i1) = command'__to__instruction e  c1' in
      let (e2, i2) = command'__to__instruction e1 c2' in
-     (e2, C.IIf (i1, i2, C.itrue))
+     (e2, C.IIf (i1, i2, C.icolon))
 
   | If (c1', c2', Some c3') ->
      E.with_deeper e @@ fun e ->
@@ -479,7 +480,7 @@ and case_item'_list__to__if_sequence fresh_var env = function
      let (pattern', command'_option) = case_item'.value in
      let (env0, instruction0) = pattern'__to__instruction fresh_var env pattern' in
      let (env1, instruction1) = command'_option__to__instruction env0 command'_option in
-     (env1, C.IIf (instruction0, instruction1, C.itrue))
+     (env1, C.IIf (instruction0, instruction1, C.icolon))
 
   | case_item' :: case_item'_list ->
      let (pattern', command'_option) = case_item'.value in

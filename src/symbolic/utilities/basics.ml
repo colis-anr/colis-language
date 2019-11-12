@@ -1,19 +1,23 @@
 open SymbolicUtility
 
+
 module True = struct
   let name = "true"
 
   let interprete : context -> utility =
-    fun _ ->
-    return true
+    fun _ -> return true
+end
+
+module Colon = struct
+  include True
+  let name = ":"
 end
 
 module False = struct
   let name = "false"
 
   let interprete : context -> utility =
-    fun _ ->
-    return false
+    fun _ -> return false
 end
 
 module Echo = struct
