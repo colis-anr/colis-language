@@ -155,8 +155,8 @@ let identify x y merge c =
   let rec identify x y =
     match IMap.find x c.info, IMap.find y c.info with
     | Info info_x, Info info_y ->
-      let info_x = { info_x with shadow = !shadow } in
-      let info_y = { info_y with shadow = !shadow } in
+      let info_x = { info_x with shadow = info_x.shadow && !shadow } in
+      let info_y = { info_y with shadow = info_y.shadow && !shadow } in
       let info =
         c.info
         |> IMap.add x (Son y)
@@ -194,7 +194,7 @@ let quantify_over x c =
 
 let get_info x c =
   let (_, info) = find_ancestor_and_info x c in
-  { info with shadow = !shadow }
+  { info with shadow = info.shadow && !shadow }
 
 let is_shadow x c =
   (* We can't use [get_info] because it can set the shadow field to false. *)
