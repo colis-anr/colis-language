@@ -135,6 +135,8 @@ let convert_shell_file = FromShell.program__to__program
 
 let parse_shell_file = FromShell.parse_file
 
+let embellish_colis = Embellisher.embellish
+
 (* Printers *)
 
 let pp_print_colis = ToColis.program

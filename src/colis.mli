@@ -85,6 +85,8 @@ val parse_shell_file : cmd_line_arguments:string list -> string -> colis
     @raise {!Errors.ParseError}
     @raise {!Errors.ConversionError} *)
 
+val embellish_colis : colis -> colis
+
 (** {2 Printing} *)
 
 val print_colis : colis -> unit
