@@ -48,7 +48,7 @@ let interp_utility (cwd, var_env, args) id sta =
           Stdout.(sta.stdout |> output str |> newline)
      in
      {sta with stdout}, true
-  | "true" ->
+  | ":" | "true" ->
      sta, true
   | "false" ->
      sta, false
