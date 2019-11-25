@@ -17,21 +17,7 @@ let unsupported ~pos feature =
 
 module C = struct
   include Syntax__Syntax
-
-  let sconcat_l = function
-    | [] -> SLiteral ""
-    | s :: ss -> List.fold_left (fun s1 s2 -> SConcat (s1, s2)) s ss
-
-  let isequence_l = function
-    | [] -> failwith "isequence_l"
-    | i :: is -> List.fold_left (fun i1 i2 -> ISequence (i1, i2)) i is
-
-  let icolon = ICallUtility (":", [])
-  let itrue = ICallUtility ("true", [])
-  let ifalse = ICallUtility ("false", [])
-
-  let ior (i1, i2) = IIf (i1, icolon, i2)
-  let iand  (i1, i2) = IIf (i1, i2, INot icolon)
+  include SyntaxHelpers
 
   let rec sexpr_unfold_concat = function
     | SConcat (s1, s2) ->

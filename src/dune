@@ -8,9 +8,11 @@
   colis-language.constraints
   zarith str
   ppx_deriving_yojson.runtime
+  visitors.runtime
   morsmall morsmall.utilities
   cmdliner
   batteries)
+ (preprocess (pps visitors.ppx))
  (modules :standard \ colis_cmd)
  (flags :standard -w -27 -w -49))
 

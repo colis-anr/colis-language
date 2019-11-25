@@ -1,3 +1,7 @@
+module Ext = struct
+  module List = ExtList
+end
+
 module Errors = Errors
 module Options = Options
 

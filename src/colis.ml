@@ -5,6 +5,7 @@ module Internals = Colis_internals
 module Language = struct
   module Nat = Syntax__Nat
   module Syntax = Syntax__Syntax
+  module SyntaxHelpers = SyntaxHelpers
   module Parser = ColisParser
   module Lexer = ColisLexer
   module FromShell = FromShell
