@@ -132,7 +132,7 @@ end
 let on_located_with_env (f : pos:Morsmall.Location.position -> E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a Morsmall.Location.located -> (E.t * 'b) =
   on_located (f e)
 
-(* Define split requirements. This will be usefull in the conversion
+(* Define split requirements. This will be useful in the conversion
    of expressions. They are in fact in a lattice:
 
      DoesntCare
@@ -313,6 +313,8 @@ and command__to__instruction ~pos (e : E.t) : command -> E.t * C.instruction =
                  error ~pos "absolute source where external source could not be read"
           )
 
+       (* Note: the special case [exec 2>&1] is handled later, with redirections. *)
+
        | "exit", [] | "exit", [C.SVariable "?", _] ->
           (e, C.(IExit RPrevious))
        | "exit", [C.SLiteral n, _] when int_of_string_opt n = Some 0 ->
@@ -471,6 +473,11 @@ and command__to__instruction ~pos (e : E.t) : command -> E.t * C.instruction =
      let (e, i) = command'__to__instruction (E.add_function e n C.itrue) c1' in
      (E.replace_function e n i, C.itrue)
 
+  | Redirection ({value=Simple ([], [word']);_}, _, OutputDuplicate, {value=[WLiteral _];_})
+    when e.at_toplevel && (try snd (word'__to__name e word') = "exec" with _ -> false) ->
+    (* Special case of [exec 2>&1] that has no impact at toplevel. *)
+    (e, C.itrue)
+
   | Redirection _ as command ->
      E.with_deeper e @@ fun e ->
      (e, redirection__to__instruction ~pos e command)
@@ -527,6 +534,13 @@ and pattern'__to__instruction fresh_var env pattern' =
   (env, on_located (pattern__to__instruction fresh_var) pattern')
 
 and redirection__to__instruction ~pos e = function
+  (* Anything redirected anywhere when at toplevel => we don't care. Indeed, at
+     toplevel, we don't care about the content of 1. So if something is being
+     added to 1 or removed from 1, who cares? *)
+  | Redirection (command', _, OutputDuplicate, {value=[WLiteral _];_})
+      when e.at_toplevel ->
+    snd (command'__to__instruction e command')
+
   (* >=2 redirected to /dev/null. Since they don't have any impact on
      the semantics of the program, we don't care. *)
   | Redirection (command', descr, Output, {value=[WLiteral "/dev/null"];_})
