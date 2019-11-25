@@ -3,10 +3,14 @@ open Colis_internals
 (* Open Morsmall AST. Import the 'on_located' function. *)
 
 open Morsmall.AST
-let on_located = Morsmall.Location.on_located
 
-let unsupported feature =
-  raise (Colis_internals.Errors.ConversionError ("unsupported feature: " ^ feature))
+let on_located f v = f ~pos:v.Morsmall.Location.position v.Morsmall.Location.value
+
+let error ~pos msg =
+  raise (Colis_internals.Errors.ConversionError (pos, msg))
+
+let unsupported ~pos feature =
+  error ~pos ("unsupported feature: " ^ feature)
 
 (* Put CoLiS' syntax inside a 'C' module so that it doesn't clash with
    Morsmall. Add a constructor for concatenation of lists. *)
@@ -88,13 +92,13 @@ module E = struct
       names_called = SSet.empty ;
       functions = SMap.empty }
 
-  let check_legal_function_name e n =
+  let check_legal_function_name ~pos e n =
     if List.mem n special_builtins then
-      unsupported "function definition shadowing a special builtin";
+      unsupported ~pos "function definition shadowing a special builtin";
     if SMap.mem n e.functions then
-      unsupported "function definition shadowing an other function";
+      unsupported ~pos "function definition shadowing an other function";
     if SSet.mem n e.names_called then
-      unsupported "function definition after a use of the same name"
+      unsupported ~pos "function definition after a use of the same name"
 
   let add_called e n =
     { e with names_called = SSet.add n e.names_called }
@@ -125,7 +129,7 @@ module E = struct
     ({ e' with inside_function_body = e.inside_function_body }, x)
 end
 
-let on_located_with_env (f : E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a Morsmall.Location.located -> (E.t * 'b) =
+let on_located_with_env (f : pos:Morsmall.Location.position -> E.t -> 'a -> (E.t * 'b)) (e : E.t) : 'a Morsmall.Location.located -> (E.t * 'b) =
   on_located (f e)
 
 (* Define split requirements. This will be usefull in the conversion
@@ -158,9 +162,9 @@ let unify_split_requirement_list =
    type in Morsmall.AST and Y is a type in Syntax__Syntax. The
    functions X'__to__Y take a located type in Morsmall.C. *)
 
-let rec word__to__name e = function
+let rec word__to__name ~pos e = function
   | [WLiteral s] -> (e, s)
-  | _ -> unsupported "(word_to_name)"
+  | _ -> unsupported ~pos "name that was not a literal"
 
 and word'__to__name e word' =
   on_located_with_env word__to__name e word'
@@ -172,99 +176,107 @@ and word'__to__name e word' =
    that each string_expression has a unique requirement. This is what
    then gives the 'split' flag in CoLiS. *)
 
-and word_component__to__string_expression_split_requirement e = function
+and word_component__to__string_expression_split_requirement ~pos e = function
   | WLiteral s when List.exists (String.contains s) E.ifs ->
      (e, (C.SLiteral s, NoSplit))
   | WLiteral s ->
     (e, (C.SLiteral s, DoesntCare))
   | WVariable (name, NoAttribute) when name = "*" || name = "#" ->
-    unsupported "$* or $#"
+    unsupported ~pos "$* or $#"
   | WVariable (name, NoAttribute) when name = "@" ->
-    unsupported "$@ without quotes"
+    unsupported ~pos "$@ without quotes"
   | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
     (e, (C.SArgument (Z.of_int (int_of_string name)), Split))
   | WVariable (name, NoAttribute) ->
     (e, (C.SVariable name, Split))
   | WVariable _ ->
-    unsupported "variable with attribute"
+    unsupported ~pos "variable with attribute"
   | WSubshell c's ->
      E.with_deeper e @@ fun e ->
      let (e, i) = command'_list__to__instruction e c's in
      (e, (C.SSubshell i, Split))
   | WDoubleQuoted word ->
      E.with_deeper e @@ fun e ->
-     word_DoubleQuoted__to__string_expression_split_requirement e word
-  | _ ->
-     unsupported "(word_component)"
+     word_DoubleQuoted__to__string_expression_split_requirement ~pos e word
+  | WTildePrefix _ -> unsupported ~pos "tilde prefix"
+  | WGlobAll -> unsupported ~pos "glob '*'"
+  | WGlobAny -> unsupported ~pos "glob '?'"
+  | WBracketExpression _ -> unsupported ~pos "bracket expression"
 
-and word_component_DoubleQuoted__to__string_expression e = function
+and word_component_DoubleQuoted__to__string_expression ~pos e = function
   | WLiteral s ->
     (e, C.SLiteral s)
   | WVariable (name, NoAttribute) when name = "*" || name = "#" ->
-    unsupported "$* or $#"
+    unsupported ~pos "$* or $#"
   | WVariable (name, NoAttribute) when name = "@" ->
-    unsupported "$@ with quotes (yet)" (* FIXME *)
+    unsupported ~pos "$@ with quotes (yet)" (* FIXME *)
   | WVariable (name, NoAttribute) when int_of_string_opt name <> None ->
      (e, C.SArgument (Z.of_int (int_of_string name)))
   | WVariable (name, NoAttribute) ->
     (e, C.SVariable name)
   | WVariable _ ->
-    unsupported "variable with attribute"
+    unsupported ~pos "variable with attribute"
   | WSubshell c's ->
      E.with_deeper e @@ fun e ->
      let (e, i) = command'_list__to__instruction e c's in
      (e, C.SSubshell i)
-  | _ -> unsupported "(word_component_DoubleQuoted)"
+  | WTildePrefix _ -> assert false
+  | WDoubleQuoted _ -> assert false
+  | WGlobAll -> unsupported ~pos "glob '*'"
+  | WGlobAny -> unsupported ~pos "glob '?'"
+  | WBracketExpression _ -> unsupported ~pos "bracket expression"
 
-and word__to__string_expression_split_requirement e w : (E.t * (C.string_expression * split_requirement)) =
+and word__to__string_expression_split_requirement ~pos e w : (E.t * (C.string_expression * split_requirement)) =
   (* Note: the type annotation here is required because otherwise,
      OCaml gets lost in type unification for some reason. *)
   let (e, expr_and_req) =
-    list_fold_map word_component__to__string_expression_split_requirement e w
+    list_fold_map (word_component__to__string_expression_split_requirement ~pos) e w
   in
   let string_expression_list, split_requirement_list =
     List.split expr_and_req
   in
   (e, (C.sconcat_l string_expression_list, unify_split_requirement_list split_requirement_list))
 
-and word_DoubleQuoted__to__string_expression_split_requirement e word =
+and word_DoubleQuoted__to__string_expression_split_requirement ~pos e word =
   let (e, exprs) =
-    list_fold_map word_component_DoubleQuoted__to__string_expression e word
+    list_fold_map (word_component_DoubleQuoted__to__string_expression ~pos) e word
   in
   (e, (C.sconcat_l exprs, NoSplit))
 
 (* Now, the real functions. *)
 
-and word__to__string_expression e w =
+and word__to__string_expression ~pos e w =
   (* In that case, we don't care about the splitting. *)
-  let (e, (expr, _)) = word__to__string_expression_split_requirement e w in
+  let (e, (expr, _)) = (word__to__string_expression_split_requirement ~pos) e w in
   (e, expr)
 
-and word_list__to__list_expression e word_list =
+and word'__to__string_expression e w' =
+  on_located_with_env word__to__string_expression e w'
+
+and word'_list__to__list_expression e word'_list =
   list_fold_map
-    (fun e -> function
+    (fun e w' ->
+       let pos = w'.Morsmall.Location.position in
+       let w = w'.Morsmall.Location.value in
+       match w with
        | [WDoubleQuoted [WVariable ("@", NoAttribute)]] -> (* "$@" *)
          if E.is_inside_function_body e then
-           unsupported "\"$@\" inside function body"
+           unsupported ~pos "\"$@\" inside function body"
          else
            (e, List.map (fun arg -> (C.SLiteral arg, C.DontSplit)) e.E.cmd_line_arguments)
-       | w ->
-         let (e, (se, sr)) = word__to__string_expression_split_requirement e w in
+       | _ ->
+         let (e, (se, sr)) = word__to__string_expression_split_requirement ~pos e w in
          (e, [(se,
               match sr with
-              | Impossible -> unsupported "mixed words"
+              | Impossible -> unsupported ~pos "mixed words"
               | DoesntCare | NoSplit -> C.DontSplit
               | Split -> C.Split)]))
     e
-    word_list
+    word'_list
   |> fun (e, l) -> (e, List.flatten l)
 
-and word'_list__to__list_expression e word'_list =
-  List.map (fun word' -> word'.Morsmall.Location.value) word'_list
-  |> word_list__to__list_expression e
-
-and assignment__to__assign e (n, w) =
-  let (e, s1) = word__to__string_expression e w in
+and assignment__to__assign ~pos e (n, w) =
+  let (e, s1) = word__to__string_expression ~pos e w in
   (e, C.IAssignment (n, s1))
 
 and assignment'__to__assign e assignment' =
@@ -272,7 +284,8 @@ and assignment'__to__assign e assignment' =
 
 (* ============================ [ Instructions ] ============================ *)
 
-and command__to__instruction (e : E.t) : command -> E.t * C.instruction = function
+and command__to__instruction ~pos (e : E.t) : command -> E.t * C.instruction =
+  function
 
   | Simple ([], []) ->
      assert false
@@ -293,11 +306,11 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        | ".", [C.SLiteral s, _] when s.[0] = '/' ->
           (
             match !Options.external_sources with
-            | "" -> unsupported "absolute source without external sources"
+            | "" -> unsupported ~pos "absolute source without external sources"
             | prefix ->
                try parse_file_in_env e (Filename.concat prefix s)
                with Errors.FileError _ ->
-                 raise (Errors.ConversionError "absolute source where external source could not be read")
+                 error ~pos "absolute source where external source could not be read"
           )
 
        | "exit", [] | "exit", [C.SVariable "?", _] ->
@@ -321,10 +334,10 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
                   IAssignment (name, C.sconcat_l (SLiteral literal :: sexprs)),
                   IExport name)))
            | _ ->
-             unsupported "export with one bad argument"
+             unsupported ~pos "export with one bad argument"
          )
        | "export", _ ->
-         unsupported "export with no, several or splitable arguments"
+         unsupported ~pos "export with no, several or splitable arguments"
 
        | "return", [] | "return", [C.SVariable "?", _] ->
           (e, C.(IReturn RPrevious))
@@ -343,7 +356,7 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        (* All the other special builtins: unsupported *)
 
        | _ when List.mem name E.special_builtins ->
-          unsupported ("special builtin: " ^ name)
+          unsupported ~pos ("special builtin: " ^ name)
 
        | _ when E.is_function e name ->
           (e, C.ICallFunction (name, args))
@@ -354,9 +367,9 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
        | "cd", [arg, C.DontSplit] ->
           (e, C.ICd arg)
        | "cd", [C.SLiteral "-", _] ->
-          unsupported "cd -"
+          unsupported ~pos "cd -"
        | "cd", _ ->
-          unsupported "cd with multiple arguments"
+          unsupported ~pos "cd with multiple or zero arguments"
 
        (* FIXME: functions *)
 
@@ -368,10 +381,10 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      |> fun (e, i) -> (E.add_called e name, i)
 
   | Simple (_::_, _::_) ->
-     unsupported "prefix assignments"
+     unsupported ~pos "prefix assignments"
 
   | Async _ ->
-     unsupported "asynchronous separator &"
+     unsupported ~pos "asynchronous separator &"
 
   | Seq (c1', c2') ->
      (* Warning: no E.with_deeper here. *)
@@ -408,19 +421,19 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      (e1, C.ISubshell i1)
 
   | For (_, None, _) ->
-     unsupported "for with no list"
+     unsupported ~pos "for with no list"
 
   | For (x, Some word_list, c1') ->
      E.with_deeper e @@ fun e ->
-     let (e0, expr) = word_list__to__list_expression e word_list in
+     let (e0, expr) = word'_list__to__list_expression e word_list in
      let (e1, i1) = command'__to__instruction e0 c1' in
      (e1, C.IForeach (x, expr, i1))
   (* FIXME: with only functions and topevel, it's alright. If we put
      more, we have to be carefull because c1' also happens after itself. *)
 
-  | Case (word, case_item'_list) ->
+  | Case (word', case_item'_list) ->
      let fresh_var = "case_" ^ (string_of_int (Random.int 10000000)) in
-     let (e0, sexpr) = word__to__string_expression e word in
+     let (e0, sexpr) = word'__to__string_expression e word' in
      let (e1, instruction) = case_item'_list__to__if_sequence fresh_var e0 case_item'_list in
      (e1, C.(ISequence (IAssignment (fresh_var, sexpr), instruction)))
 
@@ -449,10 +462,10 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
      etc. *)
 
   | Until (c1', c2') ->
-     command__to__instruction e (While (Morsmall.Location.dummily_located (Not c1'), c2'))
+     command__to__instruction ~pos e (While (Morsmall.Location.copy_location c1' (Not c1'), c2'))
 
   | Function (n, c1') ->
-     E.check_legal_function_name e n;
+     E.check_legal_function_name ~pos e n;
      E.with_deeper e @@ fun e ->
      E.with_inside_function_body e @@ fun e ->
      let (e, i) = command'__to__instruction (E.add_function e n C.itrue) c1' in
@@ -460,10 +473,10 @@ and command__to__instruction (e : E.t) : command -> E.t * C.instruction = functi
 
   | Redirection _ as command ->
      E.with_deeper e @@ fun e ->
-     (e, redirection__to__instruction e command)
+     (e, redirection__to__instruction ~pos e command)
 
   | HereDocument _ ->
-     unsupported ("here document")
+     unsupported ~pos "here document"
 
 and command'__to__instruction env command' =
   on_located_with_env command__to__instruction env command'
@@ -495,14 +508,14 @@ and command'_option__to__instruction env = function
   | None -> (env, C.itrue)
   | Some command' -> command'__to__instruction env command'
 
-and pattern__to__instruction fresh_var = function
-  | [] -> unsupported "empty pattern"
+and pattern__to__instruction ~pos fresh_var = function
+  | [] -> unsupported ~pos "empty pattern"
   | pat0 :: pats ->
     let test_eq_from_pat = function
       | [WLiteral word] ->
         C.ICallUtility ("test", [(SVariable fresh_var, DontSplit); (SLiteral "=", DontSplit); (SLiteral word, DontSplit)])
       | _ ->
-        unsupported "case when non-literal patterns"
+        unsupported ~pos "case when non-literal patterns"
     in
     List.fold_left
       (fun instruction pat ->
@@ -513,16 +526,16 @@ and pattern__to__instruction fresh_var = function
 and pattern'__to__instruction fresh_var env pattern' =
   (env, on_located (pattern__to__instruction fresh_var) pattern')
 
-and redirection__to__instruction e = function
+and redirection__to__instruction ~pos e = function
   (* >=2 redirected to /dev/null. Since they don't have any impact on
      the semantics of the program, we don't care. *)
-  | Redirection (command', descr, Output, [WLiteral "/dev/null"])
+  | Redirection (command', descr, Output, {value=[WLiteral "/dev/null"];_})
        when descr >= 2 ->
      snd (command'__to__instruction e command')
 
   (* 1 redirected to >=2, this means the output will never ever have
      an impact on the semantics again ==> ignore *)
-  | Redirection (command', 1, OutputDuplicate, [WLiteral i])
+  | Redirection (command', 1, OutputDuplicate, {value=[WLiteral i];_})
        when (try int_of_string i >= 2 with Failure _ ->  false) ->
      C.INoOutput (snd (command'__to__instruction e command'))
 
@@ -530,20 +543,20 @@ and redirection__to__instruction e = function
      have an impact on the semantics again ==> Ignore. In fact, we can
      even be a bit better an accept all subsequent redirections of >=2
      to 1. *)
-  | Redirection (command', 1, Output, [WLiteral "/dev/null"]) ->
+  | Redirection (command', 1, Output, {value=[WLiteral "/dev/null"];_}) ->
      (
-       let rec flush_redirections_to_1 = function
-         | Redirection (command', descr, OutputDuplicate, [WLiteral "1"])
+       let rec flush_redirections_to_1 ~pos = ignore pos; function
+         | Redirection (command', descr, OutputDuplicate, {value=[WLiteral "1"];_})
               when descr >= 2 ->
             flush_redirections'_to_1 command'
          | _ as command -> command
        and flush_redirections'_to_1 redirection' =
          on_located flush_redirections_to_1 redirection'
        in
-       C.INoOutput (snd (command__to__instruction e (flush_redirections'_to_1 command')))
+       C.INoOutput (snd (command__to__instruction ~pos e (flush_redirections'_to_1 command')))
      )
 
-  | _ -> unsupported ("other redirections")
+  | _ -> unsupported ~pos "other redirections"
 
 and command'_list__to__instruction env = function
   | [] ->

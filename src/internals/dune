@@ -2,4 +2,5 @@
 
 (library
  (name colis_internals)
- (public_name colis-language.internals))
+ (public_name colis-language.internals)
+ (libraries morsmall))

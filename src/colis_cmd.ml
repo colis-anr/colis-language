@@ -144,6 +144,19 @@ let main () =
      eprintf "Printing Shell is not supported yet.@.";
      exit 9 (* FIXME *)
 
+let pp_lexing_position fmt pos =
+  let open Lexing in
+  fprintf fmt "File \"%s\", line %d, character %d"
+    pos.pos_fname pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+
+let pp_morsmall_position fmt pos =
+  let open Morsmall.Location in
+  let open Lexing in
+  let sp = pos.start_p in
+  let sc = sp.pos_cnum - sp.pos_bol + 1 in
+  fprintf fmt "File \"%s\", line %d, characters %d-%d"
+    sp.pos_fname sp.pos_lnum sc (pos.end_p.pos_cnum - sc) (* FIXME: +1? *)
+
 let () =
   let open Colis.Internals.Errors in
 
@@ -165,17 +178,12 @@ let () =
 
   (* Error in parsing (shell or colis). *)
   | ParseError (msg, pos) ->
-     let print_position fmt pos =
-       let open Lexing in
-       fprintf fmt "%s:%d:%d" pos.pos_fname
-         pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
-     in
-     eprintf "Syntax error at %a%s@." print_position pos (if msg = "" then "" else ": "^msg);
+     eprintf "%a: Syntax error%s%s@." pp_lexing_position pos (if msg = "" then "" else ": ") msg;
      exit 5
 
   (* Conversion error. *)
-  | ConversionError msg ->
-     eprintf "Conversion error: %s@." msg;
+  | ConversionError (pos, msg) ->
+     eprintf "%a: Conversion error: %s@." pp_morsmall_position pos msg;
      exit 6
 
   | Unsupported (utility, msg) ->
