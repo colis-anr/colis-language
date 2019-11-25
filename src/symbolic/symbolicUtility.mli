@@ -32,6 +32,8 @@ end
 (** Register a symbolic utility *)
 val register : (module SYMBOLIC_UTILITY) -> unit
 
+val is_registered : string -> bool
+
 (** {1 Specifications} *)
 
 (** A case in the specification is either a success or an error *)

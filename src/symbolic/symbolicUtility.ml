@@ -212,6 +212,8 @@ let table = Hashtbl.create 10
 let register (module M:SYMBOLIC_UTILITY) =
   Hashtbl.replace table M.name M.interprete
 
+let is_registered = Hashtbl.mem table
+
 let dispatch ~name =
   try Hashtbl.find table name
   with Not_found -> fun _ -> unknown_utility name
