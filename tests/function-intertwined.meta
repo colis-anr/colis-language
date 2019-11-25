@@ -5,5 +5,5 @@ input:
 output:
   stdout: ""
   stderr: |
-    Conversion error: unsupported feature: function definition after a use of the same name
+    File "./function-intertwined.sh", line 5, characters 5-14: Conversion error: unsupported feature: function definition after a use of the same name
   return_code: 6

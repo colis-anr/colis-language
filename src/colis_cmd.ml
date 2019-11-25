@@ -155,7 +155,7 @@ let pp_morsmall_position fmt pos =
   let sp = pos.start_p in
   let sc = sp.pos_cnum - sp.pos_bol + 1 in
   fprintf fmt "File \"%s\", line %d, characters %d-%d"
-    sp.pos_fname sp.pos_lnum sc (pos.end_p.pos_cnum - sc) (* FIXME: +1? *)
+    sp.pos_fname sp.pos_lnum sc (pos.end_p.pos_cnum - pos.start_p.pos_cnum - sc) (* FIXME: +1? *)
 
 let () =
   let open Colis.Internals.Errors in
