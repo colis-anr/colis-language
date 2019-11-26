@@ -57,6 +57,8 @@ module Symbolic = struct
       (module Which.Silent) ;
       (* The Dark World *)
       (module ColisInternalUnsafeTouch)
+      (module EmacsPackage.Install) ;
+      (module EmacsPackage.Remove) ;
     ]
 
   let add_fs_spec_to_clause root clause fs_spec =
