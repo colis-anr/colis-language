@@ -1,5 +1,5 @@
 open Format
-open Constraints
+open Colis_constraints
 open Clause
 open SymbolicUtility
 
