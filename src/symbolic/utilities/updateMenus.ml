@@ -2,6 +2,6 @@ open SymbolicUtility
 
 let name = "update-menus"
 
-let interprete ctx state = [ (state,true) ]
+let interprete ctx = return true
 
-                             (* TODO model authorized options *)
+                            (* TODO model authorized options *)
