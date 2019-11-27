@@ -1,17 +1,16 @@
 module type OrderedType = sig
   type t
-
-  val compare : t -> t -> int
+  [@@deriving yojson]
 
   val pp : Format.formatter -> t -> unit
-
-  val to_yojson : t -> Yojson.Safe.t
-  val of_yojson : Yojson.Safe.t -> (t, string) Result.result
+  val compare : t -> t -> int
 end
 
 module Int = struct
   type t = int
-  [@@deriving show, yojson]
+  [@@deriving yojson]
+
+  let pp = Format.pp_print_int
   let compare = compare
 end
 
@@ -46,8 +45,8 @@ module MakeSet (Ord : OrderedType) = struct
   (* FIXME: yojson deriving. This should probably move. *)
 
   type tmp_list = Ord.t list [@@deriving yojson]
-  let to_tmp_list s = s |> to_seq |> List.of_seq
-  let of_tmp_list j = j |> List.to_seq |> of_seq
+  let to_tmp_list s = fold List.cons s []
+  let of_tmp_list j = of_list j
 
   let to_yojson s = s |> to_tmp_list |> tmp_list_to_yojson
   let of_yojson j = j |> tmp_list_of_yojson |> (fun l -> Ppx_deriving_yojson_runtime.(>|=) l of_tmp_list)
@@ -80,8 +79,8 @@ module MakeMap (Ord : OrderedType) = struct
     | Some y -> add x y m
 
   type 'a tmp_list = (Ord.t * 'a) list [@@deriving yojson]
-  let to_tmp_list s = s |> to_seq |> List.of_seq
-  let of_tmp_list j = j |> List.to_seq |> of_seq
+  let to_tmp_list s = fold (fun k v -> List.cons (k, v)) s []
+  let of_tmp_list j = List.fold_left (fun m (k, v) -> add k v m) empty j
 
   let to_yojson t s = s |> to_tmp_list |> tmp_list_to_yojson t
   let of_yojson f j = j |> tmp_list_of_yojson f |> (fun l -> Ppx_deriving_yojson_runtime.(>|=) l of_tmp_list)

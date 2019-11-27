@@ -1,12 +1,9 @@
 module type OrderedType = sig
   type t
-
-  val compare : t -> t -> int
+  [@@deriving yojson]
 
   val pp : Format.formatter -> t -> unit
-
-  val to_yojson : t -> Yojson.Safe.t
-  val of_yojson : Yojson.Safe.t -> (t, string) Result.result
+  val compare : t -> t -> int
 end
 
 module Int : OrderedType with type t = int
