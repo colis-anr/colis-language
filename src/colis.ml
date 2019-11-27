@@ -43,11 +43,13 @@ module Symbolic = struct
       (module Basics.Colon) ;
       (module Basics.False) ;
       (module Basics.Echo) ;
+      (module Cp);
       (module Dpkg) ;
       (module DpkgMaintscriptHelper) ;
-      (module Mv);
-      (module Cp);
+      (module EmacsPackage.Install) ;
+      (module EmacsPackage.Remove) ;
       (module Mkdir);
+      (module Mv);
       (module Rm) ;
       (module Test) ;
       (module Test.Bracket) ;
@@ -57,9 +59,7 @@ module Symbolic = struct
       (module Which) ;
       (module Which.Silent) ;
       (* The Dark World *)
-      (module ColisInternalUnsafeTouch)
-      (module EmacsPackage.Install) ;
-      (module EmacsPackage.Remove) ;
+      (module ColisInternalUnsafeTouch) ;
     ]
 
   let add_fs_spec_to_clause root clause fs_spec =
