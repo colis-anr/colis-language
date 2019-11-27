@@ -53,6 +53,7 @@ module Symbolic = struct
       (module Test.Bracket) ;
       (module Touch) ;
       (module UpdateAlternatives) ;
+      (module UpdateMenus) ;
       (module Which) ;
       (module Which.Silent) ;
       (* The Dark World *)
