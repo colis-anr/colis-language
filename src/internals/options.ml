@@ -24,3 +24,39 @@ let set_memory_limit s =
       String.sub s 0 (l - 1)
   in
   memory_limit := int_of_string s * m * 8 / Sys.word_size
+
+type 'a gs =
+  { getter : unit -> 'a ;
+    setter : 'a -> unit ;
+    wither : 'b. 'a -> (unit -> 'b) -> 'b }
+
+let make_getters_setters str =
+  let holder = ref None in
+  let getter () =
+    match !holder with
+    | None -> raise (Arg.Bad (str ^ " has not been set yet"))
+    | Some content -> content
+  in
+  let setter content =
+    match !holder with
+    | None -> holder := Some content
+    | Some _ -> raise (Arg.Bad (str ^ " has already been set"))
+  in
+  let wither content f =
+    let old = !holder in
+    holder := Some content;
+    let res = try Ok (f ()) with exn -> Error exn in
+    holder := old;
+    match res with Ok res -> res | Error exn -> raise exn
+  in
+  { getter ; setter ; wither }
+
+let (gs : string list gs) = make_getters_setters "Contents"
+let get_contents = gs.getter
+let set_contents = gs.setter
+let with_contents = gs.wither
+
+let (gs : string gs) = make_getters_setters "Package name"
+let get_package_name = gs.getter
+let set_package_name = gs.setter
+let with_package_name = gs.wither
