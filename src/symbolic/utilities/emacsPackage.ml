@@ -4,7 +4,7 @@ open Clause
 open SymbolicUtility
 
 module Install = struct
-  let name = "emacs-package-install"
+  let name = "/usr/lib/emacsen-common/emacs-package-install"
 
   let interprete preInst _postInst ctx args =
     let pkgName = match args with
@@ -45,7 +45,7 @@ module Install = struct
 end
 
 module Remove = struct
-  let name = "emacs-package-remove"
+  let name = "/usr/lib/emacsen-common/emacs-package-remove"
 
   let interprete preRm ctx args =
     let pkgName = match args with
@@ -79,4 +79,3 @@ module Remove = struct
       ctx
 
 end
-
