@@ -125,7 +125,7 @@ module Interpreter
 
   exception EExit
   exception EReturn
-  exception EFailure
+  exception EIncomplete
 
   let maybe_exit (inp:input) (sta:state) : unit
     returns { () ->
@@ -431,7 +431,7 @@ module Interpreter
     ensures { sem_context sta = sem_context (old sta) }
     ensures {
       eval_str_expr (old stk) b (inp, sem_context (old sta), sem_state (old sta))
-        se (sem_state sta, Success (s, b'))
+        se (sem_state sta, Ok (s, b'))
     }
   = match se with
 
@@ -464,9 +464,9 @@ module Interpreter
 
     | SConcat se1 se2 ->
       label L1 in let s1, b1 = interp_str_expr b inp sta se1 in
-      assert { eval_str_expr stk b (inp, sem_context sta, sem_state sta at L1) se1 (sem_state sta, Success (s1, b1)) };
+      assert { eval_str_expr stk b (inp, sem_context sta, sem_state sta at L1) se1 (sem_state sta, Ok (s1, b1)) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
-      assert { eval_str_expr stk b1 (inp, sem_context sta, sem_state sta at L2) se2 (sem_state sta, Success (s2, b2)) };
+      assert { eval_str_expr stk b1 (inp, sem_context sta, sem_state sta at L2) se2 (sem_state sta, Ok (s2, b2)) };
       String.concat s1 s2, b2
     end
 
@@ -478,7 +478,7 @@ module Interpreter
     ensures { sem_context sta = sem_context (old sta) }
     ensures {
       eval_list_expr (old stk) (inp, sem_context (old sta), sem_state (old sta))
-        le (sem_state sta, Success result)
+        le (sem_state sta, Ok result)
     }
   = match le with
     | Nil -> Nil
@@ -497,7 +497,7 @@ module Interpreter
     requires { inp.config.stack_size = Infinite }
     ensures {
       eval_program (inp, sem_context (old sta), sem_state (old sta))
-        pro (sem_state sta, Success !(sta.result))
+        pro (sem_state sta, Ok !(sta.result))
     }
   = try
       let fenv = interp_function_definitions sta.func_env pro.function_definitions in
