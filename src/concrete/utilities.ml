@@ -4,6 +4,7 @@
   *)
 
 open Colis_internals
+open Semantics__Result
 open Semantics__Buffers
 open Interpreter__Semantics
 
@@ -17,7 +18,7 @@ let unsupported ~utility msg = fun sta ->
   else
     let str = utility ^ ": " ^ msg in
     let stdout = Stdout.(sta.stdout |> output str |> newline) in
-    {sta with stdout}, false
+    {sta with stdout}, Ok false
 
 let unknown_utility utility = fun sta ->
   if !Options.fail_on_unknown_utilities then
@@ -25,13 +26,13 @@ let unknown_utility utility = fun sta ->
   else
     let str = utility ^ ": command not found" in
     let stdout = Stdout.(sta.stdout |> output str |> newline) in
-    {sta with stdout}, false
+    {sta with stdout}, Ok false
 
-let test (sta : state) : string list -> (state * bool) = function
+let test (sta : state) : string list -> (state * bool result) = function
   | [sa; "="; sb] ->
-     (sta, sa = sb)
+    (sta, Ok (sa = sb))
   | [sa; "!="; sb] ->
-     (sta, sa <> sb)
+    (sta, Ok (sa <> sb))
   | _ ->
     unsupported ~utility:"test" "arguments different from . = . and . != ." sta
 
@@ -41,7 +42,7 @@ let dpkg_compare_versions args =
 let dpkg_validate_thing subcmd arg =
   Sys.command ("dpkg " ^ subcmd ^ " " ^arg) = 0
 
-let interp_utility (cwd, var_env, args) id sta =
+let interp_utility (_cwd, var_env, args) id sta =
   match id with
   | "echo" ->
      let stdout =
@@ -53,11 +54,11 @@ let interp_utility (cwd, var_env, args) id sta =
           let str = String.concat " " args in
           Stdout.(sta.stdout |> output str |> newline)
      in
-     {sta with stdout}, true
+     {sta with stdout}, Ok true
   | ":" | "true" ->
-     sta, true
+     sta, Ok true
   | "false" ->
-     sta, false
+     sta, Ok false
   | "test" -> test sta args
   | "env" ->
     begin match args with
@@ -70,7 +71,7 @@ let interp_utility (cwd, var_env, args) id sta =
       in
       IdMap.bindings var_env |>
       List.map format_line |>
-      List.fold_left print_line sta, true
+      List.fold_left print_line sta, Ok true
     | _arg :: _ ->
       unsupported ~utility:"env" "no arguments supported" sta
     end
@@ -89,7 +90,7 @@ let interp_utility (cwd, var_env, args) id sta =
           List.fold_left f (sta.stdout, false) sta.stdin
         in
         let sta' = {sta with stdout; stdin=Stdin.empty} in
-        sta', result
+        sta', Ok result
      | [] ->
        unsupported ~utility:"grep" "missing argument" sta
      | _arg :: _ ->
@@ -100,12 +101,12 @@ let interp_utility (cwd, var_env, args) id sta =
      | (("--validate-pkgname" | "--validate-trigname" |
          "--validate-archname" | "--validate-version") as subcmd)::args->
         if List.length args = 1
-        then sta, dpkg_validate_thing subcmd (List.hd args)
+        then sta, Ok (dpkg_validate_thing subcmd (List.hd args))
         else unsupported ~utility:"dpkg"
                "--validate_thing needs excactly 1 argument" sta
      | "--compare-versions"::args ->
       if List.length args = 3
-      then sta, dpkg_compare_versions args
+      then sta, Ok (dpkg_compare_versions args)
       else unsupported ~utility:"dpkg"
              "--compare-versions needs excatly 3 arguments" sta
      | _ -> unsupported ~utility:"dpkg" "unsupported arguments" sta
