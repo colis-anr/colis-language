@@ -12,8 +12,8 @@ let interp_touch1 cwd path_str : utility =
   under_specifications @@
   match Path.split_last p with
   | None -> (* `touch ''` *)
-    failure ~error_message:"cannot touch '': No such file or directory"
-  | Some (_, (Up | Here)) -> [
+    [error_case ~descr:"cannot touch '': No such file or directory"]
+  | Some (_q, (Up | Here)) ->
       success_case
         ~descr:(asprintf "touch %a: path resolves" Path.pp p)
         begin fun root root' ->

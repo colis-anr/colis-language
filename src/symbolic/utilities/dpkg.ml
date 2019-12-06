@@ -1,4 +1,5 @@
 open SymbolicUtility
+open Semantics__Result
 
 let name = "dpkg"
 
@@ -14,7 +15,7 @@ let interprete ctx =
           in
           fun sta ->
             let sta = print_stdout ~newline:true str sta in
-            [sta, true]
+            [sta, Ok true]
         )
       else
         unsupported ~utility "-L about an other package"

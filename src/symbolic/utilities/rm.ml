@@ -12,9 +12,9 @@ let interp1 cwd arg : utility =
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
-    failure ~error_message:"rm: invalid path ''"
+    [error_case ~descr:"rm: invalid path ''"]
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"rm: cannot remove .. or ."
+    [error_case ~descr:"rm: cannot remove .. or ."]
   | Some (q, Down f) -> [
       success_case
         ~descr:(asprintf "rm %a: remove file" Path.pp oq)
@@ -46,9 +46,9 @@ let interp1_r cwd arg : utility =
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
-    failure ~error_message:"rm: invalid path ''"
+    [error_case ~descr:"rm: invalid path ''"]
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"rm: cannot remove .. or ."
+    [error_case ~descr:"rm: cannot remove .. or ."]
   | Some (q, Down f) -> [
       success_case
         ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp oq)

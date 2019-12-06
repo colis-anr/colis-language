@@ -2,6 +2,7 @@ open Format
 open Colis_constraints
 open Clause
 open SymbolicUtility
+open Semantics__Result
 open Semantics__Buffers
 
 module Silent = struct
@@ -73,7 +74,7 @@ let rec search_as_which_in_path cwd (path:string list) arg : utility =
     fun st ->
       List.flatten
         (List.map
-           (function (s1,b1) as x -> if b1 then [x] else u2 s1)
+           (function (s1,Ok b1) as x -> if b1 then [x] else u2 s1 | (_,Incomplete) as x -> [x])
            (u1 st))
 
 let search_as_which cwd (path:string list) arg : utility =

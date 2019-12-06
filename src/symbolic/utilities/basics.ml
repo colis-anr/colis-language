@@ -27,5 +27,5 @@ module Echo = struct
     fun ctx sta ->
     let str = String.concat " " ctx.args in
     let sta = print_stdout ~newline:true str sta in
-    [sta, true]
+    [sta, Ok true]
 end
