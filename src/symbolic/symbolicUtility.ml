@@ -1,12 +1,13 @@
 open Colis_internals
 open Colis_constraints
-open SymbolicInterpreter__Semantics
+open Semantics__Result
 open Semantics__Buffers
+open SymbolicInterpreter__Semantics
 
-type utility = state -> (state * bool) list
+type utility = state -> (state * bool result) list
 
 let return result : utility =
-  function sta -> [sta, result]
+  function sta -> [sta, Ok result]
 
 let apply_to_list l u =
   (* apply utility [u] to a list [l] of states *)
@@ -16,11 +17,12 @@ let separate_states l =
   (* split a list of pairs state*bool into the list of states with flag
      [true] and the list of pairs with flag [false]
    *)
-  let rec separate_aux posacc negacc = function
-    | [] -> (posacc,negacc)
-    | (s,true)::l -> separate_aux (s::posacc) negacc l
-    | (s,false)::l -> separate_aux posacc (s::negacc) l
-  in separate_aux [] [] l
+  let rec separate_aux posacc negacc incacc = function
+    | [] -> (posacc,negacc,incacc)
+    | (s, Ok true)::l -> separate_aux (s::posacc) negacc incacc l
+    | (s, Ok false)::l -> separate_aux posacc (s::negacc) incacc l
+    | (_, Incomplete) as s::l -> separate_aux posacc negacc (s::incacc) l
+  in separate_aux [] [] [] l
 
 let choice u1 u2 =
   (* non-deterministic choice *)
@@ -28,26 +30,31 @@ let choice u1 u2 =
 
 let if_then_else (cond:utility) (posbranch:utility) (negbranch:utility) =
   function sta ->
-    let (posstates,negstates) = separate_states (cond sta)
+    let (posstates,negstates,incstates) = separate_states (cond sta)
     in
     (apply_to_list posstates posbranch)
     @ (apply_to_list negstates negbranch)
+    @ incstates
 
 let if_then (cond:utility) (posbranch:utility) =
   function sta ->
-    let (posstates,negstates) = separate_states (cond sta)
+    let (posstates,negstates,incstates) = separate_states (cond sta)
     in
     (apply_to_list posstates posbranch)
-    @ (List.map (function sta -> (sta,true)) negstates)
+    @ (List.map (function sta -> (sta,Ok true)) negstates)
+    @ incstates
 
 let uneg (u:utility) : utility = fun st ->
-  List.map (fun (s,b) -> (s, not b)) (u st)
+  List.map (function (s,Ok b) -> (s, Ok (not b)) | x -> x) (u st)
 
 let combine_results combinator u1 u2 : utility = fun st ->
   List.flatten
     (List.map
-       (fun (s1,b1) ->
-         List.map (fun (s2, b2) -> (s2, combinator b1 b2)) (u2 s1))
+       (function (s1,Ok b1) ->
+          List.map (function
+              | (s2,Ok b2) -> (s2,Ok(combinator b1 b2))
+              | x -> x) (u2 s1)
+          | x -> [x])
        (u1 st))
 
 let uand =
@@ -70,9 +77,10 @@ let compose_non_strict (u1:utility) (u2:utility) =
 
 let compose_strict (u1:utility) (u2:utility) =
   function sta ->
-    let (success1,failure1) = separate_states (u1 sta)
+    let (success1,failure1,incomplete1) = separate_states (u1 sta)
     in (apply_to_list success1 u2) @
-         (List.map (function sta -> (sta,false)) failure1)
+       (List.map (function sta -> (sta,Ok false)) failure1) @
+       incomplete1
 
 let print_output ~newline str output =
   let output = Stdout.output str output in
@@ -87,14 +95,23 @@ let print_error opt sta =
   match opt with
   | None -> sta
   | Some str ->
-    let log = print_output ~newline:true ("[ERR] "^str) sta.log in
+    let log = print_output ~newline:true ("[ERROR] "^str) sta.log in
+    {sta with log}
+
+let print_incomplete_trace str sta =
+  if String.equal str "" then
+    sta
+  else
+    let log =
+      print_output ~newline:true ("[INCOMPLETE] "^str) sta.log in
     {sta with log}
 
 let print_utility_trace str sta =
   if String.equal str "" then
     sta
   else
-    let log = print_output ~newline:true ("[UTL] "^str) sta.log in
+    let log =
+      print_output ~newline:true ("[TRACE] "^str) sta.log in
     {sta with log}
 
 type case_spec = Var.t -> Var.t -> Clause.t
@@ -103,7 +120,7 @@ let noop : case_spec =
   Clause.eq
 
 type case = {
-  result : bool;
+  result : bool result;
   spec : case_spec;
   descr : string;
   stdout : Stdout.t ;
@@ -111,17 +128,17 @@ type case = {
 }
 
 let success_case ~descr ?(stdout=Stdout.empty) spec =
-  { result = true ; error_message = None ; stdout ; descr; spec }
+  { result = Ok true ; error_message = None ; stdout ; descr; spec }
 
 let error_case ~descr ?(stdout=Stdout.empty) ?error_message spec =
-  { result = false ; error_message ; stdout ; descr ; spec }
+  { result = Ok false ; error_message ; stdout ; descr ; spec }
 
-let failure ~error_message =
-  [{ result = false ;
-     descr = "" ;
-     stdout = Stdout.empty ;
-     error_message = Some error_message;
-     spec = noop }]
+let incomplete_case ~descr () =
+  { result = Incomplete ;
+    descr ;
+    stdout = Stdout.empty ;
+    error_message = None;
+    spec = noop }
 
 (** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
 let apply_spec fs spec =
@@ -147,9 +164,11 @@ let apply_spec fs spec =
 
     This may result in multiple states because the integration of the case clause in the
     filesystem may result in multiple clauses. *)
-let apply_case sta case : (state * bool) list =
+let apply_case sta case : (state * bool result) list =
   (* First print the utility trace *)
-  let sta = print_utility_trace case.descr sta in
+  let sta =
+    let print = match case.result with Ok _ -> print_utility_trace | Incomplete -> print_incomplete_trace in
+    print case.descr sta in
   let sta = {
     (* output case stdout to stdout and log *)
     stdout = Stdout.concat sta.stdout case.stdout;
@@ -160,6 +179,9 @@ let apply_case sta case : (state * bool) list =
     filesystem = sta.filesystem;
   } in
   (* (Optionally) print error message *)
+  if case.result = Incomplete then
+    (* Make sure that the description is the last message on the log *)
+    assert (case.error_message = None);
   let sta = print_error case.error_message sta in
   (* Apply the case specifications to the filesystem *)
   apply_spec sta.filesystem case.spec |>
@@ -170,7 +192,7 @@ let apply_case sta case : (state * bool) list =
 
 type specifications = case list
 
-let under_specifications : specifications -> state -> (state * bool) list =
+let under_specifications : specifications -> state -> (state * bool result) list =
   fun spec state ->
   List.flatten (List.map (apply_case state) spec)
 
@@ -191,27 +213,19 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
 
 let error ?msg () : utility =
   fun sta ->
-    let sta' =
-      match msg with
-      | Some msg ->
-        let str = "[ERR] "^msg in
-        let stdout = Stdout.(output str sta.stdout |> newline) in
-        {sta with stdout}
-      | None -> sta
-    in
-    [ sta', false ]
+    let sta' = print_error msg sta in
+    [ sta', Ok false ]
+
+let incomplete ~descr () : utility =
+  fun sta ->
+    let sta' = print_incomplete_trace descr sta in
+    [sta', Incomplete]
 
 let unsupported ~utility msg =
   if !Options.fail_on_unknown_utilities then
     Errors.unsupported ~utility msg
   else
-    error ~msg:(utility ^ ": " ^ msg) ()
-
-let unknown_utility utility =
-  if !Options.fail_on_unknown_utilities then
-    Errors.unsupported ~utility "unknown utility"
-  else
-    error ~msg:(utility ^ ": command not found") ()
+    incomplete ~descr:(utility ^ ": " ^ msg) ()
 
 module IdMap = Env.IdMap
 
@@ -226,7 +240,10 @@ module type SYMBOLIC_UTILITY = sig
   val interprete : context -> utility
 end
 
-let table = Hashtbl.create 10
+let table =
+  let table = Hashtbl.create 10 in
+  (* TODO Register all POSIX utilities as: incomplete ~descr:(name^": not implemented") *)
+  table
 
 let register (module M:SYMBOLIC_UTILITY) =
   Hashtbl.replace table M.name M.interprete
@@ -235,7 +252,8 @@ let is_registered = Hashtbl.mem table
 
 let dispatch ~name =
   try Hashtbl.find table name
-  with Not_found -> fun _ -> unknown_utility name
+  with Not_found -> fun _ ->
+    error ~msg:(name^": command not found") ()
 
 let call name ctx args =
   dispatch ~name {ctx with args}
