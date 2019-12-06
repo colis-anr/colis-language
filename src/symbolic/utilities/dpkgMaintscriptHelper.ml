@@ -1,4 +1,4 @@
-(** Symbolic execution of dpkg-maintscript-helper. This structure of
+(** Symbolic execution of dpkg-maintscript-helper. The structure of
     this code follows the implementation of version 1.19.6. *)
 
 open SymbolicUtility
