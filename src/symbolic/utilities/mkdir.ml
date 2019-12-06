@@ -10,9 +10,9 @@ let interp_mkdir1 cwd path_str =
   under_specifications @@
   match Path.split_last p with
   | None ->
-    failure ~error_message:"mkdir: cannot create directory ''"
+    [error_case ~descr:"mkdir: cannot create directory ''"]
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"mkdir: file exists"
+    [error_case ~descr:"mkdir: file exists" (* CHECK *)]
   | Some (q, Down f) -> [
       success_case
         ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
