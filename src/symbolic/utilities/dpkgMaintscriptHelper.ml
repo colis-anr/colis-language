@@ -20,8 +20,8 @@ let split_at_dashdash l =
 let starts_on_slash s = String.length s > 0 && s.[0]='/'
 let ends_on_slash s = let n = String.length s in n > 0 && s.[n-1]='/'
 let empty_string s = (String.length s = 0)
-let dpkg_compare_versions_le_nl s1 s2 = assert false (* FIXME *)
-let dpkg_validate_version s = true (* FIXME *)
+let dpkg_validate_version s =
+  Utilities.dpkg_validate_thing "--validate-version" s
 let validate_optional_version s =
   empty_string s || dpkg_validate_version s
 let ensure_package_owns_file package file = true (* FIXME *)
@@ -134,13 +134,13 @@ let rm_conffile ctx
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade")
         && not (empty_string scriptarg2)
-        && dpkg_compare_versions_le_nl scriptarg2 lastversion
+        && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
      then prepare_rm_conffile ctx conffile package
      else return true
   | "postinst" ->
      if scriptarg1 = "configure"
         && not (empty_string scriptarg2)
-        && dpkg_compare_versions_le_nl scriptarg2 lastversion
+        && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
      then finish_rm_conffile ctx conffile
      else return true
   | "postrm" ->
@@ -154,7 +154,7 @@ let rm_conffile ctx
      else
        if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
           && not (empty_string scriptarg2)
-          && dpkg_compare_versions_le_nl scriptarg2 lastversion
+          && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
        then abort_rm_conffile ctx conffile package
        else return true
   | _ -> return true
@@ -230,19 +230,19 @@ let mv_conffile ctx
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade")
         && not (empty_string scriptarg2)
-        && dpkg_compare_versions_le_nl scriptarg2 lastversion
+        && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
      then prepare_mv_conffile ctx oldconffile package
      else return true
   | "postinst" ->
      if scriptarg1 = "configure"
         && not (empty_string scriptarg2)
-        && dpkg_compare_versions_le_nl scriptarg2 lastversion
+        && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
      then finish_mv_conffile ctx oldconffile newconffile package
      else return true
   | "postrm" ->
      if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
         && not (empty_string scriptarg2)
-        && dpkg_compare_versions_le_nl scriptarg2 lastversion
+        && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
      then abort_mv_conffile ctx oldconffile package
      else return true
   | _ -> return true
@@ -279,7 +279,7 @@ let symlink_to_dir ctx
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade" )
         && not (empty_string scriptarg2)
-        && dpkg_compare_versions_le_nl scriptarg2 lastversion
+        && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
      then
        if_then
          (call "test" ctx ["-h"; symlink])
@@ -308,7 +308,7 @@ let symlink_to_dir ctx
      ||>>
        (if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
            && not (empty_string scriptarg2)
-           && dpkg_compare_versions_le_nl scriptarg2 lastversion
+           && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
         then
           if_then_else
             (call "test" ctx ["-e"; symlink])
@@ -386,7 +386,8 @@ let dir_to_symlink ctx
   | "preinst" ->
      if (scriptarg1 = "install" || scriptarg1 = "upgrade" )
         && not (empty_string scriptarg2)
-        && dpkg_compare_versions_le_nl scriptarg2 lastversion then
+        && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
+     then
        if_then
          (call "test" ctx ["-h"; pathname])
          (if_then_else
@@ -420,7 +421,8 @@ let dir_to_symlink ctx
      ||>>
        (if (scriptarg1 = "abort-install" || scriptarg1 = "abort-upgrade")
            && not (empty_string scriptarg2)
-           && dpkg_compare_versions_le_nl scriptarg2 lastversion then
+           && Utilities.dpkg_compare_versions [scriptarg2; "le_nl"; lastversion]
+        then
           (if_then
              (call "test" ctx ["-d"; pathname^".dpkg-backup"])
              (if_then_else

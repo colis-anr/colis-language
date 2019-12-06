@@ -1,6 +1,6 @@
-(** Concrete interpretation of selected shell builtins.
+(** Concrete interpretation of selected shell builtins and some UNIX commands.
 
-    See subsections of http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap04.html#tag_20
+    For the shell builtins see subsections of http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap04.html#tag_20
   *)
 
 open Colis_internals
@@ -34,6 +34,12 @@ let test (sta : state) : string list -> (state * bool) = function
      (sta, sa <> sb)
   | _ ->
     unsupported ~utility:"test" "arguments different from . = . and . != ." sta
+
+let dpkg_compare_versions args =
+  Sys.command ("dpkg --compare-versions " ^ String.concat " " args) = 0
+
+let dpkg_validate_thing subcmd arg =
+  Sys.command ("dpkg " ^ subcmd ^ " " ^arg) = 0
 
 let interp_utility (cwd, var_env, args) id sta =
   match id with
@@ -88,6 +94,21 @@ let interp_utility (cwd, var_env, args) id sta =
        unsupported ~utility:"grep" "missing argument" sta
      | _arg :: _ ->
        unsupported ~utility:"grep" "two or more arguments" sta
+     end
+  | "dpkg" ->
+     begin match args with
+     | (("--validate-pkgname" | "--validate-trigname" |
+         "--validate-archname" | "--validate-version") as subcmd)::args->
+        if List.length args = 1
+        then sta, dpkg_validate_thing subcmd (List.hd args)
+        else unsupported ~utility:"dpkg"
+               "--validate_thing needs excactly 1 argument" sta
+     | "--compare-versions"::args ->
+      if List.length args = 3
+      then sta, dpkg_compare_versions args
+      else unsupported ~utility:"dpkg"
+             "--compare-versions needs excatly 3 arguments" sta
+     | _ -> unsupported ~utility:"dpkg" "unsupported arguments" sta
      end
   | _ -> unknown_utility id sta
 
