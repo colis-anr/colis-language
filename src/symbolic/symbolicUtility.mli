@@ -1,12 +1,13 @@
 open Colis_constraints
 open SymbolicInterpreter__Semantics
+open Semantics__Result
 open Semantics__Buffers
 
 (** {1 Basics of symbolic utility} *)
 
 (** A utility transforms a symbolic state into a list of symbolic states
     with boolean results *)
-type utility = state -> (state * bool) list
+type utility = state -> (state * bool result) list
 
 (** The concrete evaluation context. It contains the fields from
     Colis.Semantics.Context.context that are relevant to the utilities. *)
@@ -36,14 +37,14 @@ type case_spec = Var.t -> Var.t -> Clause.t
     and the new root. *)
 val noop : case_spec
 
-(** A success case *)
+(** A success case (aka. return 0) *)
 val success_case: descr:string -> ?stdout:Stdout.t -> case_spec -> case
 
-(** An error case *)
+(** An error case (aka return 1) *)
 val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> case_spec -> case
 
-(** A singleton error case with optional error message *)
-val failure: error_message:string -> case list
+(** An incomplete case (unknown behaviour, cannot be symbolically executed) *)
+val incomplete_case: descr:string -> case
 
 (** The specifications of a utility are a list of cases that depend on the current working
     directory, the old root variable, and a new root variable *)
@@ -111,19 +112,13 @@ val compose_strict : utility -> utility -> utility
 
 (** {1 Auxiliaries} *)
 
-(** Get the name of the last path component, if any, or of the hint
-    root variable otherwise. The result is useful as a hint for
-    creating variables for resolving the path. *)
-val last_comp_as_hint: root:Var.t -> Path.t -> string option
-
 (** Error utility with optional message *)
 val error : ?msg:string -> unit -> utility
 
-(** Wrapper around [error] in case of unknown utility. *)
-val unknown_utility : string -> utility
-
-(** Wrapper around [error] in case of unsupported stuff in a known utility. *)
+(** Unsupported stuff in a known utility. *)
 val unsupported : utility:string -> string -> utility
+
+(** {2 Printing} *)
 
 (** Print to stdout and log *)
 val print_stdout : newline:bool -> string -> state -> state
@@ -133,6 +128,13 @@ val print_error : string option -> state -> state
 
 (** Print message as utility trace to log if it is not empty (marked as [UTL]) *)
 val print_utility_trace : string -> state -> state
+
+(** {2 Path parsing}*)
+
+(** Get the name of the last path component, if any, or of the hint
+    root variable otherwise. The result is useful as a hint for
+    creating variables for resolving the path. *)
+val last_comp_as_hint: root:Var.t -> Path.t -> string option
 
 (** {2 Arguments Parsing} *)
 
@@ -148,4 +150,4 @@ val cmdliner_eval_utility :
 (**/**)
 
 (** A wrapper of [dispatch] for use in the Why3 driver *)
-val dispatch' : (string list * string Env.IdMap.t * string list) -> string -> state -> (state * bool) BatSet.t
+val dispatch' : (string list * string Env.IdMap.t * string list) -> string -> state -> (state * bool result) BatSet.t
