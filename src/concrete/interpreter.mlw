@@ -141,21 +141,32 @@ module Interpreter
 
   let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
     ensures {
-      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, !(sta.result)) /\
+      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
     raises { EExit ->
-      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, !(sta.result)) /\
+      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
-  = let sta', b = interp_utility (!(sta.cwd), filter_var_env !(sta.var_env), args) id (sem_state sta) in
+    raises { EIncomplete ->
+      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, Incomplete)
+    }
+    raises { EIncomplete ->
+      sem_context sta = sem_context (old sta)
+    }
+  = let sta', r = interp_utility (!(sta.cwd), filter_var_env !(sta.var_env), args) id (sem_state sta) in
     sta.filesystem := sta'.S.filesystem;
     assert { !(sta.filesystem) = sta'.S.filesystem };
     sta.stdin := sta'.S.stdin;
     sta.stdout := sta'.S.stdout;
     sta.log := sta'.S.log;
-    sta.result := b;
-    maybe_exit inp sta
+    match r with
+    | Ok b ->
+      sta.result := b;
+      maybe_exit inp sta
+    | Incomplete ->
+      raise EIncomplete
+    end
 
   use semantics.Arguments
 
@@ -211,6 +222,10 @@ module Interpreter
     raises { EExit ->
       eval_instruction (old stk) (inp, sem_context (old sta), sem_state (old sta))
         ins (sem_state sta, sem_context sta, BExit)
+    }
+    raises { EIncomplete ->
+      eval_instruction (old stk) (inp, sem_context (old sta), sem_state (old sta))
+        ins (sem_state sta, sem_context sta, BIncomplete)
     }
   = label L in
     match ins with
@@ -433,6 +448,10 @@ module Interpreter
       eval_str_expr (old stk) b (inp, sem_context (old sta), sem_state (old sta))
         se (sem_state sta, Ok (s, b'))
     }
+    raises { EIncomplete ->
+      eval_str_expr (old stk) b (inp, sem_context (old sta), sem_state (old sta))
+        se (sem_state sta, Incomplete)
+    }
   = match se with
 
     | SLiteral s ->
@@ -480,6 +499,10 @@ module Interpreter
       eval_list_expr (old stk) (inp, sem_context (old sta), sem_state (old sta))
         le (sem_state sta, Ok result)
     }
+    raises { EIncomplete ->
+      eval_list_expr (old stk) (inp, sem_context (old sta), sem_state (old sta))
+        le (sem_state sta, Incomplete)
+    }
   = match le with
     | Nil -> Nil
     | Cons (se, sp) le_rest ->
@@ -498,6 +521,10 @@ module Interpreter
     ensures {
       eval_program (inp, sem_context (old sta), sem_state (old sta))
         pro (sem_state sta, Ok !(sta.result))
+    }
+    raises { EIncomplete ->
+      eval_program (inp, sem_context (old sta), sem_state (old sta))
+        pro (sem_state sta, Incomplete)
     }
   = try
       let fenv = interp_function_definitions sta.func_env pro.function_definitions in
