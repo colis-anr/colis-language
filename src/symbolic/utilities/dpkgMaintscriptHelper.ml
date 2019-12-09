@@ -17,8 +17,6 @@ let split_at_dashdash l =
     | [] -> raise NoDashDash
   in split_aux [] l
 
-let starts_on_slash s = String.length s > 0 && s.[0]='/'
-let ends_on_slash s = let n = String.length s in n > 0 && s.[n-1]='/'
 let empty_string s = (String.length s = 0)
 let dpkg_validate_version s =
   Utilities.dpkg_validate_thing "--validate-version" s
@@ -27,21 +25,6 @@ let validate_optional_version s =
 let ensure_package_owns_file package file = true (* FIXME *)
 let conffiles package = [] (* FIXME *)
 let contents package = [] (* FIXME *)
-let is_pathprefix p1 p2 =
-  (* check whether [p1^'/'] is a prefix of [p2] *)
-  let rec forall_from_to lower upper pred =
-    (* check [(pred lower) && .... && (pred upper)] *)
-    if lower > upper then true
-    else pred lower && forall_from_to (lower+1) upper pred
-  in
-  let n1 = String.length p1
-  and n2 = String.length p2
-  in
-  if n1+1 >= n2
-  then
-    false
-  else
-    p2.[n1]='/' && forall_from_to 0 (n1-1) (function i -> p1.[i]=p2.[i])
 
 let interp_test_fence pathname arity = return true (* FIXME *)
 let symlink_match link target = assert false (* FIXME *)
@@ -126,7 +109,7 @@ let rm_conffile ctx
   (* checking scriptarg1 done by [interprete] *)
   (* checking DPKG_MAINTSCRIPTNAME done above *)
   (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
-  if not (starts_on_slash conffile) then
+  if not (Pathnames.starts_on_slash conffile) then
     raise (Error "conffile '$CONFFILE' is not an absolute path");
   if not (validate_optional_version lastversion) then
     raise (Error ("wrong version "^lastversion));
@@ -220,9 +203,9 @@ let mv_conffile ctx
   (* checking scriptarg1 done by [interprete] *)
   (* checking DPKG_MAINTSCRIPT_NAME done above *)
   (* checking DPKG_MAINTSCRIPT_PACKAGE done above *)
-  if not (starts_on_slash oldconffile) then
+  if not (Pathnames.starts_on_slash oldconffile) then
     raise (Error "conffile '$OLDCONFFILE' is not an absolute path");
-  if not (starts_on_slash newconffile) then
+  if not (Pathnames.starts_on_slash newconffile) then
     raise (Error "conffile '$NEWCONFFILE' is not an absolute path");
   if not (validate_optional_version lastversion) then
     raise (Error ("wrong version "^lastversion));
@@ -264,9 +247,9 @@ let symlink_to_dir ctx
     raise (Error "couldn't identify the package");
   if empty_string symlink then
     raise (Error "symlink parameter is missing");
-  if not (starts_on_slash symlink) then
+  if not (Pathnames.starts_on_slash symlink) then
     raise (Error "symlink pathname is not an absolute path");
-  if ends_on_slash symlink then
+  if Pathnames.ends_on_slash symlink then
     raise (Error "symlink pathname ends with a slash");
   if empty_string symlink_target then
     raise (Error "original symlink target is missing");
@@ -331,7 +314,7 @@ let symlink_to_dir ctx
 
 let prepare_dir_to_symlink ctx package pathname =
   (if List.exists
-        (function filename -> is_pathprefix pathname filename)
+        (function filename -> Pathnames.is_dir_prefix pathname filename)
         (conffiles package)
    then raise (Error
                  ("directory '"^pathname^
@@ -342,7 +325,7 @@ let prepare_dir_to_symlink ctx package pathname =
        (interp_test_fence
           pathname
           (List.filter
-             (function filename -> is_pathprefix pathname filename)
+             (function filename -> Pathnames.is_dir_prefix pathname filename)
              (* FIXME we also need to remove the pathprefix *)
              (contents package)))
        (raise (Error
@@ -375,7 +358,7 @@ let dir_to_symlink ctx
     raise (Error "cannot identify the package");
   if empty_string pathname then
     raise (Error "directory parameter is missing");
-  if not (starts_on_slash pathname) then
+  if not (Pathnames.starts_on_slash pathname) then
     raise (Error "directory parameter is not an absolute path");
   if empty_string symlink_target then
     raise (Error "new symlink target is missing");
