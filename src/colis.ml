@@ -171,9 +171,13 @@ let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
   state.var_env := Semantics.add_var_bindings true vars Semantics.empty_var_env;
-  Interpreter.interp_program input state colis;
-  print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
-  exit (if !(state.result) then 0 else 1)
+  try
+    Interpreter.interp_program input state colis;
+    print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
+    exit (if !(state.result) then 0 else 1)
+  with Interpreter.EIncomplete ->
+    print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
+    exit 7
 
 let print_dot filename id clause =
   let ch = open_out filename in
