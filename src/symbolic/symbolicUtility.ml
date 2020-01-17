@@ -124,6 +124,10 @@ let quantify_over_intermediate_root fs conj =
   else
     Clause.quantify_over_and_simplify fs.root conj
 
+(** Update a state with a specification case and a new root [root'].
+
+    This may result in multiple states because the integration of the case clause in the
+    filesystem may result in multiple clauses. *)
 let apply_case_to_state sta root' case : (state * bool) list =
   (* First print the utility trace *)
   let sta = print_utility_trace case.descr sta in
@@ -138,14 +142,16 @@ let apply_case_to_state sta root' case : (state * bool) list =
   } in
   (* (Optionally) print error message *)
   let sta = print_error case.error_message sta in
-  (* Add the case specification to the current clause *)
+  (* Combine the case specification and the current filesystem clause *)
   Clause.add_to_sat_conj case.spec sta.filesystem.clause
   |> List.map (quantify_over_intermediate_root sta.filesystem)
   |> List.flatten
-  (* And now update the filesystem with the new clause and root *)
-  |> List.map @@ fun clause ->
-  let filesystem = {sta.filesystem with clause; root=root'} in
-  {sta with filesystem}, case.result
+  (* ... now update the filesystem in the state with the new clauses and the new root *)
+  |> List.map (fun clause ->
+      let filesystem = {sta.filesystem with clause; root=root'} in
+      {sta with filesystem})
+  (* and combine each state with the case result *)
+  |> List.map (fun sta -> sta, case.result)
 
 type specifications = root:Var.t -> root':Var.t -> case list
 
