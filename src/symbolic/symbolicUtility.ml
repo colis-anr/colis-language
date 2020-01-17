@@ -111,12 +111,12 @@ let success_case ~descr ?(stdout=Stdout.empty) spec =
 let error_case ~descr ?(stdout=Stdout.empty) ?error_message spec =
   { result = false ; error_message ; stdout ; descr ; spec }
 
-let failure ?error_message () =
+let failure ?error_message ~root ~root' =
   [{ result = false ;
      descr = "" ;
      stdout = Stdout.empty ;
      error_message ;
-     spec = Clause.true_ }]
+     spec = Clause.eq root root' }]
 
 let quantify_over_intermediate_root fs conj =
   if BatOption.eq ~eq:Var.equal fs.SymbolicInterpreter__Filesystem.root0 (Some fs.root) then
