@@ -2,39 +2,28 @@ open Colis_constraints
 open SymbolicInterpreter__Semantics
 open Semantics__Buffers
 
+(** {1 Basics of symbolic utility} *)
+
 (** A utility transforms a symbolic state into a list of symbolic states
     with boolean results *)
 type utility = state -> (state * bool) list
 
-(** {2 Dispatch} *)
-
 (** The concrete evaluation context. It contains the fields from
-    Colis.Semantics.Context.context that are relevant to the utilities **)
+    Colis.Semantics.Context.context that are relevant to the utilities. *)
 type context = {
   args: string list; (** Command arguments *)
   cwd: Path.normal; (** Current working directory *)
   env: string Env.IdMap.t; (** Variable environment *)
 }
 
-(** Entry-point for the interpretation of symbolic utilties *)
-val dispatch : name:string -> context -> utility
-
-(** A saner way to call [dispatch] (e.g. in the implementation of utilities) *)
-val call : string -> context -> string list -> utility
-
-(** {2 Registration} *)
-
+(** A symbolic utility is comprised of a name and a function that interpretes a [utility]
+    in a [context]. *)
 module type SYMBOLIC_UTILITY = sig
   val name : string
   val interprete : context -> utility
 end
 
-(** Register a symbolic utility *)
-val register : (module SYMBOLIC_UTILITY) -> unit
-
-val is_registered : string -> bool
-
-(** {1 Specifications} *)
+(** {1 Specifications of a symbolic utility} *)
 
 (** A case in the specification is either a success or an error *)
 type case
@@ -45,15 +34,34 @@ val success_case: descr:string -> ?stdout:Stdout.t -> Clause.t -> case
 (** An error case *)
 val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Clause.t -> case
 
+(** The specifications of a utility are a list of cases that depend on the current working
+    directory, the old root variable, and a new root variable *)
+type specifications = root:Var.t -> root':Var.t -> case list
+
+(* TODO Move root, root' arguments from [specifications] to clause argument of cases.
+   That's where they belong and it would allow the definition of [val identity : Var.t ->
+   Var.t -> Clause.t], which isn't currently possible. *)
+
 (** A singleton error case with optional error message *)
 val failure: ?error_message:string -> unit -> case list
 
-(** The specifications of a utility are a list of cases that depend on the current working
-   directory, the old root variable, and a new root variable *)
-type specifications = root:Var.t -> root':Var.t -> case list
-
 (** Use specifications to define a utility *)
 val under_specifications : specifications -> utility
+
+(** {1 Registration} *)
+
+(** Register a symbolic utility *)
+val register : (module SYMBOLIC_UTILITY) -> unit
+
+val is_registered : string -> bool
+
+(** {1 Dispatch} *)
+
+(** Entry-point for the interpretation of symbolic utilties *)
+val dispatch : name:string -> context -> utility
+
+(** A saner way to call [dispatch] (e.g. in the implementation of utilities) *)
+val call : string -> context -> string list -> utility
 
 (** {1 Combinators} *)
 
