@@ -12,9 +12,9 @@ let interp1 cwd arg : utility =
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
-    failure ~error_message:"rm: invalid path ''" ()
+    failure ~error_message:"rm: invalid path ''" ~root ~root'
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"rm: cannot remove .. or ." ()
+    failure ~error_message:"rm: cannot remove .. or ." ~root ~root'
   | Some (q, Down f) ->
     let hintx = last_comp_as_hint ~root q in
     let hinty = Feat.to_string f in [
@@ -45,9 +45,9 @@ let interp1_r cwd arg : utility =
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
-    failure ~error_message:"rm: invalid path ''" ()
+    failure ~error_message:"rm: invalid path ''" ~root ~root'
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"rm: cannot remove .. or ." ()
+    failure ~error_message:"rm: cannot remove .. or ." ~root ~root'
   | Some (q, Down f) ->
     let hintx = last_comp_as_hint ~root q in
     let hinty = Feat.to_string f in [

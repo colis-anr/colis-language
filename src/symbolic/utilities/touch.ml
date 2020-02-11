@@ -12,7 +12,7 @@ let interp_touch1 cwd path_str : utility =
   let p = Path.from_string path_str in
   match Path.split_last p with
   | None -> (* `touch ''` *)
-    failure ~error_message:"cannot touch '': No such file or directory" ()
+    failure ~error_message:"cannot touch '': No such file or directory" ~root ~root'
   | Some (q, (Up | Here)) ->
     let hint = last_comp_as_hint ~root p in [
       success_case

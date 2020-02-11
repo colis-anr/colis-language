@@ -10,9 +10,9 @@ let interp_mkdir1 cwd path_str =
   let p = Path.from_string path_str in
   match Path.split_last p with
   | None ->
-    failure ~error_message:"mkdir: cannot create directory ''" ()
+    failure ~error_message:"mkdir: cannot create directory ''" ~root ~root'
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"mkdir: file exists" () (* CHECK *)
+    failure ~error_message:"mkdir: file exists" ~root ~root' (* CHECK *)
   | Some (q, Down f) ->
     let hintx = last_comp_as_hint ~root q in
     let hinty = Feat.to_string f in [

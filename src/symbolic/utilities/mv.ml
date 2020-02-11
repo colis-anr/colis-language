@@ -14,11 +14,11 @@ let interp_rename ctx src dstpath : utility =
     let qdst = Path.from_string dstpath in
     match Path.split_last qsrc, Path.split_last qdst with
     | (None, _) ->
-       failure ~error_message:"mv: invalid source path ''" ()
+       failure ~error_message:"mv: invalid source path ''" ~root ~root'
     | (_, None) ->
-       failure ~error_message:"mv: invalid destination path ''" ()
+       failure ~error_message:"mv: invalid destination path ''" ~root ~root'
     | (Some (_, (Here|Up)), _) | (_, Some(_, (Here|Up))) ->
-       failure ~error_message:"mv: paths end in . or .." ()
+       failure ~error_message:"mv: paths end in . or .." ~root ~root'
     | (Some (qs, Down fs), Some (qd, Down fd)) ->
        let hintxs = last_comp_as_hint ~root qs in
        let hintys = last_comp_as_hint ~root qsrc in

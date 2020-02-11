@@ -43,7 +43,7 @@ type specifications = root:Var.t -> root':Var.t -> case list
    Var.t -> Clause.t], which isn't currently possible. *)
 
 (** A singleton error case with optional error message *)
-val failure: ?error_message:string -> unit -> case list
+val failure: ?error_message:string -> root:Var.t -> root':Var.t -> case list
 
 (** Use specifications to define a utility *)
 val under_specifications : specifications -> utility
