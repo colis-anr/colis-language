@@ -36,8 +36,6 @@ module Semantics
   (* Instantiate the concrete semantics with the symbolic filesystem *)
   clone export semantics.Semantics with
     type filesystem = filesystem,
-    type normalized_path = list feature,
-    val default_cwd = Nil,
     axiom interp_utility_extends_output
 end
 
@@ -304,7 +302,7 @@ module Interpreter
   use list.List
   use list.ListRich as L
   use set.Fset
-  use mystring.String
+  use string.OCaml as String
   use syntax.Syntax
   use auxiliaries.OptionGet
   use collection.Collection as Cn
@@ -571,7 +569,7 @@ module Interpreter
         let function aux arg =
           let sta1, (s, (_:bool)) = arg in
           let cwd_p = absolute_or_concat_relative ctx.cwd s in
-          let res = sym_interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons string_dash_d (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 in
+          let res = sym_interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 in
           Cn.map (fun sta_b -> (sta_b, cwd_p, normalized_path_to_string cwd_p)) res
         in
         Cn.bind aux res1
@@ -581,7 +579,7 @@ module Interpreter
         eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        let args = Cons "-d" (Cons pwd_s Nil) in
         (sta2, b) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
         Cn.mem ((sta2, b), cwd_p, pwd_s) res2
       };
@@ -608,7 +606,7 @@ module Interpreter
         eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        let args = Cons "-d" (Cons pwd_s Nil) in
         (sta2, False) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
         let ctx1 = {ctx with result = False} in
         Cn.mem {state=sta2; context=ctx1; data=()} res2
@@ -618,7 +616,7 @@ module Interpreter
         eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        let args = Cons "-d" (Cons pwd_s Nil) in
         (sta2, True) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
         let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p} in
         Cn.mem {state=sta2; context=ctx1; data=()} res2
@@ -631,7 +629,7 @@ module Interpreter
         eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        let args = Cons "-d" (Cons pwd_s Nil) in
         (sta2, False) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
         let ctx1 = {ctx with result = False} in
         let bhv = behaviour inp False in
@@ -642,7 +640,7 @@ module Interpreter
         eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
         let cwd_p = absolute_or_concat_relative ctx.cwd s in
         let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons string_dash_d (Cons pwd_s Nil) in
+        let args = Cons "-d" (Cons pwd_s Nil) in
         (sta2, True) = interp_utility (ctx.cwd, filter_var_env ctx.var_env, args) identifier_test sta1 ->
         let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p} in
         let bhv = behaviour inp True in
@@ -1219,7 +1217,7 @@ module Interpreter
             forall sta2 str2 b2.
             eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Success (str1, b1)) ->
             eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Success (str2, b2)) ->
-            Cn.mem (sta2, Success (str1^str2, b2)) result
+            Cn.mem (sta2, Success (String.concat str1 str2, b2)) result
           }
         = let sta1, (str1, b1) = arg in
           let res2, res2_failure =
@@ -1232,7 +1230,7 @@ module Interpreter
           let res2' =
             let for_res2 arg2 =
               let sta2, (str2, b2) = arg2 in
-              sta2, Success (str1^str2, b2)
+              sta2, Success (String.concat str1 str2, b2)
             in
             Cn.map for_res2 res2
           in

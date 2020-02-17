@@ -1,14 +1,6 @@
-module mystring.String
-  syntax type string "string"
-  syntax val empty "\"\""
-  syntax val equal "String.equal %1 %2"
-  syntax val concat_lines "String.concat \"\n\" %1"
-  syntax val split_on_default_ifs "Str.(split (regexp \"[ \t\n]+\") %1)"
-  syntax val (^) "%1 ^ %2"
-end
-
 module syntax.Identifier
   syntax type identifier "string"
   syntax val identifier_eq "String.equal %1 %2"
   syntax val identifier_to_string "%1"
+  syntax val identifier_of_string "%1"
 end
