@@ -8,40 +8,41 @@ let name = "touch"
 let interp_touch1 cwd path_str : utility =
   (* FIXME: we can merge two cases here (parent path does not resolve & parent
      path isn't a directory) *)
-  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
+  under_specifications @@
   match Path.split_last p with
   | None -> (* `touch ''` *)
-    failure ~error_message:"cannot touch '': No such file or directory" ~root ~root'
-  | Some (q, (Up | Here)) ->
-    let hint = last_comp_as_hint ~root p in [
+    failure ~error_message:"cannot touch '': No such file or directory"
+  | Some (_, (Up | Here)) -> [
       success_case
         ~descr:(asprintf "touch %a: path resolves" Path.pp p)
-        begin
+        begin fun root root' ->
+          let hint = last_comp_as_hint ~root p in
           exists ?hint @@ fun y ->
           resolve root cwd p y &
           eq root root'
         end;
       error_case
         ~descr:(asprintf "touch %a: path does not resolve" Path.pp p)
-        begin
+        begin fun root root' ->
           noresolve root cwd p &
           eq root root'
         end
     ]
-  | Some (q, Down f) ->
-    let hintx = last_comp_as_hint ~root q in
-    let hinty = Feat.to_string f in [
+  | Some (q, Down f) -> [
       success_case
         ~descr:(asprintf "touch %a: path resolves" Path.pp p)
-        begin
+        begin fun root root' ->
+          let hinty = Feat.to_string f in
           exists ~hint:hinty @@ fun y ->
           resolve root cwd p y &
           eq root root'
         end;
       success_case
         ~descr:(asprintf "touch %a: create file" Path.pp p)
-        begin
+        begin fun root root' ->
+          let hintx = last_comp_as_hint ~root q in
+          let hinty = Feat.to_string f in
           exists3 ?hint1:hintx ?hint2:hintx ~hint3:hinty @@ fun x x' y' ->
           resolve root cwd q x &
           dir x &
@@ -54,7 +55,8 @@ let interp_touch1 cwd path_str : utility =
         end;
       error_case
         ~descr:(asprintf "touch %a: parent path does not resolve or resolves to dir" Path.pp p)
-        begin
+        begin fun root root' ->
+          let hintx = last_comp_as_hint ~root q in
           exists ?hint:hintx @@ fun x ->
           maybe_resolve root cwd q x
           & ndir x

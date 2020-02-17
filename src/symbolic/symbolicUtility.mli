@@ -28,22 +28,26 @@ end
 (** A case in the specification is either a success or an error *)
 type case
 
+(** A case specification is a function from the old root variable and the new root root
+    variable to a clause. *)
+type case_spec = Var.t -> Var.t -> Clause.t
+
+(** The no-op case specification introduces an equality constraint between the old root
+    and the new root. *)
+val noop : case_spec
+
 (** A success case *)
-val success_case: descr:string -> ?stdout:Stdout.t -> Clause.t -> case
+val success_case: descr:string -> ?stdout:Stdout.t -> case_spec -> case
 
 (** An error case *)
-val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Clause.t -> case
+val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> case_spec -> case
+
+(** A singleton error case with optional error message *)
+val failure: error_message:string -> case list
 
 (** The specifications of a utility are a list of cases that depend on the current working
     directory, the old root variable, and a new root variable *)
-type specifications = root:Var.t -> root':Var.t -> case list
-
-(* TODO Move root, root' arguments from [specifications] to clause argument of cases.
-   That's where they belong and it would allow the definition of [val identity : Var.t ->
-   Var.t -> Clause.t], which isn't currently possible. *)
-
-(** A singleton error case with optional error message *)
-val failure: ?error_message:string -> root:Var.t -> root':Var.t -> case list
+type specifications = case list
 
 (** Use specifications to define a utility *)
 val under_specifications : specifications -> utility

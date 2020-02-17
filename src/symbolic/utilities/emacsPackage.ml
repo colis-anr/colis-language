@@ -1,6 +1,4 @@
 open Format
-open Colis_constraints
-open Clause
 open SymbolicUtility
 
 module Install = struct
@@ -18,15 +16,11 @@ module Install = struct
       (if_then_else
          (call "test" ctx ["-e"; pkgFile])
          (call "rm" ctx [pkgFile])
-         (under_specifications @@ fun ~root ~root' ->
-          [
+         (under_specifications [
             success_case
               ~descr:(asprintf "emacs-package-install --preinst '%s': not found"
                         pkgFile)
-              begin
-                eq root root'
-              end
-          ;
+              noop
           ]
          )
       )
@@ -58,15 +52,11 @@ module Remove = struct
     (if_then_else
        (call "test" ctx ["-e"; pkgFile])
        (call "rm" ctx [pkgFile])
-       (under_specifications @@ fun ~root ~root' ->
-        [
+       (under_specifications [
           success_case
             ~descr:(asprintf "emacs-package-install --preinst '%s': not found"
                       pkgFile)
-            begin
-              eq root root'
-            end
-        ;
+            noop
         ]
        )
     )

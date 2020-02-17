@@ -6,19 +6,19 @@ open SymbolicUtility
 let name = "mkdir"
 
 let interp_mkdir1 cwd path_str =
-  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
+  under_specifications @@
   match Path.split_last p with
   | None ->
-    failure ~error_message:"mkdir: cannot create directory ''" ~root ~root'
+    failure ~error_message:"mkdir: cannot create directory ''"
   | Some (_q, (Here|Up)) ->
-    failure ~error_message:"mkdir: file exists" ~root ~root' (* CHECK *)
-  | Some (q, Down f) ->
-    let hintx = last_comp_as_hint ~root q in
-    let hinty = Feat.to_string f in [
+    failure ~error_message:"mkdir: file exists"
+  | Some (q, Down f) -> [
       success_case
         ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
-        begin
+        begin fun root root' ->
+          let hintx = last_comp_as_hint ~root q in
+          let hinty = Feat.to_string f in
           exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
           exists ~hint:hinty @@ fun y ->
           resolve root cwd q x &
@@ -33,7 +33,8 @@ let interp_mkdir1 cwd path_str =
         end;
       error_case
         ~descr:(asprintf "mkdir %a: target already exists" Path.pp p)
-        begin
+        begin fun root root' ->
+          let hintx = last_comp_as_hint ~root q in
           exists ?hint:hintx @@ fun x ->
           resolve root cwd q x &
           dir x &
@@ -42,7 +43,8 @@ let interp_mkdir1 cwd path_str =
         end;
       error_case
         ~descr:(asprintf "mkdir %a: parent path is file or does not resolve" Path.pp p)
-        begin
+        begin fun root root' ->
+          let hintx = last_comp_as_hint ~root q in
           exists ?hint:hintx @@ fun x ->
           maybe_resolve root cwd q x
           & ndir x
