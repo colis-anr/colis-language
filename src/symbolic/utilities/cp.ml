@@ -10,33 +10,30 @@ let name = "cp"
  * Recursive copy if isrec.
  *)
 let interp_cp2 ctx ~todir ~isrec src dst : utility =
-  under_specifications @@ fun ~root ~root' ->
   let qsrc = Path.from_string src in
   let qdst = Path.from_string dst in
+  under_specifications @@
   match Path.split_last qsrc, Path.split_last qdst with
   | (None, _) ->
-     failure ~error_message:"cp: invalid source path ''" ~root ~root'
+     failure ~error_message:"cp: invalid source path ''"
   | (_, None) ->
-     failure ~error_message:"cp: invalid destination path ''" ~root ~root'
+     failure ~error_message:"cp: invalid destination path ''"
   | (Some (_, (Here|Up)), _) ->
      (* TODO: "For each source_file, the following steps ...
         source file is dot or dot-dot, cp should do nothing
         with source file and go to any remaining file" *)
-     failure ~error_message:"cp: source path ends in . or .." ~root ~root'
+     failure ~error_message:"cp: source path ends in . or .."
   | (_, Some (_, (Here|Up))) -> (* Unreachable or error path *)
-     failure ~error_message:"cp: destination path ends in . or .." ~root ~root'
+     failure ~error_message:"cp: destination path ends in . or .."
   | (Some (_qs, Down fs), Some (qd, efd)) ->
      let stripdst = Path.strip_trailing_slashes dst in
      let newdst = String.concat "/" [stripdst; (Feat.to_string fs)] in
      let dstpath = Path.from_string newdst in
-
-     let hintys = last_comp_as_hint ~root qsrc in
-     let hintxd = last_comp_as_hint ~root qd in
-     let hintyd = last_comp_as_hint ~root qdst in
-     let src_no_file_cases = [
+     let src_no_file_cases =
+       [
          error_case
            ~descr:(asprintf "cp: no such file source '%s'" src)
-           begin
+           begin fun root root' ->
              noresolve root ctx.cwd qsrc
              & eq root root'
            end
@@ -45,14 +42,16 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
          else [
            error_case
            ~descr:(asprintf "cp: source '%s' is a directory, option '-R' required" src)
-           begin
+           begin fun root root' ->
+             let hintys = last_comp_as_hint ~root qsrc in
              exists ?hint:hintys @@ fun ys ->
              resolve root ctx.cwd qsrc ys & dir ys
              & eq root root'
            end;
            error_case
            ~descr:(asprintf "cp: '%a' is a directory, option '-R' required" Path.pp dstpath)
-           begin
+           begin fun root root' ->
+             let hintys = last_comp_as_hint ~root qsrc in
              exists2 ?hint1:hintys ?hint2:None @@ fun ys zd ->
              resolve root ctx.cwd qsrc ys & ndir ys
              & resolve root ctx.cwd dstpath zd & dir zd
@@ -64,13 +63,14 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
      let dst_no_path_cases = [
         error_case
           ~descr:(asprintf "cp: no such file '%a'" Path.pp qd)
-          begin
+          begin fun root root' ->
             noresolve root ctx.cwd qd
             & eq root root'
           end;
         error_case
           ~descr:(asprintf "cp: not a directory '%a'" Path.pp qd)
-          begin
+          begin fun root root' ->
+            let hintxd = last_comp_as_hint ~root qd in
             exists ?hint:hintxd @@ fun xd ->
             resolve root ctx.cwd qd xd & ndir xd
             & eq root root'
@@ -83,14 +83,16 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
           [
            error_case
              ~descr:(asprintf "cp: destination directory '%s' does not exist" dst)
-            begin
+            begin fun root root' ->
               noresolve root ctx.cwd qdst & eq root root'
             end
          ]
        | true, false, Down fd -> [
            success_case
              ~descr:(asprintf "cp: source dir '%s' in new dir '%s'" src dst)
-             begin
+             begin fun root root' ->
+               let hintys = last_comp_as_hint ~root qsrc in
+               let hintxd = last_comp_as_hint ~root qd in
                exists3 ?hint1:hintys ?hint2:hintxd ?hint3:None @@ fun ys xd xd' ->
                resolve root ctx.cwd qsrc ys & dir ys
                & resolve root ctx.cwd qd xd & abs xd fd
@@ -102,7 +104,8 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
        | false, false, Down fd -> [
            success_case
              ~descr:(asprintf "cp: source file '%s' to new file '%s'" src dst)
-             begin
+             begin fun root root' ->
+               let hintys = last_comp_as_hint ~root qsrc in
                exists ?hint:hintys @@ fun ys ->
                exists2 ?hint1:None ?hint2:None @@ fun xd xd' ->
                resolve root ctx.cwd qsrc ys & ndir ys
@@ -114,7 +117,9 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
              end;
            success_case
              ~descr:(asprintf "cp file '%s' to new file '%s'" src dst)
-             begin
+             begin fun root root' ->
+               let hintys = last_comp_as_hint ~root qsrc in
+               let hintyd = last_comp_as_hint ~root qdst in
                exists2 ?hint1:hintys ?hint2:hintyd @@ fun ys yd ->
                exists2 ?hint1:None ?hint2:None @@ fun xd xd' ->
                resolve root ctx.cwd qsrc ys & ndir ys
@@ -128,7 +133,9 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
        let src_file_cases = [
            success_case
              ~descr:(asprintf "cp: source file '%s' to directory '%s'" src dst)
-           begin
+           begin fun root root' ->
+             let hintys = last_comp_as_hint ~root qsrc in
+             let hintyd = last_comp_as_hint ~root qdst in
              exists ?hint:hintys @@ fun ys ->
              exists2 ?hint1:hintyd ?hint2:None @@ fun yd yd' ->
              resolve root ctx.cwd qsrc ys & ndir ys
@@ -140,7 +147,9 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
            end;
            success_case
            ~descr:(asprintf "cp: source file '%s' to directory '%s'" src dst)
-           begin
+           begin fun root root' ->
+             let hintys = last_comp_as_hint ~root qsrc in
+             let hintyd = last_comp_as_hint ~root qdst in
              exists ?hint:hintys @@ fun ys ->
              exists3 ?hint1:hintyd ?hint2:None ?hint3:None @@ fun yd yd' zd ->
              resolve root ctx.cwd qsrc ys & ndir ys
@@ -156,7 +165,9 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
          else [
              success_case
                ~descr:(asprintf "cp: destination dir '%s' does not exist" dst)
-               begin
+               begin fun root root' ->
+                 let hintys = last_comp_as_hint ~root qsrc in
+                 let hintyd = last_comp_as_hint ~root qdst in
                  exists ?hint:hintys @@ fun ys ->
                  exists2 ?hint1:hintyd ?hint2:None @@ fun yd yd' ->
                  resolve root ctx.cwd qsrc ys & dir ys
@@ -168,7 +179,8 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
                end;
              success_case
                ~descr:(asprintf "cp: empty directory '%a' exists" Path.pp dstpath)
-               begin
+               begin fun root root' ->
+                 let hintys = last_comp_as_hint ~root qsrc in
                  exists2 ?hint1:hintys ?hint2:None @@ fun ys zd ->
                  resolve root ctx.cwd qsrc ys & dir ys
                  & resolve root ctx.cwd dstpath zd & dir zd
@@ -177,7 +189,8 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
                end;
              success_case
                ~descr:(asprintf "cp: non empty directory '%a' exists" Path.pp dstpath)
-               begin
+               begin fun root root' ->
+                 let hintys = last_comp_as_hint ~root qsrc in
                  exists ?hint:hintys @@ fun ys ->
                  exists2 ?hint1:None ?hint2:None @@ fun zd zd' ->
                  resolve root ctx.cwd qsrc ys & dir ys

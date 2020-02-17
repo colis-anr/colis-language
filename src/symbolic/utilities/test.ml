@@ -11,41 +11,31 @@ let name = "test"
 (******************************************************************************)
 
 let interp_test_parse_error args : utility =
-  under_specifications @@ fun ~root ~root' ->
-  [
+  under_specifications [
     let descr = "test: parse error in `" ^ (String.concat " " args) ^ "`" in
-    error_case
-      ~descr
-      begin
-        eq root root'
-      end;
+    error_case ~descr noop
   ]
 
 let interp_test_empty () : utility =
-  under_specifications @@ fun ~root ~root' ->
-  [
+  under_specifications [
     let descr = "test: empty expression" in
-    error_case
-      ~descr
-      begin
-        eq root root'
-      end;
+    error_case ~descr noop
   ]
 
 let interp_test_e cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
+  under_specifications [
     success_case
       ~descr:(asprintf "test -e %a: path resolves" Path.pp p)
-      begin
+      begin fun root root' ->
+        let hintx = last_comp_as_hint ~root p in
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x &
         eq root root'
       end;
     error_case
       ~descr:(asprintf "test -e %a: path does not resolve" Path.pp p)
-      begin
+      begin fun root root' ->
         noresolve root cwd p &
         eq root root'
       end;
@@ -106,19 +96,20 @@ let interp_test_f cwd path_str : utility =
  *)
 
 let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
+  under_specifications [
     success_case
       ~descr:(asprintf "test -%s %a: path resolves to file of type '%s'" attr Path.pp p attr)
-      begin
+      begin fun root root' ->
+        let hintx = last_comp_as_hint ~root p in
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & is_type x &
         eq root root'
       end;
     error_case
       ~descr:(asprintf "test -%s %a: path does not resolve or to file of type other than '%s'" attr Path.pp p attr)
-      begin
+      begin fun root root' ->
+        let hintx = last_comp_as_hint ~root p in
         exists ?hint:hintx @@ fun x ->
         maybe_resolve root cwd p x
         & is_ntype x
@@ -127,98 +118,80 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
   ]
 
 let interp_test_attribute ~attr cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
+  under_specifications [
     success_case
       ~descr:(asprintf "test '%a': path resolves, attribute -%s OK (overapprox to -e)"
                 Path.pp p attr)
-      begin
+      begin fun root root' ->
+        let hintx = last_comp_as_hint ~root p in
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x &
         eq root root'
       end;
     error_case
       ~descr:(asprintf "test '%a': path does not resolve or resolves but attribute -%s not OK (overapprox to -e)" Path.pp p attr)
-      begin
-        eq root root'
-      end;
+      noop
   ]
 
 let interp_test_n str : utility =
-  under_specifications @@ fun ~root ~root' ->
+  under_specifications @@
   if str = "" then
     [
       error_case
         ~descr:(asprintf "test -n '%s': string is empty" str)
-      begin
-        eq root root'
-      end
+        noop
     ]
   else
     [
       success_case
         ~descr:(asprintf "test -n '%s': string is non-empty" str)
-      begin
-        eq root root'
-      end
+        noop
     ]
 
 let interp_test_z str : utility =
-  under_specifications @@ fun ~root ~root' ->
+  under_specifications @@
   if str = "" then
     [
       success_case
         ~descr:(asprintf "test -z '%s': string is empty" str)
-      begin
-        eq root root'
-      end
+        noop
     ]
   else
     [
       error_case
         ~descr:(asprintf "test -z '%s': string is non-empty" str)
-      begin
-        eq root root'
-      end
+        noop
     ]
 
 let interp_test_string_equal s1 s2 : utility =
-  under_specifications @@ fun ~root ~root' ->
+  under_specifications @@
   if s1 = s2 then
     [
       success_case
         ~descr:(asprintf "test '%s' = '%s': strings are equal" s1 s2)
-      begin
-        eq root root'
-      end
+        noop
     ]
   else
     [
       error_case
         ~descr:(asprintf "test '%s' = '%s': string are not equal" s1 s2)
-      begin
-        eq root root'
-      end
+        noop
     ]
 
 let interp_test_string_notequal s1 s2 : utility =
-  under_specifications @@ fun ~root ~root' ->
+  under_specifications @@
   if s1 <> s2 then
     [
       success_case
         ~descr:(asprintf "test '%s' != '%s': strings are not equal" s1 s2)
-      begin
-        eq root root'
-      end
+        noop
     ]
   else
     [
       error_case
         ~descr:(asprintf "test '%s' != '%s': string are equal" s1 s2)
-      begin
-        eq root root'
-      end
+        noop
     ]
 
 let rec interp_test_expr cwd e : utility =

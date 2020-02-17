@@ -9,19 +9,14 @@ module Silent = struct
 
   let interprete _ctx = function
     | [p] ->
-      under_specifications @@ fun ~root ~root' ->
-      [
+      under_specifications [
         success_case
           ~descr:(asprintf "silent-which '%s': assuming command is found" p)
-          begin
-            eq root root'
-          end
+          noop
         ;
         error_case
           ~descr:(asprintf "silent-which '%s': assuming command is not found" p)
-          begin
-            eq root root'
-          end
+          noop
       ]
     | _ ->
       unsupported ~utility:"silent-which" "more than one argument"
@@ -36,26 +31,27 @@ end
 let name = "which"
 
 let interp_test_regular_and_x cwd path_str : utility =
-  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
-  let hintx = last_comp_as_hint ~root p in [
+  under_specifications [
     success_case
       ~descr:(asprintf "which '%a': path resolves to a regular executable (overapprox to -f)" Path.pp p)
       ~stdout:Stdout.(empty |> output (asprintf "%a" Path.pp p) |> newline)
-      begin
+      begin fun root root' ->
+        let hintx = last_comp_as_hint ~root p in
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & reg x & (* no way to constraint "x" mode *)
         eq root root'
       end;
     error_case
       ~descr:(asprintf "which '%a': path does not resolve" Path.pp p)
-      begin
+      begin fun root root' ->
         noresolve root cwd p &
         eq root root'
       end;
     error_case
       ~descr:(asprintf "which '%a': path resolves but not to regular executable)" Path.pp p)
-      begin
+      begin fun root root' ->
+        let hintx = last_comp_as_hint ~root p in
         exists ?hint:hintx @@ fun x ->
         resolve root cwd p x & (* no way to constraint no "x" mode *)
         eq root root'
@@ -66,13 +62,10 @@ let interp_test_regular_and_x cwd path_str : utility =
 let rec search_as_which_in_path cwd (path:string list) arg : utility =
   match path with
   | [] ->
-    under_specifications @@ fun ~root ~root' ->
-    [
+    under_specifications [
       error_case
         ~descr:(asprintf "which: `%s` not found in PATH" arg)
-        begin
-          eq root root'
-        end
+        noop
     ]
   | p :: rem ->
     let u1 = interp_test_regular_and_x cwd (p ^ "/" ^ arg) in

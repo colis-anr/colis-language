@@ -97,9 +97,14 @@ let print_utility_trace str sta =
     let log = print_output ~newline:true ("[UTL] "^str) sta.log in
     {sta with log}
 
+type case_spec = Var.t -> Var.t -> Clause.t
+
+let noop : case_spec =
+  Clause.eq
+
 type case = {
   result : bool;
-  spec : Clause.t;
+  spec : case_spec;
   descr : string;
   stdout : Stdout.t ;
   error_message: string option;
@@ -111,24 +116,32 @@ let success_case ~descr ?(stdout=Stdout.empty) spec =
 let error_case ~descr ?(stdout=Stdout.empty) ?error_message spec =
   { result = false ; error_message ; stdout ; descr ; spec }
 
-let failure ?error_message ~root ~root' =
+let failure ~error_message =
   [{ result = false ;
      descr = "" ;
      stdout = Stdout.empty ;
-     error_message ;
-     spec = Clause.eq root root' }]
+     error_message = Some error_message;
+     spec = noop }]
 
-let quantify_over_intermediate_root fs conj =
-  if BatOption.eq ~eq:Var.equal fs.SymbolicInterpreter__Filesystem.root0 (Some fs.root) then
-    [conj]
-  else
-    Clause.quantify_over_and_simplify fs.root conj
+let add_spec sta spec : state list =
+  let root' = Var.fresh ~hint:(Var.hint sta.filesystem.root) () in
+  let clause = spec sta.filesystem.root root' in
+  let clauses = Clause.add_to_sat_conj clause sta.filesystem.clause in
+  let clauses =
+    match sta.filesystem.SymbolicInterpreter__Filesystem.root0 with
+    | Some root0 when Var.equal root0 sta.filesystem.SymbolicInterpreter__Filesystem.root ->
+      clauses
+    | _ -> (* root0 is either None or different than Some root: we thus can garbage-collect the current root *)
+      clauses |>
+      List.map (Clause.quantify_over_and_simplify sta.filesystem.SymbolicInterpreter__Filesystem.root) |>
+      List.flatten in
+  List.map (fun clause -> {sta with filesystem={sta.filesystem with clause; root=root'}}) clauses
 
 (** Update a state with a specification case and a new root [root'].
 
     This may result in multiple states because the integration of the case clause in the
     filesystem may result in multiple clauses. *)
-let apply_case_to_state sta root' case : (state * bool) list =
+let apply_case_to_state sta case : (state * bool) list =
   (* First print the utility trace *)
   let sta = print_utility_trace case.descr sta in
   let sta = {
@@ -143,23 +156,16 @@ let apply_case_to_state sta root' case : (state * bool) list =
   (* (Optionally) print error message *)
   let sta = print_error case.error_message sta in
   (* Combine the case specification and the current filesystem clause *)
-  Clause.add_to_sat_conj case.spec sta.filesystem.clause
-  |> List.map (quantify_over_intermediate_root sta.filesystem)
-  |> List.flatten
-  (* ... now update the filesystem in the state with the new clauses and the new root *)
-  |> List.map (fun clause ->
-      let filesystem = {sta.filesystem with clause; root=root'} in
-      {sta with filesystem})
-  (* and combine each state with the case result *)
-  |> List.map (fun sta -> sta, case.result)
+  let stas = add_spec sta case.spec in
+  (* Add the result to each result state *)
+  List.map (fun sta -> sta, case.result) stas
 
-type specifications = root:Var.t -> root':Var.t -> case list
+type specifications = case list
 
 let under_specifications : specifications -> state -> (state * bool) list =
   fun spec state ->
-    let new_root = Var.fresh ~hint:(Var.hint state.filesystem.root) () in
-    let cases = spec ~root:state.filesystem.root ~root':new_root in
-    List.map (apply_case_to_state state new_root) cases |> List.flatten
+  List.flatten
+    (List.map (apply_case_to_state state) spec)
 
 (******************************************************************************)
 (*                                  Auxiliaries                               *)

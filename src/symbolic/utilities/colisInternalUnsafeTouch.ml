@@ -6,13 +6,12 @@ open SymbolicUtility
 let name = "colis_internal_unsafe_touch"
 
 let interp1 path_str =
-  under_specifications @@ fun ~root ~root' ->
   let p = Path.from_string path_str in
   let q = Path.check_normal p in
-  [
+  under_specifications [
     success_case
       ~descr:(asprintf "colis_internal_unsafe_touch: %a" Path.pp p)
-      begin
+      begin fun root root' ->
         (* FIXME: one could do better and drop the last maybe on the left. *)
         let rec aux x x' = function
           | [] ->
