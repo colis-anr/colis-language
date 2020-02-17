@@ -1,824 +1,773 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE why3session PUBLIC "-//Why3//proof session v5//EN"
 "http://why3.lri.fr/why3session.dtd">
-<why3session shape_version="8">
-<prover id="0" name="Z3" version="4.6.0" timelimit="1" steplimit="970579" memlimit="1000"/>
-<prover id="1" name="Alt-Ergo" version="2.2.0" timelimit="1" steplimit="279" memlimit="1000"/>
-<prover id="2" name="CVC4" version="1.6" timelimit="1" steplimit="61808" memlimit="1000"/>
+<why3session shape_version="6">
+<prover id="0" name="CVC4" version="1.6" timelimit="5" steplimit="0" memlimit="1000"/>
+<prover id="4" name="Alt-Ergo" version="2.3.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <file format="whyml" proved="true">
 <path name=".."/><path name="interpreter.mlw"/>
 <theory name="Interpreter" proved="true">
  <goal name="context_same" proved="true">
- <proof prover="2" steplimit="64642"><result status="valid" time="0.29" steps="64642"/></proof>
+ <proof prover="4"><result status="valid" time="0.07" steps="42"/></proof>
  </goal>
  <goal name="state_same" proved="true">
- <proof prover="2" timelimit="0" steplimit="65067" memlimit="0"><result status="valid" time="0.23" steps="65067"/></proof>
+ <proof prover="4"><result status="valid" time="0.06" steps="28"/></proof>
  </goal>
- <goal name="maybe_exit&#39;VC" expl="VC for maybe_exit" proved="true">
- <proof prover="2" timelimit="0" steplimit="65080" memlimit="0"><result status="valid" time="0.26" steps="65080"/></proof>
+ <goal name="maybe_exit&#39;vc" expl="VC for maybe_exit" proved="true">
+ <proof prover="0"><result status="valid" time="0.25" steps="71688"/></proof>
  </goal>
- <goal name="interp_utility&#39;VC" expl="VC for interp_utility" proved="true">
- <proof prover="2" steplimit="71107"><result status="valid" time="0.28" steps="71107"/></proof>
- </goal>
- <goal name="shift_arguments&#39;VC" expl="VC for shift_arguments" proved="true">
- <proof prover="2" timelimit="0" steplimit="83965" memlimit="0"><result status="valid" time="0.46" steps="83965"/></proof>
- </goal>
- <goal name="interp_instruction&#39;VC" expl="VC for interp_instruction" proved="true">
+ <goal name="interp_utility&#39;vc" expl="VC for interp_utility" proved="true">
  <transf name="split_vc" proved="true" >
-  <goal name="interp_instruction&#39;VC.0" expl="assertion" proved="true">
-  <proof prover="2" timelimit="0" steplimit="63886" memlimit="0"><result status="valid" time="0.32" steps="63886"/></proof>
+  <goal name="interp_utility&#39;vc.0" expl="assertion" proved="true">
+  <proof prover="0"><result status="valid" time="0.18" steps="69974"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.1" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61044"><result status="valid" time="0.23" steps="61044"/></proof>
+  <goal name="interp_utility&#39;vc.1" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="44"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.2" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="60431"><result status="valid" time="0.23" steps="60431"/></proof>
+  <goal name="interp_utility&#39;vc.2" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.25" steps="44"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.3" expl="assertion" proved="true">
-  <proof prover="2" timelimit="0" steplimit="63858" memlimit="0"><result status="valid" time="0.20" steps="63858"/></proof>
+ </transf>
+ </goal>
+ <goal name="shift_arguments&#39;vc" expl="VC for shift_arguments" proved="true">
+ <proof prover="4"><result status="valid" time="0.35" steps="1105"/></proof>
+ </goal>
+ <goal name="interp_instruction&#39;vc" expl="VC for interp_instruction" proved="true">
+ <transf name="split_vc" proved="true" >
+  <goal name="interp_instruction&#39;vc.0" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="71"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.4" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61144"><result status="valid" time="0.22" steps="61144"/></proof>
+  <goal name="interp_instruction&#39;vc.1" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.5" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61424"><result status="valid" time="0.22" steps="61424"/></proof>
+  <goal name="interp_instruction&#39;vc.2" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="94"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.6" expl="assertion" proved="true">
-  <proof prover="2" timelimit="0" steplimit="63856" memlimit="0"><result status="valid" time="0.24" steps="63856"/></proof>
+  <goal name="interp_instruction&#39;vc.3" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="54"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.7" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61144"><result status="valid" time="0.25" steps="61144"/></proof>
+  <goal name="interp_instruction&#39;vc.4" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.8" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61365"><result status="valid" time="0.25" steps="61365"/></proof>
+  <goal name="interp_instruction&#39;vc.5" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="64"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.9" expl="assertion" proved="true">
-  <proof prover="2" timelimit="0" steplimit="63886" memlimit="0"><result status="valid" time="0.26" steps="63886"/></proof>
+  <goal name="interp_instruction&#39;vc.6" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="54"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.10" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61044"><result status="valid" time="0.17" steps="61044"/></proof>
+  <goal name="interp_instruction&#39;vc.7" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.11" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="60431"><result status="valid" time="0.29" steps="60431"/></proof>
+  <goal name="interp_instruction&#39;vc.8" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="64"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.12" expl="assertion" proved="true">
-  <proof prover="2" timelimit="0" steplimit="63858" memlimit="0"><result status="valid" time="0.27" steps="63858"/></proof>
+  <goal name="interp_instruction&#39;vc.9" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="71"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.13" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61144"><result status="valid" time="0.21" steps="61144"/></proof>
+  <goal name="interp_instruction&#39;vc.10" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.14" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61424"><result status="valid" time="0.28" steps="61424"/></proof>
+  <goal name="interp_instruction&#39;vc.11" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="94"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.15" expl="assertion" proved="true">
-  <proof prover="2" timelimit="0" steplimit="63856" memlimit="0"><result status="valid" time="0.31" steps="63856"/></proof>
+  <goal name="interp_instruction&#39;vc.12" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="54"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.16" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61144"><result status="valid" time="0.22" steps="61144"/></proof>
+  <goal name="interp_instruction&#39;vc.13" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.17" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61365"><result status="valid" time="0.22" steps="61365"/></proof>
+  <goal name="interp_instruction&#39;vc.14" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="64"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.18" expl="precondition" proved="true">
-  <proof prover="2" timelimit="0" steplimit="61017" memlimit="0"><result status="valid" time="0.19" steps="61017"/></proof>
+  <goal name="interp_instruction&#39;vc.15" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="54"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.19" expl="precondition" proved="true">
-  <proof prover="2" timelimit="0" steplimit="64909" memlimit="0"><result status="valid" time="0.22" steps="64909"/></proof>
+  <goal name="interp_instruction&#39;vc.16" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.20" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61266"><result status="valid" time="0.15" steps="61266"/></proof>
+  <goal name="interp_instruction&#39;vc.17" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="64"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.21" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="73738"><result status="valid" time="0.32" steps="73738"/></proof>
+  <goal name="interp_instruction&#39;vc.18" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.22" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61266"><result status="valid" time="0.16" steps="61266"/></proof>
+  <goal name="interp_instruction&#39;vc.19" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="28"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.23" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="65765"><result status="valid" time="0.26" steps="65765"/></proof>
+  <goal name="interp_instruction&#39;vc.20" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.24" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61265"><result status="valid" time="0.18" steps="61265"/></proof>
+  <goal name="interp_instruction&#39;vc.21" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="196"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.25" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="44"><result status="valid" time="0.16" steps="44"/></proof>
+  <goal name="interp_instruction&#39;vc.22" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.26" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61014"><result status="valid" time="0.23" steps="61014"/></proof>
+  <goal name="interp_instruction&#39;vc.23" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.15" steps="179"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.27" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61017"><result status="valid" time="0.15" steps="61017"/></proof>
+  <goal name="interp_instruction&#39;vc.24" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.28" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61470"><result status="valid" time="0.11" steps="61470"/></proof>
+  <goal name="interp_instruction&#39;vc.25" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="68"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.29" expl="postcondition" proved="true">
-  <proof prover="0" steplimit="806787"><result status="valid" time="0.12" steps="806787"/></proof>
+  <goal name="interp_instruction&#39;vc.26" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.30" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61470"><result status="valid" time="0.13" steps="61470"/></proof>
+  <goal name="interp_instruction&#39;vc.27" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.31" expl="exceptional postcondition" proved="true">
-  <proof prover="1" steplimit="83"><result status="valid" time="0.15" steps="83"/></proof>
+  <goal name="interp_instruction&#39;vc.28" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.32" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61014"><result status="valid" time="0.12" steps="61014"/></proof>
+  <goal name="interp_instruction&#39;vc.29" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.25" steps="201"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.33" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61017"><result status="valid" time="0.15" steps="61017"/></proof>
+  <goal name="interp_instruction&#39;vc.30" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.34" expl="assertion" proved="true">
-  <proof prover="2" steplimit="61208"><result status="valid" time="0.19" steps="61208"/></proof>
+  <goal name="interp_instruction&#39;vc.31" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.29" steps="182"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.35" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61212"><result status="valid" time="0.13" steps="61212"/></proof>
+  <goal name="interp_instruction&#39;vc.32" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.36" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61215"><result status="valid" time="0.11" steps="61215"/></proof>
+  <goal name="interp_instruction&#39;vc.33" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.37" expl="assertion" proved="true">
-  <proof prover="2" steplimit="61412"><result status="valid" time="0.14" steps="61412"/></proof>
+  <goal name="interp_instruction&#39;vc.34" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.38" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61397"><result status="valid" time="0.23" steps="61397"/></proof>
+  <goal name="interp_instruction&#39;vc.35" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.39" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="29"><result status="valid" time="0.12" steps="29"/></proof>
+  <goal name="interp_instruction&#39;vc.36" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.40" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61412"><result status="valid" time="0.16" steps="61412"/></proof>
+  <goal name="interp_instruction&#39;vc.37" expl="assertion" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.41" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="58066"><result status="valid" time="0.27" steps="58066"/></proof>
+  <goal name="interp_instruction&#39;vc.38" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="37"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.42" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61412"><result status="valid" time="0.12" steps="61412"/></proof>
+  <goal name="interp_instruction&#39;vc.39" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="39"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.43" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="58066"><result status="valid" time="0.27" steps="58066"/></proof>
+  <goal name="interp_instruction&#39;vc.40" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.44" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61201"><result status="valid" time="0.19" steps="61201"/></proof>
+  <goal name="interp_instruction&#39;vc.41" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="39"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.45" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="57974"><result status="valid" time="0.25" steps="57974"/></proof>
+  <goal name="interp_instruction&#39;vc.42" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.46" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61201"><result status="valid" time="0.22" steps="61201"/></proof>
+  <goal name="interp_instruction&#39;vc.43" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="39"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.47" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="57974"><result status="valid" time="0.27" steps="57974"/></proof>
+  <goal name="interp_instruction&#39;vc.44" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.48" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61010"><result status="valid" time="0.09" steps="61010"/></proof>
+  <goal name="interp_instruction&#39;vc.45" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.49" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61013"><result status="valid" time="0.12" steps="61013"/></proof>
+  <goal name="interp_instruction&#39;vc.46" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.50" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61396"><result status="valid" time="0.16" steps="61396"/></proof>
+  <goal name="interp_instruction&#39;vc.47" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.51" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="68562"><result status="valid" time="0.30" steps="68562"/></proof>
+  <goal name="interp_instruction&#39;vc.48" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.52" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61396"><result status="valid" time="0.17" steps="61396"/></proof>
+  <goal name="interp_instruction&#39;vc.49" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.53" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="67167"><result status="valid" time="0.37" steps="67167"/></proof>
+  <goal name="interp_instruction&#39;vc.50" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.54" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61396"><result status="valid" time="0.15" steps="61396"/></proof>
+  <goal name="interp_instruction&#39;vc.51" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.55" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="68176"><result status="valid" time="0.32" steps="68176"/></proof>
+  <goal name="interp_instruction&#39;vc.52" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.56" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61396"><result status="valid" time="0.22" steps="61396"/></proof>
+  <goal name="interp_instruction&#39;vc.53" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.57" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="66864"><result status="valid" time="0.31" steps="66864"/></proof>
+  <goal name="interp_instruction&#39;vc.54" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.58" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61396"><result status="valid" time="0.15" steps="61396"/></proof>
+  <goal name="interp_instruction&#39;vc.55" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.59" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="68172"><result status="valid" time="0.26" steps="68172"/></proof>
+  <goal name="interp_instruction&#39;vc.56" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.60" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61396"><result status="valid" time="0.12" steps="61396"/></proof>
+  <goal name="interp_instruction&#39;vc.57" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.61" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="66827"><result status="valid" time="0.27" steps="66827"/></proof>
+  <goal name="interp_instruction&#39;vc.58" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.62" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61010"><result status="valid" time="0.23" steps="61010"/></proof>
+  <goal name="interp_instruction&#39;vc.59" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.15" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.63" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61013"><result status="valid" time="0.16" steps="61013"/></proof>
+  <goal name="interp_instruction&#39;vc.60" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.64" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61304"><result status="valid" time="0.14" steps="61304"/></proof>
+  <goal name="interp_instruction&#39;vc.61" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.65" expl="postcondition" proved="true">
-  <proof prover="2" timelimit="5" steplimit="65755"><result status="valid" time="0.37" steps="65755"/></proof>
+  <goal name="interp_instruction&#39;vc.62" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.66" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61211"><result status="valid" time="0.20" steps="61211"/></proof>
+  <goal name="interp_instruction&#39;vc.63" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.67" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="57949"><result status="valid" time="0.24" steps="57949"/></proof>
+  <goal name="interp_instruction&#39;vc.64" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.68" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61304"><result status="valid" time="0.18" steps="61304"/></proof>
+  <goal name="interp_instruction&#39;vc.65" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="82"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.69" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="65314"><result status="valid" time="0.37" steps="65314"/></proof>
+  <goal name="interp_instruction&#39;vc.66" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.70" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61018"><result status="valid" time="0.23" steps="61018"/></proof>
+  <goal name="interp_instruction&#39;vc.67" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.71" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61021"><result status="valid" time="0.10" steps="61021"/></proof>
+  <goal name="interp_instruction&#39;vc.68" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.72" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61241"><result status="valid" time="0.14" steps="61241"/></proof>
+  <goal name="interp_instruction&#39;vc.69" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="82"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.73" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61244"><result status="valid" time="0.10" steps="61244"/></proof>
+  <goal name="interp_instruction&#39;vc.70" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.74" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61445"><result status="valid" time="0.21" steps="61445"/></proof>
+  <goal name="interp_instruction&#39;vc.71" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.75" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="31"><result status="valid" time="0.17" steps="31"/></proof>
+  <goal name="interp_instruction&#39;vc.72" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.76" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61445"><result status="valid" time="0.11" steps="61445"/></proof>
+  <goal name="interp_instruction&#39;vc.73" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.77" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="68159"><result status="valid" time="0.37" steps="68159"/></proof>
+  <goal name="interp_instruction&#39;vc.74" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.78" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61445"><result status="valid" time="0.22" steps="61445"/></proof>
+  <goal name="interp_instruction&#39;vc.75" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="41"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.79" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="68159"><result status="valid" time="0.25" steps="68159"/></proof>
+  <goal name="interp_instruction&#39;vc.76" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.80" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61245"><result status="valid" time="0.23" steps="61245"/></proof>
+  <goal name="interp_instruction&#39;vc.77" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="41"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.81" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61248"><result status="valid" time="0.17" steps="61248"/></proof>
+  <goal name="interp_instruction&#39;vc.78" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.82" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61449"><result status="valid" time="0.16" steps="61449"/></proof>
+  <goal name="interp_instruction&#39;vc.79" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="41"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.83" expl="postcondition" proved="true">
-  <proof prover="2" timelimit="30" steplimit="68485"><result status="valid" time="0.36" steps="68488"/></proof>
+  <goal name="interp_instruction&#39;vc.80" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.84" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61449"><result status="valid" time="0.17" steps="61449"/></proof>
+  <goal name="interp_instruction&#39;vc.81" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.85" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="68240"><result status="valid" time="0.42" steps="68240"/></proof>
+  <goal name="interp_instruction&#39;vc.82" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.86" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61449"><result status="valid" time="0.22" steps="61449"/></proof>
+  <goal name="interp_instruction&#39;vc.83" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="41"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.87" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="68240"><result status="valid" time="0.36" steps="68240"/></proof>
+  <goal name="interp_instruction&#39;vc.84" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.88" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61219"><result status="valid" time="0.11" steps="61219"/></proof>
+  <goal name="interp_instruction&#39;vc.85" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="41"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.89" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="58034"><result status="valid" time="0.25" steps="58034"/></proof>
+  <goal name="interp_instruction&#39;vc.86" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.90" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61219"><result status="valid" time="0.23" steps="61219"/></proof>
+  <goal name="interp_instruction&#39;vc.87" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="41"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.91" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="58034"><result status="valid" time="0.16" steps="58034"/></proof>
+  <goal name="interp_instruction&#39;vc.88" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.92" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61010"><result status="valid" time="0.13" steps="61010"/></proof>
+  <goal name="interp_instruction&#39;vc.89" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.93" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61013"><result status="valid" time="0.10" steps="61013"/></proof>
+  <goal name="interp_instruction&#39;vc.90" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.94" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61319"><result status="valid" time="0.25" steps="61319"/></proof>
+  <goal name="interp_instruction&#39;vc.91" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.95" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="24"><result status="valid" time="0.21" steps="24"/></proof>
+  <goal name="interp_instruction&#39;vc.92" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.96" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61319"><result status="valid" time="0.22" steps="61319"/></proof>
+  <goal name="interp_instruction&#39;vc.93" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.97" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="71405"><result status="valid" time="0.32" steps="71405"/></proof>
+  <goal name="interp_instruction&#39;vc.94" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.98" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61319"><result status="valid" time="0.15" steps="61319"/></proof>
+  <goal name="interp_instruction&#39;vc.95" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.99" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="71405"><result status="valid" time="0.29" steps="71405"/></proof>
+  <goal name="interp_instruction&#39;vc.96" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.100" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61014"><result status="valid" time="0.17" steps="61014"/></proof>
+  <goal name="interp_instruction&#39;vc.97" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.101" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61017"><result status="valid" time="0.23" steps="61017"/></proof>
+  <goal name="interp_instruction&#39;vc.98" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.102" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61404"><result status="valid" time="0.15" steps="61404"/></proof>
+  <goal name="interp_instruction&#39;vc.99" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.103" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61407"><result status="valid" time="0.22" steps="61407"/></proof>
+  <goal name="interp_instruction&#39;vc.100" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.104" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.17" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.101" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.105" expl="postcondition" proved="true">
-  <proof prover="2" timelimit="10" steplimit="92107"><result status="valid" time="0.51" steps="92107"/></proof>
+  <goal name="interp_instruction&#39;vc.102" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.106" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.17" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.103" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.107" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="90522"><result status="valid" time="0.54" steps="90522"/></proof>
+  <goal name="interp_instruction&#39;vc.104" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.108" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.22" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.105" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.44" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.109" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="90522"><result status="valid" time="0.68" steps="90522"/></proof>
+  <goal name="interp_instruction&#39;vc.106" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.110" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61404"><result status="valid" time="0.23" steps="61404"/></proof>
+  <goal name="interp_instruction&#39;vc.107" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.60" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.111" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61407"><result status="valid" time="0.22" steps="61407"/></proof>
+  <goal name="interp_instruction&#39;vc.108" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.112" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.14" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.109" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.53" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.113" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="90571"><result status="valid" time="0.51" steps="90571"/></proof>
+  <goal name="interp_instruction&#39;vc.110" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.114" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.12" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.111" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.115" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="88577"><result status="valid" time="0.47" steps="88577"/></proof>
+  <goal name="interp_instruction&#39;vc.112" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.116" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.16" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.113" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.45" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.117" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="88596"><result status="valid" time="0.43" steps="88596"/></proof>
+  <goal name="interp_instruction&#39;vc.114" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.18" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.118" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61404"><result status="valid" time="0.15" steps="61404"/></proof>
+  <goal name="interp_instruction&#39;vc.115" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.64" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.119" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61407"><result status="valid" time="0.12" steps="61407"/></proof>
+  <goal name="interp_instruction&#39;vc.116" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.120" expl="postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.22" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.117" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.67" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.121" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="90557"><result status="valid" time="0.41" steps="90557"/></proof>
+  <goal name="interp_instruction&#39;vc.118" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.18" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.122" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.19" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.119" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.15" steps="32"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.123" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="88587"><result status="valid" time="0.48" steps="88587"/></proof>
+  <goal name="interp_instruction&#39;vc.120" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.19" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.124" expl="exceptional postcondition" proved="true">
-  <proof prover="2"><result status="valid" time="0.24" steps="61808"/></proof>
+  <goal name="interp_instruction&#39;vc.121" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.47" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.125" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="88577"><result status="valid" time="0.47" steps="88577"/></proof>
+  <goal name="interp_instruction&#39;vc.122" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.126" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61014"><result status="valid" time="0.11" steps="61014"/></proof>
+  <goal name="interp_instruction&#39;vc.123" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.58" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.127" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61017"><result status="valid" time="0.22" steps="61017"/></proof>
+  <goal name="interp_instruction&#39;vc.124" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.128" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61426"><result status="valid" time="0.16" steps="61426"/></proof>
+  <goal name="interp_instruction&#39;vc.125" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.50" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.129" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="61"><result status="valid" time="0.26" steps="61"/></proof>
+  <goal name="interp_instruction&#39;vc.126" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.130" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61426"><result status="valid" time="0.20" steps="61426"/></proof>
+  <goal name="interp_instruction&#39;vc.127" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.131" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="77753"><result status="valid" time="0.36" steps="77753"/></proof>
+  <goal name="interp_instruction&#39;vc.128" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.132" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61014"><result status="valid" time="0.17" steps="61014"/></proof>
+  <goal name="interp_instruction&#39;vc.129" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.17" steps="87"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.133" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61017"><result status="valid" time="0.23" steps="61017"/></proof>
+  <goal name="interp_instruction&#39;vc.130" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.134" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61349"><result status="valid" time="0.22" steps="61349"/></proof>
+  <goal name="interp_instruction&#39;vc.131" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.17" steps="89"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.135" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="65"><result status="valid" time="0.16" steps="65"/></proof>
+  <goal name="interp_instruction&#39;vc.132" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.136" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61349"><result status="valid" time="0.22" steps="61349"/></proof>
+  <goal name="interp_instruction&#39;vc.133" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.05" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.137" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="68692"><result status="valid" time="0.41" steps="68692"/></proof>
+  <goal name="interp_instruction&#39;vc.134" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.138" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61282"><result status="valid" time="0.23" steps="61282"/></proof>
+  <goal name="interp_instruction&#39;vc.135" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="91"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.139" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61285"><result status="valid" time="0.12" steps="61285"/></proof>
+  <goal name="interp_instruction&#39;vc.136" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.140" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61644"><result status="valid" time="0.17" steps="61644"/></proof>
+  <goal name="interp_instruction&#39;vc.137" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="93"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.141" expl="postcondition" proved="true">
-  <proof prover="1" steplimit="331"><result status="valid" time="0.81" steps="331"/></proof>
+  <goal name="interp_instruction&#39;vc.138" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.142" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61644"><result status="valid" time="0.19" steps="61644"/></proof>
+  <goal name="interp_instruction&#39;vc.139" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.143" expl="exceptional postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.70" steps="279"/></proof>
+  <goal name="interp_instruction&#39;vc.140" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="46"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.144" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61644"><result status="valid" time="0.16" steps="61644"/></proof>
+  <goal name="interp_instruction&#39;vc.141" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.70" steps="223"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.145" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.60" steps="279"/></proof>
+  <goal name="interp_instruction&#39;vc.142" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="46"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.146" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61018"><result status="valid" time="0.14" steps="61018"/></proof>
+  <goal name="interp_instruction&#39;vc.143" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.66" steps="171"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.147" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61021"><result status="valid" time="0.20" steps="61021"/></proof>
+  <goal name="interp_instruction&#39;vc.144" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="46"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.148" expl="loop invariant init" proved="true">
-  <proof prover="2" steplimit="61257"><result status="valid" time="0.18" steps="61257"/></proof>
+  <goal name="interp_instruction&#39;vc.145" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.85" steps="170"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.149" expl="loop invariant init" proved="true">
-  <proof prover="2" steplimit="59104"><result status="valid" time="0.17" steps="59104"/></proof>
+  <goal name="interp_instruction&#39;vc.146" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.150" expl="loop invariant init" proved="true">
-  <proof prover="2" steplimit="58387"><result status="valid" time="0.18" steps="58387"/></proof>
+  <goal name="interp_instruction&#39;vc.147" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.151" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61790"><result status="valid" time="0.19" steps="61790"/></proof>
+  <goal name="interp_instruction&#39;vc.148" expl="loop invariant init" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="34"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.152" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61793"><result status="valid" time="0.19" steps="61793"/></proof>
+  <goal name="interp_instruction&#39;vc.149" expl="loop invariant init" proved="true">
+  <proof prover="4"><result status="valid" time="0.21" steps="84"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.153" expl="loop invariant preservation" proved="true">
-  <proof prover="2" steplimit="62038"><result status="valid" time="0.21" steps="62038"/></proof>
+  <goal name="interp_instruction&#39;vc.150" expl="loop invariant init" proved="true">
+  <proof prover="4"><result status="valid" time="0.21" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.154" expl="loop invariant preservation" proved="true">
+  <goal name="interp_instruction&#39;vc.151" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.17" steps="50"/></proof>
+  </goal>
+  <goal name="interp_instruction&#39;vc.152" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="50"/></proof>
+  </goal>
+  <goal name="interp_instruction&#39;vc.153" expl="loop invariant preservation" proved="true">
+  <proof prover="4"><result status="valid" time="0.16" steps="56"/></proof>
+  </goal>
+  <goal name="interp_instruction&#39;vc.154" expl="loop invariant preservation" proved="true">
   <transf name="assert" proved="true" arg1="(eval_foreach1 stk True (inp, ctx0, sta0) x3 (take i ss ++ Cons (nth i ss) Nil) x1 (sem_state sta, sem_context sta, BNormal) last_result)
 ">
-   <goal name="interp_instruction&#39;VC.154.0" expl="asserted formula" proved="true">
-   <proof prover="2" steplimit="104868"><result status="valid" time="0.68" steps="104868"/></proof>
+   <goal name="interp_instruction&#39;vc.154.0" expl="asserted formula" proved="true">
+   <proof prover="4"><result status="valid" time="0.24" steps="215"/></proof>
    </goal>
-   <goal name="interp_instruction&#39;VC.154.1" expl="loop invariant preservation" proved="true">
-   <proof prover="2" steplimit="103773"><result status="valid" time="0.69" steps="103773"/></proof>
+   <goal name="interp_instruction&#39;vc.154.1" expl="loop invariant preservation" proved="true">
+   <proof prover="4"><result status="valid" time="0.40" steps="301"/></proof>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.155" expl="loop invariant preservation" proved="true">
-  <proof prover="2" steplimit="73879"><result status="valid" time="0.43" steps="73879"/></proof>
+  <goal name="interp_instruction&#39;vc.155" expl="loop invariant preservation" proved="true">
+  <proof prover="4"><result status="valid" time="0.15" steps="65"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.156" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="62011"><result status="valid" time="0.23" steps="62011"/></proof>
+  <goal name="interp_instruction&#39;vc.156" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="56"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.157" expl="exceptional postcondition" proved="true">
+  <goal name="interp_instruction&#39;vc.157" expl="exceptional postcondition" proved="true">
   <transf name="subst_all" proved="true" >
-   <goal name="interp_instruction&#39;VC.157.0" expl="exceptional postcondition" proved="true">
+   <goal name="interp_instruction&#39;vc.157.0" expl="exceptional postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_foreach" arg2="with" arg3="(sem_context sta),(sem_state sta3),ss,(contents (result sta))">
-    <goal name="interp_instruction&#39;VC.157.0.0" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="58512"><result status="valid" time="0.17" steps="58512"/></proof>
+    <goal name="interp_instruction&#39;vc.157.0.0" expl="apply premises" proved="true">
+    <proof prover="0"><result status="valid" time="0.11" steps="64211"/></proof>
     </goal>
-    <goal name="interp_instruction&#39;VC.157.0.1" expl="apply premises" proved="true">
+    <goal name="interp_instruction&#39;vc.157.0.1" expl="apply premises" proved="true">
     <transf name="replace" proved="true" arg1="ss" arg2="(take i ss ++ Cons (nth i ss) (drop (i+1) ss))">
-     <goal name="interp_instruction&#39;VC.157.0.1.0" expl="apply premises" proved="true">
-     <proof prover="2" steplimit="97921"><result status="valid" time="0.52" steps="97921"/></proof>
+     <goal name="interp_instruction&#39;vc.157.0.1.0" expl="apply premises" proved="true">
+     <proof prover="4"><result status="valid" time="0.19" steps="140"/></proof>
      </goal>
-     <goal name="interp_instruction&#39;VC.157.0.1.1" expl="equality hypothesis" proved="true">
-     <proof prover="2" steplimit="77120"><result status="valid" time="0.37" steps="77120"/></proof>
+     <goal name="interp_instruction&#39;vc.157.0.1.1" expl="equality hypothesis" proved="true">
+     <proof prover="4"><result status="valid" time="0.10" steps="50"/></proof>
      </goal>
     </transf>
     </goal>
-    <goal name="interp_instruction&#39;VC.157.0.2" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="78216"><result status="valid" time="0.45" steps="78216"/></proof>
+    <goal name="interp_instruction&#39;vc.157.0.2" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="0.11" steps="50"/></proof>
     </goal>
    </transf>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.158" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="62011"><result status="valid" time="0.21" steps="62011"/></proof>
+  <goal name="interp_instruction&#39;vc.158" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="56"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.159" expl="exceptional postcondition" proved="true">
+  <goal name="interp_instruction&#39;vc.159" expl="exceptional postcondition" proved="true">
   <transf name="subst_all" proved="true" >
-   <goal name="interp_instruction&#39;VC.159.0" expl="exceptional postcondition" proved="true">
+   <goal name="interp_instruction&#39;vc.159.0" expl="exceptional postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_foreach" arg2="with" arg3="(sem_context sta),(sem_state sta3),ss,(contents (result sta))">
-    <goal name="interp_instruction&#39;VC.159.0.0" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="58512"><result status="valid" time="0.13" steps="58512"/></proof>
+    <goal name="interp_instruction&#39;vc.159.0.0" expl="apply premises" proved="true">
+    <proof prover="0"><result status="valid" time="0.11" steps="64211"/></proof>
     </goal>
-    <goal name="interp_instruction&#39;VC.159.0.1" expl="apply premises" proved="true">
+    <goal name="interp_instruction&#39;vc.159.0.1" expl="apply premises" proved="true">
     <transf name="replace" proved="true" arg1="ss" arg2="(take i ss ++ Cons (nth i ss) (drop (i+1) ss))">
-     <goal name="interp_instruction&#39;VC.159.0.1.0" expl="apply premises" proved="true">
-     <proof prover="2" steplimit="97921"><result status="valid" time="0.65" steps="97921"/></proof>
+     <goal name="interp_instruction&#39;vc.159.0.1.0" expl="apply premises" proved="true">
+     <proof prover="4"><result status="valid" time="0.24" steps="140"/></proof>
      </goal>
-     <goal name="interp_instruction&#39;VC.159.0.1.1" expl="equality hypothesis" proved="true">
-     <proof prover="2" steplimit="77120"><result status="valid" time="0.31" steps="77120"/></proof>
+     <goal name="interp_instruction&#39;vc.159.0.1.1" expl="equality hypothesis" proved="true">
+     <proof prover="4"><result status="valid" time="0.15" steps="50"/></proof>
      </goal>
     </transf>
     </goal>
-    <goal name="interp_instruction&#39;VC.159.0.2" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="78216"><result status="valid" time="0.37" steps="78216"/></proof>
+    <goal name="interp_instruction&#39;vc.159.0.2" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="0.14" steps="50"/></proof>
     </goal>
    </transf>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.160" expl="unreachable point" proved="true">
-  <proof prover="1" steplimit="36"><result status="valid" time="0.14" steps="36"/></proof>
+  <goal name="interp_instruction&#39;vc.160" expl="unreachable point" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="46"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.161" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61717"><result status="valid" time="0.21" steps="61717"/></proof>
+  <goal name="interp_instruction&#39;vc.161" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.11" steps="42"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.162" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="74385"><result status="valid" time="0.35" steps="74385"/></proof>
+  <goal name="interp_instruction&#39;vc.162" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.34" steps="210"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.163" expl="out of loop bounds" proved="true">
-  <proof prover="2" steplimit="61058"><result status="valid" time="0.34" steps="61058"/></proof>
+  <goal name="interp_instruction&#39;vc.163" expl="out of loop bounds" proved="true">
+  <proof prover="4"><result status="valid" time="0.17" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.164" expl="loop invariant init" proved="true">
-  <proof prover="2" steplimit="61012"><result status="valid" time="0.21" steps="61012"/></proof>
+  <goal name="interp_instruction&#39;vc.164" expl="loop invariant init" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.165" expl="loop invariant init" proved="true">
-  <proof prover="2" steplimit="61022"><result status="valid" time="0.17" steps="61022"/></proof>
+  <goal name="interp_instruction&#39;vc.165" expl="loop invariant init" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.166" expl="loop invariant init" proved="true">
-  <proof prover="2" steplimit="55063"><result status="valid" time="0.17" steps="55063"/></proof>
+  <goal name="interp_instruction&#39;vc.166" expl="loop invariant init" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="27"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.167" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61333"><result status="valid" time="0.17" steps="61333"/></proof>
+  <goal name="interp_instruction&#39;vc.167" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.168" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61336"><result status="valid" time="0.15" steps="61336"/></proof>
+  <goal name="interp_instruction&#39;vc.168" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.06" steps="30"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.169" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61540"><result status="valid" time="0.14" steps="61540"/></proof>
+  <goal name="interp_instruction&#39;vc.169" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.170" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61543"><result status="valid" time="0.17" steps="61543"/></proof>
+  <goal name="interp_instruction&#39;vc.170" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.07" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.171" expl="loop invariant preservation" proved="true">
-  <proof prover="2" steplimit="61786"><result status="valid" time="0.19" steps="61786"/></proof>
+  <goal name="interp_instruction&#39;vc.171" expl="loop invariant preservation" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="46"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.172" expl="loop invariant preservation" proved="true">
-  <proof prover="2" steplimit="64492"><result status="valid" time="0.26" steps="64492"/></proof>
+  <goal name="interp_instruction&#39;vc.172" expl="loop invariant preservation" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="47"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.173" expl="loop invariant preservation" proved="true">
-  <proof prover="1" timelimit="30" steplimit="797"><result status="valid" time="2.45" steps="797"/></proof>
+  <goal name="interp_instruction&#39;vc.173" expl="loop invariant preservation" proved="true">
+  <proof prover="4" timelimit="10"><result status="valid" time="4.60" steps="981"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.174" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61740"><result status="valid" time="0.19" steps="61740"/></proof>
+  <goal name="interp_instruction&#39;vc.174" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.08" steps="44"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.175" expl="exceptional postcondition" proved="true">
+  <goal name="interp_instruction&#39;vc.175" expl="exceptional postcondition" proved="true">
   <transf name="subst_all" proved="true" >
-   <goal name="interp_instruction&#39;VC.175.0" expl="exceptional postcondition" proved="true">
+   <goal name="interp_instruction&#39;vc.175.0" expl="exceptional postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_while_abort" arg2="with" arg3="ctr,last_result">
-    <goal name="interp_instruction&#39;VC.175.0.0" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="65789"><result status="valid" time="0.23" steps="65789"/></proof>
+    <goal name="interp_instruction&#39;vc.175.0.0" expl="apply premises" proved="true">
+    <proof prover="0"><result status="valid" time="0.20" steps="71904"/></proof>
     </goal>
-    <goal name="interp_instruction&#39;VC.175.0.1" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="89659"><result status="valid" time="0.51" steps="89659"/></proof>
+    <goal name="interp_instruction&#39;vc.175.0.1" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="1.82" steps="235"/></proof>
     </goal>
    </transf>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.176" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61740"><result status="valid" time="0.23" steps="61740"/></proof>
+  <goal name="interp_instruction&#39;vc.176" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.10" steps="44"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.177" expl="exceptional postcondition" proved="true">
+  <goal name="interp_instruction&#39;vc.177" expl="exceptional postcondition" proved="true">
   <transf name="subst_all" proved="true" >
-   <goal name="interp_instruction&#39;VC.177.0" expl="exceptional postcondition" proved="true">
+   <goal name="interp_instruction&#39;vc.177.0" expl="exceptional postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_while_abort" arg2="with" arg3="ctr,last_result">
-    <goal name="interp_instruction&#39;VC.177.0.0" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="66039"><result status="valid" time="0.30" steps="66039"/></proof>
+    <goal name="interp_instruction&#39;vc.177.0.0" expl="apply premises" proved="true">
+    <proof prover="0"><result status="valid" time="0.18" steps="72154"/></proof>
     </goal>
-    <goal name="interp_instruction&#39;VC.177.0.1" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="89658"><result status="valid" time="0.57" steps="89658"/></proof>
+    <goal name="interp_instruction&#39;vc.177.0.1" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="1.85" steps="235"/></proof>
     </goal>
    </transf>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.178" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61642"><result status="valid" time="0.24" steps="61642"/></proof>
+  <goal name="interp_instruction&#39;vc.178" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="40"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.179" expl="postcondition" proved="true">
+  <goal name="interp_instruction&#39;vc.179" expl="postcondition" proved="true">
   <transf name="subst_all" proved="true" >
-   <goal name="interp_instruction&#39;VC.179.0" expl="postcondition" proved="true">
+   <goal name="interp_instruction&#39;vc.179.0" expl="postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_while" arg2="with" arg3="(sem_context sta1),ctr,(!(sta.result))">
-    <goal name="interp_instruction&#39;VC.179.0.0" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="79087"><result status="valid" time="0.50" steps="79087"/></proof>
+    <goal name="interp_instruction&#39;vc.179.0.0" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="1.48" steps="226"/></proof>
     </goal>
-    <goal name="interp_instruction&#39;VC.179.0.1" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="71860"><result status="valid" time="0.38" steps="71860"/></proof>
+    <goal name="interp_instruction&#39;vc.179.0.1" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="0.23" steps="36"/></proof>
     </goal>
    </transf>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.180" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61542"><result status="valid" time="0.23" steps="61542"/></proof>
+  <goal name="interp_instruction&#39;vc.180" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.18" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.181" expl="exceptional postcondition" proved="true">
+  <goal name="interp_instruction&#39;vc.181" expl="exceptional postcondition" proved="true">
   <transf name="subst_all" proved="true" >
-   <goal name="interp_instruction&#39;VC.181.0" expl="exceptional postcondition" proved="true">
+   <goal name="interp_instruction&#39;vc.181.0" expl="exceptional postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_while_abort" arg2="with" arg3="ctr,last_result">
-    <goal name="interp_instruction&#39;VC.181.0.0" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="65583"><result status="valid" time="0.26" steps="65583"/></proof>
+    <goal name="interp_instruction&#39;vc.181.0.0" expl="apply premises" proved="true">
+    <proof prover="0"><result status="valid" time="0.18" steps="71698"/></proof>
     </goal>
-    <goal name="interp_instruction&#39;VC.181.0.1" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="76866"><result status="valid" time="0.45" steps="76866"/></proof>
+    <goal name="interp_instruction&#39;vc.181.0.1" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="0.92" steps="148"/></proof>
     </goal>
    </transf>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.182" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61542"><result status="valid" time="0.21" steps="61542"/></proof>
+  <goal name="interp_instruction&#39;vc.182" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.13" steps="36"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.183" expl="exceptional postcondition" proved="true">
+  <goal name="interp_instruction&#39;vc.183" expl="exceptional postcondition" proved="true">
   <transf name="subst_all" proved="true" >
-   <goal name="interp_instruction&#39;VC.183.0" expl="exceptional postcondition" proved="true">
+   <goal name="interp_instruction&#39;vc.183.0" expl="exceptional postcondition" proved="true">
    <transf name="apply" proved="true" arg1="eval_while_abort" arg2="with" arg3="ctr,last_result">
-    <goal name="interp_instruction&#39;VC.183.0.0" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="65833"><result status="valid" time="0.28" steps="65833"/></proof>
+    <goal name="interp_instruction&#39;vc.183.0.0" expl="apply premises" proved="true">
+    <proof prover="0"><result status="valid" time="0.19" steps="71948"/></proof>
     </goal>
-    <goal name="interp_instruction&#39;VC.183.0.1" expl="apply premises" proved="true">
-    <proof prover="2" steplimit="76868"><result status="valid" time="0.46" steps="76865"/></proof>
+    <goal name="interp_instruction&#39;vc.183.0.1" expl="apply premises" proved="true">
+    <proof prover="4"><result status="valid" time="1.09" steps="150"/></proof>
     </goal>
    </transf>
    </goal>
   </transf>
   </goal>
-  <goal name="interp_instruction&#39;VC.184" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61010"><result status="valid" time="0.16" steps="61010"/></proof>
+  <goal name="interp_instruction&#39;vc.184" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.09" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.185" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61013"><result status="valid" time="0.16" steps="61013"/></proof>
+  <goal name="interp_instruction&#39;vc.185" expl="precondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.12" steps="24"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.186" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61749"><result status="valid" time="0.17" steps="61749"/></proof>
+  <goal name="interp_instruction&#39;vc.186" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.16" steps="50"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.187" expl="postcondition" proved="true">
-  <proof prover="0"><result status="valid" time="0.25" steps="970579"/></proof>
+  <goal name="interp_instruction&#39;vc.187" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.50" steps="227"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.188" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61749"><result status="valid" time="0.16" steps="61749"/></proof>
+  <goal name="interp_instruction&#39;vc.188" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.22" steps="50"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.189" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="70436"><result status="valid" time="0.29" steps="70436"/></proof>
+  <goal name="interp_instruction&#39;vc.189" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.42" steps="228"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.190" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61525"><result status="valid" time="0.11" steps="61525"/></proof>
+  <goal name="interp_instruction&#39;vc.190" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.14" steps="42"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.191" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="68491"><result status="valid" time="0.38" steps="68491"/></proof>
+  <goal name="interp_instruction&#39;vc.191" expl="postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.28" steps="119"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.192" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61525"><result status="valid" time="0.22" steps="61525"/></proof>
+  <goal name="interp_instruction&#39;vc.192" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.16" steps="42"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.193" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="68772"><result status="valid" time="0.40" steps="68772"/></proof>
+  <goal name="interp_instruction&#39;vc.193" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.25" steps="121"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.194" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="61496"><result status="valid" time="0.11" steps="61496"/></proof>
+  <goal name="interp_instruction&#39;vc.194" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.15" steps="38"/></proof>
   </goal>
-  <goal name="interp_instruction&#39;VC.195" expl="exceptional postcondition" proved="true">
-  <proof prover="2" steplimit="64154"><result status="valid" time="0.28" steps="64154"/></proof>
+  <goal name="interp_instruction&#39;vc.195" expl="exceptional postcondition" proved="true">
+  <proof prover="4"><result status="valid" time="0.35" steps="264"/></proof>
   </goal>
  </transf>
  </goal>
- <goal name="interp_str_expr&#39;VC" expl="VC for interp_str_expr" proved="true">
+ <goal name="interp_str_expr&#39;vc" expl="VC for interp_str_expr" proved="true">
+ <proof prover="4"><result status="valid" time="0.70" steps="620"/></proof>
+ </goal>
+ <goal name="interp_list_expr&#39;vc" expl="VC for interp_list_expr" proved="true">
  <transf name="split_vc" proved="true" >
-  <goal name="interp_str_expr&#39;VC.0" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61009"><result status="valid" time="0.11" steps="61009"/></proof>
+  <goal name="interp_list_expr&#39;vc.0" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.15" steps="66702"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.1" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61010"><result status="valid" time="0.12" steps="61010"/></proof>
+  <goal name="interp_list_expr&#39;vc.1" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.13" steps="66703"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.2" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="60051"><result status="valid" time="0.17" steps="60051"/></proof>
+  <goal name="interp_list_expr&#39;vc.2" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.21" steps="72584"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.3" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61009"><result status="valid" time="0.20" steps="61009"/></proof>
+  <goal name="interp_list_expr&#39;vc.3" expl="precondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.15" steps="66746"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.4" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61010"><result status="valid" time="0.18" steps="61010"/></proof>
+  <goal name="interp_list_expr&#39;vc.4" expl="precondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.19" steps="66749"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.5" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="62905"><result status="valid" time="0.32" steps="62905"/></proof>
+  <goal name="interp_list_expr&#39;vc.5" expl="precondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.18" steps="66967"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.6" expl="precondition" proved="true">
-  <proof prover="2" steplimit="64748"><result status="valid" time="0.23" steps="64748"/></proof>
+  <goal name="interp_list_expr&#39;vc.6" expl="precondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.17" steps="66970"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.7" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61009"><result status="valid" time="0.22" steps="61009"/></proof>
+  <goal name="interp_list_expr&#39;vc.7" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.14" steps="67186"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.8" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61010"><result status="valid" time="0.20" steps="61010"/></proof>
+  <goal name="interp_list_expr&#39;vc.8" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.20" steps="70263"/></proof>
   </goal>
-  <goal name="interp_str_expr&#39;VC.9" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="68070"><result status="valid" time="0.34" steps="68070"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.10" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61011"><result status="valid" time="0.20" steps="61011"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.11" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61014"><result status="valid" time="0.21" steps="61014"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.12" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61401"><result status="valid" time="0.22" steps="61401"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.13" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="70682"><result status="valid" time="0.25" steps="70682"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.14" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="77930"><result status="valid" time="0.37" steps="77930"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.15" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61401"><result status="valid" time="0.21" steps="61401"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.16" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="70682"><result status="valid" time="0.41" steps="70682"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.17" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="77833"><result status="valid" time="0.38" steps="77833"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.18" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61401"><result status="valid" time="0.16" steps="61401"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.19" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="70682"><result status="valid" time="0.25" steps="70682"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.20" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="77827"><result status="valid" time="0.40" steps="77827"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.21" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61015"><result status="valid" time="0.21" steps="61015"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.22" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61018"><result status="valid" time="0.18" steps="61018"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.23" expl="assertion" proved="true">
-  <proof prover="2" steplimit="60181"><result status="valid" time="0.27" steps="60181"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.24" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61283"><result status="valid" time="0.18" steps="61283"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.25" expl="precondition" proved="true">
-  <proof prover="2" steplimit="61286"><result status="valid" time="0.14" steps="61286"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.26" expl="assertion" proved="true">
-  <proof prover="2" steplimit="60450"><result status="valid" time="0.30" steps="60450"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.27" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="61599"><result status="valid" time="0.16" steps="61599"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.28" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="64337"><result status="valid" time="0.18" steps="64337"/></proof>
-  </goal>
-  <goal name="interp_str_expr&#39;VC.29" expl="postcondition" proved="true">
-  <proof prover="2" steplimit="60717"><result status="valid" time="0.29" steps="60717"/></proof>
+  <goal name="interp_list_expr&#39;vc.9" expl="postcondition" proved="true">
+  <proof prover="0"><result status="valid" time="0.19" steps="69878"/></proof>
   </goal>
  </transf>
  </goal>
- <goal name="interp_list_expr&#39;VC" expl="VC for interp_list_expr" proved="true">
- <proof prover="2" steplimit="69850"><result status="valid" time="0.23" steps="69850"/></proof>
- </goal>
- <goal name="interp_program&#39;VC" expl="VC for interp_program" proved="true">
- <proof prover="1" steplimit="127"><result status="valid" time="0.32" steps="127"/></proof>
+ <goal name="interp_program&#39;vc" expl="VC for interp_program" proved="true">
+ <proof prover="4"><result status="valid" time="0.31" steps="198"/></proof>
  </goal>
 </theory>
 </file>
