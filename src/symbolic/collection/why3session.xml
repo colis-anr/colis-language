@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE why3session PUBLIC "-//Why3//proof session v5//EN"
 "http://why3.lri.fr/why3session.dtd">
-<why3session shape_version="8">
-<prover id="0" name="CVC4" version="1.6" timelimit="1" steplimit="0" memlimit="1000"/>
+<why3session shape_version="6">
+<prover id="0" name="CVC4" version="1.6" timelimit="1" steplimit="17445" memlimit="1000"/>
 <file format="whyml" proved="true">
 <path name=".."/><path name="collection.mlw"/>
 <theory name="Collection" proved="true">
@@ -11,7 +11,7 @@
   <goal name="union_empty_left.0" proved="true">
   <transf name="apply" proved="true" arg1="extensionality">
    <goal name="union_empty_left.0.0" expl="apply premises" proved="true">
-   <proof prover="0"><result status="valid" time="0.03" steps="17309"/></proof>
+   <proof prover="0" steplimit="17309"><result status="valid" time="0.03" steps="17310"/></proof>
    </goal>
   </transf>
   </goal>
@@ -22,17 +22,17 @@
   <goal name="union_empty_right.0" proved="true">
   <transf name="apply" proved="true" arg1="extensionality">
    <goal name="union_empty_right.0.0" expl="apply premises" proved="true">
-   <proof prover="0"><result status="valid" time="0.05" steps="17445"/></proof>
+   <proof prover="0"><result status="valid" time="0.05" steps="17446"/></proof>
    </goal>
   </transf>
   </goal>
  </transf>
  </goal>
  <goal name="union_left" proved="true">
- <proof prover="0"><result status="valid" time="0.06" steps="19354"/></proof>
+ <proof prover="0" steplimit="19354"><result status="valid" time="0.06" steps="19355"/></proof>
  </goal>
  <goal name="union_right" proved="true">
- <proof prover="0"><result status="valid" time="0.06" steps="19502"/></proof>
+ <proof prover="0" steplimit="19502"><result status="valid" time="0.06" steps="19503"/></proof>
  </goal>
 </theory>
 </file>
