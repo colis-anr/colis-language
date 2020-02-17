@@ -11,20 +11,17 @@ end
 
 module Semantics
   use list.List
-  use mystring.String
 
   (* Instantiate the concrete semantics with our dummy filesystem *)
   clone export semantics.Semantics with
     type filesystem = unit,
-    type normalized_path = list string,
-    val default_cwd = Nil,
     axiom interp_utility_extends_output
 end
 
 module State
   use ref.Ref
   use list.List
-  use mystring.String
+  use string.String
   use Filesystem
   use semantics.Buffers
   use import Semantics as S
@@ -64,7 +61,7 @@ module Interpreter
   use ref.Refint
 
   use auxiliaries.OptionGet
-  use mystring.String
+  use string.OCaml as String
   use syntax.Syntax
   use semantics.Result
   use semantics.Buffers
@@ -143,7 +140,7 @@ module Interpreter
   (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
   let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
-    returns { () ->
+    ensures {
       interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
@@ -153,6 +150,7 @@ module Interpreter
     }
   = let sta', b = interp_utility (!(sta.cwd), filter_var_env !(sta.var_env), args) id (sem_state sta) in
     sta.filesystem := sta'.S.filesystem;
+    assert { !(sta.filesystem) = sta'.S.filesystem };
     sta.stdin := sta'.S.stdin;
     sta.stdout := sta'.S.stdout;
     sta.log := sta'.S.log;
@@ -174,8 +172,8 @@ module Interpreter
     }
   = try
       let args = ref !(sta.arguments) in
-      for i = 1 to n do
-        invariant { length !(sta.arguments) >= i-1  }
+      for i = (1:int) to n do
+        invariant { Length.length !(sta.arguments) >= i-1  }
         invariant { shift_arguments (i-1) !(sta.arguments) = Some !args }
         match !args with
         | Cons _ args' ->
@@ -193,7 +191,7 @@ module Interpreter
 
   (** {3 The interpretation of statements} *)
 
-  let ghost ref stk = 0
+  let ghost ref stk : int = 0
 
   let rec interp_instruction (inp:input) (sta:state) (ins:instruction) : unit
     diverges
@@ -416,7 +414,7 @@ module Interpreter
       let s, _b = interp_str_expr True inp sta se in
       let cwd_p = absolute_or_concat_relative !(sta.cwd) s in
       let pwd_s = normalized_path_to_string cwd_p in
-      let args = Cons string_dash_d (Cons pwd_s Nil) in
+      let args = Cons "-d" (Cons pwd_s Nil) in
       interp_utility {inp with under_condition=True} sta identifier_test args;
       if !(sta.result) then begin
         sta.var_env := !(sta.var_env)[identifier_pwd <- pwd_s]';
@@ -469,7 +467,7 @@ module Interpreter
       assert { eval_str_expr stk b (inp, sem_context sta, sem_state sta at L1) se1 (sem_state sta, Success (s1, b1)) };
       label L2 in let s2, b2 = interp_str_expr b1 inp sta se2 in
       assert { eval_str_expr stk b1 (inp, sem_context sta, sem_state sta at L2) se2 (sem_state sta, Success (s2, b2)) };
-      s1^s2, b2
+      String.concat s1 s2, b2
     end
 
   with interp_list_expr (inp:input) (sta:state) (le:list_expression) : list string

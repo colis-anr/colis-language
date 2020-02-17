@@ -5,12 +5,14 @@ module semantics.Env
   syntax val ([<-]) "Env.set %1 %2 %3"
 end
 
+module semantics.Buffers
+  syntax val concat_lines "String.concat \"\n\" %1"
+  syntax val split_on_default_ifs "Str.(split (regexp \"[ \t\n]+\") %1)"
+end
+
 module interpreter.Semantics
   syntax val filter_var_env "Env.filter_var_env (fun v -> v.Interpreter__Semantics.exported) (fun v -> v.Interpreter__Semantics.value) %1"
   syntax val interp_utility "Utilities.interp_utility %1 %2 %3"
   syntax val normalized_path_to_string "String.concat \"/\" %1"
   syntax val absolute_or_concat_relative "Utilities.absolute_or_concat_relative %1 %2"
-  syntax val identifier_test "\"test\""
-  syntax val string_dash_d "\"-d\""
-  syntax val identifier_pwd "\"PWD\""
 end

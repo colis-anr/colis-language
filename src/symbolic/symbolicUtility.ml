@@ -228,6 +228,7 @@ let call name ctx args =
   dispatch ~name {ctx with args}
 
 let dispatch' (cwd, env, args) name sta =
+  let cwd = List.map Colis_constraints.Feat.from_string cwd in
   let ctx = {cwd; args; env} in
   BatSet.of_list (dispatch ~name ctx sta)
 

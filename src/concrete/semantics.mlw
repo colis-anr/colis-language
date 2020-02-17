@@ -54,7 +54,7 @@ module Buffers
   use list.List
   use list.Append
   use list.Reverse
-  use mystring.String
+  use string.OCaml as String
 
   (* stdin and stdout are comprised of a list of lines, cf. NOTES[Stdin/stdout] *)
 
@@ -73,6 +73,10 @@ module Buffers
 
   type stdin = Stdin.t
 
+  val function concat_lines (list string) : string
+
+  val function split_on_default_ifs string : list string 
+
   scope Stdout
 
     use bool.Bool
@@ -88,11 +92,11 @@ module Buffers
       Cons out.line out.lines
 
     let constant empty =
-      { line = String.empty; lines = Nil }
+      { line = ""; lines = Nil }
 
     let function is_empty out =
       andb
-       (String.(equal empty out.line))
+       (String.(out.line = ""))
        (match out.lines with
         | Nil -> True
         | _ -> False
@@ -103,10 +107,10 @@ module Buffers
       reverse (all_lines out)
 
     let output str out =
-      { out with line = out.line^str }
+      { out with line = String.concat out.line str }
 
     let newline out =
-      { line = String.empty; lines = Cons out.line out.lines }
+      { line = ""; lines = Cons out.line out.lines }
 
     (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
     let function to_string out : string =
@@ -114,7 +118,7 @@ module Buffers
         match lines with
         | Nil -> Nil
         | Cons l lines' ->
-          if String.(equal l empty)
+          if String.(l = "")
           then remove_trailing_newlines lines'
           else lines
         end
@@ -136,7 +140,7 @@ module Buffers
       variant { out2.lines }
       (* ensures { concat_rel out1 out2 result } *)
     = match out2.lines with
-      | Nil -> {line=out1.line^out2.line; lines= out1.lines}
+      | Nil -> {line=String.concat out1.line out2.line; lines= out1.lines}
       | Cons line2 lines2 ->
         let out3 = concat out1 {line=line2; lines=lines2} in
         {line=out2.line; lines=all_lines out3}
@@ -167,8 +171,8 @@ module Buffers
       variant { out2.lines }
       ensures { forall out1 line3.
         let out12 = concat out1 out2 in
-        concat out1 { line = out2.line^line3; lines = out2.lines }  = 
-          { line = out12.line^line3; lines = out12.lines }
+        concat out1 { line = String.concat out2.line line3; lines = out2.lines }  = 
+          { line = String.concat out12.line line3; lines = out12.lines }
       }
     = match out2.lines with
       | Nil -> ()
@@ -185,7 +189,7 @@ module Buffers
       | Nil ->
         assert { forall out2.
           concat out2 out3 =
-            { line = out2.line^out3.line; lines = out2.lines }
+            { line = String.concat out2.line out3.line; lines = out2.lines }
         }
       | Cons line3 lines3 ->
         concat_assoc {line = line3; lines = lines3}
@@ -233,7 +237,7 @@ end
 module Input
 
   use bool.Bool
-  use mystring.String
+  use string.String
   use Config
 
   type input = {
@@ -268,7 +272,7 @@ module Arguments
   use list.Length
   use int.Int
   use option.Option
-  use mystring.String
+  use string.String
   use Result
 
   let rec function nth_argument (args: list string) (n: int) : string
@@ -279,13 +283,13 @@ module Arguments
       if n = 0
       then arg
       else nth_argument args' (n-1)
-    | Nil -> String.empty
+    | Nil -> ""
     end
 
   let rec function shift_arguments (n: int) (args: list string) : option (list string)
     requires { 0 <= n }
     variant { args }
-    ensures { result = None <-> length args < n }
+    ensures { result = None <-> Length.length args < n }
   = if n = 0 then
       Some args
     else
@@ -317,7 +321,7 @@ module Semantics
   use option.Option
   use bool.Bool
 
-  use mystring.String
+  use string.String
   use syntax.Syntax
 
   use auxiliaries.OptionGet
@@ -359,16 +363,18 @@ module Semantics
   let constant empty_func_env : func_env =
     empty_env None
 
-  type normalized_path
-  val constant default_cwd : normalized_path
+  type normalized_path = list string
+
+  let constant default_cwd : normalized_path = Nil
 
   (** For `cd` *)
   (** Append `s` to `p` if `s` is relative or just `s` as path if it is absolute *)
   val function absolute_or_concat_relative (p:normalized_path) (s:string) : normalized_path
+
   val function normalized_path_to_string (p:normalized_path) : string
-  val constant identifier_test : identifier
-  val constant string_dash_d : string
-  val constant identifier_pwd : identifier
+
+  let constant identifier_test = identifier_of_string "test"
+  let constant identifier_pwd = identifier_of_string "PWD"
 
   type context = {
     var_env: var_env;
@@ -434,11 +440,11 @@ module Semantics
     | RPrevious -> previous
     end
 
-  let function exit_not_normal inp result =
-    andb (strict inp.under_condition) (notb result)
+  let function exit_not_normal inp res =
+    andb (strict inp.under_condition) (notb res)
 
-  let function behaviour (inp:input) (result:bool) : behaviour
-  = if exit_not_normal inp result
+  let function behaviour (inp:input) (res:bool) : behaviour
+  = if exit_not_normal inp res
     then BExit
     else BNormal
 
@@ -447,7 +453,7 @@ module Semantics
   let function split sp str =
     match sp with
     | DontSplit -> Cons str Nil
-    | Split -> String.split_on_default_ifs str
+    | Split -> split_on_default_ifs str
     end
 
   (* Reexport mixfix operators. *)
@@ -466,7 +472,7 @@ module Semantics
     let var_val = e[id] in
     match var_val.value with
     | Some str -> str
-    | None -> String.empty
+    | None -> ""
     end
     
   let function ([<-]') (env:var_env) (id:identifier) (value:string) : var_env =
@@ -514,7 +520,7 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons string_dash_d (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, False) ->
+    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, False) ->
     let ctx1 = {ctx with result = False} in
     let bhv = behaviour inp False in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
@@ -523,7 +529,7 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Success (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons string_dash_d (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, True) ->
+    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, True) ->
     let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- normalized_path_to_string cwd_p]'; cwd = cwd_p} in
     let bhv = behaviour inp True in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
@@ -644,7 +650,7 @@ module Semantics
     let inp1 = { inp with argument0 = identifier_to_string id } in
     let ctx1 = { ctx with arguments = args } in
     eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv) ->
-    let bhv' = match bhv with BNormal | BReturn -> BNormal | BExit -> BExit | BFailure -> BFailure end in
+    let bhv' = if bhv = BReturn then BNormal else bhv in
     let ctx' = { ctx2 with arguments = ctx.arguments } in
     eval_instruction stk (inp, ctx, sta) (ICallFunction id es) (sta2, ctx', bhv')
   
@@ -793,7 +799,7 @@ module Semantics
   | eval_str_concat : forall stk b b1 b2 inp ctx sta sta1 sta2 e1 e2 str1 str2.
     eval_str_expr stk b (inp, ctx, sta) e1 (sta1, Success (str1, b1)) ->
     eval_str_expr stk b1 (inp, ctx, sta1) e2 (sta2, Success (str2, b2)) ->
-    let res = Success (str1^str2, b2) in
+    let res = Success (String.concat str1 str2, b2) in
     eval_str_expr stk b (inp, ctx, sta) (SConcat e1 e2) (sta2, res)
 
   (** Evaluation of expressions to a list of strings:

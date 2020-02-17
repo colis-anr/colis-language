@@ -16,7 +16,7 @@ end
 (** Identifiers of variables and functions *)
 module Identifier
 
-  use mystring.String
+  use string.String
 
   type identifier
 
@@ -24,6 +24,8 @@ module Identifier
     ensures { result <-> v1 = v2 }
 
   val function identifier_to_string identifier : string
+
+  val function identifier_of_string string : identifier
 end
 
 (** Abstract syntax of the CoLiS language *)
@@ -32,7 +34,7 @@ module Syntax
   use list.List
   use option.Option
 
-  use mystring.String
+  use string.String
   use export Nat
   use export Identifier
 
