@@ -21,7 +21,7 @@ maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 pin-depends: [
   [ "morbig.dev"   "git+https://github.com/colis-anr/morbig.git" ]
   [ "morsmall.dev" "git+https://github.com/colis-anr/morsmall.git" ]
-  [ "why3.dev"     "git+https://gitlab.inria.fr/why3/why3.git#4fbafaac" ] # Will be 1.3
+  [ "why3.dev"     "git+https://gitlab.inria.fr/why3/why3.git#268e19920" ] # Will be 1.3
 ]
 
 depexts: [
