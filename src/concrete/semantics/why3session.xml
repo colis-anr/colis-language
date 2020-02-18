@@ -170,7 +170,7 @@
  <proof prover="5"><result status="valid" time="0.03" steps="28"/></proof>
  </goal>
  <goal name="no_while_failure&#39;vc" expl="VC for no_while_failure" proved="true">
- <proof prover="5" timelimit="10"><result status="valid" time="1.46" steps="474"/></proof>
+ <proof prover="5" timelimit="10"><result status="valid" time="1.02" steps="491"/></proof>
  </goal>
  <goal name="interp_function_definitions&#39;vc" expl="VC for interp_function_definitions" proved="true">
  <proof prover="5"><result status="valid" time="0.12" steps="139"/></proof>
@@ -179,38 +179,38 @@
  <proof prover="5"><result status="valid" time="0.21" steps="143"/></proof>
  </goal>
  <goal name="eval_foreach_concat&#39;vc" expl="VC for eval_foreach_concat" proved="true">
- <proof prover="5" timelimit="10"><result status="valid" time="2.75" steps="970"/></proof>
+ <proof prover="5" timelimit="10"><result status="valid" time="2.27" steps="970"/></proof>
  </goal>
  <goal name="eval_foreach_last&#39;vc" expl="VC for eval_foreach_last" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="eval_foreach_last&#39;vc.0" expl="postcondition" proved="true">
   <transf name="inversion_arg_pr" proved="true" arg1="H1">
    <goal name="eval_foreach_last&#39;vc.0.0" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="1.89" steps="627"/></proof>
+   <proof prover="5"><result status="valid" time="0.90" steps="719"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.0.1" expl="postcondition" proved="true">
    <proof prover="5"><result status="valid" time="0.06" steps="26"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.0.2" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.14" steps="44"/></proof>
+   <proof prover="5"><result status="valid" time="0.23" steps="44"/></proof>
    </goal>
   </transf>
   <transf name="split_vc" proved="true" >
    <goal name="eval_foreach_last&#39;vc.0.0" expl="postcondition" proved="true">
-   <proof prover="5" timelimit="10" memlimit="4000"><result status="valid" time="3.17" steps="1238"/></proof>
+   <proof prover="5" timelimit="10" memlimit="4000"><result status="valid" time="9.81" steps="4509"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="eval_foreach_last&#39;vc.1" expl="postcondition" proved="true">
   <transf name="inversion_arg_pr" proved="true" arg1="H1">
    <goal name="eval_foreach_last&#39;vc.1.0" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.14" steps="39"/></proof>
+   <proof prover="5"><result status="valid" time="0.16" steps="39"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.1.1" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.05" steps="26"/></proof>
+   <proof prover="5"><result status="valid" time="0.19" steps="26"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.1.2" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.19" steps="115"/></proof>
+   <proof prover="5"><result status="valid" time="0.27" steps="115"/></proof>
    </goal>
   </transf>
   </goal>
