@@ -244,8 +244,8 @@ let print_symbolic_states ~initials (normals, errors, failures) =
     printf "* Initial states@\n";
   List.iter (print_symbolic_state_with_ctr "initial" (ref 1) Format.std_formatter) initials;
   if normals <> [] then begin
-    printf "* Success states@\n";
-    List.iter (print_symbolic_state_with_ctr "success" (ref 1) Format.std_formatter) normals;
+    printf "* Normal states@\n";
+    List.iter (print_symbolic_state_with_ctr "normal" (ref 1) Format.std_formatter) normals;
   end;
   if errors <> [] then begin
     printf "* Error states@\n";
@@ -253,7 +253,7 @@ let print_symbolic_states ~initials (normals, errors, failures) =
   end;
   if failures <> [] then begin
     printf "* Incomplete symbolic execution@\n";
-    List.iter (print_symbolic_state_with_ctr "notcovered" (ref 1) Format.std_formatter) failures;
+    List.iter (print_symbolic_state_with_ctr "incomplete" (ref 1) Format.std_formatter) failures;
   end;
   printf "* Summary@\n@\n";
   printf "- Success cases: %d@\n" (List.length normals);
