@@ -8,7 +8,7 @@ let name = "colis_internal_unsafe_touch"
 let interp1 path_str =
   let p = Path.from_string path_str in
   let q = Path.check_normal p in
-  under_specifications [
+  specification_cases [
     success_case
       ~descr:(asprintf "colis_internal_unsafe_touch: %a" Path.pp p)
       begin fun root root' ->
