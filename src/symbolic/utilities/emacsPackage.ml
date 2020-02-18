@@ -16,7 +16,7 @@ module Install = struct
       (if_then_else
          (call "test" ctx ["-e"; pkgFile])
          (call "rm" ctx [pkgFile])
-         (under_specifications [
+         (specification_cases [
             success_case
               ~descr:(asprintf "emacs-package-install --preinst '%s': not found"
                         pkgFile)
@@ -52,7 +52,7 @@ module Remove = struct
     (if_then_else
        (call "test" ctx ["-e"; pkgFile])
        (call "rm" ctx [pkgFile])
-       (under_specifications [
+       (specification_cases [
           success_case
             ~descr:(asprintf "emacs-package-install --preinst '%s': not found"
                       pkgFile)

@@ -11,14 +11,14 @@ let name = "mv"
 let interp_rename ctx src dstpath : utility =
   let qsrc = Path.from_string src in
   let qdst = Path.from_string dstpath in
-  under_specifications @@
+  specification_cases @@
     match Path.split_last qsrc, Path.split_last qdst with
     | (None, _) ->
-      [error_case ~descr:"mv: invalid source path ''"]
+      [error_case ~descr:"mv: invalid source path ''" noop]
     | (_, None) ->
-      [error_case ~descr:"mv: invalid destination path ''"]
+      [error_case ~descr:"mv: invalid destination path ''" noop]
     | (Some (_, (Here|Up)), _) | (_, Some(_, (Here|Up))) ->
-      [error_case ~descr:"mv: paths end in . or .."]
+      [error_case ~descr:"mv: paths end in . or .." noop]
     | (Some (qs, Down fs), Some (qd, Down fd)) ->
        let unconditional_cases = [
            error_case

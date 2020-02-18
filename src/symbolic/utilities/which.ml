@@ -10,7 +10,7 @@ module Silent = struct
 
   let interprete _ctx = function
     | [p] ->
-      under_specifications [
+      specification_cases [
         success_case
           ~descr:(asprintf "silent-which '%s': assuming command is found" p)
           noop
@@ -33,7 +33,7 @@ let name = "which"
 
 let interp_test_regular_and_x cwd path_str : utility =
   let p = Path.from_string path_str in
-  under_specifications [
+  specification_cases [
     success_case
       ~descr:(asprintf "which '%a': path resolves to a regular executable (overapprox to -f)" Path.pp p)
       ~stdout:Stdout.(empty |> output (asprintf "%a" Path.pp p) |> newline)
@@ -63,7 +63,7 @@ let interp_test_regular_and_x cwd path_str : utility =
 let rec search_as_which_in_path cwd (path:string list) arg : utility =
   match path with
   | [] ->
-    under_specifications [
+    specification_cases [
       error_case
         ~descr:(asprintf "which: `%s` not found in PATH" arg)
         noop

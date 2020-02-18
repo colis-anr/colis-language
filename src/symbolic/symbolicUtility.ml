@@ -133,12 +133,12 @@ let success_case ~descr ?(stdout=Stdout.empty) spec =
 let error_case ~descr ?(stdout=Stdout.empty) ?error_message spec =
   { result = Ok false ; error_message ; stdout ; descr ; spec }
 
-let incomplete_case ~descr () =
+let incomplete_case ~descr spec =
   { result = Incomplete ;
     descr ;
     stdout = Stdout.empty ;
     error_message = None;
-    spec = noop }
+    spec }
 
 (** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
 let apply_spec fs spec =
@@ -190,11 +190,8 @@ let apply_case sta case : (state * bool result) list =
   (* Add the result to each result state *)
   List.map (fun sta -> sta, case.result)
 
-type specifications = case list
-
-let under_specifications : specifications -> state -> (state * bool result) list =
-  fun spec state ->
-  List.flatten (List.map (apply_case state) spec)
+let specification_cases cases state =
+  List.flatten (List.map (apply_case state) cases)
 
 (******************************************************************************)
 (*                                  Auxiliaries                               *)

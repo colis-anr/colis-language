@@ -9,11 +9,13 @@ let interp_touch1 cwd path_str : utility =
   (* FIXME: we can merge two cases here (parent path does not resolve & parent
      path isn't a directory) *)
   let p = Path.from_string path_str in
-  under_specifications @@
   match Path.split_last p with
   | None -> (* `touch ''` *)
-    [error_case ~descr:"cannot touch '': No such file or directory"]
+    specification_cases [
+      error_case ~descr:"cannot touch '': No such file or directory" noop
+    ]
   | Some (_q, (Up | Here)) ->
+    specification_cases [
       success_case
         ~descr:(asprintf "touch %a: path resolves" Path.pp p)
         begin fun root root' ->
@@ -29,7 +31,8 @@ let interp_touch1 cwd path_str : utility =
           eq root root'
         end
     ]
-  | Some (q, Down f) -> [
+  | Some (q, Down f) ->
+    specification_cases [
       success_case
         ~descr:(asprintf "touch %a: path resolves" Path.pp p)
         begin fun root root' ->

@@ -7,14 +7,14 @@ let name = "rm"
 
 let interp1 cwd arg : utility =
   let oq = Path.from_string arg in
-  under_specifications @@
+  specification_cases @@
   match Path.split_last oq with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
-    [error_case ~descr:"rm: invalid path ''"]
+    [error_case ~descr:"rm: invalid path ''" noop]
   | Some (_q, (Here|Up)) ->
-    [error_case ~descr:"rm: cannot remove .. or ."]
+    [error_case ~descr:"rm: cannot remove .. or ." noop]
   | Some (q, Down f) -> [
       success_case
         ~descr:(asprintf "rm %a: remove file" Path.pp oq)
@@ -41,14 +41,14 @@ let interp1 cwd arg : utility =
 
 let interp1_r cwd arg : utility =
   let oq = Path.from_string arg in
-  under_specifications @@
+  specification_cases @@
   match Path.split_last oq with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
   (* FIXME: Shouldn't we factorize it in a combinator?             *)
   | None ->
-    [error_case ~descr:"rm: invalid path ''"]
+    [error_case ~descr:"rm: invalid path ''" noop]
   | Some (_q, (Here|Up)) ->
-    [error_case ~descr:"rm: cannot remove .. or ."]
+    [error_case ~descr:"rm: cannot remove .. or ." noop]
   | Some (q, Down f) -> [
       success_case
         ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp oq)

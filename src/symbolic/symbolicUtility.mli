@@ -44,14 +44,11 @@ val success_case: descr:string -> ?stdout:Stdout.t -> case_spec -> case
 val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> case_spec -> case
 
 (** An incomplete case (unknown behaviour, cannot be symbolically executed) *)
-val incomplete_case: descr:string -> case
+val incomplete_case: descr:string -> case_spec -> case
 
-(** The specifications of a utility are a list of cases that depend on the current working
-    directory, the old root variable, and a new root variable *)
-type specifications = case list
-
-(** Use specifications to define a utility *)
-val under_specifications : specifications -> utility
+(** Use a list of cases to specify a utility. Corresponds to a table in the
+    document "Specification of UNIX Utilities "*)
+val specification_cases : case list -> utility
 
 (** {1 Registration} *)
 
