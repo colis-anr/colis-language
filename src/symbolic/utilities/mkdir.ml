@@ -7,13 +7,17 @@ let name = "mkdir"
 
 let interp_mkdir1 cwd path_str =
   let p = Path.from_string path_str in
-  under_specifications @@
   match Path.split_last p with
   | None ->
-    [error_case ~descr:"mkdir: cannot create directory ''"]
+    specification_cases [
+      error_case ~descr:"mkdir: cannot create directory ''" noop
+    ]
   | Some (_q, (Here|Up)) ->
-    [error_case ~descr:"mkdir: file exists" (* CHECK *)]
-  | Some (q, Down f) -> [
+    specification_cases [
+      error_case ~descr:"mkdir: file exists" noop (* CHECK *)
+    ]
+  | Some (q, Down f) ->
+    specification_cases [
       success_case
         ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
         begin fun root root' ->

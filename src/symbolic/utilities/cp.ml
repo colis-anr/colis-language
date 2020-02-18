@@ -12,19 +12,19 @@ let name = "cp"
 let interp_cp2 ctx ~todir ~isrec src dst : utility =
   let qsrc = Path.from_string src in
   let qdst = Path.from_string dst in
-  under_specifications @@
+  specification_cases @@
   match Path.split_last qsrc, Path.split_last qdst with
   | (None, _) ->
-     [error_case ~descr:"cp: invalid source path ''"]
+     [error_case ~descr:"cp: invalid source path ''" noop]
   | (_, None) ->
-     [error_case ~descr:"cp: invalid destination path ''"]
+     [error_case ~descr:"cp: invalid destination path ''" noop]
   | (Some (_, (Here|Up)), _) ->
      (* TODO: "For each source_file, the following steps ...
         source file is dot or dot-dot, cp should do nothing
         with source file and go to any remaining file" *)
-    [error_case ~descr:"cp: source path ends in . or .."]
+    [error_case ~descr:"cp: source path ends in . or .." noop]
   | (_, Some (_, (Here|Up))) -> (* Unreachable or error path *)
-    [error_case ~descr:"cp: destination path ends in . or .."]
+    [error_case ~descr:"cp: destination path ends in . or .." noop]
   | (Some (_qs, Down fs), Some (qd, efd)) ->
      let stripdst = Path.strip_trailing_slashes dst in
      let newdst = String.concat "/" [stripdst; (Feat.to_string fs)] in
