@@ -123,25 +123,31 @@ let failure ~error_message =
      error_message = Some error_message;
      spec = noop }]
 
-let add_spec sta spec : state list =
-  let root' = Var.fresh ~hint:(Var.hint sta.filesystem.root) () in
-  let clause = spec sta.filesystem.root root' in
-  let clauses = Clause.add_to_sat_conj clause sta.filesystem.clause in
+(** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
+let apply_spec fs spec =
+  let open SymbolicInterpreter__Filesystem in
+  let root_is_root0 =
+    (* fs.root0 = Some fs.root - garbare-collect fs.root only otherwise *)
+    match fs.root0 with
+    | Some root0 -> Var.equal root0 fs.root
+    | None -> false in
+  let root' = Var.fresh ~hint:(Var.hint fs.root) () in
+  let clause = spec fs.root root' in
+  let clauses = Clause.add_to_sat_conj clause fs.clause in
   let clauses =
-    match sta.filesystem.SymbolicInterpreter__Filesystem.root0 with
-    | Some root0 when Var.equal root0 sta.filesystem.SymbolicInterpreter__Filesystem.root ->
+    if root_is_root0 then
       clauses
-    | _ -> (* root0 is either None or different than Some root: we thus can garbage-collect the current root *)
-      clauses |>
-      List.map (Clause.quantify_over_and_simplify sta.filesystem.SymbolicInterpreter__Filesystem.root) |>
-      List.flatten in
-  List.map (fun clause -> {sta with filesystem={sta.filesystem with clause; root=root'}}) clauses
+    else
+      List.flatten
+        (List.map (Clause.quantify_over_and_simplify fs.root)
+           clauses) in
+  List.map (fun clause -> {fs with clause; root=root'}) clauses
 
-(** Update a state with a specification case and a new root [root'].
+(** Apply a case to a state.
 
     This may result in multiple states because the integration of the case clause in the
     filesystem may result in multiple clauses. *)
-let apply_case_to_state sta case : (state * bool) list =
+let apply_case sta case : (state * bool) list =
   (* First print the utility trace *)
   let sta = print_utility_trace case.descr sta in
   let sta = {
@@ -150,22 +156,23 @@ let apply_case_to_state sta case : (state * bool) list =
     log = Stdout.concat sta.log case.stdout;
     (* don't touch stdin *)
     stdin = sta.stdin;
-    (* and keep the filesystem for the moment ... *)
+    (* and keep the filesystem (may be changed by apply_spec) *)
     filesystem = sta.filesystem;
   } in
   (* (Optionally) print error message *)
   let sta = print_error case.error_message sta in
-  (* Combine the case specification and the current filesystem clause *)
-  let stas = add_spec sta case.spec in
+  (* Apply the case specifications to the filesystem *)
+  apply_spec sta.filesystem case.spec |>
+  (* Inject the resulting filesystems into the state *)
+  List.map (fun filesystem -> {sta with filesystem}) |>
   (* Add the result to each result state *)
-  List.map (fun sta -> sta, case.result) stas
+  List.map (fun sta -> sta, case.result)
 
 type specifications = case list
 
 let under_specifications : specifications -> state -> (state * bool) list =
   fun spec state ->
-  List.flatten
-    (List.map (apply_case_to_state state) spec)
+  List.flatten (List.map (apply_case state) spec)
 
 (******************************************************************************)
 (*                                  Auxiliaries                               *)
