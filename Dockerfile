@@ -65,13 +65,6 @@ RUN eval $(opam env) \
   && chmod +x "$CVC4" \
   && why3 config --add-prover cvc4 "$CVC4" "$PWD/$CVC4"
 
-# Install Eprover
-RUN eval $(opam env) \
-  && curl -sL -o E.tgz "http://wwwlehre.dhbw-stuttgart.de/~sschulz/WORK/E_DOWNLOAD/V_2.2/E.tgz" \
-  && tar xf E.tgz \
-  && ( cd E && ./configure && make > /dev/null 2>&1 ) \
-  && why3 config --add-prover eprover "Eprover-2.2" "$PWD/E/PROVER/eprover"
-
 # Register Alt-ergo
 RUN eval $(opam env) \
   && opam depext -i "$ALTERGO" \
