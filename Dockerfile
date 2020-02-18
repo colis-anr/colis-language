@@ -50,7 +50,7 @@ RUN eval $(opam env) \
 # Versions
 ENV CVC4="cvc4-1.6"
 ENV Z3="z3-4.6.0"
-ENV ALTERGO="alt-ergo.2.2.0"
+ENV ALTERGO="alt-ergo.2.3.0"
 
 # Install CVC4 as provers/$CVC4
 RUN eval $(opam env) \
