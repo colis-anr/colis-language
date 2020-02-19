@@ -221,16 +221,16 @@ let rec interp_test_expr cwd e : utility =
   | Binary ("=",a1,a2) -> interp_test_string_equal a1 a2
   | Binary ("!=",a1,a2) -> interp_test_string_notequal a1 a2
   | Unary(op,_) ->
-     unsupported ~utility:name ("unsupported unary operator: " ^ op)
+     unknown ~utility:name ("unsupported unary operator: " ^ op)
   | And(e1,e2) ->
      uand (interp_test_expr cwd e1) (interp_test_expr cwd e2)
   | Or(e1,e2) ->
      uor (interp_test_expr cwd e1) (interp_test_expr cwd e2)
   | Not(e1) -> uneg (interp_test_expr cwd e1)
   | Binary (op,_e1,_e2) ->
-     unsupported ~utility:name ("unsupported binary operator: " ^ op)
+     unknown ~utility:name ("unsupported binary operator: " ^ op)
   | Single arg ->
-     unsupported ~utility:name ("unsupported single argument: " ^ arg)
+     unknown ~utility:name ("unsupported single argument: " ^ arg)
   )
 
 let interpret ~bracket ctx : utility =

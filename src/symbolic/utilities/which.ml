@@ -20,7 +20,7 @@ module Silent = struct
           noop
       ]
     | _ ->
-      unsupported ~utility:"silent-which" "more than one argument"
+      incomplete ~utility:"silent-which" "more than one argument"
 
   let interprete ctx : utility =
     cmdliner_eval_utility
@@ -88,7 +88,7 @@ let search_as_which cwd (path:string list) arg : utility =
       interp_test_regular_and_x cwd ("/" ^ Path.rel_to_string a) st
 
 let interprete all ctx args : utility =
-  if all then Colis_internals.Errors.unsupported ~utility:name "option `-a`";
+  if all then incomplete ~utility:name "option `-a`" else
   (* FIXME     let path = String.split_on_char ':' (IdMap.find "PATH" ctx.env) in *)
   let path = [ "/usr/sbin" ; "/usr/bin" ; "/sbin" ; "/bin" (* ; "/usr/games" *) ] in
   let rec aux args =
