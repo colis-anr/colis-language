@@ -42,7 +42,7 @@ let dpkg_compare_versions args =
 let dpkg_validate_thing subcmd arg =
   Sys.command ("dpkg " ^ subcmd ^ " " ^ arg ^ " >/dev/null 2>&1") = 0
 
-let interp_utility (_cwd, var_env, args) id sta =
+let interp_utility ((_cwd, var_env, args), id, sta) =
   match id with
   | "echo" ->
      let stdout =
