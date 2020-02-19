@@ -19,6 +19,7 @@ let run_test filename : (unit, string) Result.result =
 
   let cmdline =
     [ !Options.utility ]
+    @ ["--unknown-behaviour"; "ERROR"] (* Compatibility with behaviour before PR #114. TODO Update tests and remove this line *)
     @ (if Filename.extension filename = ".cls" then ["--colis"] else [])
     @ [ Filename.concat !Options.directory filename ]
     @ meta.input.arguments
