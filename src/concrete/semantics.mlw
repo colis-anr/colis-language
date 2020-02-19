@@ -32,20 +32,6 @@ module Behaviour
     | BIncomplete, BIncomplete ->  True
     | _ -> False
     end
-
-  (* let function behaviour (under_condition res:bool) : behaviour *)
-  (*   ensures { result = BNormal \/ result = BExit } *)
-  (*   returns { *)
-  (*     | BNormal -> *)
-  (*       under_condition = True \/ res = True *)
-  (*     | BExit -> *)
-  (*       under_condition = False /\ res = False *)
-  (*     | BReturn | BIncomplete -> *)
-  (*       false *)
-  (*   } *)
-  (* = if andb (strict under_condition) (notb res) *)
-  (*   then BExit *)
-  (*   else BNormal *)
 end
 
 (** {2 Stdin and stdout buffers} *)
@@ -159,7 +145,6 @@ module Buffers
       | Cons l ls -> concat_empty_left {line=l; lines=ls}
       end
 
-
     let rec lemma concat_empty_right (out:t)
       variant { out.lines }
       ensures {
@@ -252,9 +237,14 @@ end
 
 module Env
 
+  use option.Option
   use syntax.Identifier
   use map.Map as M
 
+  (** A partial environment *)
+  type env0 'a = abstract { to_map0 : M.map identifier (option 'a) }
+
+  (** A total environment with default *)
   type env 'a = abstract { to_map : M.map identifier 'a; default: 'a }
   meta coercion function to_map
 
@@ -315,26 +305,34 @@ module Arguments
     shift_arguments n args = None
 end
 
-(** {2 Concrete semantics of the CoLiS language} *)
-module Semantics
+module Path
 
-  use int.Int
   use list.List
-  use list.Append
+
+  (** abstract type for filenames (excluding "." and ".."), named
+      "feature" in the tree constraint vocabulary *)
+  type feature
+
+  type normalized_path = list feature
+
+  let constant default_cwd : normalized_path = Nil
+
+  (** For `cd`: append `s` to `p` if `s` is relative or just `s` as path if it is absolute *)
+  val function absolute_or_concat_relative (p:normalized_path) (s:string) : normalized_path
+
+  val function normalized_path_to_string (p:normalized_path) : string
+end
+
+(** {2 Concrete evaluation context} *)
+module Context
+
+  use list.List
   use option.Option
-  use bool.Bool
 
   use string.String
   use syntax.Syntax
-
-  use auxiliaries.OptionGet
-  use Result
-  use Arguments
-  use Behaviour
-  use Buffers
-  use Config
-  use Input
-  use import Env as E
+  use Path
+  use Env
 
   (** {3 The concrete evaluation context}
 
@@ -366,16 +364,6 @@ module Semantics
   let constant empty_func_env : func_env =
     empty_env None
 
-  type normalized_path = list string
-
-  let constant default_cwd : normalized_path = Nil
-
-  (** For `cd` *)
-  (** Append `s` to `p` if `s` is relative or just `s` as path if it is absolute *)
-  val function absolute_or_concat_relative (p:normalized_path) (s:string) : normalized_path
-
-  val function normalized_path_to_string (p:normalized_path) : string
-
   let constant identifier_test = identifier_of_string "test"
   let constant identifier_pwd = identifier_of_string "PWD"
 
@@ -403,12 +391,57 @@ module Semantics
     result = True;
   }
 
-  val function filter_var_env (env:var_env) : env string
+  val function filter_var_env (env:var_env) : env0 string
   (** A specification is not required because the result is not used inside the language
       but only in utilities which are not specified. *)
   (* ensures { forall x s. *)
   (*   env[x] = {value=Some s; exported=True} <-> result[x] = s *)
   (* } *)
+end (* Context *)
+
+(** Split the types to specify the interpretation of utilities to enable factorization
+    of the symbolic engine *)
+module InterpUtilitySpec
+  use list.List
+  use syntax.Syntax
+  use Result
+  use Path
+  use Buffers
+  use Env
+
+  type utility_context = (normalized_path (* cwd *), env0 string (* variable env *), list string (* args *))
+
+  type raw_state 'fs = ('fs, stdin, stdout, stdout (* log *))
+
+  predicate raw_interp_utility (utility_context, identifier, raw_state 'fs) (raw_state 'fs, result bool)
+
+  axiom interp_utility_extends_output : forall ctx id stdin stdin' stdout stdout' log log' b, fs fs': 'fs.
+    raw_interp_utility (ctx, id, (fs, stdin, Stdout.empty, log)) ((fs', stdin', stdout', log'), b) ->
+    raw_interp_utility (ctx, id, (fs, stdin, stdout, log)) ((fs', stdin', Stdout.concat stdout' stdout', log), b)
+end
+
+
+module Semantics
+  use bool.Bool
+  use int.Int
+  use list.Append
+  use list.List
+  use option.Option
+
+  use auxiliaries.OptionGet
+  use syntax.Identifier
+  use syntax.Syntax
+
+  use Arguments
+  use Behaviour
+  use Buffers
+  use Config
+  use Context
+  use Env
+  use Input
+  use InterpUtilitySpec
+  use Path
+  use Result
 
   (** {3 Evaluation state}
 
@@ -427,14 +460,17 @@ module Semantics
     log: stdout; (** Combines stdout with utility traces and error messages *)
   }
 
-  type utility_context = (normalized_path, env string, list string)
+  let function to_raw_state (s: state) : raw_state filesystem =
+    (s.filesystem, s.stdin, s.stdout, s.log)
 
-  (** Interprete a command defined in the document *Specification of UNIX Commands*. *)
-  val function interp_utility utility_context identifier state : (state, result bool)
+  let function of_raw_state (s0: raw_state filesystem) : state =
+    let (filesystem, stdin, stdout, log) = s0 in
+    {filesystem = filesystem; stdin = stdin; stdout = stdout; log = log}
 
-  axiom interp_utility_extends_output : forall ctx id sta sta' r.
-    interp_utility ctx id {sta with stdout=Stdout.empty} = (sta', r) ->
-    interp_utility ctx id sta = ({sta' with stdout=Stdout.concat sta.stdout sta'.stdout}, r)
+  predicate interp_utility (params: (utility_context, identifier, state)) (res: (state, result bool)) =
+    let ctx, name, sta = params in
+    let sta', res = res in
+    raw_interp_utility (ctx, name, to_raw_state sta) (to_raw_state sta', res)
 
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with
@@ -462,10 +498,10 @@ module Semantics
   (* Reexport mixfix operators. *)
 
   let function ([]) (e:env 'a) (id:identifier) : 'a =
-    E.(e[id])
+    Env.(e[id])
 
   let function ([<-]) (e:env 'a) (id:identifier) (value:'a) : env 'a =
-    E.(e[id <- value])
+    Env.(e[id <- value])
 
   (** Define mixfix operators for variable environments that retain or ignore the
       export_state flag in the environment variable. *)
@@ -523,14 +559,16 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, Incomplete) ->
+    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) in
+    interp_utility (utility_ctx, identifier_test, sta1) (sta2, Incomplete) ->
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx, BIncomplete)
 
   | eval_cd_no_dir : forall stk inp ctx sta se sta1 s _b sta2.
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, Ok False) ->
+    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) in
+    interp_utility (utility_ctx, identifier_test, sta1) (sta2, Ok False) ->
     let ctx1 = {ctx with result = False} in
     let bhv = behaviour inp False in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
@@ -539,7 +577,8 @@ module Semantics
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, _b)) ->
     (* `test -d (CWD/)s` *)
     let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) identifier_test sta1 = (sta2, Ok True) ->
+    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) in
+    interp_utility (utility_ctx, identifier_test, sta1) (sta2, Ok True) ->
     let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- normalized_path_to_string cwd_p]'; cwd = cwd_p} in
     let bhv = behaviour inp True in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
@@ -631,12 +670,14 @@ module Semantics
   
   | eval_call_utility_incomplete: forall stk inp ctx sta sta' sta'' id es ss.
     eval_list_expr stk (inp, ctx, sta) es (sta', Ok ss) ->
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' = (sta'', Incomplete) ->
+    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, ss) in
+    interp_utility (utility_ctx, id, sta') (sta'', Incomplete) ->
     eval_instruction stk (inp, ctx, sta) (ICallUtility id es) (sta'', ctx, BIncomplete)
 
   | eval_call_utility: forall stk inp ctx sta sta' sta'' id es ss b.
     eval_list_expr stk (inp, ctx, sta) es (sta', Ok ss) ->
-    interp_utility (ctx.cwd, filter_var_env ctx.var_env, ss) id sta' = (sta'', Ok b) ->
+    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, ss) in
+    interp_utility (utility_ctx, id, sta') (sta'', Ok b) ->
     let ctx' = {ctx with result=b} in
     let bhv = behaviour inp b in
     eval_instruction stk (inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)

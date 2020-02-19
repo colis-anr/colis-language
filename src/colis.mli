@@ -14,10 +14,15 @@ end
 module Common : sig
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
-  module Env = Env
+  module Config = Semantics__Config
+  module Context = Semantics__Context
+  module Env = Semantics__Env
+  module Input = Semantics__Input
+  module InterpUtilitySpec = Semantics__InterpUtilitySpec
+  module Path = Semantics__Path
+  module Result = Semantics__Result
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
-  module Input = Semantics__Input
 end
 
 module Concrete : sig

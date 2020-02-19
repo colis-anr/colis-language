@@ -5,15 +5,8 @@ module symbolicInterpreter.Constraints
   syntax type path "Colis_constraints.Path.t"
 end
 
-module symbolicInterpreter.Semantics
-  syntax val filter_var_env "Env.filter_var_env (fun v -> v.SymbolicInterpreter__Semantics.exported) (fun v -> v.SymbolicInterpreter__Semantics.value) %1"
-  syntax val interp_utility "assert false"
-  syntax val absolute_or_concat_relative "Colis_constraints.(List.map Feat.to_string (Path.normalize ~cwd:(List.map Feat.from_string %1) (Path.from_string %2)))"
-  syntax val normalized_path_to_string "Colis_constraints.(Path.normal_to_string (List.map Feat.from_string %1))"
-end
-
 module symbolicInterpreter.Interpreter
-  syntax val sym_interp_utility "BatSet.to_list (SymbolicUtility.dispatch' %1 %2 %3)"
+  syntax val sym_interp_utility "BatSet.to_list (SymbolicUtility.dispatch' %1)"
 end
 
 module collection.Collection

@@ -147,4 +147,4 @@ val cmdliner_eval_utility :
 (**/**)
 
 (** A wrapper of [dispatch] for use in the Why3 driver *)
-val dispatch' : (string list * string Env.IdMap.t * string list) -> string -> state -> (state * bool result) BatSet.t
+val dispatch' : ((string list * string Env.IdMap.t * string list) * string * state) -> (state * bool result) BatSet.t
