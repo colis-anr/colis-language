@@ -2,8 +2,7 @@ exception FileError of string
 exception ParseError of string * Lexing.position
 exception ConversionError of Morsmall.Location.position * string
 
-exception Unsupported of string * string
-let unsupported ~utility msg = raise (Unsupported (utility, msg))
+exception Unknown_behaviour of string * string
 
 exception CpuTimeLimitExceeded
 exception MemoryLimitExceeded
