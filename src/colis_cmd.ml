@@ -70,36 +70,51 @@ let set_var, get_vars =
   in
   set, (fun () -> List.rev !vars)
 
+let set_unknown_behaviour str =
+  let open Colis.Internals.Options in
+  match get_action () with
+  | PrintColis | PrintShell ->
+    raise (Arg.Bad "--unknown-utilities can only be specified with --run or --run-symbolic")
+  | _ ->
+    let behaviour =
+      match str with
+      | "EXCEPTION" -> Exception
+      | "INCOMPLETE" -> Incomplete
+      | "ERROR" -> Error
+      | _ -> raise (Arg.Bad "Invalid value for unknown behaviour") in
+    unknown_behaviour := behaviour
+
 let speclist =
   let open Arg in
   let open Colis.Internals.Options in
   align [
-    "--run",                       Unit (set_action Run),         " Concrete execution (default)";
-    "--run-symbolic",              Unit (set_action RunSymbolic), " Symbolic execution";
-    "--shell",                     Unit (set_source Shell),       " Use the shell parser (default)";
-    "--colis",                     Unit (set_source Colis),       " Use the colis parser" ;
-    "--external-sources",          Set_string external_sources,   "DIR Import absolute sources from DIR";
-    "--print-colis",               Unit (set_action PrintColis),  " Print the CoLiS script";
-    "--print-shell",               Unit (set_action PrintShell),  " Print the Shell script";
-    "--var",                       String set_var,                " VAR=VAL Set and export variable VAR to VAL in the interpreter";
-    "--realworld",                 Set real_world,                " Use system utilities in concrete execution";
-    "--add-symbolic-fs",           String add_symbolic_fs,        "FILE Add files and directories from FILE to the initially empty symbolic file system (One file or directory per line; directories end with '/')";
-    "--prune-init-state",          Set prune_init_state,          " Prune the initial state in symbolic execution";
-    "--loop-limit",                Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
-    "--cpu-time-limit",            Float ((:=) cpu_time_limit),   "LIMIT Set CPU time limit for symbolic execution to LIMIT in seconds (default: none)";
-    "--memory-limit",              String set_memory_limit,       "LIMIT Set memory limit for symbolic execution to LIMIT in bytes (default: none)";
-    "--stack-size",                Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
-    "--print-states",              String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
-    "--fail-on-unknown-utilities", Set fail_on_unknown_utilities, " Unknown utilities kill the interpreter";
-    "--",                          Rest add_argument,             "ARG... Pass all further arguments directly to the CoLiS interpreter";
+    "--run",               Unit (set_action Run),         " Concrete execution (default)";
+    "--run-symbolic",      Unit (set_action RunSymbolic), " Symbolic execution";
+    "--shell",             Unit (set_source Shell),       " Use the shell parser (default)";
+    "--colis",             Unit (set_source Colis),       " Use the colis parser" ;
+    "--external-sources",  Set_string external_sources,   "DIR Import absolute sources from DIR";
+    "--print-colis",       Unit (set_action PrintColis),  " Print the CoLiS script";
+    "--print-shell",       Unit (set_action PrintShell),  " Print the Shell script";
+    "--var",               String set_var,                " VAR=VAL Set and export variable VAR to VAL in the interpreter";
+    "--realworld",         Set real_world,                " Use system utilities in concrete execution";
+    "--add-symbolic-fs",   String add_symbolic_fs,        "FILE Add files and directories from FILE to the initially empty symbolic file system (One file or directory per line; directories end with '/')";
+    "--prune-init-state",  Set prune_init_state,          " Prune the initial state in symbolic execution";
+    "--loop-limit",        Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
+    "--cpu-time-limit",    Float ((:=) cpu_time_limit),   "LIMIT Set CPU time limit for symbolic execution to LIMIT in seconds (default: none)";
+    "--memory-limit",      String set_memory_limit,       "LIMIT Set memory limit for symbolic execution to LIMIT in bytes (default: none)";
+    "--stack-size",        Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
+    "--print-states",      String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
+    "--unknown-behaviour", String set_unknown_behaviour,  "BHV Behaviour for unknown utilities: raising an exception (by default), like an unsupported utility (incomplete behaviour), or as a colis-level error";
+    "--",                  Rest add_argument,             "ARG... Pass all further arguments directly to the CoLiS interpreter";
   ]
 
 let usage =
   sprintf
     ("Usage: %s <action> <syntax-opts> [--var VAR=VAL ...] FILE [--] [ARG...]\n"^^
-     "       <action>: [--run <concrete-opts> | --run-symbolic <symbolic-opts> | --print-colis | --print-shell]\n"^^
-     "       <concrete-opts>: [--realworld |  --fail-on-unknown-utilities]\n"^^
-     "       <symbolic-opts>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--fail-on-unknown-utilities] [--print-states DIR]\n"^^
+     "       <action>: [--run <opts> <concrete-opts> | --run-symbolic <opts> <symbolic-opts> | --print-colis | --print-shell]\n"^^
+     "       <opts>: [--unknown-behaviour EXCEPTION|UNSUPPORTED|ERROR]\n"^^
+     "       <concrete-opts>: [--realworld]\n"^^
+     "       <symbolic-opts>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--print-states DIR]\n"^^
      "       <syntax-opts>: [--shell [--external-sources DIR] | --colis]")
     Sys.argv.(0)
 
@@ -109,8 +124,6 @@ let main () =
   Arg.parse speclist set_file_or_argument usage;
   if !Colis.Internals.Options.real_world && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
-  if !Colis.Internals.Options.fail_on_unknown_utilities && (get_action () <> Run && get_action () <> RunSymbolic) then
-    raise (Arg.Bad "--fail-on-unknown-utilities can only be specified with --run or --run-symbolic");
   if !prune_init_state && get_action () <> RunSymbolic then
     raise (Arg.Bad "--prune-init-state can only be specified with --run-symbolic");
 
@@ -186,7 +199,7 @@ let () =
      eprintf "%a: Conversion error: %s@." pp_morsmall_position pos msg;
      exit 6
 
-  | Unsupported (utility, msg) ->
+  | Unknown_behaviour (utility, msg) ->
      eprintf "%s: %s@." utility msg;
      exit 7
 
