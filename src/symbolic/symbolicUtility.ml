@@ -252,7 +252,8 @@ let is_registered = Hashtbl.mem table
 let dispatch ~name =
   try Hashtbl.find table name
   with Not_found ->
-    fun _ctx -> unknown ~utility:name "unknown"
+    fun _ctx sta ->
+      unknown ~utility:name "command not found" sta
 
 let call name ctx args =
   dispatch ~name {ctx with args}
