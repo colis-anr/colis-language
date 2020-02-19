@@ -77,6 +77,9 @@ module Buffers
 
   val function split_on_default_ifs string : list string 
 
+  let constant loop_limit_message = "[INCOMPLETE] Loop limit"
+  let constant stack_limit_message = "[INCOMPLETE] Stack limit"
+
   scope Stdout
 
     use bool.Bool
@@ -106,10 +109,10 @@ module Buffers
     let function to_stdin out =
       reverse (all_lines out)
 
-    let output str out =
+    let function output str out =
       { out with line = String.concat out.line str }
 
-    let newline out =
+    let function newline out =
       { line = ""; lines = Cons out.line out.lines }
 
     (* http://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_03 *)
@@ -653,7 +656,8 @@ module Semantics
     eval_list_expr stk (inp, ctx, sta) es (sta1, Ok args) ->
     ctx.func_env[id] = Some ins ->
     inp.config.stack_size = Finite stk ->
-    eval_instruction stk (inp, ctx, sta) (ICallFunction id es) (sta1, ctx, BIncomplete)
+    let sta1' = { sta1 with log = Stdout.(newline (output stack_limit_message sta1.log)) } in
+    eval_instruction stk (inp, ctx, sta) (ICallFunction id es) (sta1', ctx, BIncomplete)
 
   | eval_call_function: forall stk inp ctx ctx2 sta sta1 sta2 id es args ins bhv.
     eval_list_expr stk (inp, ctx, sta) es (sta1, Ok args) ->
@@ -704,7 +708,8 @@ module Semantics
   | eval_while_loop_limit: forall stk ctr b inp ctx sta ins1 ins2.
     0 <= ctr ->
     inp.config.loop_limit = Finite ctr ->
-    eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta, ctx, BIncomplete) ctr b
+    let sta' = { sta with log = Stdout.(newline (output loop_limit_message sta.log)) } in
+    eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta', ctx, BIncomplete) ctr b
 
   (** Condition not normal *)
   | eval_while_abort_condition: forall stk ctr b inp ctx ctx1 sta sta1 ins1 ins2 bhv1.

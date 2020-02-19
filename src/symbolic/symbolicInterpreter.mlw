@@ -686,7 +686,7 @@ module Interpreter
             if stk = get_finite inp.config.stack_size then (* Stack overflow *)
               let aux arg =
                 let sta', _ = arg in
-                (* let sta' = { sta' with log = Stdout.(newline (output "INCOMPLETE: STACK_OVERFLOW" sta'.log)) } in *)
+                let sta' = { sta' with log = Stdout.(newline (output stack_limit_message sta'.log)) } in
                 {state=sta'; context=ctx; data=()}
               in
               Rs.({empty with failure = Cn.map aux arg_res})
@@ -695,7 +695,8 @@ module Interpreter
                 eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
                 ctx.func_env[id] = Some ins ->
                 inp.config.stack_size = Finite stk ->
-                Rs.mem {state=sta1; context=ctx; data=()} BIncomplete result
+                let sta1' = { sta1 with log = Stdout.(newline (output stack_limit_message sta1.log)) } in
+                Rs.mem {state=sta1'; context=ctx; data=()} BIncomplete result
               }
             else (* Execute function *)
               let res2 =
@@ -1003,7 +1004,7 @@ module Interpreter
     }
   = let loop_limit = get_finite inp.config.loop_limit in
     if ctr = loop_limit then
-      (* let sta = { sta with log = Stdout.(newline (output "INCOMPLETE: LOOP_LIMIT" sta.log)) } in *)
+      let sta = { sta with log = Stdout.(newline (output loop_limit_message sta.log)) } in
       Rs.({empty with failure=Cn.singleton {state=sta; context=ctx; data=(ctr, b)}})
     else
       let res1_normal, res1_abort =
