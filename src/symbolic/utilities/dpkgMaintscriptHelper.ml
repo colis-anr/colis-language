@@ -474,13 +474,13 @@ let interprete ctx =
            | "dir_to_symlink" ->
               dir_to_symlink {ctx with args = List.tl args}
                 scriptarg1 scriptarg2 dms_package default_package dms_name
-           | _ -> unsupported ~utility:"dpkg-maintscript-helper" ("unknown subcommand: " ^subcmd)
+           | _ -> unknown ~utility:"dpkg-maintscript-helper" ("unknown subcommand: " ^subcmd)
          with
          | NoDashDash ->
-           unsupported ~utility:("dpkg-maintscript-helper " ^ subcmd) "missing -- separator"
+           error ~utility:("dpkg-maintscript-helper " ^ subcmd) "missing -- separator"
          | MaintainerScriptArguments ->
-           unsupported ~utility:("dpkg-maintscript-helper " ^ subcmd) "maintainer script arguments are missing"
+           error ~utility:("dpkg-maintscript-helper " ^ subcmd) "maintainer script arguments are missing"
          | Error s ->
-            error ~msg:s ()
+            error ~utility:("dpkg-maintscript-helper " ^ subcmd) s
      end
-  | [] ->  unsupported ~utility:"dpkg-maintscript-helper" "no arguments"
+  | [] -> error ~utility:"dpkg-maintscript-helper" "no arguments"
