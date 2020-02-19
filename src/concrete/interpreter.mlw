@@ -14,16 +14,19 @@ module Semantics
 
   (* Instantiate the concrete semantics with our dummy filesystem *)
   clone export semantics.Semantics with
-    type filesystem = unit,
-    axiom interp_utility_extends_output
+    type filesystem = unit
 end
 
 module State
   use ref.Ref
   use list.List
   use string.String
-  use Filesystem
+
   use semantics.Buffers
+  use semantics.Context
+  use semantics.Env
+  use semantics.Path
+  use Filesystem
   use import Semantics as S
 
   type sem_state = state
@@ -42,7 +45,7 @@ module State
     var_env : ref var_env;
     func_env : func_env;
     arguments: ref (list string);
-    cwd : ref (list string);
+    cwd : ref normalized_path;
     result : ref bool;
   }
 end
@@ -59,18 +62,22 @@ module Interpreter
   use map.MapExt
   use int.Int
   use ref.Refint
+  use string.OCaml as String
 
   use auxiliaries.OptionGet
-  use string.OCaml as String
+  use auxiliaries.TakeDrop
   use syntax.Syntax
+  use semantics.Arguments
   use semantics.Result
   use semantics.Buffers
   use semantics.Behaviour
   use semantics.Input
   use semantics.Config
+  use semantics.Context
+  use semantics.InterpUtilitySpec
   use semantics.Env as E
+  use semantics.Path
   use Filesystem as Fs
-  use auxiliaries.TakeDrop
   use import Semantics as S
   use import State as St
 
@@ -85,8 +92,8 @@ module Interpreter
 
   let empty_state () = {
     St.filesystem = ref Filesystem.empty;
-    St.var_env = ref S.empty_var_env;
-    St.func_env = S.empty_func_env;
+    St.var_env = ref empty_var_env;
+    St.func_env = empty_func_env;
     St.arguments = ref Nil;
     St.stdin = ref Stdin.empty;
     St.stdout = ref Stdout.empty;
@@ -95,12 +102,12 @@ module Interpreter
     St.result = ref True;
   }
 
-  function sem_context (sta:state) : S.context = {
-    S.var_env = !(sta.var_env);
-    S.func_env = sta.func_env;
-    S.arguments = !(sta.arguments);
-    S.cwd = !(sta.cwd);
-    S.result = !(sta.result);
+  function sem_context (sta:state) : context = {
+    Context.var_env = !(sta.var_env);
+    Context.func_env = sta.func_env;
+    Context.arguments = !(sta.arguments);
+    Context.cwd = !(sta.cwd);
+    Context.result = !(sta.result);
   }
 
   lemma context_same: forall sta1 sta2.
@@ -139,22 +146,30 @@ module Interpreter
 
   (** {3 Imperative wrapper around the functional interpretation of utilties} *)
 
-  let interp_utility (inp:input) (sta:state) (id:identifier) (args:list string)
+  (** Interprete a command defined in the document *Specification of UNIX Commands*. *)
+  val interp_utility (params: (utility_context, identifier, S.state)) : (S.state, result bool)
+    ensures { S.interp_utility params result }
+
+  let interp_utility' (inp:input) (sta:state) (id:identifier) (args:list string)
     ensures {
-      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, Ok !(sta.result)) /\
+      let utility_ctx = (!(old sta.cwd), filter_var_env !(old sta.var_env), args) in
+      interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
     raises { EExit ->
-      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, Ok !(sta.result)) /\
+      let utility_ctx = (!(old sta.cwd), filter_var_env !(old sta.var_env), args) in
+      interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
     raises { EIncomplete ->
-      interp_utility (!(old sta.cwd), filter_var_env !(old sta.var_env), args) id (old sem_state sta) = (sem_state sta, Incomplete)
+      let utility_ctx = (!(old sta.cwd), filter_var_env !(old sta.var_env), args) in
+      interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Incomplete)
     }
     raises { EIncomplete ->
       sem_context sta = sem_context (old sta)
     }
-  = let sta', r = interp_utility (!(sta.cwd), filter_var_env !(sta.var_env), args) id (sem_state sta) in
+  = let utility_ctx = (!(sta.cwd), filter_var_env !(sta.var_env), args) in
+    let sta', r = interp_utility (utility_ctx, id, sem_state sta) in
     sta.filesystem := sta'.S.filesystem;
     assert { !(sta.filesystem) = sta'.S.filesystem };
     sta.stdin := sta'.S.stdin;
@@ -167,8 +182,6 @@ module Interpreter
     | Incomplete ->
       raise EIncomplete
     end
-
-  use semantics.Arguments
 
   let shift_arguments sta n
     requires { n >= 0 }
@@ -256,7 +269,7 @@ module Interpreter
 
     | IExport id ->
       let old_env = !(sta.var_env) in
-      let var_val = {old_env[id] with S.exported=True} in
+      let var_val = {old_env[id] with exported=True} in
       sta.var_env := old_env[id <- var_val];
       sta.result := True
 
@@ -339,7 +352,7 @@ module Interpreter
 
     | ICallUtility name le ->
       let args = interp_list_expr inp sta le in
-      interp_utility inp sta name args
+      interp_utility' inp sta name args
 
     | ICallFunction id le ->
       let args = interp_list_expr inp sta le in
@@ -430,7 +443,7 @@ module Interpreter
       let cwd_p = absolute_or_concat_relative !(sta.cwd) s in
       let pwd_s = normalized_path_to_string cwd_p in
       let args = Cons "-d" (Cons pwd_s Nil) in
-      interp_utility {inp with under_condition=True} sta identifier_test args;
+      interp_utility' {inp with under_condition=True} sta identifier_test args;
       if !(sta.result) then begin
         sta.var_env := !(sta.var_env)[identifier_pwd <- pwd_s]';
         sta.cwd := cwd_p

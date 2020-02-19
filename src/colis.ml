@@ -14,11 +14,15 @@ end
 module Common = struct
   module Arguments = Semantics__Arguments
   module Behaviour = Semantics__Behaviour
-  module Env = Env
+  module Config = Semantics__Config
+  module Context = Semantics__Context
+  module Env = Semantics__Env
+  module Input = Semantics__Input
+  module InterpUtilitySpec = Semantics__InterpUtilitySpec
+  module Path = Semantics__Path
+  module Result = Semantics__Result
   module Stdin = Semantics__Buffers.Stdin
   module Stdout = Semantics__Buffers.Stdout
-  module Config = Semantics__Config
-  module Input = Semantics__Input
 end
 
 module Concrete = struct
@@ -72,10 +76,10 @@ module Symbolic = struct
     {Semantics.filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty; log=Common.Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
-    let open Semantics in
     let context =
-      let var_env = Semantics.add_var_bindings true vars Semantics.empty_var_env in
-      {Semantics.empty_context with arguments; var_env; cwd=[]}
+      let open Common.Context in
+      let var_env = add_var_bindings true vars empty_var_env in
+      {empty_context with arguments; var_env; cwd=[]}
     in
     {SymState.state; context; data=()}
 
@@ -164,12 +168,13 @@ let colis_to_file filename colis =
 let run ~argument0 ?(arguments=[]) ?(vars=[]) colis =
   let open Common in
   let open Concrete in
+  let open Context in
   let input =
     let config = Config.({loop_limit = Infinite; stack_size = Infinite }) in
     Input.({ argument0; config; under_condition=false }) in
   let state = Interpreter.empty_state () in
   state.arguments := arguments;
-  state.var_env := Semantics.add_var_bindings true vars Semantics.empty_var_env;
+  state.var_env := add_var_bindings true vars empty_var_env;
   try
     Interpreter.interp_program input state colis;
     print_string (Stdout.all_lines !(state.stdout) |> List.rev |> String.concat "\n");
