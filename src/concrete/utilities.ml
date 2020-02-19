@@ -12,29 +12,29 @@ module IdMap = Env.IdMap
 
 type env = string IdMap.t
 
-let unsupported ~utility msg = fun sta ->
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.Unsupported (utility, msg))
-  else
-    let str = utility ^ ": " ^ msg in
-    let stdout = Stdout.(sta.stdout |> output str |> newline) in
-    {sta with stdout}, Ok false
+let incomplete ~utility msg = fun sta ->
+  let str = utility ^ ": " ^ msg in
+  let stdout = Stdout.(sta.stdout |> output str |> newline) in
+  {sta with stdout}, Incomplete
 
-let unknown_utility utility = fun sta ->
-  if !Options.fail_on_unknown_utilities then
-    raise (Errors.Unsupported (utility, "unknown utility"))
-  else
-    let str = utility ^ ": command not found" in
-    let stdout = Stdout.(sta.stdout |> output str |> newline) in
-    {sta with stdout}, Ok false
+let error ~utility msg = fun sta ->
+  let str = utility ^ ": " ^ msg in
+  let stdout = Stdout.(sta.stdout |> output str |> newline) in
+  {sta with stdout}, Ok false
+
+let unknown ~utility msg =
+  match !Options.unknown_behaviour with
+  | Exception -> raise (Errors.Unknown_behaviour (utility, msg))
+  | Incomplete -> incomplete ~utility msg
+  | Error -> error ~utility msg
 
 let test (sta : state) : string list -> (state * bool result) = function
   | [sa; "="; sb] ->
     (sta, Ok (sa = sb))
   | [sa; "!="; sb] ->
     (sta, Ok (sa <> sb))
-  | _ ->
-    unsupported ~utility:"test" "arguments different from . = . and . != ." sta
+  | args ->
+    unknown ~utility:"test" (String.concat " " args) sta
 
 let dpkg_compare_versions args =
   Sys.command ("dpkg --compare-versions " ^ String.concat " " args) = 0
@@ -73,7 +73,7 @@ let interp_utility (_cwd, var_env, args) id sta =
       List.map format_line |>
       List.fold_left print_line sta, Ok true
     | _arg :: _ ->
-      unsupported ~utility:"env" "no arguments supported" sta
+      incomplete ~utility:"env" "no arguments supported" sta
     end
   | "grep" -> (* Just for testing stdin/stdout handling *)
      begin match args with
@@ -92,9 +92,9 @@ let interp_utility (_cwd, var_env, args) id sta =
         let sta' = {sta with stdout; stdin=Stdin.empty} in
         sta', Ok result
      | [] ->
-       unsupported ~utility:"grep" "missing argument" sta
+       error ~utility:"grep" "missing argument" sta
      | _arg :: _ ->
-       unsupported ~utility:"grep" "two or more arguments" sta
+       incomplete ~utility:"grep" "two or more arguments" sta
      end
   | "dpkg" ->
      begin match args with
@@ -102,16 +102,17 @@ let interp_utility (_cwd, var_env, args) id sta =
          "--validate-archname" | "--validate-version") as subcmd)::args->
         if List.length args = 1
         then sta, Ok (dpkg_validate_thing subcmd (List.hd args))
-        else unsupported ~utility:"dpkg"
+        else error ~utility:"dpkg"
                "--validate_thing needs excactly 1 argument" sta
      | "--compare-versions"::args ->
       if List.length args = 3
       then sta, Ok (dpkg_compare_versions args)
-      else unsupported ~utility:"dpkg"
+      else error ~utility:"dpkg"
              "--compare-versions needs excatly 3 arguments" sta
-     | _ -> unsupported ~utility:"dpkg" "unsupported arguments" sta
+     | _ -> error ~utility:"dpkg" "unsupported arguments" sta
      end
-  | _ -> unknown_utility id sta
+  | _ ->
+    unknown ~utility:id "unknown" sta
 
 let absolute_or_concat_relative (p: string list) (s: string) : string list =
   if String.equal s "" then

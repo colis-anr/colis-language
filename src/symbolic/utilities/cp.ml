@@ -223,15 +223,15 @@ let interprete ctx : utility =
           args_rev := arg :: !args_rev)
     ctx.args;
   if !i then
-    error ~msg:"cp: option `-i` forbidden" ()
+    error ~utility:"cp" "option `-i` forbidden"
   else
     match !e with
-    | Some arg -> unsupported ~utility:"cp" ("unknown argument: " ^ arg)
+    | Some arg -> error ~utility:"cp" ("unknown argument: " ^ arg)
     | None -> (
       let args = List.rev !args_rev in
       match args with
-      | [] -> error ~msg:"cp: missing operand" ()
-      | [_arg] -> error ~msg:"cp: not enough arguments" ()
+      | [] -> error ~utility:"cp" "missing operand"
+      | [_arg] -> error ~utility:"cp" "not enough arguments"
       | [src; dst] -> (* 2 arguments: first, second and third synopsis forms *)
           interp_cp2 ctx ~todir:false ~isrec:!r src dst
       | src::_ -> (* second and third synopsis forms, cp in existing directory *)
