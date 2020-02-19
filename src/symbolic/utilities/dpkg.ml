@@ -18,18 +18,18 @@ let interprete ctx =
             [sta, Ok true]
         )
       else
-        unsupported ~utility "-L about an other package"
+        incomplete ~utility "-L about an other package"
 
     | "-L" :: _ ->
-      unsupported ~utility "option -L expects exactly one argument"
+      error ~utility "option -L expects exactly one argument"
     | ["--compare-versions"; _v1; _v2] ->
-      unsupported ~utility "support for --compare-versions not yet implemented"
+      incomplete ~utility "support for --compare-versions not yet implemented"
     | "--compare-versions" :: _ ->
-      unsupported ~utility "option --compare-versions expects exactly two arguments"
+      error ~utility "option --compare-versions expects exactly two arguments"
     | [] ->
       (* TODO: return error state *)
-      unsupported ~utility "no argument found"
+      error ~utility "no argument found"
     | arg :: _ ->
-      unsupported ~utility ("unsupported argument: " ^ arg)
+      incomplete ~utility ("unsupported argument: " ^ arg)
   in
   aux ctx.args

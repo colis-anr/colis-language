@@ -109,19 +109,19 @@ val compose_strict : utility -> utility -> utility
 
 (** {1 Auxiliaries} *)
 
-(** Error utility with optional message *)
-val error : ?msg:string -> unit -> utility
+(** Error utility *)
+val error : utility:string -> string -> utility
 
 (** Unsupported stuff in a known utility. *)
-val unsupported : utility:string -> string -> utility
+val incomplete : utility:string -> string -> utility
+
+(* Unknown-unknown behaviour *)
+val unknown : utility:string -> string -> utility
 
 (** {2 Printing} *)
 
 (** Print to stdout and log *)
 val print_stdout : newline:bool -> string -> state -> state
-
-(** (Optionally) print message as error to log (marked as [ERR]) *)
-val print_error : string option -> state -> state
 
 (** Print message as utility trace to log if it is not empty (marked as [UTL]) *)
 val print_utility_trace : string -> state -> state
