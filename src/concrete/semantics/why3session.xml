@@ -3,7 +3,7 @@
 "http://why3.lri.fr/why3session.dtd">
 <why3session shape_version="6">
 <prover id="1" name="CVC4" version="1.6" timelimit="0" steplimit="0" memlimit="0"/>
-<prover id="4" name="Z3" version="4.8.7" timelimit="0" steplimit="0" memlimit="0"/>
+<prover id="4" name="Z3" version="4.8.7" timelimit="0" steplimit="0" memlimit="1000"/>
 <prover id="5" name="Alt-Ergo" version="2.3.0" timelimit="1" steplimit="0" memlimit="1000"/>
 <file format="whyml" proved="true">
 <path name=".."/><path name="semantics.mlw"/>
@@ -16,14 +16,14 @@
  <goal name="Stdout.to_string&#39;vc" expl="VC for to_string" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="to_string&#39;vc.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.05" steps="13556"/></proof>
+  <proof prover="1"><result status="valid" time="0.05" steps="13662"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="Stdout.concat&#39;vc" expl="VC for concat" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="concat&#39;vc.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.06" steps="13656"/></proof>
+  <proof prover="1"><result status="valid" time="0.06" steps="13780"/></proof>
   </goal>
  </transf>
  </goal>
@@ -33,32 +33,32 @@
   <proof prover="5"><result status="valid" time="0.01" steps="58"/></proof>
   </goal>
   <goal name="concat_empty_left&#39;vc.1" expl="postcondition" proved="true">
-  <proof prover="5" timelimit="5"><result status="valid" time="6.00" steps="6038"/></proof>
+  <proof prover="5" timelimit="5"><result status="valid" time="6.00" steps="6077"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="Stdout.concat_empty_right&#39;vc" expl="VC for concat_empty_right" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="concat_empty_right&#39;vc.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.06" steps="13913"/></proof>
+  <proof prover="1"><result status="valid" time="0.06" steps="14037"/></proof>
   </goal>
   <goal name="concat_empty_right&#39;vc.1" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.09" steps="14353"/></proof>
+  <proof prover="1"><result status="valid" time="0.09" steps="14539"/></proof>
   </goal>
  </transf>
  </goal>
  <goal name="Stdout.concat_aux&#39;vc" expl="VC for concat_aux" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="concat_aux&#39;vc.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.07" steps="13952"/></proof>
+  <proof prover="1"><result status="valid" time="0.07" steps="14076"/></proof>
   </goal>
   <goal name="concat_aux&#39;vc.1" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="concat_aux&#39;vc.1.0" expl="postcondition" proved="true">
-   <proof prover="4"><result status="valid" time="0.04" steps="45589"/></proof>
+   <proof prover="4" memlimit="0"><result status="valid" time="0.02" steps="48387"/></proof>
    </goal>
    <goal name="concat_aux&#39;vc.1.1" expl="postcondition" proved="true">
-   <proof prover="4"><result status="valid" time="0.02" steps="42581"/></proof>
+   <proof prover="4" memlimit="0"><result status="valid" time="0.04" steps="44126"/></proof>
    </goal>
   </transf>
   </goal>
@@ -67,18 +67,19 @@
  <goal name="Stdout.concat_assoc&#39;vc" expl="VC for concat_assoc" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="concat_assoc&#39;vc.0" expl="assertion" proved="true">
-  <proof prover="1"><result status="valid" time="0.04" steps="10779"/></proof>
+  <proof prover="5"><result status="valid" time="0.01" steps="14"/></proof>
   </goal>
   <goal name="concat_assoc&#39;vc.1" expl="variant decrease" proved="true">
-  <proof prover="5"><result status="valid" time="0.01" steps="58"/></proof>
+  <proof prover="1"><result status="valid" time="0.04" steps="14167"/></proof>
   </goal>
   <goal name="concat_assoc&#39;vc.2" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="concat_assoc&#39;vc.2.0" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.01" steps="61"/></proof>
+   <proof prover="4" timelimit="5"><result status="valid" time="0.03" steps="39880"/></proof>
    </goal>
    <goal name="concat_assoc&#39;vc.2.1" expl="postcondition" proved="true">
-   <proof prover="4" timelimit="5" memlimit="1000"><result status="valid" time="0.03" steps="55763"/></proof>
+   <proof prover="4" timelimit="10"><result status="valid" time="0.03" steps="58843"/></proof>
+   <proof prover="5" timelimit="10" memlimit="4000"><result status="timeout" time="10.00"/></proof>
    </goal>
   </transf>
   </goal>
@@ -169,8 +170,8 @@
  <goal name="same_context" proved="true">
  <proof prover="5"><result status="valid" time="0.03" steps="28"/></proof>
  </goal>
- <goal name="no_while_failure&#39;vc" expl="VC for no_while_failure" proved="true">
- <proof prover="5" timelimit="10"><result status="valid" time="1.02" steps="491"/></proof>
+ <goal name="no_while_incomplete&#39;vc" expl="VC for no_while_incomplete" proved="true">
+ <proof prover="5" timelimit="10"><result status="valid" time="1.02" steps="449"/></proof>
  </goal>
  <goal name="interp_function_definitions&#39;vc" expl="VC for interp_function_definitions" proved="true">
  <proof prover="5"><result status="valid" time="0.12" steps="139"/></proof>
@@ -186,31 +187,31 @@
   <goal name="eval_foreach_last&#39;vc.0" expl="postcondition" proved="true">
   <transf name="inversion_arg_pr" proved="true" arg1="H1">
    <goal name="eval_foreach_last&#39;vc.0.0" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.90" steps="719"/></proof>
+   <proof prover="5"><result status="valid" time="0.96" steps="719"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.0.1" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.06" steps="26"/></proof>
+   <proof prover="5"><result status="valid" time="0.16" steps="26"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.0.2" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.23" steps="44"/></proof>
-   </goal>
-  </transf>
-  <transf name="split_vc" proved="true" >
-   <goal name="eval_foreach_last&#39;vc.0.0" expl="postcondition" proved="true">
-   <proof prover="5" timelimit="10" memlimit="4000"><result status="valid" time="9.81" steps="4509"/></proof>
+   <proof prover="5"><result status="valid" time="0.27" steps="44"/></proof>
    </goal>
   </transf>
   </goal>
   <goal name="eval_foreach_last&#39;vc.1" expl="postcondition" proved="true">
   <transf name="inversion_arg_pr" proved="true" arg1="H1">
    <goal name="eval_foreach_last&#39;vc.1.0" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.16" steps="39"/></proof>
+   <proof prover="5"><result status="valid" time="0.23" steps="39"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.1.1" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.19" steps="26"/></proof>
+   <proof prover="5"><result status="valid" time="0.09" steps="26"/></proof>
    </goal>
    <goal name="eval_foreach_last&#39;vc.1.2" expl="postcondition" proved="true">
-   <proof prover="5"><result status="valid" time="0.27" steps="115"/></proof>
+   <proof prover="5"><result status="valid" time="0.26" steps="115"/></proof>
+   </goal>
+  </transf>
+  <transf name="split_vc" proved="true" >
+   <goal name="eval_foreach_last&#39;vc.1.0" expl="postcondition" proved="true">
+   <proof prover="5" timelimit="10" memlimit="4000"><result status="valid" time="1.79" steps="1085"/></proof>
    </goal>
   </transf>
   </goal>
