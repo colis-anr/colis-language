@@ -33,8 +33,8 @@ let test (sta : state) : string list -> (state * bool result) = function
     (sta, Ok (sa = sb))
   | [sa; "!="; sb] ->
     (sta, Ok (sa <> sb))
-  | args ->
-    unknown ~utility:"test" (String.concat " " args) sta
+  | _ ->
+    unknown ~utility:"test" "arguments different from . = . and . != ." sta
 
 let dpkg_compare_versions args =
   Sys.command ("dpkg --compare-versions " ^ String.concat " " args) = 0
@@ -112,7 +112,7 @@ let interp_utility (_cwd, var_env, args) id sta =
      | _ -> error ~utility:"dpkg" "unsupported arguments" sta
      end
   | _ ->
-    unknown ~utility:id "unknown" sta
+    unknown ~utility:id "command not found" sta
 
 let absolute_or_concat_relative (p: string list) (s: string) : string list =
   if String.equal s "" then
