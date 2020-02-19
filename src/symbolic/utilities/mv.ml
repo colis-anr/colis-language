@@ -212,9 +212,9 @@ let interp_mv2dir ctx dst src : utility =
   let qsrc = Path.from_string src in
   match Path.split_last qsrc with
   | None ->
-     error ~msg:"mv: invalid source path ''" ()
+     error ~utility:"mv" "invalid source path ''"
   | Some (_, (Here|Up)) ->
-     error ~msg:"mv: source path ends in . or .." ()
+     error ~utility:"mv" "source path ends in . or .."
   | Some (_, Down fs) ->
      let stripdst = Path.strip_trailing_slashes dst in
      let dstpath = String.concat "/" [stripdst; (Feat.to_string fs)] in
@@ -236,15 +236,15 @@ let interprete ctx : utility =
           args_rev := arg :: !args_rev)
     ctx.args;
   if !i then
-    error ~msg:"mv: option `-i` forbidden" ()
+    error ~utility:"mv" "option `-i` forbidden"
   else
     match !e with
-    | Some arg -> unsupported ~utility:"mv" ("unknown argument: " ^ arg)
+    | Some arg -> error ~utility:"mv" ("unknown argument: " ^ arg)
     | None -> (
       let args = List.rev !args_rev in
       match args with
-      | [] -> error ~msg:"mv: missing operand" ()
-      | [_arg] -> error ~msg:"mv: not enough arguments" ()
+      | [] -> error ~utility:"mv" "missing operand"
+      | [_arg] -> error ~utility:"mv" "not enough arguments"
       | [src; dst] ->
         (if_then_else
           (call "test" ctx ["-d"; dst])
@@ -258,6 +258,6 @@ let interprete ctx : utility =
         (if_then_else
            (call "test" ctx ["-d"; dir])
            (multiple_times (interp_mv2dir ctx dir) (List.rev srcs))
-           (error ~msg:"mv: last argument not a directory" ())
+           (error ~utility:"mv" "last argument not a directory")
         )
     )
