@@ -91,20 +91,9 @@ let print_stdout ~newline str sta =
   let log = print_output ~newline str sta.log in
   {sta with stdout; log}
 
-let print_error opt sta =
-  match opt with
-  | None -> sta
-  | Some str ->
-    let log = print_output ~newline:true ("[ERROR] "^str) sta.log in
-    {sta with log}
-
-let print_incomplete_trace str sta =
-  if String.equal str "" then
-    sta
-  else
-    let log =
-      print_output ~newline:true ("[INCOMPLETE] "^str) sta.log in
-    {sta with log}
+let print_error str sta =
+  let log = print_output ~newline:true ("[ERROR] "^str) sta.log in
+  {sta with log}
 
 let print_utility_trace str sta =
   if String.equal str "" then
@@ -112,6 +101,13 @@ let print_utility_trace str sta =
   else
     let log =
       print_output ~newline:true ("[TRACE] "^str) sta.log in
+    {sta with log}
+
+let print_incomplete_trace str sta =
+  if String.equal str "" then
+    sta
+  else
+    let log = print_output ~newline:true ("[INCOMPLETE] "^str) sta.log in
     {sta with log}
 
 type case_spec = Var.t -> Var.t -> Clause.t
@@ -167,8 +163,9 @@ let apply_spec fs spec =
 let apply_case sta case : (state * bool result) list =
   (* First print the utility trace *)
   let sta =
-    let print = match case.result with Ok _ -> print_utility_trace | Incomplete -> print_incomplete_trace in
-    print case.descr sta in
+    if case.result = Incomplete
+    then sta (* Print incomplete trace last *)
+    else print_utility_trace case.descr sta in
   let sta = {
     (* output case stdout to stdout and log *)
     stdout = Stdout.concat sta.stdout case.stdout;
@@ -179,10 +176,14 @@ let apply_case sta case : (state * bool result) list =
     filesystem = sta.filesystem;
   } in
   (* (Optionally) print error message *)
-  if case.result = Incomplete then
-    (* Make sure that the description is the last message on the log *)
-    assert (case.error_message = None);
-  let sta = print_error case.error_message sta in
+  let sta =
+    match case.error_message with
+    | Some msg -> print_error msg sta
+    | None -> sta in
+  let sta =
+    if case.result = Incomplete
+    then print_incomplete_trace case.descr sta
+    else sta in
   (* Apply the case specifications to the filesystem *)
   apply_spec sta.filesystem case.spec |>
   (* Inject the resulting filesystems into the state *)
@@ -208,21 +209,22 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
        (* We can’t know (if last component in parent path is a symbolic link) *)
       None
 
-let error ?msg () : utility =
+let error ~utility msg : utility =
   fun sta ->
-    let sta' = print_error msg sta in
+    let str = utility ^ ": " ^ msg in
+    let sta' = print_error str sta in
     [ sta', Ok false ]
 
-let incomplete ~descr () : utility =
+let incomplete ~utility msg : utility =
   fun sta ->
-    let sta' = print_incomplete_trace descr sta in
-    [sta', Incomplete]
+    let str = utility ^ ": " ^ msg in
+    [print_incomplete_trace str sta, Incomplete]
 
-let unsupported ~utility msg =
-  if !Options.fail_on_unknown_utilities then
-    Errors.unsupported ~utility msg
-  else
-    incomplete ~descr:(utility ^ ": " ^ msg) ()
+let unknown ~utility msg : utility =
+  match !Options.unknown_behaviour with
+  | Exception -> raise (Errors.Unknown_behaviour (utility, msg))
+  | Incomplete -> incomplete ~utility msg
+  | Error -> error ~utility "not found"
 
 module IdMap = Env.IdMap
 
@@ -249,8 +251,8 @@ let is_registered = Hashtbl.mem table
 
 let dispatch ~name =
   try Hashtbl.find table name
-  with Not_found -> fun _ ->
-    error ~msg:(name^": command not found") ()
+  with Not_found ->
+    fun _ctx -> unknown ~utility:name "unknown"
 
 let call name ctx args =
   dispatch ~name {ctx with args}
@@ -293,7 +295,7 @@ let cmdliner_eval_utility ~utility ?(empty_pos_args=false) fun_and_args ctx =
   in
   match result with
   | `Ok a -> a
-  | `Version -> Errors.unsupported ~utility "version"
-  | `Help -> Errors.unsupported ~utility "help"
-  | `Error (`Parse | `Term) -> Errors.unsupported ~utility ("parse error: " ^ err)
+  | `Version -> error ~utility "version"
+  | `Help -> error ~utility "help"
+  | `Error (`Parse | `Term) -> unknown ~utility ("parse error: " ^ err)
   | `Error `Exn -> assert false (* because ~catch:false *)
