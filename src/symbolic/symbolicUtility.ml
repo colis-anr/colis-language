@@ -1,16 +1,21 @@
 open Colis_constraints
 open Semantics__Result
 open Semantics__Buffers
+open Semantics__UtilityContext
 
 module type FILESYSTEM = sig
   type filesystem
 end
+
+exception Incomplete_case_spec
 
 module type CASESPEC = sig
   type case_spec
   val noop : case_spec
   type filesystem
   val apply_spec : filesystem -> case_spec -> filesystem list
+  (** Can raise [Incomplete_case_spec] which forces incomplete behaviour for this
+      case_spec *)
 end
 
 module Make (Filesystem: FILESYSTEM) = struct
@@ -224,9 +229,11 @@ module Make (Filesystem: FILESYSTEM) = struct
 
   module MakeSpecifications (CaseSpec: CASESPEC with type filesystem = Filesystem.filesystem) = struct
 
+    open CaseSpec
+
     type case = {
       result : bool result;
-      spec : CaseSpec.case_spec;
+      spec : case_spec;
       descr : string;
       stdout : Stdout.t ;
       error_message: string option;
@@ -273,31 +280,41 @@ module Make (Filesystem: FILESYSTEM) = struct
         if case.result = Incomplete
         then print_incomplete_trace case.descr sta
         else sta in
+      (* Apply the specification and possibly induce incomplete behaviour *)
+      let filesystems, result =
+        try apply_spec sta.filesystem case.spec, case.result
+        with Incomplete_case_spec -> [sta.filesystem], Incomplete in
       (* Apply the case specifications to the filesystem *)
-      CaseSpec.apply_spec sta.filesystem case.spec |>
+      filesystems |>
       (* Inject the resulting filesystems into the state *)
       List.map (fun filesystem -> {sta with filesystem}) |>
       (* Add the result to each result state *)
-      List.map (fun sta -> sta, case.result)
+      List.map (fun sta -> sta, result)
 
     let specification_cases cases state =
       List.flatten (List.map (apply_case state) cases)
   end
 end
 
-type symbolic_filesystem = {
+(* Constraints *)
+
+type constraints_filesystem = {
   root: Var.t;
   clause: Clause.sat_conj;
   root0: Var.t option;
 }
 
-module SymbolicImplementation = struct
+type constraints_case_spec = Var.t -> Var.t -> Clause.t
 
-  type case_spec = Var.t -> Var.t -> Clause.t
+let constraints_noop = Clause.eq
 
-  let noop = Clause.eq
+module ConstraintsImplementation = struct
 
-  type filesystem = symbolic_filesystem
+  type filesystem = constraints_filesystem
+
+  type case_spec = constraints_case_spec
+
+  let noop = constraints_noop
 
   (** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
   let apply_spec fs spec =
@@ -319,34 +336,99 @@ module SymbolicImplementation = struct
     List.map (fun clause -> {fs with clause; root=root'}) clauses
 end
 
-module Symbolic = struct
+let last_comp_as_hint: root:Var.t -> Path.t -> string option =
+  fun ~root path ->
+  match Path.split_last path with
+  | Some (_, Down f) ->
+    Some (Feat.to_string f)
+  | None -> (* Empty parent path => root *)
+    Some (Var.hint root)
+  | Some (_, (Here|Up)) ->
+    (* We can’t know (if last component in parent path is a symbolic link) *)
+    None
 
-  include Make (SymbolicImplementation)
+(* Transducers *)
 
-  include MakeSpecifications (SymbolicImplementation)
+type transducers_filesystem = unit (* TODO *)
 
-  type context = Semantics.utility_context = {
-    cwd: Colis_constraints.Path.normal;
+type transducers_case_spec = unit (* TODO *)
+
+let transducers_noop = ()
+
+module TransducersImplementation = struct
+  type filesystem = transducers_filesystem
+  type case_spec = transducers_case_spec
+  let noop = transducers_noop
+  let apply_spec fs spec = ignore spec; [fs]
+end
+
+(* Mixed *)
+
+type mixed_filesystem =
+  | Constraints of constraints_filesystem
+  | Transducers of transducers_filesystem
+
+(* The case_specs are wrapped in a closure because they may raise Incomplete_case_spec *)
+type mixed_case_spec = {
+  constraints: unit -> constraints_case_spec;
+  transducers: unit -> transducers_case_spec;
+}
+
+let mixed_case_spec ?transducers ?constraints () =
+  let case_spec_or_incomplete opt () =
+    match opt with Some x -> x | None -> raise Incomplete_case_spec in
+  {constraints = case_spec_or_incomplete constraints;
+   transducers = case_spec_or_incomplete transducers}
+
+let mixed_noop =
+  mixed_case_spec ~transducers:transducers_noop ~constraints:constraints_noop ()
+
+module MixedImplementation = struct
+  type filesystem = mixed_filesystem
+  type case_spec = mixed_case_spec
+  let noop = mixed_noop
+  let apply_spec (fs: mixed_filesystem) (spec: mixed_case_spec) =
+    match fs with
+    | Constraints fs ->
+      ConstraintsImplementation.apply_spec fs (spec.constraints ()) |>
+      List.map (fun fs -> Constraints fs)
+    | Transducers fs ->
+      TransducersImplementation.apply_spec fs (spec.transducers ()) |>
+      List.map (fun fs -> Transducers fs)
+end
+
+include Make (MixedImplementation)
+include MakeSpecifications (MixedImplementation)
+let noop = mixed_noop
+type context = utility_context = {
+  cwd: Path.normal;
+  env: string Env.SMap.t;
+  args: string list;
+}
+
+module ConstraintsCompatibility = struct
+
+  include Make (MixedImplementation)
+  include MakeSpecifications (MixedImplementation)
+
+  type filesystem = constraints_filesystem
+
+  type context = utility_context = {
+    cwd: Path.normal;
     env: string Env.SMap.t;
     args: string list;
   }
 
-  type filesystem = symbolic_filesystem = {
-    root: Var.t;
-    clause: Clause.sat_conj;
-    root0: Var.t option;
-  }
+  let success_case ~descr ?stdout constraints =
+    success_case ~descr ?stdout (mixed_case_spec ~constraints ())
 
-  let noop = SymbolicImplementation.noop
+  let error_case ~descr ?stdout ?error_message constraints =
+    error_case ~descr ?stdout ?error_message (mixed_case_spec ~constraints ())
 
-  let last_comp_as_hint: root:Var.t -> Path.t -> string option =
-    fun ~root path ->
-    match Path.split_last path with
-    | Some (_, Down f) ->
-      Some (Feat.to_string f)
-    | None -> (* Empty parent path => root *)
-      Some (Var.hint root)
-    | Some (_, (Here|Up)) ->
-      (* We can’t know (if last component in parent path is a symbolic link) *)
-      None
+  let incomplete_case ~descr constraints =
+    incomplete_case ~descr (mixed_case_spec ~constraints ())
+
+  let noop = constraints_noop
+
+  let last_comp_as_hint = last_comp_as_hint
 end

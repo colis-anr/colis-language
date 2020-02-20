@@ -1,5 +1,5 @@
 open Format
-open SymbolicUtility.Symbolic
+open SymbolicUtility.ConstraintsCompatibility
 
 module Install = struct
   let name = "/usr/lib/emacsen-common/emacs-package-install"

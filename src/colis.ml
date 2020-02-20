@@ -33,7 +33,9 @@ module Concrete = struct
 end
 
 module Symbolic = struct
-  include SymbolicUtility.Symbolic
+  open SymbolicUtility
+  include SymbolicUtility.Make (MixedImplementation)
+  include MakeSpecifications (MixedImplementation)
 
   module FilesystemSpec = FilesystemSpec
 
@@ -68,7 +70,7 @@ module Symbolic = struct
 
   let to_state ~prune_init_state ~root clause : Semantics.state =
     let root0 = if prune_init_state then None else Some root in
-    let filesystem = {root; clause; root0} in
+    let filesystem = SymbolicUtility.Constraints {root; clause; root0} in
     {Semantics.filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty; log=Common.Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
@@ -197,21 +199,24 @@ type symbolic_config = {
 
 let print_symbolic_filesystem fmt fs =
   let open Colis_constraints in
-  let open Symbolic in
-  fprintf fmt "root: %a@\n" Var.pp fs.root;
-  fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
+  fprintf fmt "root: %a@\n" Var.pp fs.SymbolicUtility.root;
+  fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.SymbolicUtility.clause
 
 let print_symbolic_state fmt ?id sta =
   let open Symbolic.Semantics in
+  let filesystem =
+    match sta.filesystem with
+    | Constraints fs -> fs
+    | _ -> invalid_arg "print_symbolic_state: not a constraints filesystem" in
   begin match id with
     | Some id ->
       fprintf fmt "id: %s@\n" id;
       if !Colis_internals.Options.print_states_dir <> "" then
         let filename = sprintf "%s/%s.dot" !Colis_internals.Options.print_states_dir id in
-        print_dot filename id sta.filesystem.clause;
+        print_dot filename id filesystem.SymbolicUtility.clause;
     | None -> ()
   end;
-  print_symbolic_filesystem fmt sta.filesystem;
+  print_symbolic_filesystem fmt filesystem;
   (* Print stdin *)
   if sta.stdin <> [] then begin
     fprintf fmt "stdin: |@\n";
