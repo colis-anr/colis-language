@@ -33,7 +33,8 @@ module Concrete : sig
 end
 
 module Symbolic : sig
-  include module type of SymbolicUtility.Symbolic
+  include module type of SymbolicUtility.Make (SymbolicUtility.MixedImplementation)
+  include module type of MakeSpecifications (SymbolicUtility.MixedImplementation)
   module FilesystemSpec = FilesystemSpec
 
   open Colis_constraints

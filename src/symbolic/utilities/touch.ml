@@ -1,7 +1,7 @@
 open Format
 open Colis_constraints
 open Clause
-open SymbolicUtility.Symbolic
+open SymbolicUtility.ConstraintsCompatibility
 
 let name = "touch"
 

@@ -1,4 +1,4 @@
-open SymbolicUtility.Symbolic
+open SymbolicUtility.ConstraintsCompatibility
 
 let name = "update-alternatives"
 
