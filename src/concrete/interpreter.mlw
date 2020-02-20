@@ -14,7 +14,8 @@ module Semantics
 
   (* Instantiate the concrete semantics with our dummy filesystem *)
   clone export semantics.Semantics with
-    type filesystem = unit
+    type filesystem = unit,
+    axiom interp_utility_extends_output
 end
 
 module State
