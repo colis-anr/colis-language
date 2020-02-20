@@ -26,7 +26,8 @@ module Interpreter
     end
 
     clone export semantics.Semantics with
-      type filesystem = filesystem
+      type filesystem = filesystem,
+      axiom interp_utility_extends_output
 
     scope MakeInterpreter
 
