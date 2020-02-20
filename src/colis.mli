@@ -33,7 +33,6 @@ module Concrete : sig
 end
 
 module Symbolic : sig
-  module Filesystem = SymbolicUtility.SymbolicFilesystem
   include module type of SymbolicUtility.Symbolic
   module FilesystemSpec = FilesystemSpec
 
