@@ -1,7 +1,7 @@
 (** Symbolic execution of dpkg-maintscript-helper. The structure of
     this code follows the implementation of version 1.19.6. *)
 
-open SymbolicUtility.Symbolic
+open SymbolicUtility.ConstraintsCompatibility
 
 let name = "dpkg-maintscript-helper"
 

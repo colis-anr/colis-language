@@ -1,5 +1,5 @@
 (** Symbolic execution of emacs-package-[install|remove] *)
-open SymbolicUtility.Symbolic
+open SymbolicUtility.ConstraintsCompatibility
 
 module Install : sig
   val name : string

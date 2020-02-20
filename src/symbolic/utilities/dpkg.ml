@@ -1,4 +1,4 @@
-open SymbolicUtility.Symbolic
+open SymbolicUtility.ConstraintsCompatibility
 open Semantics__Result
 
 let name = "dpkg"

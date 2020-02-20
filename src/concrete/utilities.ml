@@ -6,6 +6,7 @@
 open Colis_internals
 open Semantics__Result
 open Semantics__Buffers
+open Semantics__UtilityContext
 open Interpreter__Semantics
 
 type env = string Env.SMap.t

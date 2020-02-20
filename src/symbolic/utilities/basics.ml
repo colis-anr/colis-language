@@ -1,4 +1,4 @@
-open SymbolicUtility.Symbolic
+open SymbolicUtility.ConstraintsCompatibility
 
 module True = struct
   let name = "true"

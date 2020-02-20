@@ -399,6 +399,26 @@ module Context
   (* } *)
 end (* Context *)
 
+module UtilityContext
+  use list.List
+  use string.String
+  use Path
+  use Env
+  use Context as C
+
+  type utility_context = {
+    cwd: normalized_path;
+    env: env0 string;
+    args: list string
+  }
+
+  let function utility_context args ctx = {
+    cwd = ctx.C.cwd;
+    env = C.filter_var_env ctx.C.var_env;
+    args = args
+  }
+end
+
 module Semantics
   use bool.Bool
   use int.Int
@@ -414,24 +434,12 @@ module Semantics
   use Behaviour
   use Buffers
   use Config
-  use Context as Context
+  use Context
+  use UtilityContext
   use Env
   use Input
   use Path
   use Result
-
-  type utility_context = {
-    cwd: normalized_path;
-    env: env0 string;
-    args: list string
-  }
-
-  let function utility_context args ctx = {
-    cwd = ctx.Context.cwd;
-    env = Context.filter_var_env ctx.Context.var_env;
-    args = args
-  }
-  use Context
 
   (** {3 Evaluation state}
 

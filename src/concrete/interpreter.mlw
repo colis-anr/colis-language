@@ -75,6 +75,7 @@ module Interpreter
   use semantics.Input
   use semantics.Config
   use semantics.Context
+  use semantics.UtilityContext
   use semantics.Env as E
   use semantics.Path
   use Filesystem as Fs
@@ -150,26 +151,28 @@ module Interpreter
   val interp_utility (params: (utility_context, identifier, S.state)) : (S.state, result bool)
     ensures { S.interp_utility params result }
 
+  let function utility_context args sta = {
+    UtilityContext.cwd = !(sta.cwd);
+    env = filter_var_env !(sta.var_env);
+    args = args
+  }
+
   let interp_utility' (inp:input) (sta:state) (id:identifier) (args:list string)
     ensures {
-      let utility_ctx = {S.cwd= !(old sta.cwd); env=filter_var_env !(old sta.var_env); args=args} in
-      interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
+      interp_utility (utility_context args (old sta), id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
     raises { EExit ->
-      let utility_ctx = {S.cwd= !(old sta.cwd); env=filter_var_env !(old sta.var_env); args=args} in
-      interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
+      interp_utility (utility_context args (old sta), id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
     raises { EIncomplete ->
-      let utility_ctx = {S.cwd= !(old sta.cwd); env=filter_var_env !(old sta.var_env); args=args} in
-      interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Incomplete)
+      interp_utility (utility_context args (old sta), id, old sem_state sta) (sem_state sta, Incomplete)
     }
     raises { EIncomplete ->
       sem_context sta = sem_context (old sta)
     }
-  = let utility_ctx = {S.cwd= !(sta.cwd); env=filter_var_env !(sta.var_env); args=args} in
-    let sta', r = interp_utility (utility_ctx, id, sem_state sta) in
+  = let sta', r = interp_utility (utility_context args sta, id, sem_state sta) in
     sta.filesystem := sta'.S.filesystem;
     assert { !(sta.filesystem) = sta'.S.filesystem };
     sta.stdin := sta'.S.stdin;

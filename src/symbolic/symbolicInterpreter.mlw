@@ -17,6 +17,7 @@ module Interpreter
     use semantics.Buffers
     use semantics.Config
     use semantics.Context
+    use semantics.UtilityContext
     use semantics.Input
     use semantics.Path
     use semantics.Result

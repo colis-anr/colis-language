@@ -2,6 +2,7 @@ open Colis_constraints
 open Syntax__Syntax
 open Semantics__Buffers
 open Semantics__Context
+open Semantics__UtilityContext
 open Semantics__Input
 open Semantics__Result
 
@@ -146,17 +147,19 @@ module Make (Filesystem: FILESYSTEM) : sig
 
   module MakeSpecifications (CaseSpec: CASESPEC with type filesystem = Filesystem.filesystem) : sig
 
+    open CaseSpec
+
     (** A case in the specification is either a success, an error, or incomplete *)
     type case
 
     (** A success case (aka. return 0) *)
-    val success_case: descr:string -> ?stdout:Stdout.t -> CaseSpec.case_spec -> case
+    val success_case: descr:string -> ?stdout:Stdout.t -> case_spec -> case
 
     (** An error case (aka return 1) *)
-    val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> CaseSpec.case_spec -> case
+    val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> case_spec -> case
 
     (** An incomplete case (unknown behaviour, cannot be symbolically executed) *)
-    val incomplete_case: descr:string -> CaseSpec.case_spec -> case
+    val incomplete_case: descr:string -> case_spec -> case
 
     (** Use a list of cases to specify a utility. Corresponds to a table in the
         document "Specification of UNIX Utilities "*)
@@ -164,37 +167,82 @@ module Make (Filesystem: FILESYSTEM) : sig
   end
 end
 
-type symbolic_filesystem = {
+(** {1 Constraints} *)
+
+type constraints_filesystem = {
   root: Var.t;
   clause: Clause.sat_conj;
   root0: Var.t option;
 }
 
-(** Parameterization of the symbolic engine for constraint-based filesystem
-    [symbolic_filesystem] *)
-module SymbolicImplementation : CASESPEC
-  with type filesystem = symbolic_filesystem
-   and type case_spec = Var.t -> Var.t -> Clause.t
+type constraints_case_spec = Var.t -> Var.t -> Clause.t
 
-(* Compatibility with module SymbolicUtility before functorization of the symbolic engine *)
-module Symbolic : sig
+(** Parameter for the symbolic engine using a constraint-based filesystem *)
+module ConstraintsImplementation : CASESPEC
+  with type filesystem = constraints_filesystem
+   and type case_spec = constraints_case_spec
 
-  include module type of Make (SymbolicImplementation)
-  include module type of MakeSpecifications (SymbolicImplementation)
+(** Get the name of the last path component, if any, or of the hint
+    root variable otherwise. The result is useful as a hint for
+    creating variables for resolving the path. *)
+val last_comp_as_hint: root:Var.t -> Path.t -> string option
 
-  type context = Semantics.utility_context = {
+(** {1 Transducers} *)
+
+type transducers_filesystem = unit (* TODO *)
+
+type transducers_case_spec = unit (* TODO *)
+
+(** Parameter for the symbolic engine using transducers as filesystem *)
+module TransducersImplementation : CASESPEC
+  with type filesystem = transducers_filesystem
+   and type case_spec = transducers_case_spec
+
+(** {1 Mixed constraints/transducers} *)
+
+type mixed_filesystem =
+  | Constraints of constraints_filesystem
+  | Transducers of transducers_filesystem
+
+type mixed_case_spec
+
+(** Create a mixed case specification. Any missing case specs will trigger incomplete
+    behaviour. *)
+val mixed_case_spec :
+  ?transducers:transducers_case_spec -> ?constraints:constraints_case_spec -> unit -> mixed_case_spec
+
+module MixedImplementation : CASESPEC
+  with type filesystem = mixed_filesystem
+   and type case_spec = mixed_case_spec
+
+include module type of Make (MixedImplementation)
+include module type of MakeSpecifications (MixedImplementation)
+val noop : mixed_case_spec
+type context = utility_context = {
+  cwd: Path.normal;
+  env: string Env.SMap.t;
+  args: string list;
+}
+
+(** Compatibility with module SymbolicUtility before functorization of the symbolic engine. *)
+module ConstraintsCompatibility : sig
+
+  include module type of Make (MixedImplementation)
+  include module type of MakeSpecifications (MixedImplementation)
+
+  type context = utility_context = {
     cwd: Path.normal;
     env: string Env.SMap.t;
     args: string list;
   }
 
-  type filesystem = symbolic_filesystem = {
-    root: Var.t;
-    clause: Clause.sat_conj;
-    root0: Var.t option;
-  }
+  type filesystem = constraints_filesystem
 
-  val noop : SymbolicImplementation.case_spec
+  val success_case: descr:string -> ?stdout:Stdout.t -> constraints_case_spec -> case
+  val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> constraints_case_spec -> case
+  val incomplete_case: descr:string -> constraints_case_spec -> case
+
+  val noop : constraints_case_spec
 
   (** Get the name of the last path component, if any, or of the hint
       root variable otherwise. The result is useful as a hint for
