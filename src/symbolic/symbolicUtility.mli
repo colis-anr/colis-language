@@ -1,11 +1,17 @@
 open Colis_constraints
-open Semantics__Result
+open Syntax__Syntax
 open Semantics__Buffers
+open Semantics__Context
+open Semantics__Input
+open Semantics__Result
 
+(** Definition of a symbolic filesystem to instantiate the symbolic interpreter *)
 module type FILESYSTEM = sig
   type filesystem
 end
 
+(** Definition of a case specification and its application to a filesystem to define
+    utilities by specifications. *)
 module type CASESPEC = sig
 
   (** A case specification is a function from the old root variable and the new root root
@@ -17,31 +23,37 @@ module type CASESPEC = sig
   val noop : case_spec
 
   type filesystem
+
+  (** Apply a case specification to a filesystem, resulting in possible multiple new
+      filesystems *)
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
 
 module Make (Filesystem: FILESYSTEM) : sig
 
   module Semantics : module type of SymbolicInterpreter__Interpreter.MakeSemantics (Filesystem)
+
   open Semantics
 
+  (** {1 Interpretation of a colis program} *)
+
   type sym_state = {
-    context : Semantics__Context.context;
-    state : Semantics.state;
+    context : context;
+    state : state;
   }
 
-  val interp_program :
-    Colis__Semantics__Input.input ->
-    sym_state list ->
-    Colis__Syntax__Syntax.program ->
-    Semantics.state list * Semantics.state list * Semantics.state list
-
+  (** [interp_program inp stas p] symbolic interpretation configured by [inp] of a program
+      [p] in a list of symbolic input states [stas]. Returns the symbolic states
+      representing successful, errorneous, and incomplete interpretation. *)
+  val interp_program : input -> sym_state list -> program -> state list * state list * state list
 
   (** {1 Basics of symbolic utility} *)
 
   (** A utility transforms a symbolic state into a list of symbolic states
       with boolean results *)
   type utility = state -> (state * bool result) list
+
+  (** {1 Registration and dispatch of utilities} *)
 
   (** A symbolic utility is comprised of a name and a function that interpretes a [utility]
       in a [context]. *)
@@ -50,19 +62,34 @@ module Make (Filesystem: FILESYSTEM) : sig
     val interprete : utility_context -> utility
   end
 
-  (** {1 Registration} *)
-
   (** Register a symbolic utility *)
   val register : (module SYMBOLIC_UTILITY) -> unit
 
   val is_registered : string -> bool
 
-  (** {1 Dispatch} *)
-
   (** A saner way to call [dispatch] (e.g. in the implementation of utilities) *)
   val call : string -> utility_context -> string list -> utility
 
-  (** {1 Combinators} *)
+  (** {1 Basic utilities} *)
+
+  (** Error utility *)
+  val error : utility:string -> string -> utility
+
+  (** Unsupported stuff in a known utility. *)
+  val incomplete : utility:string -> string -> utility
+
+  (* Unknown-unknown behaviour *)
+  val unknown : utility:string -> string -> utility
+
+  (** {2 Printing} *)
+
+  (** Print to stdout and log *)
+  val print_stdout : newline:bool -> string -> state -> state
+
+  (** Print message as utility trace to log if it is not empty (marked as [UTL]) *)
+  val print_utility_trace : string -> state -> state
+
+  (** {1 Utility combinators} *)
 
   (** [choice u1 u2]  yields the utility that non-deterministacillay
       behaves like [u1] or [u2].  *)
@@ -104,26 +131,7 @@ module Make (Filesystem: FILESYSTEM) : sig
       fails and [u2]  is not executed    *)
   val compose_strict : utility -> utility -> utility
 
-  (** {1 Auxiliaries} *)
-
-  (** Error utility *)
-  val error : utility:string -> string -> utility
-
-  (** Unsupported stuff in a known utility. *)
-  val incomplete : utility:string -> string -> utility
-
-  (* Unknown-unknown behaviour *)
-  val unknown : utility:string -> string -> utility
-
-  (** {2 Printing} *)
-
-  (** Print to stdout and log *)
-  val print_stdout : newline:bool -> string -> state -> state
-
-  (** Print message as utility trace to log if it is not empty (marked as [UTL]) *)
-  val print_utility_trace : string -> state -> state
-
-  (** {2 Arguments Parsing} *)
+  (** {1 Arguments Parsing} *)
 
   val cmdliner_eval_utility :
     utility:string ->
@@ -138,7 +146,7 @@ module Make (Filesystem: FILESYSTEM) : sig
 
   module MakeSpecifications (CaseSpec: CASESPEC with type filesystem = Filesystem.filesystem) : sig
 
-    (** A case in the specification is either a success or an error *)
+    (** A case in the specification is either a success, an error, or incomplete *)
     type case
 
     (** A success case (aka. return 0) *)
@@ -156,32 +164,37 @@ module Make (Filesystem: FILESYSTEM) : sig
   end
 end
 
-module SymbolicFilesystem : sig
-  type filesystem = {
-    root: Var.t;
-    clause: Clause.sat_conj;
-    root0: Var.t option;
-  }
-end
+type symbolic_filesystem = {
+  root: Var.t;
+  clause: Clause.sat_conj;
+  root0: Var.t option;
+}
 
-module SymbolicCaseSpec : CASESPEC with
-  type filesystem = SymbolicFilesystem.filesystem and
-  type case_spec = Var.t -> Var.t -> Clause.t
+(** Parameterization of the symbolic engine for constraint-based filesystem
+    [symbolic_filesystem] *)
+module SymbolicImplementation : CASESPEC
+  with type filesystem = symbolic_filesystem
+   and type case_spec = Var.t -> Var.t -> Clause.t
 
-(* Compatibility with previous SymbolicUtility *)
+(* Compatibility with module SymbolicUtility before functorization of the symbolic engine *)
 module Symbolic : sig
 
-  include module type of Make (SymbolicFilesystem)
-
-  include module type of MakeSpecifications (SymbolicCaseSpec)
+  include module type of Make (SymbolicImplementation)
+  include module type of MakeSpecifications (SymbolicImplementation)
 
   type context = Semantics.utility_context = {
-    cwd: Colis_constraints.Path.normal;
+    cwd: Path.normal;
     env: string Env.SMap.t;
     args: string list;
   }
 
-  val noop : SymbolicCaseSpec.case_spec
+  type filesystem = symbolic_filesystem = {
+    root: Var.t;
+    clause: Clause.sat_conj;
+    root0: Var.t option;
+  }
+
+  val noop : SymbolicImplementation.case_spec
 
   (** Get the name of the last path component, if any, or of the hint
       root variable otherwise. The result is useful as a hint for
