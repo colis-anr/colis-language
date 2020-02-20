@@ -1,7 +1,7 @@
 open Format
 open Colis_constraints
 open Clause
-open SymbolicUtility
+open SymbolicUtility.Symbolic
 open Semantics__Result
 open Semantics__Buffers
 

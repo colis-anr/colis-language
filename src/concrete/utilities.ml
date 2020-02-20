@@ -8,9 +8,7 @@ open Semantics__Result
 open Semantics__Buffers
 open Interpreter__Semantics
 
-module IdMap = Env.IdMap
-
-type env = string IdMap.t
+type env = string Env.SMap.t
 
 let incomplete ~utility msg = fun sta ->
   let str = utility ^ ": " ^ msg in
@@ -42,7 +40,7 @@ let dpkg_compare_versions args =
 let dpkg_validate_thing subcmd arg =
   Sys.command ("dpkg " ^ subcmd ^ " " ^arg) = 0
 
-let interp_utility ((_cwd, var_env, args), id, sta) =
+let interp_utility ({env; args; _}, id, sta) =
   match id with
   | "echo" ->
      let stdout =
@@ -69,7 +67,7 @@ let interp_utility ((_cwd, var_env, args), id, sta) =
       let print_line sta line =
         {sta with stdout=Stdout.(sta.stdout |> output line |> newline)}
       in
-      IdMap.bindings var_env |>
+      Env.SMap.bindings env |>
       List.map format_line |>
       List.fold_left print_line sta, Ok true
     | _arg :: _ ->

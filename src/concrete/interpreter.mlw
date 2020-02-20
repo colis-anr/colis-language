@@ -74,7 +74,6 @@ module Interpreter
   use semantics.Input
   use semantics.Config
   use semantics.Context
-  use semantics.InterpUtilitySpec
   use semantics.Env as E
   use semantics.Path
   use Filesystem as Fs
@@ -98,7 +97,7 @@ module Interpreter
     St.stdin = ref Stdin.empty;
     St.stdout = ref Stdout.empty;
     St.log = ref Stdout.empty;
-    St.cwd = ref Nil;
+    St.cwd = ref default_cwd;
     St.result = ref True;
   }
 
@@ -152,23 +151,23 @@ module Interpreter
 
   let interp_utility' (inp:input) (sta:state) (id:identifier) (args:list string)
     ensures {
-      let utility_ctx = (!(old sta.cwd), filter_var_env !(old sta.var_env), args) in
+      let utility_ctx = {S.cwd= !(old sta.cwd); env=filter_var_env !(old sta.var_env); args=args} in
       interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BNormal
     }
     raises { EExit ->
-      let utility_ctx = (!(old sta.cwd), filter_var_env !(old sta.var_env), args) in
+      let utility_ctx = {S.cwd= !(old sta.cwd); env=filter_var_env !(old sta.var_env); args=args} in
       interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Ok !(sta.result)) /\
       behaviour inp !(sta.result) = BExit
     }
     raises { EIncomplete ->
-      let utility_ctx = (!(old sta.cwd), filter_var_env !(old sta.var_env), args) in
+      let utility_ctx = {S.cwd= !(old sta.cwd); env=filter_var_env !(old sta.var_env); args=args} in
       interp_utility (utility_ctx, id, old sem_state sta) (sem_state sta, Incomplete)
     }
     raises { EIncomplete ->
       sem_context sta = sem_context (old sta)
     }
-  = let utility_ctx = (!(sta.cwd), filter_var_env !(sta.var_env), args) in
+  = let utility_ctx = {S.cwd= !(sta.cwd); env=filter_var_env !(sta.var_env); args=args} in
     let sta', r = interp_utility (utility_ctx, id, sem_state sta) in
     sta.filesystem := sta'.S.filesystem;
     assert { !(sta.filesystem) = sta'.S.filesystem };

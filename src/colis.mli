@@ -33,27 +33,24 @@ module Concrete : sig
 end
 
 module Symbolic : sig
-  module Filesystem = SymbolicInterpreter__Filesystem
+  module Filesystem = SymbolicUtility.SymbolicFilesystem
+  include module type of SymbolicUtility.Symbolic
   module FilesystemSpec = FilesystemSpec
-  module Semantics = SymbolicInterpreter__Semantics
-  module SymState = SymbolicInterpreter__SymState
-  module Results = SymbolicInterpreter__Results
-  module Interpreter = SymbolicInterpreter__Interpreter
-  module Utility = SymbolicUtility
 
   open Colis_constraints
+  open Semantics
 
   (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
   val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
 
   (* Create a state corresponding to a conjunction *)
-  val to_state : prune_init_state:bool -> root:Var.t -> Clause.sat_conj -> Semantics.state
+  val to_state : prune_init_state:bool -> root:Var.t -> Clause.sat_conj -> state
 
   (* Create a symbolic states by adding context to a stringe *)
-  val to_symbolic_state : vars:(string * string) list -> arguments:string list -> Semantics.state -> unit SymState.sym_state
+  val to_symbolic_state : vars:(string * string) list -> arguments:string list -> state -> sym_state
 
   (* Wrapper around [Symbolic.Interpreter.interp_program] *)
-  val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> unit SymState.sym_state list -> Language.Syntax.program -> (Semantics.state list * Semantics.state list * Semantics.state list)
+  val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> sym_state list -> Language.Syntax.program -> (state list * state list * state list)
 end
 
 module Constraints = Colis_constraints
@@ -124,13 +121,13 @@ type symbolic_config = {
   (** Maximum height of the call stack in symbolic execution *)
 }
 
-open Symbolic
+open Symbolic.Semantics
 
-val print_symbolic_state : Format.formatter -> ?id:string -> Semantics.state -> unit
+val print_symbolic_state : Format.formatter -> ?id:string -> state -> unit
 
-val print_symbolic_states : initials:Semantics.state list -> (Semantics.state list * Semantics.state list * Semantics.state list) -> unit
+val print_symbolic_states : initials:state list -> (state list * state list * state list) -> unit
 
-val exit_code : (Semantics.state list * Semantics.state list * Semantics.state list) -> int
+val exit_code : (state list * state list * state list) -> int
 
 val run_symbolic : symbolic_config -> Symbolic.FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 (** Symbolically executes a Colis program. *)

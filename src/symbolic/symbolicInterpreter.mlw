@@ -1,1334 +1,1277 @@
-module Constraints
-
-  type variable
-  (** abstract type for variables denoting nodes in the file system *)
-
-  type feature
-  (** abstract type for filenames (excluding "." and ".."), named
-      "feature" in the tree constraint vocabulary *)
-
-  type clause
-  (** abstract type for tree constraints, [IMPORTANT] which are always satisfiable *)
-
-  type path
-end
-
-module Filesystem
-  use option.Option
-  use Constraints
-
-  (** A symbolic filesystem composed by a variable indicating root, constraints, and the
-      current working directory `cwd` as feature path. root₀ may refer to the initial root
-      variable. When provided it should not be pruned (“quantified over”) during symbolic
-      execution of utilities. *)
-  type filesystem = {
-    root : variable;
-    clause : clause;
-    root0 : option variable;
-  }
-end
-
-module Semantics
-  use list.List
-  use Filesystem
-  use Constraints
-
-  (* Instantiate the concrete semantics with the symbolic filesystem *)
-  clone export semantics.Semantics with
-    type filesystem = filesystem
-end
-
-
-module SymState
-
-  use list.List
-  use semantics.Context
-  use Semantics
-
-  (** A symbolic state combines a concrete context and a program state as defined in the
-      semantics with a filesystem using feature constraints. *)
-  type sym_state 'a = {
-    context: context;
-    state: state;
-    data: 'a (* Used to fiddle additional information through interp_instr': A stdin in pipe and the last result in the loops *)
-  }
-
-  let function with_data data =
-    fun sta ->
-      {sta with data = data}
-end
-
-(** The symbolic interpretation of a program results describes multiple possible results
-  *)
-module Results
-
-  use set.Fset as Fset
-  use collection.Collection as Cn
-  use list.ListRich as L
-  use semantics.Input
-  use semantics.Behaviour
-  use semantics.Context
-  use Semantics
-  use SymState
-
-  (** The results of a symbolic execution is a quadruple of sets of symbolic states, where
-      each components corresponds to a behaviour. *)
-  type t 'a = {
-    normal  : Cn.t (sym_state 'a);
-    exit    : Cn.t (sym_state 'a);
-    return_ : Cn.t (sym_state 'a);
-    failure : Cn.t (sym_state 'a);
-  }
-
-  let constant empty = {
-    normal  = Cn.empty;
-    exit    = Cn.empty;
-    return_ = Cn.empty;
-    failure = Cn.empty;
-  }
-
-  predicate mem (sta:sym_state 'a) (bhv:behaviour) (rs:t 'a) =
-    match bhv with
-    | BNormal  -> Cn.mem sta rs.normal
-    | BExit    -> Cn.mem sta rs.exit
-    | BReturn  -> Cn.mem sta rs.return_
-    | BIncomplete -> Cn.mem sta rs.failure
-    end
-
-  let function map (f:sym_state 'a -> sym_state 'b) (res:t 'a) : t 'b
-    ensures { forall sta bhv. mem sta bhv res -> mem (f sta) bhv result }
-    ensures { forall sta' bhv. mem sta' bhv result -> exists sta. mem sta bhv res /\ sta' = f sta }
-  = { normal  = Cn.map f res.normal;
-      exit    = Cn.map f res.exit;
-      return_ = Cn.map f res.return_;
-      failure = Cn.map f res.failure; }
-
-  let function union (res1 res2: t 'a) : t 'a
-    ensures { forall sta bhv. mem sta bhv res1 -> mem sta bhv result }
-    ensures { forall sta bhv. mem sta bhv res2 -> mem sta bhv result }
-    ensures { forall sta bhv. mem sta bhv result -> mem sta bhv res1 \/ mem sta bhv res2 }
-  = { normal  = Cn.union res1.normal  res2.normal;
-      exit    = Cn.union res1.exit    res2.exit;
-      return_ = Cn.union res1.return_ res2.return_;
-      failure = Cn.union res1.failure res2.failure; }
-
-  lemma union_1: forall sta: sym_state 'a, bhv res1 res2.
-    mem sta bhv res1 -> mem sta bhv (union res1 res2)
-
-  lemma union_2: forall sta: sym_state 'a, bhv res1 res2.
-    mem sta bhv res2 -> mem sta bhv (union res1 res2)
-
-  let rec flatten_list (l: L.list (t 'a)) : t 'a
-    variant { l }
-    ensures { forall res sta bhv. L.mem res l -> mem sta bhv res -> mem sta bhv result }
-    ensures { forall sta bhv. mem sta bhv result -> exists res. L.mem res l /\ mem sta bhv res }
-  = match l with
-    | L.Nil -> empty
-    | L.Cons rs l' ->
-      union rs (flatten_list l')
-    end
-
-  let flatten (c: Cn.t (t 'a)) : t 'a
-    ensures { forall res sta bhv. Cn.mem res c -> mem sta bhv res -> mem sta bhv result }
-    ensures { forall sta bhv. mem sta bhv result -> exists res. Cn.mem res c /\ mem sta bhv res }
-  = flatten_list (Cn.to_list c)
-
-  let bind_collection (f: 'a -> t 'b) (c: Cn.t 'a) : t 'b
-    ensures {
-      forall x sta bhv.
-      Cn.mem x c ->
-      mem sta bhv (f x) ->
-      mem sta bhv result
-    }
-    ensures {
-      forall sta bhv.
-      mem sta bhv result ->
-      exists x.
-      Cn.mem x c /\
-      mem sta bhv (f x)
-    }
-  = flatten (Cn.map f c)
-
-  let separate_normal (res:t 'a) : (normal: Cn.t (sym_state 'a), other: t 'a)
-    ensures { normal = res.normal }
-    ensures { other.normal = Cn.empty }
-    ensures { other.exit = res.exit }
-    ensures { other.return_ = res.return_ }
-    ensures { other.failure = res.failure }
-    ensures { forall s. Cn.mem s normal -> Cn.mem s res.normal }
-    ensures { forall s bhv. mem s bhv other -> bhv <> BNormal /\ mem s bhv res }
-  = res.normal, {res with normal = Cn.empty}
-
-  let function separate_non_failure (res:t 'a) : (Cn.t (sym_state 'a), Cn.t (sym_state 'a))
-    = Cn.(union res.normal (union res.exit res.return_)), res.failure
-
-  let function all_states (res:t 'a) : Cn.t (sym_state 'a) =
-    Cn.(union res.normal (union res.exit (union res.return_ res.failure)))
-
-  let stas_as_failures (ctx:context) (stas:Cn.t state) : t unit
-    ensures { result.normal = Cn.empty }
-    ensures { result.exit = Cn.empty }
-    ensures { result.return_ = Cn.empty }
-    ensures { forall s. Cn.mem s result.failure -> Cn.mem s.state stas /\ s.context=ctx /\ s.data = () }
-    ensures { forall s. Cn.mem s stas -> Cn.mem {state=s; context=ctx; data=()} result.failure }
-  = let aux sta = {state=sta; context=ctx; data=()} in
-    {empty with failure=Cn.map aux stas}
-
-  let function single_behaviour bhv (stas: Cn.t (sym_state 'a)) : t 'a =
-    match bhv with
-    | BNormal -> {empty with normal=stas}
-    | BExit -> {empty with exit=stas}
-    | BReturn -> {empty with return_=stas}
-    | BIncomplete -> {empty with failure=stas}
-    end
-
-  let function inject (inp: input) (stas: Cn.t (sym_state 'a)) : t 'a
-    (* ensures { forall sta bhv. mem sta bhv result <-> Cn.mem sta stas /\ bhv = behaviour inp sta.context.result } *)
-    (* ensures { stas = Cn.union result.normal result.exit by Cn.(stas == union result.normal result.exit) } *)
-    (* ensures { forall s. Cn.mem s result.normal -> Cn.mem s stas /\ behaviour inp s.context.result = BNormal } *)
-    (* ensures { forall s. Cn.mem s result.exit -> Cn.mem s stas /\ behaviour inp s.context.result = BExit } *)
-    (* ensures { result.return_ = Cn.empty } *)
-    (* ensures { result.failure = Cn.empty } *)
-  = let exit, normal = Cn.partition (fun sta -> exit_not_normal inp sta.context.result) stas in
-    (* assert { forall sta. Cn.mem sta exit -> exit_not_normal inp sta.context.result = True }; *)
-    (* assert { forall sta. Cn.mem sta normal -> exit_not_normal inp sta.context.result = False }; *)
-    {empty with normal=normal; exit=exit}
-    (* ensures { forall sta bhv. mem sta bhv result -> Cn.mem sta normal \/ Cn.mem sta exit } *)
-
-  lemma mem_inject: forall res: t 'a, sta bhv inp stas.
-    res = inject inp stas ->
-    (mem sta bhv res <-> Cn.mem sta stas /\ bhv = behaviour inp sta.context.result)
-
-  lemma inject_union: forall res: t 'a, inp stas.
-    res = inject inp stas ->
-    stas = Cn.union res.normal res.exit by
-    Cn.(stas == union res.normal res.exit)
-
-  lemma inject_return_empty: forall res: t 'a, inp stas.
-    res = inject inp stas -> res.return_ = Cn.empty
-
-  lemma inject_failure_empty: forall res: t 'a, inp stas.
-    res = inject inp stas -> res.failure = Cn.empty
-
-  lemma inject_normal_union_exit: forall inp, stas: Cn.t (sym_state 'a).
-    stas = Cn.union (inject inp stas).normal (inject inp stas).exit
-    by Cn.(stas == union (inject inp stas).normal (inject inp stas).exit)
-
-  lemma inject_under_condition_normal: forall res: t 'a, inp stas.
-    res = inject inp stas ->
-    inp.under_condition = True ->
-    res.normal = stas
-    by Cn.(res.normal == stas)
-
-  lemma inject_under_condition_exit: forall inp, stas: Cn.t (sym_state 'a).
-    inp.under_condition = True ->
-    (inject inp stas).exit = Cn.empty
-    by Cn.((inject inp stas).exit == Cn.empty)
-
-  lemma inject_outside_condition_normal: forall inp, stas: Cn.t (sym_state 'a).
-    inp.under_condition = False ->
-    (inject inp stas).normal = Cn.filter (fun sta -> sta.context.result) stas
-    by Cn.((inject inp stas).normal == filter (fun sta -> sta.context.result) stas)
-
-  lemma inject_outside_condition_exit: forall inp, stas: Cn.t (sym_state 'a).
-    inp.under_condition = False ->
-    (inject inp stas).exit = Cn.filter (fun sta -> not sta.context.result) stas
-    by Cn.((inject inp stas).exit == filter (fun sta -> not sta.context.result) stas)
-
-  lemma inject_map: forall f: sym_state 'a -> sym_state 'b, res inp sta sta' bhv stas.
-    res = inject inp (Cn.map f stas) ->
-    sta' = f sta ->
-    bhv = behaviour inp (f sta).context.result ->
-    Cn.mem sta stas ->
-    mem sta' bhv res
-
-  lemma inject_map': forall f: sym_state 'a -> sym_state 'b, res inp sta' bhv stas.
-    res = inject inp (Cn.map f stas) ->
-    mem sta' bhv res ->
-    bhv = behaviour inp sta'.context.result /\
-    exists sta. Cn.mem sta stas /\ sta' = f sta
-
-  lemma union_inject: forall res: t 'a, inp stas.
-    res = inject inp stas ->
-    stas = Cn.union res.normal res.exit
-    by
-    Cn.(stas == union res.normal res.exit)
-
-  lemma mem_union_inject: forall sta: sym_state 'a, bhv inp stas rs.
-    mem sta bhv (union (inject inp stas) rs) <->
-    ((Cn.mem sta stas /\ bhv = behaviour inp sta.context.result) \/
-     mem sta bhv rs)
-
-  lemma mem_union: forall sta bhv, rs1 rs2:t 'a.
-    mem sta bhv (union rs1 rs2) <->
-    (mem sta bhv rs1 \/ mem sta bhv rs2)
-
-  lemma mem_map: forall sta': sym_state 'b, bhv, rs, f: sym_state 'a -> sym_state 'b.
-    mem sta' bhv (map f rs) <->
-    exists sta. mem sta bhv rs /\ sta' = f sta
-
-  lemma failure_union: forall rs1 rs2: t 'a.
-    failure (union rs1 rs2) = Cn.union (failure rs1) (failure rs2)
-
-  lemma mem_mk_results: forall sta: sym_state 'a, bhv normal exit return_ failure.
-    mem sta bhv { normal=normal; exit=exit; return_=return_; failure=failure } <->
-    match bhv with
-    | BNormal  -> Cn.mem sta normal
-    | BExit    -> Cn.mem sta exit
-    | BReturn  -> Cn.mem sta return_
-    | BIncomplete -> Cn.mem sta failure
-    end
-
-  lemma mem_union_results: forall sta: sym_state 'a, bhv rs1 rs2.
-    mem sta bhv (union rs1 rs2) <->
-    (match bhv with
-     | BNormal  -> Cn.mem sta rs1.normal
-     | BExit    -> Cn.mem sta rs1.exit
-     | BReturn  -> Cn.mem sta rs1.return_
-     | BIncomplete -> Cn.mem sta rs1.failure
-     end \/
-     match bhv with
-     | BNormal  -> Cn.mem sta rs2.normal
-     | BExit    -> Cn.mem sta rs2.exit
-     | BReturn  -> Cn.mem sta rs2.return_
-     | BIncomplete -> Cn.mem sta rs2.failure
-     end)
-end
-
 module Interpreter
+  scope MakeSemantics
+    use bool.Bool
+    use int.Int
+    use list.List
+    use list.ListRich as L
+    use option.Option
+    use set.Fset
+    use string.String
 
-  use bool.Bool
-  use option.Option
-  use int.Int
-  use list.List
-  use list.ListRich as L
-  use set.Fset
-  use string.OCaml as String
+    use syntax.Identifier
+    use syntax.Syntax
+    use auxiliaries.OptionGet
+    use collection.Collection as Cn
+    use semantics.Arguments
+    use semantics.Behaviour
+    use semantics.Buffers
+    use semantics.Config
+    use semantics.Context
+    use semantics.Input
+    use semantics.Path
+    use semantics.Result
 
-  use collection.Collection as Cn
-  use auxiliaries.OptionGet
-  use syntax.Syntax
-
-  use semantics.Arguments
-  use semantics.Behaviour
-  use semantics.Buffers
-  use semantics.Config
-  use semantics.Context
-  use semantics.Env
-  use semantics.Input
-  use semantics.InterpUtilitySpec
-  use semantics.Path
-  use semantics.Result
-
-  use Constraints
-  use import Semantics as S
-  use import SymState as St
-  use Results as Rs
-
-  (* TODO remove `function` and use S.interp_utility in specs below *)
-  val function sym_interp_utility (params: (utility_context, identifier, state)) : Cn.t (state, result bool)
-    ensures { forall res. S.interp_utility params res <-> Cn.mem res result }
-
-  let rec separate_results_list (sta_opts: list ('a, result 'b)) : (results: list ('a, 'b), failures: list 'a)
-    variant { sta_opts }
-    ensures {
-      forall sta x.
-      L.mem (sta, x) results <->
-      L.mem (sta, Ok x) sta_opts
-    }
-    ensures {
-      forall sta.
-      L.mem sta failures <->
-      L.mem (sta, Incomplete) sta_opts
-    }
-  = match sta_opts with
-    | Nil -> Nil, Nil
-    | Cons (sta, opt_x) sta_opts' -> 
-      let results, failures = separate_results_list sta_opts' in
-      match opt_x with
-      | Ok x -> Cons (sta, x) results, failures
-      | Incomplete -> results, Cons sta failures
-      end
+    scope import Filesystem
+      type filesystem
     end
 
-  let separate_results (sta_opts: Cn.t ('a, result 'b)) : (results: Cn.t ('a, 'b), failures: Cn.t 'a)
-    ensures {
-      forall sta x.
-      Cn.mem (sta, x) results <->
-      Cn.mem (sta, Ok x) sta_opts
-    }
-    ensures {
-      forall sta.
-      Cn.mem sta failures <->
-      Cn.mem (sta, Incomplete) sta_opts
-    }
-  = let results, failures = separate_results_list (Cn.to_list sta_opts) in
-    Cn.of_list results, Cn.of_list failures
+    clone export semantics.Semantics with
+      type filesystem = filesystem
 
-  let rec function size_instr (ins:instruction) : int
-    variant { ins }
-    ensures { 0 < result }
-  = 1 + match ins with
-    | IReturn _ | IExit _ | IShift _ | IExport _ ->
-      0
-    | INot ins | INoOutput ins | ISubshell ins ->
-      size_instr ins
-    | ICd se | IAssignment _ se  ->
-      size_string_expr se
-    | ICallUtility _ le | ICallFunction _ le ->
-      size_list_expr le
-    | ISequence ins1 ins2 | IPipe ins1 ins2 | IWhile ins1 ins2 ->
-      size_instr ins1 + size_instr ins2
-    | IForeach _ le ins ->
-      size_list_expr le + size_instr ins
-    | IIf ins1 ins2 ins3 ->
-      size_instr ins1 + size_instr ins2 + size_instr ins3
-    end
-  with function size_list_expr (le:list_expression): int
-    variant { le }
-    ensures { 0 < result }
-  = 1 + match le with
-    | Nil -> 0
-    | Cons se_sp le' ->
-      size_pair se_sp + size_list_expr le'
-    end
-  with function size_pair (se_sp: (string_expression, split)) : int
-    variant { se_sp }
-    ensures { 0 < result }
-  = let se, _ = se_sp in
-    size_string_expr se
-  with function size_string_expr (se:string_expression): int
-    variant { se }
-    ensures { 0 < result }
-  = 1 + match se with
-    | SLiteral _
-    | SVariable _
-    | SArgument _ -> 0
-    | SSubshell ins -> size_instr ins
-    | SConcat se1 se2 -> size_string_expr se1 + size_string_expr se2
-    end
+    scope MakeInterpreter
 
-  let rec lemma size_string_expr_list_expr (le:list_expression)
-    ensures { forall se sp. size_string_expr se < size_list_expr (Cons (se, sp) le) }
-  = match le with
-    | Nil -> ()
-    | Cons _ le' -> size_string_expr_list_expr le'
-    end
-
-  let function flip_result sta
-    ensures { result.state = sta.state }
-    ensures { result.data = sta.data }
-    ensures { result.context = {sta.context with result=notb sta.context.result} }
-  = let result = notb sta.context.result in
-    let context = {sta.context with result=result} in
-    {sta with context=context}
-
-  let function reset_output sta sta' =
-    let sta'' = {sta'.state with stdout = sta.stdout} in
-    {sta' with state = sta''}
-
-  let function assignment_for_str_sta ctx var arg =
-    let sta', (str, result) = arg in
-    let ctx' = {
-      ctx with
-      var_env = ctx.var_env[var <- str]';
-      result = result;
-    }
-    in
-    {state = sta'; context = ctx'; data = ()}
-
-  let rec interp_instr (stk:int) (inp:input) (ctx:context) (sta:state) (ins:instruction)
-    : Rs.t unit
-    requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
-    requires { within_limit stk inp.config.stack_size }
-    variant { get_finite inp.config.stack_size - stk, size_instr ins, -1 }
-    ensures { (* Over-approximation *)
-      forall sta' ctx' bhv.
-      eval_instruction stk (inp, ctx, sta) ins (sta', ctx', bhv) ->
-      Rs.mem {state=sta'; context=ctx'; data=()} bhv result
-    }
-    (* (\* Under-approximation (->) and over-approximation (<-) *\) *)
-    (* ensures { *)
-    (*   forall bhv sta'. *)
-    (*   Rs.mem sta' bhv result <-> *)
-    (*   eval_instruction stk (inp, ctx, sta) ins *)
-    (*     (sta'.state, sta'.context, bhv) *)
-    (* } *)
-  = match ins with
-
-    | INot ins1 ->
-      let res = interp_instr stk {inp with under_condition=True} ctx sta ins1 in
-      Rs.({
-          normal = Cn.map flip_result res.normal;
-          return_ = Cn.map flip_result res.return_;
-          exit = res.exit;
-          failure = res.failure;
-        })
-      ensures {
-        forall sta' ctx' bhv.
-        eval_instruction stk ({inp with under_condition=True}, ctx, sta) ins1 (sta', ctx', bhv) ->
-        match bhv with
-        | BNormal | BReturn -> Rs.mem {state=sta'; context={ctx' with result=notb ctx'.result}; data=()} bhv result
-        | BExit | BIncomplete -> Rs.mem {state=sta'; context=ctx'; data=()} bhv result
-        end
-      }
-
-    | IAssignment var se ->
-      let str_stas, str_stas_failure =
-        separate_results
-          (interp_str_expr stk True inp ctx sta se)
-      in
-      let str_stas_failure = Rs.stas_as_failures ctx str_stas_failure in
-      let res =
-        Rs.inject inp
-          (Cn.map (fun arg -> assignment_for_str_sta ctx var arg) str_stas)
-      in
-      Rs.(union res str_stas_failure)
-      ensures {
-        forall sta'.
-        eval_str_expr stk True (inp, ctx, sta) se (sta', Incomplete) ->
-        Cn.mem {state=sta'; context=ctx; data=()} result.Rs.failure
-      }
-
-    | IExport id ->
-      let sta' =
-        let ctx' =
-          let var_val = {ctx.var_env[id] with exported=True} in
-          let var_env' = ctx.var_env[id <- var_val] in
-          {ctx with var_env = var_env'; result = True}
-        in
-        {state = sta; context = ctx'; data=()}
-      in
-      Rs.({empty with normal = Cn.singleton sta'})
-
-    | ISequence ins1 ins2 ->
-      let res1_normal, res1_other =
-        Rs.separate_normal
-          (interp_instr stk inp ctx sta ins1)
-      in
-      let res2 = interp_instr' stk inp res1_normal ins2 in
-      Rs.union res2 res1_other
-
-    | ISubshell ins ->
-      let stas, stas_failure =
-        Rs.separate_non_failure
-          (interp_instr stk inp ctx sta ins)
-      in
-      assert {
-        forall sta' ctx' bhv.
-        bhv <> BIncomplete ->
-        eval_instruction stk (inp, ctx, sta) ins (sta', ctx', bhv) ->
-        Cn.mem {state=sta'; context=ctx'; data=()} stas
-      };
-      let stas' =
-        let aux sta =
-          let ctx' = {ctx with result = sta.context.result} in
-          {state=sta.state; context=ctx'; data=()}
-        in
-        Cn.map aux stas
-      in
-      let old_ctx_with_res sta = {sta with context={ctx with result=sta.context.result}} in
-      Rs.(union
-           (inject inp stas')
-           {empty with failure=Cn.map old_ctx_with_res stas_failure})
-      ensures {
-        forall sta' ctx'.
-        eval_instruction stk (inp, ctx, sta) ins (sta', ctx', BIncomplete) ->
-        Rs.mem {state=sta'; context={ctx with result=ctx'.result}; data=()} BIncomplete result
-      }
-
-    | INoOutput ins ->
-      Rs.map (reset_output sta)
-        (interp_instr stk inp ctx sta ins)
-
-    | IIf ins1 ins2 ins3 ->
-      let res1_normal, res1_other =
-        Rs.separate_normal
-          (interp_instr stk {inp with under_condition=True} ctx sta ins1)
-      in
-      let res2 =
-        let res1_true, res1_false =
-          Cn.partition
-            (fun sta -> sta.context.result)
-            res1_normal
-        in
-        Rs.union
-          (interp_instr' stk inp res1_true ins2)
-          (interp_instr' stk inp res1_false ins3)
-      in
-      Rs.union res2 res1_other
-
-    | ICd se ->
-      let res1, res1_failures =
-        separate_results
-          (interp_str_expr stk True inp ctx sta se) in
-      let res2a =
-        let function aux arg =
-          let sta1, (s, (_:bool)) = arg in
-          let cwd_p = absolute_or_concat_relative ctx.cwd s in
-          let pwd_s = normalized_path_to_string cwd_p in
-          let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons pwd_s Nil)) in
-          Cn.map (fun arg -> let sta2, r = arg in ((sta2, cwd_p, pwd_s), r))
-            (sym_interp_utility (utility_ctx, identifier_test, sta1)) in
-        Cn.bind aux res1 in
-      let res2, res2_failures = separate_results res2a in
-      let function aux' arg =
-        let (sta2, cwd_p, pwd_s), b = arg in
-        if b then
-          let ctx' = {
-            ctx with
-            var_env = ctx.var_env[identifier_pwd <- pwd_s]';
-            cwd = cwd_p;
-            result = True } in 
-          {state = sta2; context = ctx'; data = ()}
-        else
-          let ctx' = {ctx with result = False} in
-          {state = sta2; context = ctx'; data = ()} in
-      let res2' = Cn.map aux' res2 in
-      let res3 = Rs.inject inp res2' in
-      let res2_failures' = Cn.map (fun arg -> let sta, _, _ = arg in sta) res2_failures in
-      let res_failures = Rs.stas_as_failures ctx (Cn.union res1_failures res2_failures') in
-      Rs.union res3 res_failures
-      ensures { [@expl:cd_arg_failure]
-        forall sta1.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Incomplete) ->
-        Rs.mem {state=sta1; context=ctx; data=()} BIncomplete result
-      }
-      ensures { [@expl:cd_incomplete]
-        forall sta1 s b sta2.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, b)) ->
-        let cwd_p = absolute_or_concat_relative ctx.cwd s in
-        let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons "-d" (Cons pwd_s Nil) in
-        let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, args) in
-        interp_utility (utility_ctx, identifier_test, sta1) (sta2, Incomplete) ->
-        Rs.mem {state=sta2; context=ctx; data=()} BIncomplete result
-        by Cn.mem (sta1, (s, b)) res1
-        so Cn.mem (sta2, Incomplete) (sym_interp_utility (utility_ctx, identifier_test, sta1))
-        so Cn.mem (sta2, cwd_p, pwd_s) res2_failures
-      }
-      ensures { [@expl:cd_no_dir]
-        forall sta1 s b sta2.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, b)) ->
-        let cwd_p = absolute_or_concat_relative ctx.cwd s in
-        let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons "-d" (Cons pwd_s Nil) in
-        let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, args) in
-        interp_utility (utility_ctx, identifier_test, sta1) (sta2, Ok False) ->
-        let ctx' = {ctx with result = False} in
-        let bhv = behaviour inp False in
-        Rs.mem {state=sta2; context=ctx'; data=()} bhv result
-        by Cn.mem (sta1, (s, b)) res1
-        so Cn.mem (sta2, Ok False) (sym_interp_utility (utility_ctx, identifier_test, sta1))
-        so Cn.mem ((sta2, cwd_p, pwd_s), False) res2
-        so Cn.mem {state=sta2; context=ctx'; data=()} res2'
-      }
-      ensures { [@expl:cd]
-        forall sta1 s b sta2.
-        eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, b)) ->
-        let cwd_p = absolute_or_concat_relative ctx.cwd s in
-        let pwd_s = normalized_path_to_string cwd_p in
-        let args = Cons "-d" (Cons pwd_s Nil) in
-        let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, args) in
-        interp_utility (utility_ctx, identifier_test, sta1) (sta2, Ok True) ->
-        let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; cwd = cwd_p} in
-        let bhv = behaviour inp True in
-        Rs.mem {state=sta2; context=ctx1; data=()} bhv result
-        by Cn.mem (sta1, (s, b)) res1
-        so Cn.mem (sta2, Ok True) (sym_interp_utility (utility_ctx, identifier_test, sta1))
-        so Cn.mem ((sta2, cwd_p, pwd_s), True) res2
-        so Cn.mem {state=sta2; context=ctx1; data=()} res2'
-      }
-
-    | ICallUtility id le ->
-      let res, res_failures =
-        separate_results
-          (interp_list_expr stk inp ctx sta le) in
-      let function aux arg =
-        let sta', args = arg in
-        let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, args) in
-        sym_interp_utility (utility_ctx, id, sta') in
-      let res', res_failures' =
-        separate_results (Cn.bind aux res) in
-      let function aux' arg =
-        let sta'', b = arg in
-        {state=sta''; context={ctx with result=b}; data=()} in
-      let res'' = Cn.map aux' res' in
-      let res''' = Rs.inject inp res'' in
-      let res_failures' = Rs.stas_as_failures ctx (Cn.union res_failures res_failures') in
-      Rs.union res''' res_failures'
-      ensures { [@expl:args_incomplete]
-        forall sta'.
-        eval_list_expr stk (inp, ctx, sta) le (sta', Incomplete) ->
-        Rs.mem {state=sta'; context=ctx; data=()} BIncomplete result 
-      }
-      ensures { [@expl:utility_incomplete]
-        forall sta' ss sta''.
-        eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
-        let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, ss) in
-        interp_utility (utility_ctx, id, sta') (sta'', Incomplete) ->
-        Rs.mem {state=sta''; context=ctx; data=()} BIncomplete result
-        by Rs.mem {state=sta''; context=ctx; data=()} BIncomplete res_failures'
-      }
-      ensures { [@expl:utility]
-        forall sta' ss sta'' b.
-        eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
-        let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, ss) in
-        interp_utility (utility_ctx, id, sta') (sta'', Ok b) ->
-        let ctx' = {ctx with result=b} in
-        Rs.mem {state=sta''; context=ctx'; data=()} (behaviour inp b) result
-        by Cn.mem {state=sta''; context=ctx'; data=()} res''
-      }
-
-    | ICallFunction id le ->
-      let arg_res, arg_res_failures =
-        separate_results
-          (interp_list_expr stk inp ctx sta le)
-      in
-      assert { [@expl:callfun1]
-        forall sta1 args.
-        eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
-        Cn.mem (sta1, args) arg_res
-      };
-      let res =
-        match ctx.func_env[id] with
-        | Some ins -> (* Function defined as `ins` *)
-            if stk = get_finite inp.config.stack_size then (* Stack overflow *)
-              let aux arg =
-                let sta', _ = arg in
-                let sta' = { sta' with log = Stdout.(newline (output stack_limit_message sta'.log)) } in
-                {state=sta'; context=ctx; data=()}
-              in
-              Rs.({empty with failure = Cn.map aux arg_res})
-              ensures { [@expl:callfun2]
-                forall sta1 args ins.
-                eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
-                ctx.func_env[id] = Some ins ->
-                inp.config.stack_size = Finite stk ->
-                let sta1' = { sta1 with log = Stdout.(newline (output stack_limit_message sta1.log)) } in
-                Rs.mem {state=sta1'; context=ctx; data=()} BIncomplete result
-              }
-            else (* Execute function *)
-              let res2 =
-                let function aux (arg: (state, list string))  =
-                  let sta1, args = arg in
-                  let inp1 = { inp with argument0 = identifier_to_string id } in
-                  let ctx1 = { ctx with arguments = args } in
-                  interp_instr (stk+1) inp1 ctx1 sta1 ins
-                in
-                Rs.bind_collection aux arg_res
-                ensures { [@expl:callfun3]
-                  forall sta1 args ins sta2 ctx2 bhv2.
-                  eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
-                  ctx.func_env[id] = Some ins ->
-                  inp.config.stack_size <> Finite stk ->
-                  let inp1 = { inp with argument0 = identifier_to_string id } in
-                  let ctx1 = { ctx with arguments = args } in
-                  eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
-                  Rs.mem {state=sta2; context=ctx2; data=()} bhv2 result
-                }
-              in
-              let res2' =
-                let function aux (sta2: sym_state unit) =
-                  {state=sta2.state; context={sta2.context with arguments = ctx.arguments}; data=()}
-                in
-                Rs.map aux res2
-                ensures { [@expl:callfun4]
-                  forall sta1 args ins sta2 ctx2 bhv2.
-                  eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
-                  ctx.func_env[id] = Some ins ->
-                  inp.config.stack_size <> Finite stk ->
-                  let inp1 = { inp with argument0 = identifier_to_string id } in
-                  let ctx1 = { ctx with arguments = args } in
-                  eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
-                  Rs.mem {state=sta2; context={ctx2 with arguments = ctx.arguments}; data=()} bhv2 result
-                }
-              in
-              Rs.({res2' with normal=Cn.union res2'.normal res2'.return_; return_=Cn.empty})
-              ensures { [@expl:callfun5]
-                forall sta1 args ins sta2 ctx2 bhv2.
-                eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
-                ctx.func_env[id] = Some ins ->
-                inp.config.stack_size <> Finite stk ->
-                let inp1 = {inp with argument0=identifier_to_string id} in
-                let ctx1 = {ctx with arguments=args} in
-                eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
-                let bhv' = match bhv2 with BNormal | BReturn -> BNormal | BExit -> BExit | BIncomplete -> BIncomplete end in
-                let ctx' = { ctx2 with arguments = ctx.arguments } in
-                Rs.mem {state=sta2; context=ctx'; data=()} bhv' result
-              }
-        | None -> (* Undefined function *)
-            let arg_res' =
-              let function aux (arg: (state, list string)) =
-                let sta', _ = arg in
-                {state=sta'; context={ctx with result=False}; data=()}
-              in
-              Cn.map aux arg_res
-              ensures {
-                forall sta' ss.
-                eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
-                ctx.func_env[id] = None ->
-                Cn.mem {state=sta'; context={ctx with result=False}; data=()} result
-                by Cn.mem (sta', ss) arg_res
-              }
-            in
-            Rs.single_behaviour (behaviour inp False) arg_res'
-            ensures {
-              forall sta' ss.
-              eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
-              ctx.func_env[id] = None ->
-              Rs.mem {state=sta'; context={ctx with result=False}; data=()} (behaviour inp False) result
-            }
-        end
-      in
-      let res_failures = Rs.stas_as_failures ctx arg_res_failures in
-      Rs.union res res_failures
-
-    | IShift bn ->
-      match shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments with
-      | Some args ->
-        let ctx' = {ctx with result = True; arguments = args} in
-        let sta' = {state = sta; context = ctx'; data=()} in
-        Rs.({empty with normal = Cn.singleton sta'})
-      | None ->
-        let ctx' = {ctx with result = False} in
-        let sta' = {state = sta; context = ctx'; data=()} in
-        Rs.inject inp (Cn.singleton sta')
+      scope import Arg
+        (* TODO Remove `function` from this and the below reformulation, use predicate in specifications below *)
+        val function sym_interp_utility (params: (utility_context, identifier, state)) : Cn.t (state, result bool)
+          ensures { forall res. interp_utility params res <-> Cn.mem res result }
       end
 
-    | IForeach id le ins ->
-      let lst_res, lst_res_failures =
-        separate_results
-          (interp_list_expr stk inp ctx sta le)
-      in
-      assert {
-        forall sta' ss.
-        eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) -> 
-        Cn.mem (sta', ss) lst_res
-      };
-      let res_loop_cont =
-        (* Execute foreach loop on a result from interp_list_expr *)
-        let function aux arg =
-          let sta', ss = arg in
-          interp_foreach True stk inp ctx sta' id ss ins
-        in
-        Rs.bind_collection aux lst_res
-        ensures {
-          forall sta' ss sta'' ctx' bhv b.
-          eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) -> 
-          eval_foreach stk True (inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
-          Rs.mem {state=sta''; context=ctx'; data=b} bhv result
-        }
-      in
-      let res_loop_cont' =
-        let function aux sta'' =
-          let ctx'' = {sta''.context with result=sta''.data} in
-          with_data () {sta'' with context = ctx''}
-        in
-        Rs.map aux res_loop_cont
-        ensures {
-          forall sta' ss sta'' ctx' bhv b.
-          eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) -> 
-          eval_foreach stk True (inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
-          
-          Rs.mem {state=sta''; context={ctx' with result=b}; data=()} bhv result
-        }
-      in
-      let res_failure =
-        Rs.stas_as_failures ctx lst_res_failures
-        ensures {
-          forall sta'.
-          eval_list_expr stk (inp, ctx, sta) le (sta', Incomplete) -> 
-          Rs.mem {state=sta'; context=ctx; data=()} BIncomplete result
-        }
-      in
-      Rs.(union res_loop_cont' res_failure)
-
-    | IWhile ins1 ins2 ->
-      let res = interp_while True 0 stk inp ctx sta ins1 ins2 in
-      let function aux_normal (sta': sym_state (int, bool)) =
-        let _, b = sta'.data in
-        {state=sta'.state; context={sta'.context with result=b}; data=()}
-      in
-      let function aux_other (sta': sym_state (int, bool)) =
-        {sta' with data=()}
-      in
-      Rs.({normal=Cn.map aux_normal res.normal;
-           exit=Cn.map aux_other res.exit;
-           return_=Cn.map aux_other res.return_;
-           failure=Cn.map aux_other res.failure})
-      ensures {
-        forall sta' ctx' bhv ctr b.
-        bhv <> BNormal ->
-        eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) ctr b ->
-        Rs.mem {state=sta'; context=ctx'; data=()}  bhv result
-      }
-      ensures {
-        forall sta' ctx' ctr b.
-        eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', BNormal) ctr b ->
-        Rs.mem {state=sta'; context={ctx' with result=b}; data=()} BNormal result
+      (** A symbolic state combines a concrete context and a program state as defined in the
+          semantics with a filesystem using feature constraints. *)
+      type sym_state 'a = {
+        context: context;
+        state: state;
+        data: 'a (* Used to fiddle additional information through interp_instr': A stdin in pipe and the last result in the loops *)
       }
 
-    | IPipe ins1 ins2 ->
-      let stas1, stas1_failure =
-        Rs.separate_non_failure
-          (interp_instr stk inp ctx {sta with stdout=Stdout.empty} ins1)
-      in
-      assert {
-        forall sta1 ctx1 bhv1.
-        eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) ->
-        bhv1 <> BIncomplete ->
-        Cn.mem {state=sta1; context=ctx1; data=()} stas1
-      };
-      let stas1': Cn.t (sym_state stdin) = (* data is sta1.state.stdin *)
-        let function aux (sta1: sym_state unit) =
-          {state={sta1.state with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.state.stdout}; context=ctx; data=sta1.state.stdin}
-        in
-        Cn.map aux stas1
-        ensures {
-          forall sta1 ctx1 bhv1.
-          eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) ->
-          bhv1 <> BIncomplete ->
-          Cn.mem
-            {state={sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}; context=ctx; data=sta1.stdin}
-            result
-        }
-      in
-      let res2: Rs.t stdin = (* data is sta1.state.stdin *)
-        interp_instr' stk inp stas1' ins2
-        ensures {
-          forall sta1 ctx1 bhv1 sta2 ctx2 bhv2.
-          eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) -> 
-          bhv1 <> BIncomplete ->
-          eval_instruction stk (inp, ctx, {sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}) ins2 (sta2, ctx2, bhv2) ->
-          Rs.mem {state=sta2; context=ctx2; data=sta1.stdin} bhv2 result
-        }
-      in
-      let res2' =
-        let function aux sta2 =
-          {state={sta2.state with stdin=sta2.data};
-           context={ctx with result=sta2.context.result};
-           data=()}
-        in
-        Rs.map aux res2
-        ensures {
-          forall sta1 ctx1 bhv1 sta2 ctx2 bhv2.
-          eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) -> 
-          bhv1 <> BIncomplete ->
-          eval_instruction stk (inp, ctx, {sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}) ins2 (sta2, ctx2, bhv2) ->
-          Rs.mem {state={sta2 with stdin=sta1.stdin}; context={ctx with result=ctx2.result}; data=()} bhv2 result
-        }
-      in
-      let sta1_failure' =
-        let function aux (sta1: sym_state unit) =
-          {state={sta1.state with stdout=sta.stdout}; context=ctx; data=()}
-        in
-        Cn.map aux stas1_failure
-        ensures {
-          forall sta1 ctx1.
-          eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, BIncomplete) -> 
-          Cn.mem {state={sta1 with stdout=sta.stdout}; context=ctx; data=()} result
-        }
-      in
-      Rs.(union res2' {empty with failure=sta1_failure'})
+      let function with_data data =
+        fun sta ->
+          {sta with data = data}
 
-    | IExit code ->
-      let r =
-        match code with
-        | RPrevious -> ctx.result
-        | RSuccess -> True
-        | RFailure -> False
-        end
-      in
-      let sta = {state=sta; context={ctx with result=r}; data=()} in
-      Rs.({empty with exit = Cn.singleton sta})
+      (** The symbolic interpretation of a program results describes multiple possible results
+        *)
+      scope Results
 
-    | IReturn code ->
-      let r =
-        match code with
-        | RPrevious -> ctx.result
-        | RSuccess -> True
-        | RFailure -> False
-        end
-      in
-      let sta =
-        let ctx' = {ctx with result = r} in
-        {state = sta; context = ctx'; data=()}
-      in
-      Rs.({empty with return_ = Cn.singleton sta})
-    end
+        (** The results of a symbolic execution is a quadruple of sets of symbolic states, where
+            each components corresponds to a behaviour. *)
+        type t 'a = {
+          normal  : Cn.t (sym_state 'a);
+          exit    : Cn.t (sym_state 'a);
+          return_ : Cn.t (sym_state 'a);
+          failure : Cn.t (sym_state 'a);
+        }
 
-  with interp_foreach (b:bool) (stk:int) (inp:input) (ctx:context) (sta:state) (id:identifier) (ss:list string) (ins:instruction) : Rs.t bool
-    variant { get_finite inp.config.stack_size - stk, size_instr ins, L.length ss }
-    requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
-    requires { stk <= get_finite inp.config.stack_size }
-    ensures {
-      forall sta' ctx' bhv b'.
-      eval_foreach stk b (inp, ctx, sta) id ss ins (sta', ctx', bhv) b' ->
-      Rs.mem {state=sta'; context=ctx'; data=b'} bhv result
-    }
-  = match ss with
-    | Nil ->
-      Rs.({empty with normal=Cn.singleton {state=sta; context=ctx; data=b}})
-    | Cons s ss' ->
-      let res1_normal, res1_other =
-        Rs.separate_normal
-          (interp_instr stk inp {ctx with var_env = ctx.var_env[id <- s]'} sta ins)
-      in
-      let res_normal' =
-        let function aux (sta1: sym_state unit) =
-          interp_foreach sta1.context.result stk inp sta1.context sta1.state id ss' ins
-        in
-        Rs.bind_collection aux res1_normal
-        ensures {
-          forall sta1 ctx1 sta2 ctx2 bhv2 b2.
-          eval_instruction stk (inp, {ctx with var_env=ctx.var_env[id <- s]'}, sta) ins (sta1, ctx1, BNormal) ->
-          eval_foreach stk ctx1.result (inp, ctx1, sta1) id ss' ins (sta2, ctx2, bhv2) b2 ->
-          Rs.mem {state=sta2; context=ctx2; data=b2} bhv2 result
+        let constant empty = {
+          normal  = Cn.empty;
+          exit    = Cn.empty;
+          return_ = Cn.empty;
+          failure = Cn.empty;
         }
-      in
-      let res1_other' =
-        let function aux (sta: sym_state unit) =
-          with_data sta.context.result sta
-        in
-        Rs.map aux res1_other
-        ensures {
-          forall sta1 ctx1 bhv1.
-          eval_instruction stk (inp, {ctx with var_env=ctx.var_env[id <- s]'}, sta) ins (sta1, ctx1, bhv1) ->
-          bhv1 <> BNormal ->
-          Rs.mem {state=sta1; context=ctx1; data=ctx1.result} bhv1 result
-        }
-      in
-      Rs.union res_normal' res1_other'
-    end
 
-  with interp_while b ctr stk inp ctx (sta:state) ins1 ins2 : Rs.t (int, bool)
-    variant { get_finite inp.config.stack_size - stk, size_instr ins1+size_instr ins2, get_finite inp.config.loop_limit - ctr  }
-    requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
-    requires { 0 <= ctr <= get_finite inp.config.loop_limit }
-    requires { stk <= get_finite inp.config.stack_size }
-    ensures {
-      forall sta' ctx' bhv ctr' b'.
-      eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) ctr' b' ->
-      Rs.mem {state=sta'; context=ctx'; data=(ctr', b')} bhv result
-    }
-  = let loop_limit = get_finite inp.config.loop_limit in
-    if ctr = loop_limit then
-      let sta = { sta with log = Stdout.(newline (output loop_limit_message sta.log)) } in
-      Rs.({empty with failure=Cn.singleton {state=sta; context=ctx; data=(ctr, b)}})
-    else
-      let res1_normal, res1_abort =
-        Rs.separate_normal
-          (interp_instr stk {inp with under_condition=True} ctx sta ins1)
-      in
-      assert {
-        forall sta1 ctx1.
-        eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-        Cn.mem {state=sta1; context=ctx1; data=()} res1_normal
-      };
-      assert {
-        forall sta1 ctx1 bhv1.
-        bhv1 <> BNormal ->
-        eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
-        Rs.mem {state=sta1; context=ctx1; data=()} bhv1 res1_abort
-      };
-      let res1_true, res1_false =
-        Cn.partition (fun sta -> sta.context.result) res1_normal
-      in
-      assert {
-        forall sta1 ctx1.
-        eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-        ctx1.result = True ->
-        Cn.mem {state=sta1; context=ctx1; data=()} res1_true
-      };
-      assert {
-        forall sta1 ctx1.
-        eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-        ctx1.result = False ->
-        Cn.mem {state=sta1; context=ctx1; data=()} res1_false
-      };
-      let res2_normal, res2_abort =
-        Rs.separate_normal
-          (interp_instr' stk inp res1_true ins2)
-      in
-      assert {
-        forall sta1 ctx1 sta2 ctx2.
-        eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-        ctx1.result = True ->
-        eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
-        Cn.mem {state=sta2; context=ctx2; data=()} res2_normal
-      };
-      assert {
-        forall sta1 ctx1 sta2 ctx2 bhv2.
-        eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-        ctx1.result = True ->
-        eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
-        bhv2 <> BNormal ->
-        Rs.mem {state=sta2; context=ctx2; data=()} bhv2 res2_abort
-      };
-      let res3 =
-        let function aux (sta2:sym_state unit) =
-          interp_while sta2.context.result (ctr+1) stk inp sta2.context sta2.state ins1 ins2
-        in
-        Rs.bind_collection aux res2_normal
-        ensures {
-          forall sta1 ctx1 sta2 ctx2 sta3 ctx3 bhv3 n b'.
-          inp.config.loop_limit <> Finite ctr ->
-          eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-          ctx1.result = True ->
-          eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
-          eval_while stk (ctr+1) ctx2.result (inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) n b' ->
-          Rs.mem {state=sta3;context=ctx3;data=(n, b')} bhv3 result
-        }
-      in
-      let function with_ctr_b (sta:sym_state unit) =
-        {sta with data=(ctr, b)}
-      in
-      let res1_abort' =
-        Rs.map with_ctr_b res1_abort
-        ensures {
-          forall sta1 ctx1 bhv1.
-          inp.config.loop_limit <> Finite ctr ->
-          bhv1 <> BNormal ->
-          eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
-          Rs.mem {state=sta1;context=ctx1;data=(ctr, b)} bhv1 result
-        }
-      in
-      let res1_false' =
-        Rs.({empty with normal=Cn.map with_ctr_b res1_false})
-        ensures {
-          forall sta1 ctx1.
-          inp.config.loop_limit <> Finite ctr ->
-          ctx1.result = False ->
-          eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-          Rs.mem {state=sta1;context=ctx1;data=(ctr, b)} BNormal result
-        }
-      in
-      let res2_abort' =
-        Rs.map with_ctr_b res2_abort
-        ensures {
-          forall sta1 ctx1 sta2 ctx2 bhv2.
-          inp.config.loop_limit <> Finite ctr ->
-          eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
-          ctx1.result = True ->
-          eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
-          bhv2 <> BNormal ->
-          Rs.mem {state=sta2;context=ctx2;data=(ctr, b)} bhv2 result
-        }
-      in
-      Rs.(union res3 (union res1_abort' (union res1_false' res2_abort')))
+        predicate mem (sta:sym_state 'a) (bhv:behaviour) (rs:t 'a) =
+          match bhv with
+          | BNormal  -> Cn.mem sta rs.normal
+          | BExit    -> Cn.mem sta rs.exit
+          | BReturn  -> Cn.mem sta rs.return_
+          | BIncomplete -> Cn.mem sta rs.failure
+          end
 
-  with interp_instr' (stk:int) (inp:input) (stas: Cn.t (sym_state 'a)) (ins:instruction) : Rs.t 'a
-    variant { get_finite inp.config.stack_size - stk, size_instr ins, Cn.size stas }
-    requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
-    requires { stk <= get_finite inp.config.stack_size }
-    ensures { (* Over-approximation *)
-      forall sta sta' ctx' bhv.
-      Cn.mem sta stas ->
-      eval_instruction stk (inp, sta.context, sta.state) ins (sta', ctx', bhv) ->
-      Rs.mem {state=sta'; context=ctx'; data=sta.data} bhv result
-    }
-  = let interp_instr_with_data sta =
-      ensures {
-        forall sta' ctx' bhv.
-        eval_instruction stk (inp, sta.context, sta.state) ins (sta', ctx', bhv) ->
-        Rs.mem {state=sta'; context=ctx'; data=sta.data} bhv result
-      }
-      Rs.map (with_data sta.data)
-        (interp_instr stk inp sta.context sta.state ins)
-    in
-    Rs.bind_collection interp_instr_with_data stas
+        let function map (f:sym_state 'a -> sym_state 'b) (res:t 'a) : t 'b
+          ensures { forall sta bhv. mem sta bhv res -> mem (f sta) bhv result }
+          ensures { forall sta' bhv. mem sta' bhv result -> exists sta. mem sta bhv res /\ sta' = f sta }
+        = { normal  = Cn.map f res.normal;
+            exit    = Cn.map f res.exit;
+            return_ = Cn.map f res.return_;
+            failure = Cn.map f res.failure; }
 
-  with interp_str_expr (stk:int) (b:bool) (inp:input) (ctx:context) (sta:state) (se:string_expression)
-    : Cn.t (state, result (string, bool))
-    variant { get_finite inp.config.stack_size - stk, size_string_expr se, -1 }
-    requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
-    requires { stk <= get_finite inp.config.stack_size }
-    ensures { (* Over-approximation *)
-      forall sta' res.
-      eval_str_expr stk b (inp, ctx, sta) se (sta', res) ->
-      Cn.mem (sta', res) result
-    }
-  = match se with
-    | SLiteral str ->
-      Cn.singleton (sta, Ok (str, b))
-    | SVariable var ->
-      let str = ctx.var_env[var]' in
-      Cn.singleton (sta, Ok (str, b))
-    | SArgument n ->
-      let str = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
-      Cn.singleton (sta, Ok (str, b))
-    | SSubshell ins ->
-      let res, stas_failure =
-        Rs.separate_non_failure
-          (interp_instr stk inp ctx {sta with stdout=Stdout.empty} ins)
-      in
-      assert {
-        forall sta1 ctx1 bhv1.
-        eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
-        bhv1 <> BIncomplete ->
-        Cn.mem {state=sta1; context=ctx1; data=()} res
-      };
-      assert {
-        forall sta1 ctx1.
-        eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BIncomplete) ->
-        Cn.mem {state=sta1; context=ctx1; data=()} stas_failure
-      };
-      let res' =
-        let for_res (sta1:sym_state unit) =
-          let str = Stdout.to_string sta1.state.stdout in
-          let sta1' = {sta1.state with stdout=sta.stdout} in
-          let b' = sta1.context.result in
-          sta1', Ok (str, b')
-        in
-        Cn.map for_res res
-      in
-      let res_failure' =
-        Cn.map (fun sta1 -> {sta1.state with stdout=sta.stdout}, Incomplete) stas_failure
-      in
-      Cn.union res' res_failure'
-      ensures {
-        forall sta1 ctx1.
-        eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BIncomplete) ->
-        Cn.mem ({sta1 with stdout = sta.stdout}, Incomplete) result
-        by Cn.mem ({sta1 with stdout = sta.stdout}, Incomplete) res_failure'
-      }
-      ensures {
-        forall sta1 ctx1 bhv1.
-        eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
-        bhv1 <> BIncomplete ->
-        Cn.mem ({sta1 with stdout = sta.stdout}, Ok (Stdout.to_string sta1.stdout, ctx1.result)) result
-        by Cn.mem ({sta1 with stdout = sta.stdout}, Ok (Stdout.to_string sta1.stdout, ctx1.result)) res'
-      }
-    | SConcat se1 se2 ->
-      let res1, res1_failure =
-        separate_results
-          (interp_str_expr stk b inp ctx sta se1)
-      in
-      let res1' =
-        let for_res1 arg
+        let function union (res1 res2: t 'a) : t 'a
+          ensures { forall sta bhv. mem sta bhv res1 -> mem sta bhv result }
+          ensures { forall sta bhv. mem sta bhv res2 -> mem sta bhv result }
+          ensures { forall sta bhv. mem sta bhv result -> mem sta bhv res1 \/ mem sta bhv res2 }
+        = { normal  = Cn.union res1.normal  res2.normal;
+            exit    = Cn.union res1.exit    res2.exit;
+            return_ = Cn.union res1.return_ res2.return_;
+            failure = Cn.union res1.failure res2.failure; }
+
+        lemma union_1: forall sta: sym_state 'a, bhv res1 res2.
+          mem sta bhv res1 -> mem sta bhv (union res1 res2)
+
+        lemma union_2: forall sta: sym_state 'a, bhv res1 res2.
+          mem sta bhv res2 -> mem sta bhv (union res1 res2)
+
+        let rec flatten_list (l: L.list (t 'a)) : t 'a
+          variant { l }
+          ensures { forall res sta bhv. L.mem res l -> mem sta bhv res -> mem sta bhv result }
+          ensures { forall sta bhv. mem sta bhv result -> exists res. L.mem res l /\ mem sta bhv res }
+        = match l with
+          | L.Nil -> empty
+          | L.Cons rs l' ->
+            union rs (flatten_list l')
+          end
+
+        let flatten (c: Cn.t (t 'a)) : t 'a
+          ensures { forall res sta bhv. Cn.mem res c -> mem sta bhv res -> mem sta bhv result }
+          ensures { forall sta bhv. mem sta bhv result -> exists res. Cn.mem res c /\ mem sta bhv res }
+        = flatten_list (Cn.to_list c)
+
+        let bind_collection (f: 'a -> t 'b) (c: Cn.t 'a) : t 'b
           ensures {
-            let sta1, (str1, b1) = arg in
-            forall sta2.
-            eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Ok (str1, b1)) ->
-            eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Incomplete) ->
-            Cn.mem (sta2, Incomplete) result
+            forall x sta bhv.
+            Cn.mem x c ->
+            mem sta bhv (f x) ->
+            mem sta bhv result
           }
           ensures {
-            let sta1, (str1, b1) = arg in
-            forall sta2 str2 b2.
-            eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Ok (str1, b1)) ->
-            eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Ok (str2, b2)) ->
-            Cn.mem (sta2, Ok (String.concat str1 str2, b2)) result
+            forall sta bhv.
+            mem sta bhv result ->
+            exists x.
+            Cn.mem x c /\
+            mem sta bhv (f x)
           }
-        = let sta1, (str1, b1) = arg in
-          let res2, res2_failure =
+        = flatten (Cn.map f c)
+
+        let separate_normal (res:t 'a) : (normal: Cn.t (sym_state 'a), other: t 'a)
+          ensures { normal = res.normal }
+          ensures { other.normal = Cn.empty }
+          ensures { other.exit = res.exit }
+          ensures { other.return_ = res.return_ }
+          ensures { other.failure = res.failure }
+          ensures { forall s. Cn.mem s normal -> Cn.mem s res.normal }
+          ensures { forall s bhv. mem s bhv other -> bhv <> BNormal /\ mem s bhv res }
+        = res.normal, {res with normal = Cn.empty}
+
+        let function separate_non_failure (res:t 'a) : (Cn.t (sym_state 'a), Cn.t (sym_state 'a))
+          = Cn.(union res.normal (union res.exit res.return_)), res.failure
+
+        let function all_states (res:t 'a) : Cn.t (sym_state 'a) =
+          Cn.(union res.normal (union res.exit (union res.return_ res.failure)))
+
+        let stas_as_failures (ctx:context) (stas:Cn.t state) : t unit
+          ensures { result.normal = Cn.empty }
+          ensures { result.exit = Cn.empty }
+          ensures { result.return_ = Cn.empty }
+          ensures { forall s. Cn.mem s result.failure -> Cn.mem s.state stas /\ s.context=ctx /\ s.data = () }
+          ensures { forall s. Cn.mem s stas -> Cn.mem {state=s; context=ctx; data=()} result.failure }
+        = let aux sta = {state=sta; context=ctx; data=()} in
+          {empty with failure=Cn.map aux stas}
+
+        let function single_behaviour bhv (stas: Cn.t (sym_state 'a)) : t 'a =
+          match bhv with
+          | BNormal -> {empty with normal=stas}
+          | BExit -> {empty with exit=stas}
+          | BReturn -> {empty with return_=stas}
+          | BIncomplete -> {empty with failure=stas}
+          end
+
+        let function inject (inp: input) (stas: Cn.t (sym_state 'a)) : t 'a
+          (* ensures { forall sta bhv. mem sta bhv result <-> Cn.mem sta stas /\ bhv = behaviour inp sta.context.result } *)
+          (* ensures { stas = Cn.union result.normal result.exit by Cn.(stas == union result.normal result.exit) } *)
+          (* ensures { forall s. Cn.mem s result.normal -> Cn.mem s stas /\ behaviour inp s.context.result = BNormal } *)
+          (* ensures { forall s. Cn.mem s result.exit -> Cn.mem s stas /\ behaviour inp s.context.result = BExit } *)
+          (* ensures { result.return_ = Cn.empty } *)
+          (* ensures { result.failure = Cn.empty } *)
+        = let exit, normal = Cn.partition (fun sta -> exit_not_normal inp sta.context.result) stas in
+          (* assert { forall sta. Cn.mem sta exit -> exit_not_normal inp sta.context.result = True }; *)
+          (* assert { forall sta. Cn.mem sta normal -> exit_not_normal inp sta.context.result = False }; *)
+          {empty with normal=normal; exit=exit}
+          (* ensures { forall sta bhv. mem sta bhv result -> Cn.mem sta normal \/ Cn.mem sta exit } *)
+
+        lemma mem_inject: forall res: t 'a, sta bhv inp stas.
+          res = inject inp stas ->
+          (mem sta bhv res <-> Cn.mem sta stas /\ bhv = behaviour inp sta.context.result)
+
+        lemma inject_union: forall res: t 'a, inp stas.
+          res = inject inp stas ->
+          stas = Cn.union res.normal res.exit by
+          Cn.(stas == union res.normal res.exit)
+
+        lemma inject_return_empty: forall res: t 'a, inp stas.
+          res = inject inp stas -> res.return_ = Cn.empty
+
+        lemma inject_failure_empty: forall res: t 'a, inp stas.
+          res = inject inp stas -> res.failure = Cn.empty
+
+        lemma inject_normal_union_exit: forall inp, stas: Cn.t (sym_state 'a).
+          stas = Cn.union (inject inp stas).normal (inject inp stas).exit
+          by Cn.(stas == union (inject inp stas).normal (inject inp stas).exit)
+
+        lemma inject_under_condition_normal: forall res: t 'a, inp stas.
+          res = inject inp stas ->
+          inp.under_condition = True ->
+          res.normal = stas
+          by Cn.(res.normal == stas)
+
+        lemma inject_under_condition_exit: forall inp, stas: Cn.t (sym_state 'a).
+          inp.under_condition = True ->
+          (inject inp stas).exit = Cn.empty
+          by Cn.((inject inp stas).exit == Cn.empty)
+
+        lemma inject_outside_condition_normal: forall inp, stas: Cn.t (sym_state 'a).
+          inp.under_condition = False ->
+          (inject inp stas).normal = Cn.filter (fun sta -> sta.context.result) stas
+          by Cn.((inject inp stas).normal == filter (fun sta -> sta.context.result) stas)
+
+        lemma inject_outside_condition_exit: forall inp, stas: Cn.t (sym_state 'a).
+          inp.under_condition = False ->
+          (inject inp stas).exit = Cn.filter (fun sta -> not sta.context.result) stas
+          by Cn.((inject inp stas).exit == filter (fun sta -> not sta.context.result) stas)
+
+        lemma inject_map: forall f: sym_state 'a -> sym_state 'b, res inp sta sta' bhv stas.
+          res = inject inp (Cn.map f stas) ->
+          sta' = f sta ->
+          bhv = behaviour inp (f sta).context.result ->
+          Cn.mem sta stas ->
+          mem sta' bhv res
+
+        lemma inject_map': forall f: sym_state 'a -> sym_state 'b, res inp sta' bhv stas.
+          res = inject inp (Cn.map f stas) ->
+          mem sta' bhv res ->
+          bhv = behaviour inp sta'.context.result /\
+          exists sta. Cn.mem sta stas /\ sta' = f sta
+
+        lemma union_inject: forall res: t 'a, inp stas.
+          res = inject inp stas ->
+          stas = Cn.union res.normal res.exit
+          by
+          Cn.(stas == union res.normal res.exit)
+
+        lemma mem_union_inject: forall sta: sym_state 'a, bhv inp stas rs.
+          mem sta bhv (union (inject inp stas) rs) <->
+          ((Cn.mem sta stas /\ bhv = behaviour inp sta.context.result) \/
+          mem sta bhv rs)
+
+        lemma mem_union: forall sta bhv, rs1 rs2:t 'a.
+          mem sta bhv (union rs1 rs2) <->
+          (mem sta bhv rs1 \/ mem sta bhv rs2)
+
+        lemma mem_map: forall sta': sym_state 'b, bhv, rs, f: sym_state 'a -> sym_state 'b.
+          mem sta' bhv (map f rs) <->
+          exists sta. mem sta bhv rs /\ sta' = f sta
+
+        lemma failure_union: forall rs1 rs2: t 'a.
+          failure (union rs1 rs2) = Cn.union (failure rs1) (failure rs2)
+
+        lemma mem_mk_results: forall sta: sym_state 'a, bhv normal exit return_ failure.
+          mem sta bhv { normal=normal; exit=exit; return_=return_; failure=failure } <->
+          match bhv with
+          | BNormal  -> Cn.mem sta normal
+          | BExit    -> Cn.mem sta exit
+          | BReturn  -> Cn.mem sta return_
+          | BIncomplete -> Cn.mem sta failure
+          end
+
+        lemma mem_union_results: forall sta: sym_state 'a, bhv rs1 rs2.
+          mem sta bhv (union rs1 rs2) <->
+          (match bhv with
+          | BNormal  -> Cn.mem sta rs1.normal
+          | BExit    -> Cn.mem sta rs1.exit
+          | BReturn  -> Cn.mem sta rs1.return_
+          | BIncomplete -> Cn.mem sta rs1.failure
+          end \/
+          match bhv with
+          | BNormal  -> Cn.mem sta rs2.normal
+          | BExit    -> Cn.mem sta rs2.exit
+          | BReturn  -> Cn.mem sta rs2.return_
+          | BIncomplete -> Cn.mem sta rs2.failure
+          end)
+      end
+
+      let rec separate_results_list (sta_opts: list ('a, result 'b)) : (results: list ('a, 'b), failures: list 'a)
+        variant { sta_opts }
+        ensures {
+          forall sta x.
+          L.mem (sta, x) results <->
+          L.mem (sta, Ok x) sta_opts
+        }
+        ensures {
+          forall sta.
+          L.mem sta failures <->
+          L.mem (sta, Incomplete) sta_opts
+        }
+      = match sta_opts with
+        | Nil -> Nil, Nil
+        | Cons (sta, opt_x) sta_opts' -> 
+          let results, failures = separate_results_list sta_opts' in
+          match opt_x with
+          | Ok x -> Cons (sta, x) results, failures
+          | Incomplete -> results, Cons sta failures
+          end
+        end
+
+      let separate_results (sta_opts: Cn.t ('a, result 'b)) : (results: Cn.t ('a, 'b), failures: Cn.t 'a)
+        ensures {
+          forall sta x.
+          Cn.mem (sta, x) results <->
+          Cn.mem (sta, Ok x) sta_opts
+        }
+        ensures {
+          forall sta.
+          Cn.mem sta failures <->
+          Cn.mem (sta, Incomplete) sta_opts
+        }
+      = let results, failures = separate_results_list (Cn.to_list sta_opts) in
+        Cn.of_list results, Cn.of_list failures
+
+      let rec function size_instr (ins:instruction) : int
+        variant { ins }
+        ensures { 0 < result }
+      = 1 + match ins with
+        | IReturn _ | IExit _ | IShift _ | IExport _ ->
+          0
+        | INot ins | INoOutput ins | ISubshell ins ->
+          size_instr ins
+        | ICd se | IAssignment _ se  ->
+          size_string_expr se
+        | ICallUtility _ le | ICallFunction _ le ->
+          size_list_expr le
+        | ISequence ins1 ins2 | IPipe ins1 ins2 | IWhile ins1 ins2 ->
+          size_instr ins1 + size_instr ins2
+        | IForeach _ le ins ->
+          size_list_expr le + size_instr ins
+        | IIf ins1 ins2 ins3 ->
+          size_instr ins1 + size_instr ins2 + size_instr ins3
+        end
+      with function size_list_expr (le:list_expression): int
+        variant { le }
+        ensures { 0 < result }
+      = 1 + match le with
+        | Nil -> 0
+        | Cons se_sp le' ->
+          size_pair se_sp + size_list_expr le'
+        end
+      with function size_pair (se_sp: (string_expression, split)) : int
+        variant { se_sp }
+        ensures { 0 < result }
+      = let se, _ = se_sp in
+        size_string_expr se
+      with function size_string_expr (se:string_expression): int
+        variant { se }
+        ensures { 0 < result }
+      = 1 + match se with
+        | SLiteral _
+        | SVariable _
+        | SArgument _ -> 0
+        | SSubshell ins -> size_instr ins
+        | SConcat se1 se2 -> size_string_expr se1 + size_string_expr se2
+        end
+
+      let rec lemma size_string_expr_list_expr (le:list_expression)
+        ensures { forall se sp. size_string_expr se < size_list_expr (Cons (se, sp) le) }
+      = match le with
+        | Nil -> ()
+        | Cons _ le' -> size_string_expr_list_expr le'
+        end
+
+      let function flip_result sta
+        ensures { result.state = sta.state }
+        ensures { result.data = sta.data }
+        ensures { result.context = {sta.context with result=notb sta.context.result} }
+      = let result = notb sta.context.result in
+        let context = {sta.context with result=result} in
+        {sta with context=context}
+
+      let function reset_output sta sta' =
+        let sta'' = {sta'.state with stdout = sta.stdout} in
+        {sta' with state = sta''}
+
+      let function assignment_for_str_sta ctx var arg =
+        let sta', (str, result) = arg in
+        let ctx' = {
+          ctx with
+          var_env = ctx.var_env[var <- str]';
+          result = result;
+        }
+        in
+        {state = sta'; context = ctx'; data = ()}
+
+      let rec interp_instr (stk:int) (inp:input) (ctx:context) (sta:state) (ins:instruction)
+        : Results.t unit
+        requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
+        requires { within_limit stk inp.config.stack_size }
+        variant { get_finite inp.config.stack_size - stk, size_instr ins, -1 }
+        ensures { (* Over-approximation *)
+          forall sta' ctx' bhv.
+          eval_instruction stk (inp, ctx, sta) ins (sta', ctx', bhv) ->
+          Results.mem {state=sta'; context=ctx'; data=()} bhv result
+        }
+        (* (\* Under-approximation (->) and over-approximation (<-) *\) *)
+        (* ensures { *)
+        (*   forall bhv sta'. *)
+        (*   Results.mem sta' bhv result <-> *)
+        (*   eval_instruction stk (inp, ctx, sta) ins *)
+        (*     (sta'.state, sta'.context, bhv) *)
+        (* } *)
+      = match ins with
+
+        | INot ins1 ->
+          let res = interp_instr stk {inp with under_condition=True} ctx sta ins1 in
+          Results.({
+              normal = Cn.map flip_result res.normal;
+              return_ = Cn.map flip_result res.return_;
+              exit = res.exit;
+              failure = res.failure;
+            })
+          ensures {
+            forall sta' ctx' bhv.
+            eval_instruction stk ({inp with under_condition=True}, ctx, sta) ins1 (sta', ctx', bhv) ->
+            match bhv with
+            | BNormal | BReturn -> Results.mem {state=sta'; context={ctx' with result=notb ctx'.result}; data=()} bhv result
+            | BExit | BIncomplete -> Results.mem {state=sta'; context=ctx'; data=()} bhv result
+            end
+          }
+
+        | IAssignment var se ->
+          let str_stas, str_stas_failure =
             separate_results
-              (interp_str_expr stk b1 inp ctx sta1 se2)
+              (interp_str_expr stk True inp ctx sta se)
           in
-          let res2_failure' =
-            Cn.map (fun sta -> sta, Incomplete) res2_failure
+          let str_stas_failure = Results.stas_as_failures ctx str_stas_failure in
+          let res =
+            Results.inject inp
+              (Cn.map (fun arg -> assignment_for_str_sta ctx var arg) str_stas)
+          in
+          Results.(union res str_stas_failure)
+          ensures {
+            forall sta'.
+            eval_str_expr stk True (inp, ctx, sta) se (sta', Incomplete) ->
+            Cn.mem {state=sta'; context=ctx; data=()} result.Results.failure
+          }
+
+        | IExport id ->
+          let sta' =
+            let ctx' =
+              let var_val = {ctx.var_env[id] with exported=True} in
+              let var_env' = ctx.var_env[id <- var_val] in
+              {ctx with var_env = var_env'; result = True}
+            in
+            {state = sta; context = ctx'; data=()}
+          in
+          Results.({empty with normal = Cn.singleton sta'})
+
+        | ISequence ins1 ins2 ->
+          let res1_normal, res1_other =
+            Results.separate_normal
+              (interp_instr stk inp ctx sta ins1)
+          in
+          let res2 = interp_instr' stk inp res1_normal ins2 in
+          Results.union res2 res1_other
+
+        | ISubshell ins ->
+          let stas, stas_failure =
+            Results.separate_non_failure
+              (interp_instr stk inp ctx sta ins)
+          in
+          assert {
+            forall sta' ctx' bhv.
+            bhv <> BIncomplete ->
+            eval_instruction stk (inp, ctx, sta) ins (sta', ctx', bhv) ->
+            Cn.mem {state=sta'; context=ctx'; data=()} stas
+          };
+          let stas' =
+            let aux sta =
+              let ctx' = {ctx with result = sta.context.result} in
+              {state=sta.state; context=ctx'; data=()}
+            in
+            Cn.map aux stas
+          in
+          let old_ctx_with_res sta = {sta with context={ctx with result=sta.context.result}} in
+          Results.(union
+              (inject inp stas')
+              {empty with failure=Cn.map old_ctx_with_res stas_failure})
+          ensures {
+            forall sta' ctx'.
+            eval_instruction stk (inp, ctx, sta) ins (sta', ctx', BIncomplete) ->
+            Results.mem {state=sta'; context={ctx with result=ctx'.result}; data=()} BIncomplete result
+          }
+
+        | INoOutput ins ->
+          Results.map (reset_output sta)
+            (interp_instr stk inp ctx sta ins)
+
+        | IIf ins1 ins2 ins3 ->
+          let res1_normal, res1_other =
+            Results.separate_normal
+              (interp_instr stk {inp with under_condition=True} ctx sta ins1)
+          in
+          let res2 =
+            let res1_true, res1_false =
+              Cn.partition
+                (fun sta -> sta.context.result)
+                res1_normal
+            in
+            Results.union
+              (interp_instr' stk inp res1_true ins2)
+              (interp_instr' stk inp res1_false ins3)
+          in
+          Results.union res2 res1_other
+
+        | ICd se ->
+          let res1, res1_failures =
+            separate_results
+              (interp_str_expr stk True inp ctx sta se) in
+          let res2a =
+            let function aux arg =
+              let sta1, (s, (_:bool)) = arg in
+              let cwd_p = absolute_or_concat_relative ctx.cwd s in
+              let pwd_s = normalized_path_to_string cwd_p in
+              let args = Cons "-d" (Cons pwd_s Nil) in
+              Cn.map (fun arg -> let sta2, r = arg in ((sta2, cwd_p, pwd_s), r))
+                (sym_interp_utility (utility_context args ctx, identifier_test, sta1)) in
+            Cn.bind aux res1 in
+          let res2, res2_failures = separate_results res2a in
+          let function aux' arg =
+            let (sta2, cwd_p, pwd_s), b = arg in
+            if b then
+              let ctx' = {
+                ctx with
+                var_env = ctx.var_env[identifier_pwd <- pwd_s]';
+                Context.cwd = cwd_p;
+                result = True } in 
+              {state = sta2; context = ctx'; data = ()}
+            else
+              let ctx' = {ctx with result = False} in
+              {state = sta2; context = ctx'; data = ()} in
+          let res2' = Cn.map aux' res2 in
+          let res3 = Results.inject inp res2' in
+          let res2_failures' = Cn.map (fun arg -> let sta, _, _ = arg in sta) res2_failures in
+          let res_failures = Results.stas_as_failures ctx (Cn.union res1_failures res2_failures') in
+          Results.union res3 res_failures
+          ensures { [@expl:cd_arg_failure]
+            forall sta1.
+            eval_str_expr stk True (inp, ctx, sta) se (sta1, Incomplete) ->
+            Results.mem {state=sta1; context=ctx; data=()} BIncomplete result
+          }
+          ensures { [@expl:cd_incomplete]
+            forall sta1 s b sta2.
+            eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, b)) ->
+            let cwd_p = absolute_or_concat_relative ctx.Context.cwd s in
+            let pwd_s = normalized_path_to_string cwd_p in
+            let args = Cons "-d" (Cons pwd_s Nil) in
+            interp_utility (utility_context args ctx, identifier_test, sta1) (sta2, Incomplete) ->
+            Results.mem {state=sta2; context=ctx; data=()} BIncomplete result
+            by Cn.mem (sta1, (s, b)) res1
+            so Cn.mem (sta2, Incomplete) (sym_interp_utility (utility_context args ctx, identifier_test, sta1))
+            so Cn.mem (sta2, cwd_p, pwd_s) res2_failures
+          }
+          ensures { [@expl:cd_no_dir]
+            forall sta1 s b sta2.
+            eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, b)) ->
+            let cwd_p = absolute_or_concat_relative ctx.Context.cwd s in
+            let pwd_s = normalized_path_to_string cwd_p in
+            let args = Cons "-d" (Cons pwd_s Nil) in
+            interp_utility (utility_context args ctx, identifier_test, sta1) (sta2, Ok False) ->
+            let ctx' = {ctx with result = False} in
+            let bhv = behaviour inp False in
+            Results.mem {state=sta2; context=ctx'; data=()} bhv result
+            by Cn.mem (sta1, (s, b)) res1
+            so Cn.mem (sta2, Ok False) (sym_interp_utility (utility_context args ctx, identifier_test, sta1))
+            so Cn.mem ((sta2, cwd_p, pwd_s), False) res2
+            so Cn.mem {state=sta2; context=ctx'; data=()} res2'
+          }
+          ensures { [@expl:cd]
+            forall sta1 s b sta2.
+            eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, b)) ->
+            let cwd_p = absolute_or_concat_relative ctx.Context.cwd s in
+            let pwd_s = normalized_path_to_string cwd_p in
+            let args = Cons "-d" (Cons pwd_s Nil) in
+            interp_utility (utility_context args ctx, identifier_test, sta1) (sta2, Ok True) ->
+            let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- pwd_s]'; Context.cwd = cwd_p} in
+            let bhv = behaviour inp True in
+            Results.mem {state=sta2; context=ctx1; data=()} bhv result
+            by Cn.mem (sta1, (s, b)) res1
+            so Cn.mem (sta2, Ok True) (sym_interp_utility (utility_context args ctx, identifier_test, sta1))
+            so Cn.mem ((sta2, cwd_p, pwd_s), True) res2
+            so Cn.mem {state=sta2; context=ctx1; data=()} res2'
+          }
+
+        | ICallUtility id le ->
+          let res, res_failures =
+            separate_results
+              (interp_list_expr stk inp ctx sta le) in
+          let function aux arg =
+            let sta', args = arg in
+            sym_interp_utility (utility_context args ctx, id, sta') in
+          let res', res_failures' =
+            separate_results (Cn.bind aux res) in
+          let function aux' arg =
+            let sta'', b = arg in
+            {state=sta''; context={ctx with result=b}; data=()} in
+          let res'' = Cn.map aux' res' in
+          let res''' = Results.inject inp res'' in
+          let res_failures' = Results.stas_as_failures ctx (Cn.union res_failures res_failures') in
+          Results.union res''' res_failures'
+          ensures { [@expl:args_incomplete]
+            forall sta'.
+            eval_list_expr stk (inp, ctx, sta) le (sta', Incomplete) ->
+            Results.mem {state=sta'; context=ctx; data=()} BIncomplete result 
+          }
+          ensures { [@expl:utility_incomplete]
+            forall sta' ss sta''.
+            eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
+            interp_utility (utility_context ss ctx, id, sta') (sta'', Incomplete) ->
+            Results.mem {state=sta''; context=ctx; data=()} BIncomplete result
+            by Results.mem {state=sta''; context=ctx; data=()} BIncomplete res_failures'
+          }
+          ensures { [@expl:utility]
+            forall sta' ss sta'' b.
+            eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
+            interp_utility (utility_context ss ctx, id, sta') (sta'', Ok b) ->
+            let ctx' = {ctx with result=b} in
+            Results.mem {state=sta''; context=ctx'; data=()} (behaviour inp b) result
+            by Cn.mem {state=sta''; context=ctx'; data=()} res''
+          }
+
+        | ICallFunction id le ->
+          let arg_res, arg_res_failures =
+            separate_results
+              (interp_list_expr stk inp ctx sta le)
+          in
+          assert { [@expl:callfun1]
+            forall sta1 args.
+            eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
+            Cn.mem (sta1, args) arg_res
+          };
+          let res =
+            match ctx.func_env[id] with
+            | Some ins -> (* Function defined as `ins` *)
+                if stk = get_finite inp.config.stack_size then (* Stack overflow *)
+                  let aux arg =
+                    let sta', _ = arg in
+                    let sta' = { sta' with log = Stdout.(newline (output stack_limit_message sta'.log)) } in
+                    {state=sta'; context=ctx; data=()}
+                  in
+                  Results.({empty with failure = Cn.map aux arg_res})
+                  ensures { [@expl:callfun2]
+                    forall sta1 args ins.
+                    eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
+                    ctx.func_env[id] = Some ins ->
+                    inp.config.stack_size = Finite stk ->
+                    let sta1' = { sta1 with log = Stdout.(newline (output stack_limit_message sta1.log)) } in
+                    Results.mem {state=sta1'; context=ctx; data=()} BIncomplete result
+                  }
+                else (* Execute function *)
+                  let res2 =
+                    let function aux (arg: (state, list string))  =
+                      let sta1, args = arg in
+                      let inp1 = { inp with argument0 = identifier_to_string id } in
+                      let ctx1 = { ctx with arguments = args } in
+                      interp_instr (stk+1) inp1 ctx1 sta1 ins
+                    in
+                    Results.bind_collection aux arg_res
+                    ensures { [@expl:callfun3]
+                      forall sta1 args ins sta2 ctx2 bhv2.
+                      eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
+                      ctx.func_env[id] = Some ins ->
+                      inp.config.stack_size <> Finite stk ->
+                      let inp1 = { inp with argument0 = identifier_to_string id } in
+                      let ctx1 = { ctx with arguments = args } in
+                      eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
+                      Results.mem {state=sta2; context=ctx2; data=()} bhv2 result
+                    }
+                  in
+                  let res2' =
+                    let function aux (sta2: sym_state unit) =
+                      {state=sta2.state; context={sta2.context with arguments = ctx.arguments}; data=()}
+                    in
+                    Results.map aux res2
+                    ensures { [@expl:callfun4]
+                      forall sta1 args ins sta2 ctx2 bhv2.
+                      eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
+                      ctx.func_env[id] = Some ins ->
+                      inp.config.stack_size <> Finite stk ->
+                      let inp1 = { inp with argument0 = identifier_to_string id } in
+                      let ctx1 = { ctx with arguments = args } in
+                      eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
+                      Results.mem {state=sta2; context={ctx2 with arguments = ctx.arguments}; data=()} bhv2 result
+                    }
+                  in
+                  Results.({res2' with normal=Cn.union res2'.normal res2'.return_; return_=Cn.empty})
+                  ensures { [@expl:callfun5]
+                    forall sta1 args ins sta2 ctx2 bhv2.
+                    eval_list_expr stk (inp, ctx, sta) le (sta1, Ok args) ->
+                    ctx.func_env[id] = Some ins ->
+                    inp.config.stack_size <> Finite stk ->
+                    let inp1 = {inp with argument0=identifier_to_string id} in
+                    let ctx1 = {ctx with arguments=args} in
+                    eval_instruction (stk+1) (inp1, ctx1, sta1) ins (sta2, ctx2, bhv2) ->
+                    let bhv' = match bhv2 with BNormal | BReturn -> BNormal | BExit -> BExit | BIncomplete -> BIncomplete end in
+                    let ctx' = { ctx2 with arguments = ctx.arguments } in
+                    Results.mem {state=sta2; context=ctx'; data=()} bhv' result
+                  }
+            | None -> (* Undefined function *)
+                let arg_res' =
+                  let function aux (arg: (state, list string)) =
+                    let sta', _ = arg in
+                    {state=sta'; context={ctx with result=False}; data=()}
+                  in
+                  Cn.map aux arg_res
+                  ensures {
+                    forall sta' ss.
+                    eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
+                    ctx.func_env[id] = None ->
+                    Cn.mem {state=sta'; context={ctx with result=False}; data=()} result
+                    by Cn.mem (sta', ss) arg_res
+                  }
+                in
+                Results.single_behaviour (behaviour inp False) arg_res'
+                ensures {
+                  forall sta' ss.
+                  eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) ->
+                  ctx.func_env[id] = None ->
+                  Results.mem {state=sta'; context={ctx with result=False}; data=()} (behaviour inp False) result
+                }
+            end
+          in
+          let res_failures = Results.stas_as_failures ctx arg_res_failures in
+          Results.union res res_failures
+
+        | IShift bn ->
+          match shift_arguments (option_get (mk_nat 1) bn).nat ctx.arguments with
+          | Some args ->
+            let ctx' = {ctx with result = True; arguments = args} in
+            let sta' = {state = sta; context = ctx'; data=()} in
+            Results.({empty with normal = Cn.singleton sta'})
+          | None ->
+            let ctx' = {ctx with result = False} in
+            let sta' = {state = sta; context = ctx'; data=()} in
+            Results.inject inp (Cn.singleton sta')
+          end
+
+        | IForeach id le ins ->
+          let lst_res, lst_res_failures =
+            separate_results
+              (interp_list_expr stk inp ctx sta le)
+          in
+          assert {
+            forall sta' ss.
+            eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) -> 
+            Cn.mem (sta', ss) lst_res
+          };
+          let res_loop_cont =
+            (* Execute foreach loop on a result from interp_list_expr *)
+            let function aux arg =
+              let sta', ss = arg in
+              interp_foreach True stk inp ctx sta' id ss ins
+            in
+            Results.bind_collection aux lst_res
+            ensures {
+              forall sta' ss sta'' ctx' bhv b.
+              eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) -> 
+              eval_foreach stk True (inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
+              Results.mem {state=sta''; context=ctx'; data=b} bhv result
+            }
+          in
+          let res_loop_cont' =
+            let function aux sta'' =
+              let ctx'' = {sta''.context with result=sta''.data} in
+              with_data () {sta'' with context = ctx''}
+            in
+            Results.map aux res_loop_cont
+            ensures {
+              forall sta' ss sta'' ctx' bhv b.
+              eval_list_expr stk (inp, ctx, sta) le (sta', Ok ss) -> 
+              eval_foreach stk True (inp, ctx, sta') id ss ins (sta'', ctx', bhv) b ->
+
+              Results.mem {state=sta''; context={ctx' with result=b}; data=()} bhv result
+            }
+          in
+          let res_failure =
+            Results.stas_as_failures ctx lst_res_failures
+            ensures {
+              forall sta'.
+              eval_list_expr stk (inp, ctx, sta) le (sta', Incomplete) -> 
+              Results.mem {state=sta'; context=ctx; data=()} BIncomplete result
+            }
+          in
+          Results.(union res_loop_cont' res_failure)
+
+        | IWhile ins1 ins2 ->
+          let res = interp_while True 0 stk inp ctx sta ins1 ins2 in
+          let function aux_normal (sta': sym_state (int, bool)) =
+            let _, b = sta'.data in
+            {state=sta'.state; context={sta'.context with result=b}; data=()}
+          in
+          let function aux_other (sta': sym_state (int, bool)) =
+            {sta' with data=()}
+          in
+          Results.({normal=Cn.map aux_normal res.normal;
+              exit=Cn.map aux_other res.exit;
+              return_=Cn.map aux_other res.return_;
+              failure=Cn.map aux_other res.failure})
+          ensures {
+            forall sta' ctx' bhv ctr b.
+            bhv <> BNormal ->
+            eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) ctr b ->
+            Results.mem {state=sta'; context=ctx'; data=()}  bhv result
+          }
+          ensures {
+            forall sta' ctx' ctr b.
+            eval_while stk 0 True (inp, ctx, sta) ins1 ins2 (sta', ctx', BNormal) ctr b ->
+            Results.mem {state=sta'; context={ctx' with result=b}; data=()} BNormal result
+          }
+
+        | IPipe ins1 ins2 ->
+          let stas1, stas1_failure =
+            Results.separate_non_failure
+              (interp_instr stk inp ctx {sta with stdout=Stdout.empty} ins1)
+          in
+          assert {
+            forall sta1 ctx1 bhv1.
+            eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) ->
+            bhv1 <> BIncomplete ->
+            Cn.mem {state=sta1; context=ctx1; data=()} stas1
+          };
+          let stas1': Cn.t (sym_state stdin) = (* data is sta1.state.stdin *)
+            let function aux (sta1: sym_state unit) =
+              {state={sta1.state with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.state.stdout}; context=ctx; data=sta1.state.stdin}
+            in
+            Cn.map aux stas1
+            ensures {
+              forall sta1 ctx1 bhv1.
+              eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) ->
+              bhv1 <> BIncomplete ->
+              Cn.mem
+                {state={sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}; context=ctx; data=sta1.stdin}
+                result
+            }
+          in
+          let res2: Results.t stdin = (* data is sta1.state.stdin *)
+            interp_instr' stk inp stas1' ins2
+            ensures {
+              forall sta1 ctx1 bhv1 sta2 ctx2 bhv2.
+              eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) -> 
+              bhv1 <> BIncomplete ->
+              eval_instruction stk (inp, ctx, {sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}) ins2 (sta2, ctx2, bhv2) ->
+              Results.mem {state=sta2; context=ctx2; data=sta1.stdin} bhv2 result
+            }
           in
           let res2' =
-            let for_res2 arg2 =
-              let sta2, (str2, b2) = arg2 in
-              sta2, Ok (String.concat str1 str2, b2)
+            let function aux sta2 =
+              {state={sta2.state with stdin=sta2.data};
+              context={ctx with result=sta2.context.result};
+              data=()}
             in
-            Cn.map for_res2 res2
+            Results.map aux res2
+            ensures {
+              forall sta1 ctx1 bhv1 sta2 ctx2 bhv2.
+              eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, bhv1) -> 
+              bhv1 <> BIncomplete ->
+              eval_instruction stk (inp, ctx, {sta1 with stdout=sta.stdout; stdin=Stdout.to_stdin sta1.stdout}) ins2 (sta2, ctx2, bhv2) ->
+              Results.mem {state={sta2 with stdin=sta1.stdin}; context={ctx with result=ctx2.result}; data=()} bhv2 result
+            }
           in
-          Cn.(union res2' res2_failure')
-        in
-        Cn.bind for_res1 res1
-      in
-      let res1_failure' =
-        Cn.map (fun sta -> sta, Incomplete) res1_failure
-      in
-      Cn.(union res1' res1_failure')
-    end
+          let sta1_failure' =
+            let function aux (sta1: sym_state unit) =
+              {state={sta1.state with stdout=sta.stdout}; context=ctx; data=()}
+            in
+            Cn.map aux stas1_failure
+            ensures {
+              forall sta1 ctx1.
+              eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins1 (sta1, ctx1, BIncomplete) -> 
+              Cn.mem {state={sta1 with stdout=sta.stdout}; context=ctx; data=()} result
+            }
+          in
+          Results.(union res2' {empty with failure=sta1_failure'})
 
-  with interp_list_expr (stk:int) (inp:input) (ctx:context) (sta:state) (le:list_expression)
-    : Cn.t (state, result (list string))
-    variant { get_finite inp.config.stack_size - stk, size_list_expr le, -1 }
-    requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
-    requires { stk <= get_finite inp.config.stack_size }
-    ensures { (* Over-approximation *)
-      forall sta' res.
-      eval_list_expr stk (inp, ctx, sta) le (sta', res) ->
-      Cn.mem (sta', res) result
-    }
-  = match le with
-    | Nil ->
-      Cn.singleton (sta, Ok Nil)
-    | Cons (se, sp) le' ->
-      let str_res1, str_res1_failures =
-        separate_results
-          (interp_str_expr stk True inp ctx sta se : Cn.t (state, result (string, bool)))
-      in
-      let res2 =
-        let for_sta_str (arg: (state, (string, bool)))
+        | IExit code ->
+          let r =
+            match code with
+            | RPrevious -> ctx.result
+            | RSuccess -> True
+            | RFailure -> False
+            end
+          in
+          let sta = {state=sta; context={ctx with result=r}; data=()} in
+          Results.({empty with exit = Cn.singleton sta})
+
+        | IReturn code ->
+          let r =
+            match code with
+            | RPrevious -> ctx.result
+            | RSuccess -> True
+            | RFailure -> False
+            end
+          in
+          let sta =
+            let ctx' = {ctx with result = r} in
+            {state = sta; context = ctx'; data=()}
+          in
+          Results.({empty with return_ = Cn.singleton sta})
+        end
+
+      with interp_foreach (b:bool) (stk:int) (inp:input) (ctx:context) (sta:state) (id:identifier) (ss:list string) (ins:instruction) : Results.t bool
+        variant { get_finite inp.config.stack_size - stk, size_instr ins, L.length ss }
+        requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
+        requires { stk <= get_finite inp.config.stack_size }
+        ensures {
+          forall sta' ctx' bhv b'.
+          eval_foreach stk b (inp, ctx, sta) id ss ins (sta', ctx', bhv) b' ->
+          Results.mem {state=sta'; context=ctx'; data=b'} bhv result
+        }
+      = match ss with
+        | Nil ->
+          Results.({empty with normal=Cn.singleton {state=sta; context=ctx; data=b}})
+        | Cons s ss' ->
+          let res1_normal, res1_other =
+            Results.separate_normal
+              (interp_instr stk inp {ctx with var_env = ctx.var_env[id <- s]'} sta ins)
+          in
+          let res_normal' =
+            let function aux (sta1: sym_state unit) =
+              interp_foreach sta1.context.result stk inp sta1.context sta1.state id ss' ins
+            in
+            Results.bind_collection aux res1_normal
+            ensures {
+              forall sta1 ctx1 sta2 ctx2 bhv2 b2.
+              eval_instruction stk (inp, {ctx with var_env=ctx.var_env[id <- s]'}, sta) ins (sta1, ctx1, BNormal) ->
+              eval_foreach stk ctx1.result (inp, ctx1, sta1) id ss' ins (sta2, ctx2, bhv2) b2 ->
+              Results.mem {state=sta2; context=ctx2; data=b2} bhv2 result
+            }
+          in
+          let res1_other' =
+            let function aux (sta: sym_state unit) =
+              with_data sta.context.result sta
+            in
+            Results.map aux res1_other
+            ensures {
+              forall sta1 ctx1 bhv1.
+              eval_instruction stk (inp, {ctx with var_env=ctx.var_env[id <- s]'}, sta) ins (sta1, ctx1, bhv1) ->
+              bhv1 <> BNormal ->
+              Results.mem {state=sta1; context=ctx1; data=ctx1.result} bhv1 result
+            }
+          in
+          Results.union res_normal' res1_other'
+        end
+
+      with interp_while b ctr stk inp ctx (sta:state) ins1 ins2 : Results.t (int, bool)
+        variant { get_finite inp.config.stack_size - stk, size_instr ins1+size_instr ins2, get_finite inp.config.loop_limit - ctr  }
+        requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
+        requires { 0 <= ctr <= get_finite inp.config.loop_limit }
+        requires { stk <= get_finite inp.config.stack_size }
+        ensures {
+          forall sta' ctx' bhv ctr' b'.
+          eval_while stk ctr b (inp, ctx, sta) ins1 ins2 (sta', ctx', bhv) ctr' b' ->
+          Results.mem {state=sta'; context=ctx'; data=(ctr', b')} bhv result
+        }
+      = let loop_limit = get_finite inp.config.loop_limit in
+        if ctr = loop_limit then
+          let sta = { sta with log = Stdout.(newline (output loop_limit_message sta.log)) } in
+          Results.({empty with failure=Cn.singleton {state=sta; context=ctx; data=(ctr, b)}})
+        else
+          let res1_normal, res1_abort =
+            Results.separate_normal
+              (interp_instr stk {inp with under_condition=True} ctx sta ins1)
+          in
+          assert {
+            forall sta1 ctx1.
+            eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+            Cn.mem {state=sta1; context=ctx1; data=()} res1_normal
+          };
+          assert {
+            forall sta1 ctx1 bhv1.
+            bhv1 <> BNormal ->
+            eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+            Results.mem {state=sta1; context=ctx1; data=()} bhv1 res1_abort
+          };
+          let res1_true, res1_false =
+            Cn.partition (fun sta -> sta.context.result) res1_normal
+          in
+          assert {
+            forall sta1 ctx1.
+            eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+            ctx1.result = True ->
+            Cn.mem {state=sta1; context=ctx1; data=()} res1_true
+          };
+          assert {
+            forall sta1 ctx1.
+            eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+            ctx1.result = False ->
+            Cn.mem {state=sta1; context=ctx1; data=()} res1_false
+          };
+          let res2_normal, res2_abort =
+            Results.separate_normal
+              (interp_instr' stk inp res1_true ins2)
+          in
+          assert {
+            forall sta1 ctx1 sta2 ctx2.
+            eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+            ctx1.result = True ->
+            eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
+            Cn.mem {state=sta2; context=ctx2; data=()} res2_normal
+          };
+          assert {
+            forall sta1 ctx1 sta2 ctx2 bhv2.
+            eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+            ctx1.result = True ->
+            eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
+            bhv2 <> BNormal ->
+            Results.mem {state=sta2; context=ctx2; data=()} bhv2 res2_abort
+          };
+          let res3 =
+            let function aux (sta2:sym_state unit) =
+              interp_while sta2.context.result (ctr+1) stk inp sta2.context sta2.state ins1 ins2
+            in
+            Results.bind_collection aux res2_normal
+            ensures {
+              forall sta1 ctx1 sta2 ctx2 sta3 ctx3 bhv3 n b'.
+              inp.config.loop_limit <> Finite ctr ->
+              eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+              ctx1.result = True ->
+              eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, BNormal) ->
+              eval_while stk (ctr+1) ctx2.result (inp, ctx2, sta2) ins1 ins2 (sta3, ctx3, bhv3) n b' ->
+              Results.mem {state=sta3;context=ctx3;data=(n, b')} bhv3 result
+            }
+          in
+          let function with_ctr_b (sta:sym_state unit) =
+            {sta with data=(ctr, b)}
+          in
+          let res1_abort' =
+            Results.map with_ctr_b res1_abort
+            ensures {
+              forall sta1 ctx1 bhv1.
+              inp.config.loop_limit <> Finite ctr ->
+              bhv1 <> BNormal ->
+              eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, bhv1) ->
+              Results.mem {state=sta1;context=ctx1;data=(ctr, b)} bhv1 result
+            }
+          in
+          let res1_false' =
+            Results.({empty with normal=Cn.map with_ctr_b res1_false})
+            ensures {
+              forall sta1 ctx1.
+              inp.config.loop_limit <> Finite ctr ->
+              ctx1.result = False ->
+              eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+              Results.mem {state=sta1;context=ctx1;data=(ctr, b)} BNormal result
+            }
+          in
+          let res2_abort' =
+            Results.map with_ctr_b res2_abort
+            ensures {
+              forall sta1 ctx1 sta2 ctx2 bhv2.
+              inp.config.loop_limit <> Finite ctr ->
+              eval_instruction stk ({inp with under_condition = True}, ctx, sta) ins1 (sta1, ctx1, BNormal) ->
+              ctx1.result = True ->
+              eval_instruction stk (inp, ctx1, sta1) ins2 (sta2, ctx2, bhv2) ->
+              bhv2 <> BNormal ->
+              Results.mem {state=sta2;context=ctx2;data=(ctr, b)} bhv2 result
+            }
+          in
+          Results.(union res3 (union res1_abort' (union res1_false' res2_abort')))
+
+      with interp_instr' (stk:int) (inp:input) (stas: Cn.t (sym_state 'a)) (ins:instruction) : Results.t 'a
+        variant { get_finite inp.config.stack_size - stk, size_instr ins, Cn.size stas }
+        requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
+        requires { stk <= get_finite inp.config.stack_size }
+        ensures { (* Over-approximation *)
+          forall sta sta' ctx' bhv.
+          Cn.mem sta stas ->
+          eval_instruction stk (inp, sta.context, sta.state) ins (sta', ctx', bhv) ->
+          Results.mem {state=sta'; context=ctx'; data=sta.data} bhv result
+        }
+      = let interp_instr_with_data sta =
           ensures {
-            let sta1, (str1, b1) = arg in
-            forall sta2.
-            eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (str1, b1)) ->
-            eval_list_expr stk (inp, ctx, sta1) le' (sta2, Incomplete) ->
-            Cn.mem (sta2, Incomplete) result
+            forall sta' ctx' bhv.
+            eval_instruction stk (inp, sta.context, sta.state) ins (sta', ctx', bhv) ->
+            Results.mem {state=sta'; context=ctx'; data=sta.data} bhv result
+          }
+          Results.map (with_data sta.data)
+            (interp_instr stk inp sta.context sta.state ins)
+        in
+        Results.bind_collection interp_instr_with_data stas
+
+      with interp_str_expr (stk:int) (b:bool) (inp:input) (ctx:context) (sta:state) (se:string_expression)
+        : Cn.t (state, result (string, bool))
+        variant { get_finite inp.config.stack_size - stk, size_string_expr se, -1 }
+        requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
+        requires { stk <= get_finite inp.config.stack_size }
+        ensures { (* Over-approximation *)
+          forall sta' res.
+          eval_str_expr stk b (inp, ctx, sta) se (sta', res) ->
+          Cn.mem (sta', res) result
+        }
+      = match se with
+        | SLiteral str ->
+          Cn.singleton (sta, Ok (str, b))
+        | SVariable var ->
+          let str = ctx.var_env[var]' in
+          Cn.singleton (sta, Ok (str, b))
+        | SArgument n ->
+          let str = nth_argument (Cons inp.argument0 ctx.arguments) n.nat in
+          Cn.singleton (sta, Ok (str, b))
+        | SSubshell ins ->
+          let res, stas_failure =
+            Results.separate_non_failure
+              (interp_instr stk inp ctx {sta with stdout=Stdout.empty} ins)
+          in
+          assert {
+            forall sta1 ctx1 bhv1.
+            eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+            bhv1 <> BIncomplete ->
+            Cn.mem {state=sta1; context=ctx1; data=()} res
+          };
+          assert {
+            forall sta1 ctx1.
+            eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BIncomplete) ->
+            Cn.mem {state=sta1; context=ctx1; data=()} stas_failure
+          };
+          let res' =
+            let for_res (sta1:sym_state unit) =
+              let str = Stdout.to_string sta1.state.stdout in
+              let sta1' = {sta1.state with stdout=sta.stdout} in
+              let b' = sta1.context.result in
+              sta1', Ok (str, b')
+            in
+            Cn.map for_res res
+          in
+          let res_failure' =
+            Cn.map (fun sta1 -> {sta1.state with stdout=sta.stdout}, Incomplete) stas_failure
+          in
+          Cn.union res' res_failure'
+          ensures {
+            forall sta1 ctx1.
+            eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, BIncomplete) ->
+            Cn.mem ({sta1 with stdout = sta.stdout}, Incomplete) result
+            by Cn.mem ({sta1 with stdout = sta.stdout}, Incomplete) res_failure'
           }
           ensures {
-            let sta1, (str1, b1) = arg in
-            forall sta2 l2.
-            eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (str1, b1)) ->
-            eval_list_expr stk (inp, ctx, sta1) le' (sta2, Ok l2) ->
-            Cn.mem (sta2, Ok L.(split sp str1++l2)) result
+            forall sta1 ctx1 bhv1.
+            eval_instruction stk (inp, ctx, {sta with stdout=Stdout.empty}) ins (sta1, ctx1, bhv1) ->
+            bhv1 <> BIncomplete ->
+            Cn.mem ({sta1 with stdout = sta.stdout}, Ok (Stdout.to_string sta1.stdout, ctx1.result)) result
+            by Cn.mem ({sta1 with stdout = sta.stdout}, Ok (Stdout.to_string sta1.stdout, ctx1.result)) res'
           }
-        = let sta1, (str1, _) = arg in
-          let lst_res2: Cn.t (state, list string), lst_res2_failures: Cn.t state =
+        | SConcat se1 se2 ->
+          let res1, res1_failure =
             separate_results
-              (interp_list_expr stk inp ctx sta1 le')
+              (interp_str_expr stk b inp ctx sta se1)
           in
-          let lst_res2' =
-            Cn.map (fun arg -> let sta2, strs2 = arg in sta2, Ok L.(split sp str1++strs2)) lst_res2
+          let res1' =
+            let for_res1 arg
+              ensures {
+                let sta1, (str1, b1) = arg in
+                forall sta2.
+                eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Ok (str1, b1)) ->
+                eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Incomplete) ->
+                Cn.mem (sta2, Incomplete) result
+              }
+              ensures {
+                let sta1, (str1, b1) = arg in
+                forall sta2 str2 b2.
+                eval_str_expr stk b (inp, ctx, sta) se1 (sta1, Ok (str1, b1)) ->
+                eval_str_expr stk b1 (inp, ctx, sta1) se2 (sta2, Ok (str2, b2)) ->
+                Cn.mem (sta2, Ok (String.concat str1 str2, b2)) result
+              }
+            = let sta1, (str1, b1) = arg in
+              let res2, res2_failure =
+                separate_results
+                  (interp_str_expr stk b1 inp ctx sta1 se2)
+              in
+              let res2_failure' =
+                Cn.map (fun sta -> sta, Incomplete) res2_failure
+              in
+              let res2' =
+                let for_res2 arg2 =
+                  let sta2, (str2, b2) = arg2 in
+                  sta2, Ok (String.concat str1 str2, b2)
+                in
+                Cn.map for_res2 res2
+              in
+              Cn.(union res2' res2_failure')
+            in
+            Cn.bind for_res1 res1
           in
-          let lst_res2_failures' =
-            Cn.map (fun sta -> sta, Incomplete) lst_res2_failures
+          let res1_failure' =
+            Cn.map (fun sta -> sta, Incomplete) res1_failure
           in
-          Cn.(union lst_res2' lst_res2_failures')
+          Cn.(union res1' res1_failure')
+        end
+
+      with interp_list_expr (stk:int) (inp:input) (ctx:context) (sta:state) (le:list_expression)
+        : Cn.t (state, result (list string))
+        variant { get_finite inp.config.stack_size - stk, size_list_expr le, -1 }
+        requires { inp.config.loop_limit <> Infinite /\ inp.config.stack_size <> Infinite }
+        requires { stk <= get_finite inp.config.stack_size }
+        ensures { (* Over-approximation *)
+          forall sta' res.
+          eval_list_expr stk (inp, ctx, sta) le (sta', res) ->
+          Cn.mem (sta', res) result
+        }
+      = match le with
+        | Nil ->
+          Cn.singleton (sta, Ok Nil)
+        | Cons (se, sp) le' ->
+          let str_res1, str_res1_failures =
+            separate_results
+              (interp_str_expr stk True inp ctx sta se : Cn.t (state, result (string, bool)))
+          in
+          let res2 =
+            let for_sta_str (arg: (state, (string, bool)))
+              ensures {
+                let sta1, (str1, b1) = arg in
+                forall sta2.
+                eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (str1, b1)) ->
+                eval_list_expr stk (inp, ctx, sta1) le' (sta2, Incomplete) ->
+                Cn.mem (sta2, Incomplete) result
+              }
+              ensures {
+                let sta1, (str1, b1) = arg in
+                forall sta2 l2.
+                eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (str1, b1)) ->
+                eval_list_expr stk (inp, ctx, sta1) le' (sta2, Ok l2) ->
+                Cn.mem (sta2, Ok L.(split sp str1++l2)) result
+              }
+            = let sta1, (str1, _) = arg in
+              let lst_res2: Cn.t (state, list string), lst_res2_failures: Cn.t state =
+                separate_results
+                  (interp_list_expr stk inp ctx sta1 le')
+              in
+              let lst_res2' =
+                Cn.map (fun arg -> let sta2, strs2 = arg in sta2, Ok L.(split sp str1++strs2)) lst_res2
+              in
+              let lst_res2_failures' =
+                Cn.map (fun sta -> sta, Incomplete) lst_res2_failures
+              in
+              Cn.(union lst_res2' lst_res2_failures')
+            in
+            Cn.bind for_sta_str str_res1
+          in
+          let str_res1_failures' =
+            Cn.map (fun sta -> sta, Incomplete) str_res1_failures
+          in
+          Cn.(union res2 str_res1_failures')
+        end
+
+      let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)
+        variant { defs }
+      = match defs with
+        | Nil -> fenv
+        | Cons (id, instr) defs' ->
+          interp_function_definitions fenv[id <- Some instr]  defs'
+        end
+
+      let function only_states_with_result (res: bool) (stas: Cn.t (sym_state unit)) : Cn.t state =
+        Cn.(map (fun sta -> sta.state)
+              (filter (fun sta -> notb (xorb res sta.context.result))
+              stas))
+
+      let interp_program inp stas pro : (Cn.t state, Cn.t state, Cn.t state)
+        requires { inp.config.loop_limit <> Infinite }
+        requires { inp.config.stack_size <> Infinite }
+      = let stas, stas_failure =
+          let stas =
+            let aux sta =
+              let fenv = interp_function_definitions sta.context.func_env pro.function_definitions in
+              {sta with context={sta.context with func_env = fenv}}
+            in
+            Cn.map aux stas
+          in
+          Results.separate_non_failure
+            (interp_instr' 0 inp stas pro.instruction)
         in
-        Cn.bind for_sta_str str_res1
-      in
-      let str_res1_failures' =
-        Cn.map (fun sta -> sta, Incomplete) str_res1_failures
-      in
-      Cn.(union res2 str_res1_failures')
+        (only_states_with_result True stas,
+        only_states_with_result False stas,
+        Cn.map (fun sta -> sta.state) stas_failure)
     end
-
-  let rec interp_function_definitions (fenv:func_env) (defs:list function_definition)
-    variant { defs }
-  = match defs with
-    | Nil -> fenv
-    | Cons (id, instr) defs' ->
-      interp_function_definitions fenv[id <- Some instr]  defs'
-    end
-
-  let function only_states_with_result (res: bool) (stas: Cn.t (sym_state unit)) : Cn.t state =
-    Cn.(map (fun sta -> sta.state)
-          (filter (fun sta -> notb (xorb res sta.context.result))
-          stas))
-
-  let interp_program inp stas pro : (Cn.t state, Cn.t state, Cn.t state)
-    requires { inp.config.loop_limit <> Infinite }
-    requires { inp.config.stack_size <> Infinite }
-  = let stas, stas_failure =
-      let stas =
-        let aux sta =
-          let fenv = interp_function_definitions sta.context.func_env pro.function_definitions in
-          {sta with context={sta.context with func_env = fenv}}
-        in
-        Cn.map aux stas
-      in
-      Rs.separate_non_failure
-        (interp_instr' 0 inp stas pro.instruction)
-    in
-    (only_states_with_result True stas,
-     only_states_with_result False stas,
-     Cn.map (fun sta -> sta.state) stas_failure)
+  end
 end
