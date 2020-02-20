@@ -1,4 +1,5 @@
 (** Symbolic execution of dpkg-maintscript-helper *)
+open SymbolicUtility.Symbolic
 
 val name : string
-val interprete : SymbolicUtility.context -> SymbolicUtility.utility
+val interprete : context -> utility

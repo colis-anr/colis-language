@@ -1,4 +1,4 @@
-open SymbolicUtility
+open SymbolicUtility.Symbolic
 open Semantics__Result
 
 let name = "dpkg"

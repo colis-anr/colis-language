@@ -1,5 +1,4 @@
-open SymbolicUtility
-
+open SymbolicUtility.Symbolic
 
 module True = struct
   let name = "true"
