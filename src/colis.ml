@@ -33,7 +33,6 @@ module Concrete = struct
 end
 
 module Symbolic = struct
-  module Filesystem = SymbolicUtility.SymbolicFilesystem
   include SymbolicUtility.Symbolic
 
   module FilesystemSpec = FilesystemSpec
@@ -69,7 +68,7 @@ module Symbolic = struct
 
   let to_state ~prune_init_state ~root clause : Semantics.state =
     let root0 = if prune_init_state then None else Some root in
-    let filesystem = {Filesystem.root; clause; root0} in
+    let filesystem = {root; clause; root0} in
     {Semantics.filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty; log=Common.Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
@@ -198,7 +197,7 @@ type symbolic_config = {
 
 let print_symbolic_filesystem fmt fs =
   let open Colis_constraints in
-  let open Symbolic.Filesystem in
+  let open Symbolic in
   fprintf fmt "root: %a@\n" Var.pp fs.root;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 

@@ -7,10 +7,8 @@ module type FILESYSTEM = sig
 end
 
 module type CASESPEC = sig
-
   type case_spec
   val noop : case_spec
-
   type filesystem
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
@@ -287,25 +285,22 @@ module Make (Filesystem: FILESYSTEM) = struct
   end
 end
 
-module SymbolicFilesystem = struct
-  type filesystem = {
-    root: Var.t;
-    clause: Clause.sat_conj;
-    root0: Var.t option;
-  }
-end
+type symbolic_filesystem = {
+  root: Var.t;
+  clause: Clause.sat_conj;
+  root0: Var.t option;
+}
 
-module SymbolicCaseSpec = struct
+module SymbolicImplementation = struct
 
   type case_spec = Var.t -> Var.t -> Clause.t
 
   let noop = Clause.eq
 
-  type filesystem = SymbolicFilesystem.filesystem
+  type filesystem = symbolic_filesystem
 
   (** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
   let apply_spec fs spec =
-    let open SymbolicFilesystem in
     let root_is_root0 =
       (* fs.root0 = Some fs.root - garbare-collect fs.root only otherwise *)
       match fs.root0 with
@@ -325,14 +320,25 @@ module SymbolicCaseSpec = struct
 end
 
 module Symbolic = struct
-  include Make (SymbolicFilesystem)
-  include MakeSpecifications (SymbolicCaseSpec)
+
+  include Make (SymbolicImplementation)
+
+  include MakeSpecifications (SymbolicImplementation)
+
   type context = Semantics.utility_context = {
     cwd: Colis_constraints.Path.normal;
     env: string Env.SMap.t;
     args: string list;
   }
-  let noop = SymbolicCaseSpec.noop
+
+  type filesystem = symbolic_filesystem = {
+    root: Var.t;
+    clause: Clause.sat_conj;
+    root0: Var.t option;
+  }
+
+  let noop = SymbolicImplementation.noop
+
   let last_comp_as_hint: root:Var.t -> Path.t -> string option =
     fun ~root path ->
     match Path.split_last path with
