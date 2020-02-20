@@ -1,7 +1,7 @@
 (** Symbolic execution of dpkg-maintscript-helper. The structure of
     this code follows the implementation of version 1.19.6. *)
 
-open SymbolicUtility
+open SymbolicUtility.Symbolic
 
 let name = "dpkg-maintscript-helper"
 
@@ -429,19 +429,19 @@ let interprete ctx =
      sub-commands except 'supports' has been factored out into the
      main code. *)
   let dms_package =
-    try Env.IdMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
+    try Env.SMap.find "DPKG_MAINTSCRIPT_PACKAGE" ctx.env
     with Not_found ->
       raise (Error
                "environment variable DPKG_MAINTSCRIPT_PACKAGE is required")
   in
   let default_package =
     try
-      let dpkg_arch = Env.IdMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
+      let dpkg_arch = Env.SMap.find "DPKG_MAINTSCRIPT_ARCH" ctx.env
       in dms_package^":"^dpkg_arch
     with Not_found -> dms_package
   in
   let dms_name =
-    try Env.IdMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
+    try Env.SMap.find "DPKG_MAINTSCRIPT_NAME" ctx.env
     with
     | Not_found ->
        raise (Error

@@ -313,9 +313,9 @@ module Path
       "feature" in the tree constraint vocabulary *)
   type feature
 
-  type normalized_path = list feature
+  type normalized_path
 
-  let constant default_cwd : normalized_path = Nil
+  val constant default_cwd : normalized_path
 
   (** For `cd`: append `s` to `p` if `s` is relative or just `s` as path if it is absolute *)
   val function absolute_or_concat_relative (p:normalized_path) (s:string) : normalized_path
@@ -399,28 +399,6 @@ module Context
   (* } *)
 end (* Context *)
 
-(** Split the types to specify the interpretation of utilities to enable factorization
-    of the symbolic engine *)
-module InterpUtilitySpec
-  use list.List
-  use syntax.Syntax
-  use Result
-  use Path
-  use Buffers
-  use Env
-
-  type utility_context = (normalized_path (* cwd *), env0 string (* variable env *), list string (* args *))
-
-  type raw_state 'fs = ('fs, stdin, stdout, stdout (* log *))
-
-  predicate raw_interp_utility (utility_context, identifier, raw_state 'fs) (raw_state 'fs, result bool)
-
-  axiom interp_utility_extends_output : forall ctx id stdin stdin' stdout stdout' log log' b, fs fs': 'fs.
-    raw_interp_utility (ctx, id, (fs, stdin, Stdout.empty, log)) ((fs', stdin', stdout', log'), b) ->
-    raw_interp_utility (ctx, id, (fs, stdin, stdout, log)) ((fs', stdin', Stdout.concat stdout' stdout', log), b)
-end
-
-
 module Semantics
   use bool.Bool
   use int.Int
@@ -436,12 +414,24 @@ module Semantics
   use Behaviour
   use Buffers
   use Config
-  use Context
+  use Context as Context
   use Env
   use Input
-  use InterpUtilitySpec
   use Path
   use Result
+
+  type utility_context = {
+    cwd: normalized_path;
+    env: env0 string;
+    args: list string
+  }
+
+  let function utility_context args ctx = {
+    cwd = ctx.Context.cwd;
+    env = Context.filter_var_env ctx.Context.var_env;
+    args = args
+  }
+  use Context
 
   (** {3 Evaluation state}
 
@@ -460,17 +450,11 @@ module Semantics
     log: stdout; (** Combines stdout with utility traces and error messages *)
   }
 
-  let function to_raw_state (s: state) : raw_state filesystem =
-    (s.filesystem, s.stdin, s.stdout, s.log)
+  predicate interp_utility (utility_context, identifier, state) (state, result bool)
 
-  let function of_raw_state (s0: raw_state filesystem) : state =
-    let (filesystem, stdin, stdout, log) = s0 in
-    {filesystem = filesystem; stdin = stdin; stdout = stdout; log = log}
-
-  predicate interp_utility (params: (utility_context, identifier, state)) (res: (state, result bool)) =
-    let ctx, name, sta = params in
-    let sta', res = res in
-    raw_interp_utility (ctx, name, to_raw_state sta) (to_raw_state sta', res)
+  axiom interp_utility_extends_output : forall ctx id sta sta1 b.
+    interp_utility (ctx, id, {sta with stdout=Stdout.empty}) (sta1, b) ->
+    interp_utility (ctx, id, sta) ({sta with stdout=Stdout.concat sta.stdout sta1.stdout}, b)
 
   let function bool_of_return_code (c:return_code) (previous:bool) : bool =
     match c with
@@ -558,17 +542,17 @@ module Semantics
   | eval_cd_incomplete : forall stk inp ctx sta se sta1 s _b sta2.
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, _b)) ->
     (* `test -d (CWD/)s` *)
-    let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) in
-    interp_utility (utility_ctx, identifier_test, sta1) (sta2, Incomplete) ->
+    let cwd_p = absolute_or_concat_relative ctx.Context.cwd s in
+    let args = Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil) in
+    interp_utility (utility_context args ctx, identifier_test, sta1) (sta2, Incomplete) ->
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx, BIncomplete)
 
   | eval_cd_no_dir : forall stk inp ctx sta se sta1 s _b sta2.
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, _b)) ->
     (* `test -d (CWD/)s` *)
-    let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) in
-    interp_utility (utility_ctx, identifier_test, sta1) (sta2, Ok False) ->
+    let cwd_p = absolute_or_concat_relative ctx.Context.cwd s in
+    let args = Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil) in
+    interp_utility (utility_context args ctx, identifier_test, sta1) (sta2, Ok False) ->
     let ctx1 = {ctx with result = False} in
     let bhv = behaviour inp False in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
@@ -576,10 +560,10 @@ module Semantics
   | eval_cd : forall stk inp ctx sta se sta1 s _b sta2.
     eval_str_expr stk True (inp, ctx, sta) se (sta1, Ok (s, _b)) ->
     (* `test -d (CWD/)s` *)
-    let cwd_p = absolute_or_concat_relative ctx.cwd s in
-    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil)) in
-    interp_utility (utility_ctx, identifier_test, sta1) (sta2, Ok True) ->
-    let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- normalized_path_to_string cwd_p]'; cwd = cwd_p} in
+    let cwd_p = absolute_or_concat_relative ctx.Context.cwd s in
+    let args = Cons "-d" (Cons (normalized_path_to_string cwd_p) Nil) in
+    interp_utility (utility_context args ctx, identifier_test, sta1) (sta2, Ok True) ->
+    let ctx1 = {ctx with result = True; var_env = ctx.var_env[identifier_pwd <- normalized_path_to_string cwd_p]'; Context.cwd = cwd_p} in
     let bhv = behaviour inp True in
     eval_instruction stk (inp, ctx, sta) (ICd se) (sta2, ctx1, bhv)
 
@@ -670,14 +654,12 @@ module Semantics
   
   | eval_call_utility_incomplete: forall stk inp ctx sta sta' sta'' id es ss.
     eval_list_expr stk (inp, ctx, sta) es (sta', Ok ss) ->
-    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, ss) in
-    interp_utility (utility_ctx, id, sta') (sta'', Incomplete) ->
+    interp_utility (utility_context ss ctx, id, sta') (sta'', Incomplete) ->
     eval_instruction stk (inp, ctx, sta) (ICallUtility id es) (sta'', ctx, BIncomplete)
 
   | eval_call_utility: forall stk inp ctx sta sta' sta'' id es ss b.
     eval_list_expr stk (inp, ctx, sta) es (sta', Ok ss) ->
-    let utility_ctx = (ctx.cwd, filter_var_env ctx.var_env, ss) in
-    interp_utility (utility_ctx, id, sta') (sta'', Ok b) ->
+    interp_utility (utility_context ss ctx, id, sta') (sta'', Ok b) ->
     let ctx' = {ctx with result=b} in
     let bhv = behaviour inp b in
     eval_instruction stk (inp, ctx, sta) (ICallUtility id es) (sta'', ctx', bhv)

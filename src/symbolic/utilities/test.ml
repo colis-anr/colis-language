@@ -2,7 +2,7 @@
 open Format
 open Colis_constraints
 open Clause
-open SymbolicUtility
+open SymbolicUtility.Symbolic
 
 let name = "test"
 

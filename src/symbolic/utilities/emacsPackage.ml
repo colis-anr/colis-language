@@ -1,5 +1,5 @@
 open Format
-open SymbolicUtility
+open SymbolicUtility.Symbolic
 
 module Install = struct
   let name = "/usr/lib/emacsen-common/emacs-package-install"

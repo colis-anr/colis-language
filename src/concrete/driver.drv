@@ -3,6 +3,7 @@ module semantics.Env
   syntax val empty_env "Env.empty %1"
   syntax val ([]) "Env.get %1 %2"
   syntax val ([<-]) "Env.set %1 %2 %3"
+  syntax type env0 "%1 Env.SMap.t"
 end
 
 module semantics.Buffers
@@ -11,9 +12,11 @@ module semantics.Buffers
 end
 
 module semantics.Path
-  syntax type feature "string"
-  syntax val normalized_path_to_string "String.concat \"/\" %1"
-  syntax val absolute_or_concat_relative "Utilities.absolute_or_concat_relative %1 %2"
+  syntax type feature "Colis_constraints.Feat.t"
+  syntax type normalized_path "Colis_constraints.Path.normal"
+  syntax val default_cwd "[]"
+  syntax val normalized_path_to_string "Colis_constraints.Path.normal_to_string %1"
+  syntax val absolute_or_concat_relative "Colis_constraints.Path.(normalize ~cwd:%1 (from_string %2))"
 end
 
 module semantics.Context

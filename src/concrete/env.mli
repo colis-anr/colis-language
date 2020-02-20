@@ -8,9 +8,9 @@ val filter : (string -> 'a -> bool) -> 'a env -> 'a env
 val map : ('a -> 'b) -> 'b -> 'a env -> 'b env
 val elements : 'a env -> (string * 'a) list
 
-module IdMap : Map.S with type key = string
+module SMap : Map.S with type key = string
 
 (** Conversion to a normal map without default value *)
-val to_map : 'a env -> 'a IdMap.t
+val to_map : 'a env -> 'a SMap.t
 
-val filter_var_env : ('a -> bool) -> ('a -> string option) -> 'a env -> string IdMap.t
+val filter_var_env : ('a -> bool) -> ('a -> 'b option) -> 'a env -> 'b SMap.t

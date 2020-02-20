@@ -1,4 +1,4 @@
-open SymbolicUtility
+open SymbolicUtility.Symbolic
 
 let name = "update-alternatives"
 

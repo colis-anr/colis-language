@@ -33,16 +33,13 @@ module Concrete = struct
 end
 
 module Symbolic = struct
-  module Filesystem = SymbolicInterpreter__Filesystem
+  module Filesystem = SymbolicUtility.SymbolicFilesystem
+  include SymbolicUtility.Symbolic
+
   module FilesystemSpec = FilesystemSpec
-  module Semantics = SymbolicInterpreter__Semantics
-  module SymState = SymbolicInterpreter__SymState
-  module Results = SymbolicInterpreter__Results
-  module Interpreter = SymbolicInterpreter__Interpreter
-  module Utility = SymbolicUtility
 
   let () =
-    List.iter SymbolicUtility.register [
+    List.iter register [
       (module Basics.True) ;
       (module Basics.Colon) ;
       (module Basics.False) ;
@@ -81,7 +78,7 @@ module Symbolic = struct
       let var_env = add_var_bindings true vars empty_var_env in
       {empty_context with arguments; var_env; cwd=[]}
     in
-    {SymState.state; context; data=()}
+    {state; context}
 
   let interp_program ~loop_limit ~stack_size ~argument0 stas' program =
     let open Common in
@@ -92,7 +89,7 @@ module Symbolic = struct
         let stack_size = Finite (Z.of_int stack_size) in
         { loop_limit; stack_size } in
       Input.({ argument0; config; under_condition=false }) in
-    let normals, errors, failures = Interpreter.interp_program inp stas' program in
+    let normals, errors, failures = interp_program inp stas' program in
     normals, errors, failures
 end
 
