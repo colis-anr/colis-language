@@ -33,12 +33,24 @@ module Concrete : sig
 end
 
 module Symbolic : sig
-  include module type of SymbolicUtility.MakeInterpreter (SymbolicUtility.MixedImplementation)
-  include module type of MakeSpecifications (SymbolicUtility.MixedImplementation)
+  open Common
+  open SymbolicUtility
+
+  type state = Mixed.Semantics.state = {
+    filesystem: MixedImplementation.filesystem;
+    stdin: string list;
+    stdout: Stdout.t;
+    log: Stdout.t;
+  }
+
+  type sym_state = Mixed.sym_state = {
+    context: Context.context;
+    state: state;
+  }
+
   module FilesystemSpec = FilesystemSpec
 
   open Colis_constraints
-  open Semantics
 
   (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
   val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
@@ -121,7 +133,7 @@ type symbolic_config = {
   (** Maximum height of the call stack in symbolic execution *)
 }
 
-open Symbolic.Semantics
+open Symbolic
 
 val print_symbolic_state : Format.formatter -> ?id:string -> state -> unit
 

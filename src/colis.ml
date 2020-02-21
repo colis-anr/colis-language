@@ -33,14 +33,25 @@ module Concrete = struct
 end
 
 module Symbolic = struct
+  open Common
   open SymbolicUtility
-  include SymbolicUtility.MakeInterpreter (MixedImplementation)
-  include MakeSpecifications (MixedImplementation)
+
+  type state = Mixed.Semantics.state = {
+    filesystem: MixedImplementation.filesystem;
+    stdin: string list;
+    stdout: Stdout.t;
+    log: Stdout.t;
+  }
+
+  type sym_state = Mixed.sym_state = {
+    context: Context.context;
+    state: state;
+  }
 
   module FilesystemSpec = FilesystemSpec
 
   let () =
-    List.iter register [
+    List.iter Mixed.register [
       (module Basics.True) ;
       (module Basics.Colon) ;
       (module Basics.False) ;
@@ -68,10 +79,10 @@ module Symbolic = struct
     let fs_clause = FilesystemSpec.compile root fs_spec in
     Colis_constraints.Clause.add_to_sat_conj fs_clause clause
 
-  let to_state ~prune_init_state ~root clause : Semantics.state =
+  let to_state ~prune_init_state ~root clause : state =
     let root0 = if prune_init_state then None else Some root in
     let filesystem = SymbolicUtility.MixedImplementation.Constraints {root; clause; root0} in
-    {Semantics.filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty; log=Common.Stdout.empty}
+    {filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty; log=Common.Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
     let context =
@@ -90,7 +101,7 @@ module Symbolic = struct
         let stack_size = Finite (Z.of_int stack_size) in
         { loop_limit; stack_size } in
       Input.({ argument0; config; under_condition=false }) in
-    let normals, errors, failures = interp_program inp stas' program in
+    let normals, errors, failures = Mixed.interp_program inp stas' program in
     normals, errors, failures
 end
 
@@ -204,7 +215,7 @@ let print_symbolic_filesystem fmt fs =
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt ?id sta =
-  let open Symbolic.Semantics in
+  let open Symbolic in
   let filesystem =
     match sta.filesystem with
     | Constraints fs -> fs
