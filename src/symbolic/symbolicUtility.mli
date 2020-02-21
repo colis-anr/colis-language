@@ -15,15 +15,13 @@ end
     utilities by specifications. *)
 module type CASESPEC = sig
 
+  type filesystem
+
   (** A case specification is a function from the old root variable and the new root root
       variable to a clause. *)
   type case_spec
 
-  (** The no-op case specification introduces an equality constraint between the old root
-      and the new root. *)
   val noop : case_spec
-
-  type filesystem
 
   (** Apply a case specification to a filesystem, resulting in possible multiple new
       filesystems *)
@@ -167,85 +165,83 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
   end
 end
 
+module UtilityContext : sig
+  type context = utility_context = {
+    cwd: Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
+end
+
 (** {1 Constraints} *)
 
-type constraints_filesystem = {
-  root: Var.t;
-  clause: Clause.sat_conj;
-  root0: Var.t option;
-}
-
-type constraints_case_spec = Var.t -> Var.t -> Clause.t
-
 (** Parameter for the symbolic engine using a constraint-based filesystem *)
-module ConstraintsImplementation : CASESPEC
-  with type filesystem = constraints_filesystem
-   and type case_spec = constraints_case_spec
+module ConstraintsImplementation : sig
+  type filesystem = {
+    root: Var.t;
+    clause: Clause.sat_conj;
+    root0: Var.t option;
+  }
+  type case_spec = Var.t -> Var.t -> Clause.t
+  val noop : case_spec
+  val apply_spec : filesystem -> case_spec -> filesystem list
+end
 
 (** Get the name of the last path component, if any, or of the hint
     root variable otherwise. The result is useful as a hint for
     creating variables for resolving the path. *)
 val last_comp_as_hint: root:Var.t -> Path.t -> string option
 
+module Constraints : sig
+  include module type of ConstraintsImplementation
+  include module type of MakeInterpreter (ConstraintsImplementation)
+  include module type of MakeSpecifications (ConstraintsImplementation)
+end
+
 (** {1 Transducers} *)
 
-type transducers_filesystem = unit (* TODO *)
+(** TODO Parameter for the symbolic engine using transducers as filesystem *)
+module TransducersImplementation : sig
+  type filesystem = unit
+  type case_spec = unit
+  val noop : case_spec
+  val apply_spec : filesystem -> case_spec -> filesystem list
+end
 
-type transducers_case_spec = unit (* TODO *)
-
-(** Parameter for the symbolic engine using transducers as filesystem *)
-module TransducersImplementation : CASESPEC
-  with type filesystem = transducers_filesystem
-   and type case_spec = transducers_case_spec
+module Transducers : sig
+  include module type of TransducersImplementation
+  include module type of MakeInterpreter (TransducersImplementation)
+  include module type of MakeSpecifications (TransducersImplementation)
+end
 
 (** {1 Mixed constraints/transducers} *)
 
-type mixed_filesystem =
-  | Constraints of constraints_filesystem
-  | Transducers of transducers_filesystem
 
-type mixed_case_spec
+module MixedImplementation : sig
+  type filesystem =
+    | Constraints of ConstraintsImplementation.filesystem
+    | Transducers of TransducersImplementation.filesystem
+  type case_spec
+  val noop : case_spec
+  val case_spec : ?transducers:TransducersImplementation.case_spec ->
+    ?constraints:ConstraintsImplementation.case_spec -> unit -> case_spec
+  val apply_spec : filesystem -> case_spec -> filesystem list
+end
 
-(** Create a mixed case specification. Any missing case specs will trigger incomplete
-    behaviour. *)
-val mixed_case_spec :
-  ?transducers:transducers_case_spec -> ?constraints:constraints_case_spec -> unit -> mixed_case_spec
-
-module MixedImplementation : CASESPEC
-  with type filesystem = mixed_filesystem
-   and type case_spec = mixed_case_spec
-
-include module type of MakeInterpreter (MixedImplementation)
-include module type of MakeSpecifications (MixedImplementation)
-val noop : mixed_case_spec
-type context = utility_context = {
-  cwd: Path.normal;
-  env: string Env.SMap.t;
-  args: string list;
-}
+module Mixed : sig
+  include module type of MakeInterpreter (MixedImplementation)
+  include module type of MakeSpecifications (MixedImplementation)
+  val last_comp_as_hint: root:Var.t -> Path.t -> string option
+end
 
 (** Compatibility with module SymbolicUtility before functorization of the symbolic engine. *)
 module ConstraintsCompatibility : sig
+  include module type of Mixed
+  include module type of UtilityContext
 
-  include module type of MakeInterpreter (MixedImplementation)
-  include module type of MakeSpecifications (MixedImplementation)
-
-  type context = utility_context = {
-    cwd: Path.normal;
-    env: string Env.SMap.t;
-    args: string list;
-  }
-
-  type filesystem = constraints_filesystem
-
-  val success_case: descr:string -> ?stdout:Stdout.t -> constraints_case_spec -> case
-  val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> constraints_case_spec -> case
-  val incomplete_case: descr:string -> constraints_case_spec -> case
-
-  val noop : constraints_case_spec
-
-  (** Get the name of the last path component, if any, or of the hint
-      root variable otherwise. The result is useful as a hint for
-      creating variables for resolving the path. *)
+  val success_case: descr:string -> ?stdout:Stdout.t -> Constraints.case_spec -> case
+  val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Constraints.case_spec -> case
+  val incomplete_case: descr:string -> Constraints.case_spec -> case
+  val noop : Constraints.case_spec
   val last_comp_as_hint: root:Var.t -> Path.t -> string option
 end
