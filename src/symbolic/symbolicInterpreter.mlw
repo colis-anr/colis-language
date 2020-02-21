@@ -35,7 +35,7 @@ module Interpreter
       scope import Arg
         (* TODO Remove `function` from this and the below reformulation, use predicate in specifications below *)
         val function sym_interp_utility (params: (utility_context, identifier, state)) : Cn.t (state, result bool)
-          ensures { forall res. interp_utility params res <-> Cn.mem res result }
+          ensures { forall res. interp_utility params res -> Cn.mem res result }
       end
 
       (** A symbolic state combines a concrete context and a program state as defined in the
