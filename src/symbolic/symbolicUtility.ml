@@ -10,9 +10,9 @@ end
 exception Incomplete_case_spec
 
 module type CASESPEC = sig
+  type filesystem
   type case_spec
   val noop : case_spec
-  type filesystem
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
 
@@ -294,25 +294,27 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
   end
 end
 
+module UtilityContext = struct
+  type context = utility_context = {
+    cwd: Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
+end
+
 (* Constraints *)
-
-type constraints_filesystem = {
-  root: Var.t;
-  clause: Clause.sat_conj;
-  root0: Var.t option;
-}
-
-type constraints_case_spec = Var.t -> Var.t -> Clause.t
-
-let constraints_noop = Clause.eq
 
 module ConstraintsImplementation = struct
 
-  type filesystem = constraints_filesystem
+  type filesystem = {
+    root: Var.t;
+    clause: Clause.sat_conj;
+    root0: Var.t option;
+  }
 
-  type case_spec = constraints_case_spec
+  type case_spec = Var.t -> Var.t -> Clause.t
 
-  let noop = constraints_noop
+  let noop = Clause.eq
 
   (** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
   let apply_spec fs spec =
@@ -345,47 +347,55 @@ let last_comp_as_hint: root:Var.t -> Path.t -> string option =
     (* We can’t know (if last component in parent path is a symbolic link) *)
     None
 
+module Constraints = struct
+  include ConstraintsImplementation
+  include MakeInterpreter (ConstraintsImplementation)
+  include MakeSpecifications (ConstraintsImplementation)
+end
+
 (* Transducers *)
 
-type transducers_filesystem = unit (* TODO *)
-
-type transducers_case_spec = unit (* TODO *)
-
-let transducers_noop = ()
-
 module TransducersImplementation = struct
-  type filesystem = transducers_filesystem
-  type case_spec = transducers_case_spec
-  let noop = transducers_noop
-  let apply_spec fs spec = ignore spec; [fs]
+  type filesystem = unit
+  type case_spec = unit
+  let noop = ()
+  let apply_spec fs spec =
+    ignore spec; [fs]
+end
+
+module Transducers = struct
+  include TransducersImplementation
+  include MakeInterpreter (TransducersImplementation)
+  include MakeSpecifications (TransducersImplementation)
 end
 
 (* Mixed *)
 
-type mixed_filesystem =
-  | Constraints of constraints_filesystem
-  | Transducers of transducers_filesystem
-
-(* The case_specs are wrapped in a closure because they may raise Incomplete_case_spec *)
-type mixed_case_spec = {
-  constraints: unit -> constraints_case_spec;
-  transducers: unit -> transducers_case_spec;
-}
-
-let mixed_case_spec ?transducers ?constraints () =
-  let case_spec_or_incomplete opt () =
-    match opt with Some x -> x | None -> raise Incomplete_case_spec in
-  {constraints = case_spec_or_incomplete constraints;
-   transducers = case_spec_or_incomplete transducers}
-
-let mixed_noop =
-  mixed_case_spec ~transducers:transducers_noop ~constraints:constraints_noop ()
-
 module MixedImplementation = struct
-  type filesystem = mixed_filesystem
-  type case_spec = mixed_case_spec
-  let noop = mixed_noop
-  let apply_spec (fs: mixed_filesystem) (spec: mixed_case_spec) =
+
+  type filesystem =
+    | Constraints of ConstraintsImplementation.filesystem
+    | Transducers of TransducersImplementation.filesystem
+
+  (* The case_specs are wrapped in a closure because they may raise Incomplete_case_spec *)
+  type case_spec = {
+    constraints: unit -> ConstraintsImplementation.case_spec;
+    transducers: unit -> TransducersImplementation.case_spec;
+  }
+
+  let case_spec ?transducers ?constraints () : case_spec =
+    let case_spec_or_incomplete opt () =
+      match opt with Some x -> x | None -> raise Incomplete_case_spec in
+    {constraints = case_spec_or_incomplete constraints;
+     transducers = case_spec_or_incomplete transducers}
+
+  let noop : case_spec =
+    case_spec
+      ~transducers:TransducersImplementation.noop
+      ~constraints:ConstraintsImplementation.noop
+      ()
+
+  let apply_spec fs spec =
     match fs with
     | Constraints fs ->
       ConstraintsImplementation.apply_spec fs (spec.constraints ()) |>
@@ -395,38 +405,28 @@ module MixedImplementation = struct
       List.map (fun fs -> Transducers fs)
 end
 
-include MakeInterpreter (MixedImplementation)
-include MakeSpecifications (MixedImplementation)
-let noop = mixed_noop
-type context = utility_context = {
-  cwd: Path.normal;
-  env: string Env.SMap.t;
-  args: string list;
-}
+module Mixed = struct
+  include MixedImplementation
+  include MakeInterpreter (MixedImplementation)
+  include MakeSpecifications (MixedImplementation)
+  let last_comp_as_hint = last_comp_as_hint
+end
 
 module ConstraintsCompatibility = struct
 
-  include MakeInterpreter (MixedImplementation)
-  include MakeSpecifications (MixedImplementation)
-
-  type filesystem = constraints_filesystem
-
-  type context = utility_context = {
-    cwd: Path.normal;
-    env: string Env.SMap.t;
-    args: string list;
-  }
+  include Mixed
+  include UtilityContext
 
   let success_case ~descr ?stdout constraints =
-    success_case ~descr ?stdout (mixed_case_spec ~constraints ())
+    success_case ~descr ?stdout (case_spec ~constraints ())
 
   let error_case ~descr ?stdout ?error_message constraints =
-    error_case ~descr ?stdout ?error_message (mixed_case_spec ~constraints ())
+    error_case ~descr ?stdout ?error_message (case_spec ~constraints ())
 
   let incomplete_case ~descr constraints =
-    incomplete_case ~descr (mixed_case_spec ~constraints ())
+    incomplete_case ~descr (case_spec ~constraints ())
 
-  let noop = constraints_noop
+  let noop = ConstraintsImplementation.noop
 
   let last_comp_as_hint = last_comp_as_hint
 end

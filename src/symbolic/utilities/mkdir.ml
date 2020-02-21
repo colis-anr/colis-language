@@ -1,7 +1,9 @@
 open Format
 open Colis_constraints
 open Clause
-open SymbolicUtility
+open SymbolicUtility.UtilityContext
+open SymbolicUtility.MixedImplementation
+open SymbolicUtility.Mixed
 
 let name = "mkdir"
 
@@ -20,7 +22,7 @@ let interp_mkdir1 cwd path_str =
     specification_cases [
       success_case
         ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
-        (mixed_case_spec
+        (case_spec
            ~transducers:()
            ~constraints:begin fun root root' ->
              let hintx = last_comp_as_hint ~root q in
@@ -40,7 +42,7 @@ let interp_mkdir1 cwd path_str =
            ());
       error_case
         ~descr:(asprintf "mkdir %a: target already exists" Path.pp p)
-        (mixed_case_spec
+        (case_spec
           ~constraints:begin fun root root' ->
              let hintx = last_comp_as_hint ~root q in
              exists ?hint:hintx @@ fun x ->
@@ -51,7 +53,7 @@ let interp_mkdir1 cwd path_str =
            end ());
       error_case
         ~descr:(asprintf "mkdir %a: parent path is file or does not resolve" Path.pp p)
-        (mixed_case_spec
+        (case_spec
            ~constraints:begin fun root root' ->
              let hintx = last_comp_as_hint ~root q in
              exists ?hint:hintx @@ fun x ->
