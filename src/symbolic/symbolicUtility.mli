@@ -30,7 +30,7 @@ module type CASESPEC = sig
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
 
-module Make (Filesystem: FILESYSTEM) : sig
+module MakeInterpreter (Filesystem: FILESYSTEM) : sig
 
   module Semantics : module type of SymbolicInterpreter__Interpreter.MakeSemantics (Filesystem)
 
@@ -215,7 +215,7 @@ module MixedImplementation : CASESPEC
   with type filesystem = mixed_filesystem
    and type case_spec = mixed_case_spec
 
-include module type of Make (MixedImplementation)
+include module type of MakeInterpreter (MixedImplementation)
 include module type of MakeSpecifications (MixedImplementation)
 val noop : mixed_case_spec
 type context = utility_context = {
@@ -227,7 +227,7 @@ type context = utility_context = {
 (** Compatibility with module SymbolicUtility before functorization of the symbolic engine. *)
 module ConstraintsCompatibility : sig
 
-  include module type of Make (MixedImplementation)
+  include module type of MakeInterpreter (MixedImplementation)
   include module type of MakeSpecifications (MixedImplementation)
 
   type context = utility_context = {

@@ -14,11 +14,9 @@ module type CASESPEC = sig
   val noop : case_spec
   type filesystem
   val apply_spec : filesystem -> case_spec -> filesystem list
-  (** Can raise [Incomplete_case_spec] which forces incomplete behaviour for this
-      case_spec *)
 end
 
-module Make (Filesystem: FILESYSTEM) = struct
+module MakeInterpreter (Filesystem: FILESYSTEM) = struct
 
   module Semantics = SymbolicInterpreter__Interpreter.MakeSemantics (Filesystem)
   open Semantics
@@ -397,7 +395,7 @@ module MixedImplementation = struct
       List.map (fun fs -> Transducers fs)
 end
 
-include Make (MixedImplementation)
+include MakeInterpreter (MixedImplementation)
 include MakeSpecifications (MixedImplementation)
 let noop = mixed_noop
 type context = utility_context = {
@@ -408,7 +406,7 @@ type context = utility_context = {
 
 module ConstraintsCompatibility = struct
 
-  include Make (MixedImplementation)
+  include MakeInterpreter (MixedImplementation)
   include MakeSpecifications (MixedImplementation)
 
   type filesystem = constraints_filesystem
