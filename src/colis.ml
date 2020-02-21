@@ -34,7 +34,7 @@ end
 
 module Symbolic = struct
   open SymbolicUtility
-  include SymbolicUtility.Make (MixedImplementation)
+  include SymbolicUtility.MakeInterpreter (MixedImplementation)
   include MakeSpecifications (MixedImplementation)
 
   module FilesystemSpec = FilesystemSpec
