@@ -2,7 +2,6 @@ open Format
 open Colis_constraints
 open Clause
 open SymbolicUtility.UtilityContext
-open SymbolicUtility.MixedImplementation
 open SymbolicUtility.Mixed
 
 let name = "mkdir"
