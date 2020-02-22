@@ -191,7 +191,8 @@ module ConstraintsImplementation : sig
 end
 
 module Constraints : sig
-  include module type of ConstraintsImplementation with type filesystem = ConstraintsImplementation.filesystem
+  include module type of ConstraintsImplementation
+    with type filesystem = ConstraintsImplementation.filesystem
   include module type of MakeInterpreter (ConstraintsImplementation)
   include module type of MakeSpecifications (ConstraintsImplementation)
 end
@@ -212,13 +213,13 @@ module TransducersImplementation : sig
 end
 
 module Transducers : sig
-  include module type of TransducersImplementation with type filesystem = TransducersImplementation.filesystem
+  include module type of TransducersImplementation
+    with type filesystem = TransducersImplementation.filesystem
   include module type of MakeInterpreter (TransducersImplementation)
   include module type of MakeSpecifications (TransducersImplementation)
 end
 
 (** {1 Mixed constraints/transducers} *)
-
 
 module MixedImplementation : sig
   type filesystem =
@@ -232,17 +233,23 @@ module MixedImplementation : sig
 end
 
 module Mixed : sig
-  type filesystem = MixedImplementation.filesystem =
-    | Constraints of Constraints.filesystem
-    | Transducers of Transducers.filesystem
+  include module type of MixedImplementation
+    with type filesystem = MixedImplementation.filesystem
+     and type case_spec = MixedImplementation.case_spec
   include module type of MakeInterpreter (MixedImplementation)
   include module type of MakeSpecifications (MixedImplementation)
+
+  (** Symbolically interprete a program using the constraints backend *)
   val interp_program_constraints : input -> Constraints.sym_state list -> program -> (Constraints.state list * Constraints.state list * Constraints.state list)
+
+  (** Symbolically interprete a program using the transducers backend *)
   val interp_program_transducers : input -> Transducers.sym_state list -> program -> (Transducers.state list * Transducers.state list * Transducers.state list)
+
   val last_comp_as_hint: root:Var.t -> Path.t -> string option
 end
 
-(** Compatibility with module SymbolicUtility before functorization of the symbolic engine. *)
+(** Compatibility with module SymbolicUtility before functorization of the symbolic
+    engine: Create mixed utilities with the interface of constraints-based utilities *)
 module ConstraintsCompatibility : sig
   include module type of Mixed
   include module type of UtilityContext

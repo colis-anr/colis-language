@@ -1,4 +1,5 @@
 open Format
+open Colis
 
 type source = Colis | Shell
 type action = Run | RunSymbolic | PrintColis | PrintShell
@@ -46,7 +47,7 @@ let loop_limit = ref 10
 let stack_size = ref 10
 
 let get_symbolic_fs, add_symbolic_fs =
-  let open Colis.Symbolic.FilesystemSpec in
+  let open FilesystemSpec in
   let fs_spec = ref empty in
   (fun () -> !fs_spec),
   (fun filename ->
@@ -71,7 +72,7 @@ let set_var, get_vars =
   set, (fun () -> List.rev !vars)
 
 let set_unknown_behaviour str =
-  let open Colis.Internals.Options in
+  let open Internals.Options in
   match get_action () with
   | PrintColis | PrintShell ->
     raise (Arg.Bad "--unknown-utilities can only be specified with --run or --run-symbolic")
@@ -86,7 +87,7 @@ let set_unknown_behaviour str =
 
 let speclist =
   let open Arg in
-  let open Colis.Internals.Options in
+  let open Internals.Options in
   align [
     "--run",               Unit (set_action Run),         " Concrete execution (default)";
     "--run-symbolic",      Unit (set_action RunSymbolic), " Symbolic execution";
@@ -122,7 +123,7 @@ let main () =
   (* Parse command line *)
 
   Arg.parse speclist set_file_or_argument usage;
-  if !Colis.Internals.Options.real_world && get_action () <> Run then
+  if !Internals.Options.real_world && get_action () <> Run then
     raise (Arg.Bad "--realworld can only be specified with --run");
   if !prune_init_state && get_action () <> RunSymbolic then
     raise (Arg.Bad "--prune-init-state can only be specified with --run-symbolic");
@@ -132,8 +133,8 @@ let main () =
   let file = get_file () in
   let program =
     (match get_source () with
-     | Colis -> Colis.parse_colis_file
-     | Shell -> Colis.parse_shell_file ~cmd_line_arguments:(get_arguments ()))
+     | Colis -> Language.parse_colis_file
+     | Shell -> Language.parse_shell_file ~cmd_line_arguments:(get_arguments ()))
       file
   in
 
@@ -142,20 +143,21 @@ let main () =
   let vars = get_vars () in
   match get_action () with
   | Run ->
-     Colis.run ~argument0 ~arguments ~vars program
+     Concrete.run ~argument0 ~arguments ~vars program
   | RunSymbolic ->
-     let config = {
-       Colis.prune_init_state = !prune_init_state;
-       loop_limit = !loop_limit;
-       stack_size = !stack_size;
-     } in
-     let fs_spec = get_symbolic_fs () in
-     Colis.run_symbolic config fs_spec ~argument0 ~arguments ~vars program
+    let open SymbolicConstraints in
+    let config = {
+      prune_init_state = !prune_init_state;
+      loop_limit = !loop_limit;
+      stack_size = !stack_size;
+    } in
+    let fs_spec = get_symbolic_fs () in
+    run config fs_spec ~argument0 ~arguments ~vars program
   | PrintColis ->
-     Colis.print_colis program;
+    Language.print_colis program;
   | PrintShell ->
-     eprintf "Printing Shell is not supported yet.@.";
-     exit 9 (* FIXME *)
+    eprintf "Printing Shell is not supported yet.@.";
+    exit 9 (* FIXME *)
 
 let pp_lexing_position fmt pos =
   let open Lexing in
@@ -171,8 +173,7 @@ let pp_morsmall_position fmt pos =
     sp.pos_fname sp.pos_lnum sc (pos.end_p.pos_cnum - pos.start_p.pos_cnum - sc) (* FIXME: +1? *)
 
 let () =
-  let open Colis.Internals.Errors in
-
+  let open Internals.Errors in
   try
     main ();
     exit 0
