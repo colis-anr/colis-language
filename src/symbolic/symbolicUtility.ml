@@ -19,6 +19,14 @@ end
 module MakeInterpreter (Filesystem: FILESYSTEM) = struct
 
   module Semantics = SymbolicInterpreter__Interpreter.MakeSemantics (Filesystem)
+
+  type state = Semantics.state = {
+    filesystem: Filesystem.filesystem;
+    stdin: string list;
+    stdout: Stdout.t;
+    log: Stdout.t;
+  }
+
   open Semantics
 
   type utility = state -> (state * bool result) list
@@ -409,6 +417,55 @@ module Mixed = struct
   include MixedImplementation
   include MakeInterpreter (MixedImplementation)
   include MakeSpecifications (MixedImplementation)
+
+  let state_from_constraints (s : Constraints.state) : state = {
+    filesystem=MixedImplementation.Constraints s.filesystem;
+    stdin=s.stdin;
+    stdout=s.stdout;
+    log=s.log;
+  }
+
+  let sym_state_from_constraints (s: Constraints.sym_state) : sym_state = {
+    state = state_from_constraints s.state;
+    context = s.context;
+  }
+
+  let state_to_constraints (s: state) : Constraints.state =
+    let filesystem =
+      match s.filesystem with
+      | Constraints fs -> fs
+      | Transducers _ -> invalid_arg "state_to_constraints" in
+    {filesystem; stdin=s.stdin; stdout=s.stdout; log=s.log}
+
+  let interp_program_constraints inp stas pro =
+    let stas' = List.map sym_state_from_constraints stas in
+    let normals, errors, failures = interp_program inp stas' pro in
+    List.map state_to_constraints normals, List.map state_to_constraints errors, List.map state_to_constraints failures
+
+  let state_from_transducers (s : Transducers.state) : state = {
+    filesystem=MixedImplementation.Transducers s.filesystem;
+    stdin=s.stdin;
+    stdout=s.stdout;
+    log=s.log;
+  }
+
+  let sym_state_from_transducers (s: Transducers.sym_state) : sym_state = {
+    state = state_from_transducers s.state;
+    context = s.context;
+  }
+
+  let state_to_transducers (s: state) : Transducers.state =
+    let filesystem =
+      match s.filesystem with
+      | Transducers fs -> fs
+      | Constraints _ -> invalid_arg "state_to_transducers" in
+    {filesystem; stdin=s.stdin; stdout=s.stdout; log=s.log}
+
+  let interp_program_transducers inp stas pro =
+    let stas' = List.map sym_state_from_transducers stas in
+    let normals, errors, failures = interp_program inp stas' pro in
+    List.map state_to_transducers normals, List.map state_to_transducers errors, List.map state_to_transducers failures
+
   let last_comp_as_hint = last_comp_as_hint
 end
 
