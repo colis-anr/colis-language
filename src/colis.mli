@@ -33,24 +33,10 @@ module Concrete : sig
 end
 
 module Symbolic : sig
-  open Common
-  open SymbolicUtility
-
-  type state = Mixed.Semantics.state = {
-    filesystem: MixedImplementation.filesystem;
-    stdin: string list;
-    stdout: Stdout.t;
-    log: Stdout.t;
-  }
-
-  type sym_state = Mixed.sym_state = {
-    context: Context.context;
-    state: state;
-  }
+  open Colis_constraints
+  open SymbolicUtility.Constraints
 
   module FilesystemSpec = FilesystemSpec
-
-  open Colis_constraints
 
   (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
   val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
@@ -61,7 +47,7 @@ module Symbolic : sig
   (* Create a symbolic states by adding context to a stringe *)
   val to_symbolic_state : vars:(string * string) list -> arguments:string list -> state -> sym_state
 
-  (* Wrapper around [Symbolic.Interpreter.interp_program] *)
+  (* Wrapper around [SymbolicUtility.Mixed.interp_program] (sic!) *)
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> sym_state list -> Language.Syntax.program -> (state list * state list * state list)
 end
 
@@ -133,7 +119,7 @@ type symbolic_config = {
   (** Maximum height of the call stack in symbolic execution *)
 }
 
-open Symbolic
+open SymbolicUtility.Constraints
 
 val print_symbolic_state : Format.formatter -> ?id:string -> state -> unit
 

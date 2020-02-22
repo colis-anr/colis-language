@@ -30,9 +30,12 @@ end
 
 module MakeInterpreter (Filesystem: FILESYSTEM) : sig
 
-  module Semantics : module type of SymbolicInterpreter__Interpreter.MakeSemantics (Filesystem)
-
-  open Semantics
+  type state = {
+    filesystem: Filesystem.filesystem;
+    stdin: string list;
+    stdout: Stdout.t;
+    log: Stdout.t;
+  }
 
   (** {1 Interpretation of a colis program} *)
 
@@ -187,16 +190,16 @@ module ConstraintsImplementation : sig
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
 
+module Constraints : sig
+  include module type of ConstraintsImplementation with type filesystem = ConstraintsImplementation.filesystem
+  include module type of MakeInterpreter (ConstraintsImplementation)
+  include module type of MakeSpecifications (ConstraintsImplementation)
+end
+
 (** Get the name of the last path component, if any, or of the hint
     root variable otherwise. The result is useful as a hint for
     creating variables for resolving the path. *)
 val last_comp_as_hint: root:Var.t -> Path.t -> string option
-
-module Constraints : sig
-  include module type of ConstraintsImplementation
-  include module type of MakeInterpreter (ConstraintsImplementation)
-  include module type of MakeSpecifications (ConstraintsImplementation)
-end
 
 (** {1 Transducers} *)
 
@@ -209,7 +212,7 @@ module TransducersImplementation : sig
 end
 
 module Transducers : sig
-  include module type of TransducersImplementation
+  include module type of TransducersImplementation with type filesystem = TransducersImplementation.filesystem
   include module type of MakeInterpreter (TransducersImplementation)
   include module type of MakeSpecifications (TransducersImplementation)
 end
@@ -219,8 +222,8 @@ end
 
 module MixedImplementation : sig
   type filesystem =
-    | Constraints of ConstraintsImplementation.filesystem
-    | Transducers of TransducersImplementation.filesystem
+    | Constraints of Constraints.filesystem
+    | Transducers of Transducers.filesystem
   type case_spec
   val noop : case_spec
   val case_spec : ?transducers:TransducersImplementation.case_spec ->
@@ -229,8 +232,13 @@ module MixedImplementation : sig
 end
 
 module Mixed : sig
+  type filesystem = MixedImplementation.filesystem =
+    | Constraints of Constraints.filesystem
+    | Transducers of Transducers.filesystem
   include module type of MakeInterpreter (MixedImplementation)
   include module type of MakeSpecifications (MixedImplementation)
+  val interp_program_constraints : input -> Constraints.sym_state list -> program -> (Constraints.state list * Constraints.state list * Constraints.state list)
+  val interp_program_transducers : input -> Transducers.sym_state list -> program -> (Transducers.state list * Transducers.state list * Transducers.state list)
   val last_comp_as_hint: root:Var.t -> Path.t -> string option
 end
 
