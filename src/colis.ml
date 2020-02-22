@@ -33,20 +33,8 @@ module Concrete = struct
 end
 
 module Symbolic = struct
-  open Common
   open SymbolicUtility
-
-  type state = Mixed.Semantics.state = {
-    filesystem: MixedImplementation.filesystem;
-    stdin: string list;
-    stdout: Stdout.t;
-    log: Stdout.t;
-  }
-
-  type sym_state = Mixed.sym_state = {
-    context: Context.context;
-    state: state;
-  }
+  open Constraints
 
   module FilesystemSpec = FilesystemSpec
 
@@ -80,9 +68,10 @@ module Symbolic = struct
     Colis_constraints.Clause.add_to_sat_conj fs_clause clause
 
   let to_state ~prune_init_state ~root clause : state =
+    let open SymbolicUtility.Constraints in
     let root0 = if prune_init_state then None else Some root in
-    let filesystem = SymbolicUtility.MixedImplementation.Constraints {root; clause; root0} in
-    {filesystem; stdin=Common.Stdin.empty; stdout=Common.Stdout.empty; log=Common.Stdout.empty}
+    {filesystem={root; clause; root0}; stdin=Common.Stdin.empty;
+     stdout=Common.Stdout.empty; log=Common.Stdout.empty}
 
   let to_symbolic_state ~vars ~arguments state =
     let context =
@@ -101,8 +90,7 @@ module Symbolic = struct
         let stack_size = Finite (Z.of_int stack_size) in
         { loop_limit; stack_size } in
       Input.({ argument0; config; under_condition=false }) in
-    let normals, errors, failures = Mixed.interp_program inp stas' program in
-    normals, errors, failures
+    Mixed.interp_program_constraints inp stas' program
 end
 
 module Constraints = Colis_constraints
@@ -210,25 +198,21 @@ type symbolic_config = {
 
 let print_symbolic_filesystem fmt fs =
   let open Colis_constraints in
-  let open SymbolicUtility.ConstraintsImplementation in
+  let open SymbolicUtility.Constraints in
   fprintf fmt "root: %a@\n" Var.pp fs.root;
   fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
 
 let print_symbolic_state fmt ?id sta =
-  let open Symbolic in
-  let filesystem =
-    match sta.filesystem with
-    | Constraints fs -> fs
-    | _ -> invalid_arg "print_symbolic_state: not a constraints filesystem" in
+  let open SymbolicUtility in
   begin match id with
     | Some id ->
       fprintf fmt "id: %s@\n" id;
       if !Colis_internals.Options.print_states_dir <> "" then
         let filename = sprintf "%s/%s.dot" !Colis_internals.Options.print_states_dir id in
-        print_dot filename id filesystem.SymbolicUtility.ConstraintsImplementation.clause;
+        print_dot filename id sta.Constraints.filesystem.clause;
     | None -> ()
   end;
-  print_symbolic_filesystem fmt filesystem;
+  print_symbolic_filesystem fmt sta.Constraints.filesystem;
   (* Print stdin *)
   if sta.stdin <> [] then begin
     fprintf fmt "stdin: |@\n";
