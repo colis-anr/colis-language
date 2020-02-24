@@ -115,11 +115,13 @@ end
 
 module FilesystemSpec = FilesystemSpec
 
+module Constraints = Colis_constraints
+
 module SymbolicConstraints = struct
-  open SymbolicUtility
-  open SymbolicUtility.Constraints
+  include SymbolicUtility.Constraints
 
   let () =
+    let open SymbolicUtility in
     List.iter Mixed.register [
       (module Basics.True) ;
       (module Basics.Colon) ;
@@ -146,7 +148,7 @@ module SymbolicConstraints = struct
 
   let add_fs_spec_to_clause root clause fs_spec =
     let fs_clause = FilesystemSpec.compile root fs_spec in
-    Colis_constraints.Clause.add_to_sat_conj fs_clause clause
+    Constraints.Clause.add_to_sat_conj fs_clause clause
 
   let to_state ~prune_init_state ~root clause : state =
     let open SymbolicUtility.Constraints in
@@ -171,13 +173,13 @@ module SymbolicConstraints = struct
         let stack_size = Finite (Z.of_int stack_size) in
         { loop_limit; stack_size } in
       Input.({ argument0; config; under_condition=false }) in
-    Mixed.interp_program_constraints inp stas' program
+    SymbolicUtility.Mixed.interp_program_constraints inp stas' program
 
   let print_dot filename id clause =
     let ch = open_out filename in
     try
       let fmt = formatter_of_out_channel ch in
-      Colis_constraints.Clause.pp_sat_conj_as_dot ~name:id fmt clause;
+      Constraints.Clause.pp_sat_conj_as_dot ~name:id fmt clause;
       close_out ch
     with e ->
       close_out ch;
@@ -190,7 +192,7 @@ module SymbolicConstraints = struct
   }
 
   let print_filesystem fmt fs =
-    let open Colis_constraints in
+    let open Constraints in
     let open SymbolicUtility.Constraints in
     fprintf fmt "root: %a@\n" Var.pp fs.root;
     fprintf fmt "clause: %a@\n" Clause.pp_sat_conj fs.clause
@@ -265,8 +267,8 @@ module SymbolicConstraints = struct
       exit 0
 
   let run config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
-    let root = Colis_constraints.Var.fresh ~hint:"r" () in
-    let disj = add_fs_spec_to_clause root Colis_constraints.Clause.true_sat_conj fs_spec in
+    let root = Constraints.Var.fresh ~hint:"r" () in
+    let disj = add_fs_spec_to_clause root Constraints.Clause.true_sat_conj fs_spec in
     let stas = List.map (to_state ~prune_init_state:config.prune_init_state ~root) disj in
     let stas' = List.map (to_symbolic_state ~vars ~arguments) stas in
     let results =
