@@ -96,10 +96,13 @@ end
 (** Specification of the initial filesystem *)
 module FilesystemSpec = FilesystemSpec
 
+module Constraints = Colis_constraints
+
 (** The symbolic interpreter using constraints *)
 module SymbolicConstraints : sig
-  open Colis_constraints
-  open SymbolicUtility.Constraints
+  open Constraints
+
+  include module type of SymbolicUtility.Constraints
 
   (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
   val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
