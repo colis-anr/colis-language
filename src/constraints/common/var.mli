@@ -1,4 +1,5 @@
 type t
+[@@deriving yojson]
 
 val fresh : ?hint:string -> unit -> t
 
@@ -12,6 +13,3 @@ val pp : Format.formatter -> t -> unit
 
 module Set : Derivable.SetS with type elt = t
 module Map : Derivable.MapS with type key = t
-
-val to_yojson : t -> Yojson.Safe.t
-val of_yojson : Yojson.Safe.t -> (t, string) Result.result

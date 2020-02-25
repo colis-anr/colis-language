@@ -6,6 +6,8 @@ let not_implemented s = raise (NotImplemented s)
 type var = int
 [@@deriving yojson]
 
+module VarSet = Set.Make(Int)
+
 let shadow = ref false
 
 let with_shadow_variables f =
@@ -270,9 +272,8 @@ let fold_globals f c =
 let quantify_over x c =
   { c with globals = Var.Map.remove x c.globals }
 
-let get_info x c =
-  let (_, info) = find_ancestor_and_info x c in
-  Info.update_shadow info
+let get_info_no_shadow x c = find_ancestor_and_info x c |> snd
+let get_info x c = get_info_no_shadow x c |> Info.update_shadow
 
 let is_shadow x c =
   (* We can't use [get_info] because it can set the shadow field to false. *)
