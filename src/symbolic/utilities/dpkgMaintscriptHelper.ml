@@ -474,7 +474,7 @@ let interprete ctx =
            | "dir_to_symlink" ->
               dir_to_symlink {ctx with args = List.tl args}
                 scriptarg1 scriptarg2 dms_package default_package dms_name
-           | _ -> unknown ~utility:"dpkg-maintscript-helper" ("unknown subcommand: " ^subcmd)
+           | _ -> unknown ~utility:"dpkg-maintscript-helper" ("subcommand: " ^subcmd)
          with
          | NoDashDash ->
            error ~utility:("dpkg-maintscript-helper " ^ subcmd) "missing -- separator"

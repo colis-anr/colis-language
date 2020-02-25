@@ -30,6 +30,6 @@ let interprete ctx =
       (* TODO: return error state *)
       error ~utility "no argument found"
     | arg :: _ ->
-      incomplete ~utility ("unsupported argument: " ^ arg)
+      unknown ~utility ("argument: " ^ arg)
   in
   aux ctx.args

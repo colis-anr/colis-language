@@ -209,11 +209,13 @@ let interprete ctx : utility =
   let e = ref None in
   let r = ref false in
   let i = ref false in
+  let a = ref false in
   let args_rev = ref [] in
   List.iter
     (function
       | "-H" | "-L" | "-f" | "-p" | "-P" -> () (* Option ignored *)
       | "-i" -> i := true
+      | "-a"  ->  a := true
       | "-r" | "-R" -> r := true
       | arg ->
         if String.length arg > 0 && arg.[0] = '-' && !e = None then
@@ -223,9 +225,11 @@ let interprete ctx : utility =
     ctx.args;
   if !i then
     error ~utility:"cp" "option `-i` forbidden"
+  else if !a then
+    incomplete ~utility:"cp" "option -a"
   else
     match !e with
-    | Some arg -> error ~utility:"cp" ("unknown argument: " ^ arg)
+    | Some arg -> unknown ~utility:"cp" ("unknown argument: " ^ arg)
     | None -> (
       let args = List.rev !args_rev in
       match args with

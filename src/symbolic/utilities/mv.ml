@@ -11,14 +11,19 @@ let name = "mv"
 let interp_rename ctx src dstpath : utility =
   let qsrc = Path.from_string src in
   let qdst = Path.from_string dstpath in
-  specification_cases @@
-    match Path.split_last qsrc, Path.split_last qdst with
+  match Path.split_last qsrc, Path.split_last qdst with
     | (None, _) ->
-      [error_case ~descr:"mv: invalid source path ''" noop]
+      specification_cases [
+        error_case ~descr:"mv: invalid source path ''" noop
+      ]
     | (_, None) ->
-      [error_case ~descr:"mv: invalid destination path ''" noop]
+      specification_cases [
+        error_case ~descr:"mv: invalid destination path ''" noop
+      ]
     | (Some (_, (Here|Up)), _) | (_, Some(_, (Here|Up))) ->
-      [error_case ~descr:"mv: paths end in . or .." noop]
+      specification_cases [
+        error_case ~descr:"mv: paths end in . or .." noop
+      ]
     | (Some (qs, Down fs), Some (qd, Down fd)) ->
        let unconditional_cases = [
            error_case
@@ -204,6 +209,7 @@ let interp_rename ctx src dstpath : utility =
                end
            ]
        in
+       specification_cases @@
        List.concat [ unconditional_cases; ancestor_case ; slash_case ]
 
 
@@ -239,7 +245,7 @@ let interprete ctx : utility =
     error ~utility:"mv" "option `-i` forbidden"
   else
     match !e with
-    | Some arg -> error ~utility:"mv" ("unknown argument: " ^ arg)
+    | Some arg -> unknown ~utility:"mv" ("unknown argument: " ^ arg)
     | None -> (
       let args = List.rev !args_rev in
       match args with
