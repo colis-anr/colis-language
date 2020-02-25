@@ -11,6 +11,6 @@ let interprete ctx =
     | "--quiet" :: rem->
       fun st -> aux rem (print_utility_trace (name ^ ": ignored option --quiet") st)
     | arg :: _ ->
-      error ~utility:name ("unsupported argument: " ^ arg)
+      unknown ~utility:name ("unsupported argument: " ^ arg)
   in
   aux ctx.args

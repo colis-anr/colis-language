@@ -63,7 +63,7 @@ let interp_mkdir1 cwd path_str =
     ]
 
 let interprete parents ctx args : utility =
-  if parents then incomplete ~utility:name "-p" else
+  if parents then incomplete ~utility:name "option -p" else
   multiple_times (interp_mkdir1 ctx.cwd) args
 
 let interprete ctx : utility =
