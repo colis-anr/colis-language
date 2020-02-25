@@ -5,6 +5,8 @@ open Colis_constraints_common
 type var
 (** Type of the variables. *)
 
+module VarSet : Set.S with type elt = var
+
 (** {2 Information} *)
 
 module Info : sig
@@ -88,6 +90,9 @@ val is_shadow : var -> t -> bool
 val get_info : var -> t -> Info.t
 (** [get_info x c] returns the information associated with variable [x] in
    clause [c], after having updated the [shadow] field. *)
+
+val get_info_no_shadow : var -> t -> Info.t
+(** Same as [get_info] but does not update the [shadow] field. *)
 
 val set_info : var -> t -> Info.t -> t
 
