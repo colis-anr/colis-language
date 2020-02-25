@@ -37,10 +37,10 @@ let test (sta : state) : string list -> (state * bool result) = function
     unknown ~utility:"test" "arguments different from . = . and . != ." sta
 
 let dpkg_compare_versions args =
-  Sys.command ("dpkg --compare-versions " ^ String.concat " " args) = 0
+  Sys.command ("dpkg --compare-versions " ^ String.concat " " args ^ " >/dev/null 2>&1") = 0
 
 let dpkg_validate_thing subcmd arg =
-  Sys.command ("dpkg " ^ subcmd ^ " " ^arg) = 0
+  Sys.command ("dpkg " ^ subcmd ^ " " ^ arg ^ " >/dev/null 2>&1") = 0
 
 let interp_utility (_cwd, var_env, args) id sta =
   match id with
