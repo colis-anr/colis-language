@@ -72,7 +72,28 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
   (** A saner way to call [dispatch] (e.g. in the implementation of utilities) *)
   val call : string -> utility_context -> string list -> utility
 
-  (** {1 Basic utilities} *)
+  (** {1 Basic utilities}
+
+      This is the taxonomy of utility behaviours:
+
+      utility behaviour:
+      ├─ [known]
+      │  ├─ [ok] the call to the utility was executed (known known)
+      │  │  ├─ [success] the call was valid and succeeded (i.e. exit 0)
+      │  │  └─ [error] the call failed (i.e. exit >0)
+      │  └─ [incomplete] the call is valid but the behaviour has not
+      |     (yet) been implemented (known unknown)
+      └─ [unknown] we don't even know if this call is an error or
+         incomplete behaviour (unknown unknown)
+
+      [return true] can be used for a simple [success]. [error] adds
+      logging to [return false].
+
+      A call is valid if it corresponds to the syntax of the utility.
+
+      The actual behaviour of [unknown] is determined by option
+      [Option.unknown_behaviour] and may be an OCaml exception, error
+      behaviour, or incomplete behaviour.*)
 
   (** Error utility *)
   val error : utility:string -> string -> utility
@@ -80,7 +101,7 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
   (** Unsupported stuff in a known utility. *)
   val incomplete : utility:string -> string -> utility
 
-  (* Unknown-unknown behaviour *)
+  (** Unknown-unknown behaviour **)
   val unknown : utility:string -> string -> utility
 
   (** {2 Printing} *)
