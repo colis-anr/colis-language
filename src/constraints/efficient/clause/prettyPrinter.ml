@@ -28,7 +28,7 @@ module Dot = struct
     let (x, y) = if x < y then (x, y) else (y, x) in
     fpf fmt "{ rank=same; %d -> %d [style=dotted,arrowhead=none,label=\"%a\"]; }@\n" x y
   let pp_kind_and_fen fmt info =
-    (match Core.get_kind info with
+    (match Core.Info.get_kind info with
      | Any -> ()
      | Neg kinds ->
        fpf fmt "<TR>";
@@ -36,14 +36,14 @@ module Dot = struct
        fpf fmt "</TR>"
      | Pos kind ->
        fpf fmt "<TR><TD>%a</TD></TR>" Kind.pp kind);
-    if Core.has_fen info then
+    if Core.Info.has_fen info then
       fpf fmt "<TR><TD>full</TD></TR>"
 
   let pp_feats fmt c x info_x =
     if not (Core.is_shadow x c) then
-      Core.iter_feats
+      Core.Info.iter_feats
         (fun f -> function
-           | Core.DontKnow -> () (* FIXME *)
+           | Core.Info.DontKnow -> () (* FIXME *)
            | Absent ->
              let y = fresh () in
              fpf fmt "%s [label=\"⊥\"];@\n" y;
@@ -64,7 +64,7 @@ module Dot = struct
 
   let pp_sims fmt c x info_x =
     let hx = Core.hash x in
-    Core.iter_sims
+    Core.Info.iter_sims
       (fun fs y ->
          let hy = Core.hash y in
          (* only one variable prints this *)
