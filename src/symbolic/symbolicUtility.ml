@@ -75,9 +75,7 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
     | Error -> error ~utility msg
 
   let table : (string, utility_context -> utility) Hashtbl.t =
-    let table = Hashtbl.create 10 in
-    (* TODO Register all POSIX utilities as: incomplete ~descr:(name^": not implemented") *)
-    table
+    Hashtbl.create 10
 
   module type SYMBOLIC_UTILITY = sig
     val name : string
@@ -89,10 +87,18 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
 
   let is_registered = Hashtbl.mem table
 
+  let () =
+    (* TODO Register all known POSIX utilities:
+       [incomplete ~utility "not implemented"] *)
+    (* TODO Register all known unknown POSIX utilities, if any:
+       [error ~utility "command not found"] *)
+    ()
+
   let dispatch ~name =
     try Hashtbl.find table name
     with Not_found ->
     fun _ctx sta ->
+      (* All known utilities should have incomplete behaviour as default *)
       unknown ~utility:name "command not found" sta
 
   module Arg = struct
