@@ -72,7 +72,7 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
     match !Options.unknown_behaviour with
     | Exception -> raise (Errors.Unknown_behaviour (utility, msg))
     | Incomplete -> incomplete ~utility msg
-    | Error -> error ~utility "not found"
+    | Error -> error ~utility msg
 
   let table : (string, utility_context -> utility) Hashtbl.t =
     let table = Hashtbl.create 10 in
