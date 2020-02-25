@@ -8,7 +8,7 @@ let implied_by_ndir info c cont =
      {S-*-NDir} rules, that is the constructs that are known to be implied by
      a kind different from [dir] or by [¬dir]. It simply returns the clause when
      we know that this is not a directory. Or calls the continuation. *)
-  match Core.get_kind info with
+  match Core.Info.get_kind info with
   | Pos k when k <> Kind.Dir -> Dnf.single c (* S-*-Kind *)
   | Neg ks when List.mem Kind.Dir ks -> Dnf.single c (* S-*-NDir *)
   | _ -> cont ()
@@ -45,13 +45,13 @@ let or_ r1 r2 = fun c ->
 let abs x f c =
   let info = Core.get_info x c in
   implied_by_ndir info c @@ fun () -> (* S-Abs-Kind, S-Abs-NDir *)
-  match Core.get_feat f info with
-  | None when Core.has_fen info ->
+  match Core.Info.get_feat f info with
+  | None when Core.Info.has_fen info ->
     Core.(
       update_info_for_all_similarities
         (fun fs _ -> if Feat.Set.mem f fs
           then do_nothing
-          else remove_feat f (* P-Abs + S-Abs-Fen *))
+          else Info.remove_feat f (* P-Abs + S-Abs-Fen *))
         x info c
     ) |> Dnf.single
 
@@ -60,7 +60,7 @@ let abs x f c =
       update_info_for_all_similarities
         (fun fs _ -> if Feat.Set.mem f fs
           then do_nothing
-          else set_feat f Absent (* P-Abs *))
+          else Info.set_feat f Absent (* P-Abs *))
         x info c
     ) |> Dnf.single
 
@@ -71,9 +71,9 @@ let abs x f c =
 let unsafe_kind_not_dir x info k c =
   Core.(
     info
-    |> remove_all_feats  (* S-Abs-NDir, S-Maybe-NDir *)
-    |> remove_nfens      (* S-NFen-NDir *)
-    |> set_kind k
+    |> Info.remove_all_feats  (* S-Abs-NDir, S-Maybe-NDir *)
+    |> Info.remove_nfens      (* S-NFen-NDir *)
+    |> Info.set_kind k
     |> set_info x c
     |> remove_nsims x    (* S-NSim-NDir *)
     |> Dnf.single
@@ -82,7 +82,7 @@ let unsafe_kind_not_dir x info k c =
 let kind x k c =
   let info = Core.get_info x c in
 
-  match Core.get_kind info with
+  match Core.Info.get_kind info with
   | Pos l when k = l ->
     Dnf.single c
 
@@ -97,7 +97,7 @@ let kind x k c =
     | Dir ->
       Core.(
         info
-        |> set_kind (Pos Dir)
+        |> Info.set_kind (Pos Dir)
         |> set_info x c
         |> Dnf.single
       )
@@ -123,7 +123,7 @@ let missing_kind ls =
 let nkind x k c =
   let info = Core.get_info x c in
 
-  match Core.get_kind info with
+  match Core.Info.get_kind info with
   | Pos l when k = l -> Dnf.empty (* C-Kind-NKind *)
   | Pos _ -> Dnf.single c (* S-NKind-Kind *)
   | Neg ls when List.mem k ls -> Dnf.single c
@@ -143,7 +143,7 @@ let nkind x k c =
         | _ ->
           Core.(
             info
-            |> set_kind (Neg ls)
+            |> Info.set_kind (Neg ls)
             |> set_info x c
             |> Dnf.single
           )
@@ -158,7 +158,7 @@ let nkind x k c =
       | _ ->
         Core.(
           info
-          |> set_kind (Neg [k])
+          |> Info.set_kind (Neg [k])
           |> set_info x c
           |> Dnf.single
         )
@@ -171,7 +171,7 @@ let fen x fs c =
   let info = Core.get_info x c in
   (* Check that feats are either in the fence or outside but compatible. *)
   if
-    Core.for_all_feats
+    Core.Info.for_all_feats
       (fun f t ->
          Feat.Set.mem f fs ||
          match t with
@@ -183,10 +183,12 @@ let fen x fs c =
       update_info_for_all_similarities (* P-Fen *)
         (fun gs _ info ->
            let hs = Feat.Set.union fs gs in
-           info
-           |> remove_feats (fun f -> not (Feat.Set.mem f hs)) (* S-Abs-Fen, S-Maybe-Fen *)
-           |> Feat.Set.fold (fun f -> Core.set_feat_if_none f DontKnow) hs
-           |> set_fen)
+           Info.(
+             info
+             |> remove_feats (fun f -> not (Feat.Set.mem f hs)) (* S-Abs-Fen, S-Maybe-Fen *)
+             |> Feat.Set.fold (fun f -> set_feat_if_none f DontKnow) hs
+             |> set_fen
+           ))
         x info c
     ) |> Dnf.single
   else
@@ -197,15 +199,15 @@ let fen x fs c =
 let rec feat x f y c =
   dir x c >>= fun c ->
   let info = Core.get_info x c in
-  match Core.get_feat f info with
-  | None when Core.has_fen info -> Dnf.empty (* C-Feat-Fen *)
+  match Core.Info.get_feat f info with
+  | None when Core.Info.has_fen info -> Dnf.empty (* C-Feat-Fen *)
   | Some Absent -> Dnf.empty (* C-Abs-Feat *)
   | None | Some DontKnow ->
     Core.(
       update_info_for_all_similarities
         (fun fs _ -> if Feat.Set.mem f fs
           then do_nothing
-          else set_feat f (Present y) (* P-Feat *))
+          else Info.set_feat f (Present y) (* P-Feat *))
         x info c
     ) |> Dnf.single
   | Some (Present z) ->
@@ -216,7 +218,7 @@ let rec feat x f y c =
         update_info_for_all_similarities
           (fun fs _ -> if Feat.Set.mem f fs
             then do_nothing
-            else set_feat f (Present y) (* P-Feat *))
+            else Info.set_feat f (Present y) (* P-Feat *))
           x info c
       )
     in
@@ -230,15 +232,15 @@ let rec feat x f y c =
 and maybe x f y c =
   let info = Core.get_info x c in
   implied_by_ndir info c @@ fun () -> (* S-Maybe-Kind, S-Maybe-NDir *)
-  match Core.get_feat f info with
-  | None when Core.has_fen info -> Dnf.single c (* S-Maybe-Fen *)
+  match Core.Info.get_feat f info with
+  | None when Core.Info.has_fen info -> Dnf.single c (* S-Maybe-Fen *)
   | Some Absent -> Dnf.single c (* S-Maybe-Abs *)
   | None | Some DontKnow ->
     Core.(
       update_info_for_all_similarities
         (fun fs _ -> if Feat.Set.mem f fs
           then do_nothing
-          else set_feat f (Maybe [y]) (* P-Maybe *))
+          else Info.set_feat f (Maybe [y]) (* P-Maybe *))
         x info c
     ) |> Dnf.single
   | Some (Maybe zs) ->
@@ -246,7 +248,7 @@ and maybe x f y c =
       update_info_for_all_similarities
         (fun fs _ -> if Feat.Set.mem f fs
           then do_nothing
-          else set_feat f (Maybe (y :: zs)) (* P-Maybe *))
+          else Info.set_feat f (Maybe (y :: zs)) (* P-Maybe *))
         x info c
     ) |> Dnf.single
   | Some (Present z) ->
@@ -264,7 +266,7 @@ and sim x fs y c =
     (* Transfer the sims. We don't do that by calling ourselves but
        manually. *)
     Core.(
-      fold_sims
+      Info.fold_sims
         (fun gs z c ->
            let hs = Feat.Set.union fs gs in
            c >>= fun c ->
@@ -291,14 +293,14 @@ and eq x y c =
   implied_by_eq x y c @@ fun () -> (* S-Eq-Refl *)
   let info_x = Core.get_info x c in
   (
-    match Core.get_kind info_x with
+    match Core.Info.get_kind info_x with
    | Any -> Dnf.single c
    | Neg ks -> List.fold_left (fun c k -> nkind y k =<< c) (Dnf.single c) ks
    | Pos k -> kind y k c
   ) >>= fun c ->
   transfer_info_but_sims info_x Feat.Set.empty y c >>= fun c ->
   Core.(
-    fold_sims
+    Info.fold_sims
       (fun gs z c -> sim y gs z =<< c)
       (Dnf.single c)
       info_x
@@ -330,13 +332,13 @@ and transfer_info_but_sims info_x fs y c =
      direction: it will need to be called both ways. *)
 
   (* Fail in case of nfens or nsims. FIXME. *)
-  Core.not_implemented_nfens info_x;
-  Core.not_implemented_nsims info_x;
+  Core.Info.not_implemented_nfens info_x;
+  Core.Info.not_implemented_nsims info_x;
 
   (* Transfer all feats by calling the appropriate function
      (feat, abs or maybe). *)
   Core.(
-    fold_feats
+    Info.fold_feats
       (fun f t c ->
          if Feat.Set.mem f fs then
            c
@@ -353,8 +355,8 @@ and transfer_info_but_sims info_x fs y c =
   ) >>= fun c ->
 
   ( (* Transfer the fen if there is one. *)
-    if Core.has_fen info_x then
-      let gs = Core.fold_feats (fun f _ fs -> Feat.Set.add f fs) Feat.Set.empty info_x in
+    if Core.Info.has_fen info_x then
+      let gs = Core.Info.fold_feats (fun f _ fs -> Feat.Set.add f fs) Feat.Set.empty info_x in
       let hs = Feat.Set.union fs gs in
       fen y hs c
     else
