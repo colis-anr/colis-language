@@ -6,7 +6,7 @@ let not_implemented s = raise (NotImplemented s)
 type var = int
 [@@deriving yojson]
 
-module VarSet = Set.Make(Int)
+module VarSet = Set.Make(struct type t = int let compare = compare end)
 
 let shadow = ref false
 
