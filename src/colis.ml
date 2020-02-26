@@ -117,34 +117,55 @@ module FilesystemSpec = FilesystemSpec
 
 module Constraints = Colis_constraints
 
-module SymbolicConstraints = struct
-  include SymbolicUtility.Constraints
+let () =
+  (* Register the utilities to the mixed backend, which is used in interpreting the
+     interfaces for constraints and transducers equally *)
+  List.iter SymbolicUtility.Mixed.register [
+    (module Basics.True) ;
+    (module Basics.Colon) ;
+    (module Basics.False) ;
+    (module Basics.Echo) ;
+    (module Cp);
+    (module Dpkg) ;
+    (module DpkgMaintscriptHelper) ;
+    (module EmacsPackage.Install) ;
+    (module EmacsPackage.Remove) ;
+    (module Mkdir);
+    (module Mv);
+    (module Rm) ;
+    (module Test) ;
+    (module Test.Bracket) ;
+    (module Touch) ;
+    (module UpdateAlternatives) ;
+    (module UpdateMenus) ;
+    (module Which) ;
+    (module Which.Silent) ;
+    (* The Dark World *)
+    (module ColisInternalUnsafeTouch) ;
+  ]
 
-  let () =
-    let open SymbolicUtility in
-    List.iter Mixed.register [
-      (module Basics.True) ;
-      (module Basics.Colon) ;
-      (module Basics.False) ;
-      (module Basics.Echo) ;
-      (module Cp);
-      (module Dpkg) ;
-      (module DpkgMaintscriptHelper) ;
-      (module EmacsPackage.Install) ;
-      (module EmacsPackage.Remove) ;
-      (module Mkdir);
-      (module Mv);
-      (module Rm) ;
-      (module Test) ;
-      (module Test.Bracket) ;
-      (module Touch) ;
-      (module UpdateAlternatives) ;
-      (module UpdateMenus) ;
-      (module Which) ;
-      (module Which.Silent) ;
-      (* The Dark World *)
-      (module ColisInternalUnsafeTouch) ;
-    ]
+module SymbolicConstraints = struct
+  open Constraints
+
+  type filesystem = SymbolicUtility.Constraints.filesystem = {
+    root: Var.t;
+    clause: Clause.sat_conj;
+    root0: Var.t option;
+  }
+
+  type state = SymbolicUtility.Constraints.state ={
+    filesystem: filesystem;
+    stdin: string list;
+    stdout: Common.Stdout.t;
+    log: Common.Stdout.t;
+  }
+
+  type sym_state = SymbolicUtility.Constraints.sym_state = {
+    context : Common.Context.context;
+    state : state;
+  }
+
+  let is_registered = SymbolicUtility.Mixed.is_registered
 
   let add_fs_spec_to_clause root clause fs_spec =
     let fs_clause = FilesystemSpec.compile root fs_spec in
