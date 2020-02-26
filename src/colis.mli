@@ -98,11 +98,32 @@ module FilesystemSpec = FilesystemSpec
 
 module Constraints = Colis_constraints
 
-(** The symbolic interpreter using constraints *)
+(** The symbolic interpreter using constraints on the mixed backend of SymbolicUtility *)
 module SymbolicConstraints : sig
   open Constraints
+  open Common
 
-  include module type of SymbolicUtility.Constraints
+  type filesystem = SymbolicUtility.Constraints.filesystem = {
+    root: Var.t;
+    clause: Clause.sat_conj;
+    root0: Var.t option;
+  }
+
+  type state = SymbolicUtility.Constraints.state = {
+      filesystem: filesystem;
+      stdin: string list;
+      stdout: Stdout.t;
+      log: Stdout.t;
+    }
+
+  type sym_state = SymbolicUtility.Constraints.sym_state = {
+    context : Context.context;
+    state : state;
+  }
+
+  (** Test if an utility is registerered in the mixed backend (the actual backend for this
+      module) *)
+  val is_registered : string -> bool
 
   (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
   val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
