@@ -22,10 +22,10 @@ let interprete ctx =
 
     | "-L" :: _ ->
       error ~utility "option -L expects exactly one argument"
-    | ["--compare-versions"; _v1; _v2] ->
+    | ["--compare-versions"; _v1; _op; _v2] ->
       incomplete ~utility "support for --compare-versions not yet implemented"
     | "--compare-versions" :: _ ->
-      error ~utility "option --compare-versions expects exactly two arguments"
+      error ~utility "option --compare-versions expects exactly three arguments"
     | [] ->
       (* TODO: return error state *)
       error ~utility "no argument found"
