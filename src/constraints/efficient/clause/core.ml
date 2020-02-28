@@ -13,9 +13,9 @@ let shadow = ref false
 let with_shadow_variables f =
   let shadow_bak = !shadow in
   shadow := true;
-  let v = f () in
+  let b = try Ok (f ()) with e -> Error e in
   shadow := shadow_bak;
-  v
+  match b with Ok v -> v | Error e -> raise e
 
 module Info = struct
   type kind =
