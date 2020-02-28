@@ -123,6 +123,8 @@ module Dot = struct
     (Core.VarSet.empty, Core.VarSet.empty)
     |> Core.fold_infos (fun x _ e -> handle_node x e) c
     |> snd
+    (* Remove all the globals from the shadows: *)
+    |> Core.fold_globals Core.VarSet.remove c
 
   let pp ~name fmt c =
     let c = Core.simplify c in
