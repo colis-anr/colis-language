@@ -9,7 +9,7 @@
 <path name=".."/><path name="symbolicInterpreter.mlw"/>
 <theory name="Interpreter" proved="true">
  <goal name="MakeSemantics.MakeInterpreter.Results.map&#39;vc" expl="VC for map" proved="true">
- <proof prover="3"><result status="valid" time="1.26" steps="1964"/></proof>
+ <proof prover="3"><result status="valid" time="0.73" steps="1964"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.union&#39;vc" expl="VC for union" proved="true">
  <proof prover="3"><result status="valid" time="0.27" steps="261"/></proof>
@@ -21,7 +21,7 @@
  <proof prover="1"><result status="valid" time="0.43" steps="82146"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.flatten_list&#39;vc" expl="VC for flatten_list" proved="true">
- <proof prover="3"><result status="valid" time="1.57" steps="1965"/></proof>
+ <proof prover="3"><result status="valid" time="1.19" steps="1965"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.flatten&#39;vc" expl="VC for flatten" proved="true">
  <proof prover="3"><result status="valid" time="0.22" steps="103"/></proof>
@@ -50,7 +50,7 @@
   <proof prover="3"><result status="valid" time="0.20" steps="20"/></proof>
   </goal>
   <goal name="separate_normal&#39;vc.6" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.68" steps="95572"/></proof>
+  <proof prover="1"><result status="valid" time="0.40" steps="95572"/></proof>
   </goal>
  </transf>
  </goal>
@@ -90,7 +90,7 @@
       <proof prover="1" timelimit="10" memlimit="4000"><result status="valid" time="0.45" steps="84508"/></proof>
       </goal>
       <goal name="mem_inject.0.0.0.2.2" proved="true">
-      <proof prover="1" timelimit="5"><result status="valid" time="1.41" steps="306842"/></proof>
+      <proof prover="1" timelimit="5"><result status="valid" time="2.23" steps="306842"/></proof>
       </goal>
      </transf>
      </goal>
@@ -137,7 +137,7 @@
  <goal name="MakeSemantics.MakeInterpreter.Results.inject_under_condition_normal" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="inject_under_condition_normal.0" proved="true">
-  <proof prover="1"><result status="valid" time="1.07" steps="122121"/></proof>
+  <proof prover="1"><result status="valid" time="0.83" steps="122121"/></proof>
   </goal>
   <goal name="inject_under_condition_normal.1" proved="true">
   <proof prover="1"><result status="valid" time="0.69" steps="86219"/></proof>
@@ -184,19 +184,19 @@
  <proof prover="1"><result status="valid" time="0.44" steps="87383"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.mem_union_inject" proved="true">
- <proof prover="1"><result status="valid" time="0.66" steps="96515"/></proof>
+ <proof prover="1"><result status="valid" time="0.48" steps="96515"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.mem_union" proved="true">
  <proof prover="1"><result status="valid" time="0.46" steps="86778"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.mem_map" proved="true">
- <proof prover="1"><result status="valid" time="0.64" steps="94617"/></proof>
+ <proof prover="1"><result status="valid" time="0.39" steps="94617"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.failure_union" proved="true">
  <proof prover="1"><result status="valid" time="0.64" steps="90155"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.mem_mk_results" proved="true">
- <proof prover="1"><result status="valid" time="0.72" steps="100916"/></proof>
+ <proof prover="1"><result status="valid" time="0.52" steps="100916"/></proof>
  </goal>
  <goal name="MakeSemantics.MakeInterpreter.Results.mem_union_results" proved="true">
  <proof prover="1"><result status="valid" time="0.61" steps="106494"/></proof>
@@ -238,7 +238,7 @@
  <goal name="MakeSemantics.MakeInterpreter.interp_instr&#39;vc" expl="VC for interp_instr" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="interp_instr&#39;vc.0" expl="variant decrease" proved="true">
-  <proof prover="1" timelimit="5"><result status="valid" time="0.31" steps="90762"/></proof>
+  <proof prover="1" timelimit="5"><result status="valid" time="0.61" steps="90762"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.1" expl="precondition" proved="true">
   <proof prover="3"><result status="valid" time="0.26" steps="26"/></proof>
@@ -247,7 +247,7 @@
   <proof prover="3"><result status="valid" time="0.14" steps="26"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.3" expl="postcondition" proved="true">
-  <proof prover="1" timelimit="5"><result status="valid" time="0.47" steps="114840"/></proof>
+  <proof prover="1" timelimit="5"><result status="valid" time="0.81" steps="114840"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.4" expl="variant decrease" proved="true">
   <proof prover="3"><result status="valid" time="0.18" steps="94"/></proof>
@@ -280,16 +280,16 @@
   <proof prover="1" timelimit="5"><result status="valid" time="0.58" steps="96817"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.14" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.52" steps="90702"/></proof>
+  <proof prover="1"><result status="valid" time="0.69" steps="90702"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.15" expl="precondition" proved="true">
   <proof prover="3"><result status="valid" time="0.10" steps="26"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.16" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.14" steps="83791"/></proof>
+  <proof prover="1"><result status="valid" time="0.32" steps="83791"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.17" expl="assertion" proved="true">
-  <proof prover="3"><result status="valid" time="0.34" steps="211"/></proof>
+  <proof prover="3"><result status="valid" time="0.56" steps="211"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.18" expl="postcondition" proved="true">
   <proof prover="3" timelimit="5"><result status="valid" time="1.04" steps="259"/></proof>
@@ -369,7 +369,7 @@
   </transf>
   </goal>
   <goal name="interp_instr&#39;vc.28" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.70" steps="125546"/></proof>
+  <proof prover="1"><result status="valid" time="0.93" steps="125546"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.29" expl="precondition" proved="true">
   <proof prover="1" timelimit="5"><result status="valid" time="0.35" steps="86102"/></proof>
@@ -395,7 +395,7 @@
    <proof prover="3"><result status="valid" time="0.14" steps="40"/></proof>
    </goal>
    <goal name="interp_instr&#39;vc.35.1" expl="VC for interp_instr" proved="true">
-   <proof prover="1"><result status="valid" time="0.40" steps="100258"/></proof>
+   <proof prover="1"><result status="valid" time="0.58" steps="100258"/></proof>
    </goal>
    <goal name="interp_instr&#39;vc.35.2" expl="VC for interp_instr" proved="true">
    <proof prover="3"><result status="valid" time="0.45" steps="412"/></proof>
@@ -444,23 +444,7 @@
   </transf>
   </goal>
   <goal name="interp_instr&#39;vc.38" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.28" steps="90725"/></proof>
-  <transf name="split_vc" proved="true" >
-   <goal name="interp_instr&#39;vc.38.0" expl="variant decrease" proved="true">
-   <transf name="inversion_arg_pr" proved="true" arg1="H">
-    <goal name="interp_instr&#39;vc.38.0.0" expl="variant decrease" proved="true">
-    <proof prover="1"><result status="valid" time="0.57" steps="89581"/></proof>
-    </goal>
-   </transf>
-   </goal>
-   <goal name="interp_instr&#39;vc.38.1" expl="variant decrease" proved="true">
-   <transf name="inversion_arg_pr" proved="true" arg1="H">
-    <goal name="interp_instr&#39;vc.38.1.0" expl="variant decrease" proved="true">
-    <proof prover="1"><result status="valid" time="0.68" steps="90672"/></proof>
-    </goal>
-   </transf>
-   </goal>
-  </transf>
+  <proof prover="1"><result status="valid" time="0.66" steps="90725"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.39" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.35" steps="83791"/></proof>
@@ -506,15 +490,15 @@
   <proof prover="1"><result status="valid" time="0.22" steps="84809"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.52" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.72" steps="91043"/></proof>
+  <proof prover="1"><result status="valid" time="0.48" steps="91043"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.53" expl="callfun3" proved="true">
-  <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="3.17" steps="1628"/></proof>
+  <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="6.30" steps="1628"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.54" expl="callfun4" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="interp_instr&#39;vc.54.0" expl="callfun4" proved="true">
-   <proof prover="3"><result status="valid" time="0.52" steps="120"/></proof>
+   <proof prover="3"><result status="valid" time="0.35" steps="120"/></proof>
    </goal>
   </transf>
   </goal>
@@ -522,12 +506,12 @@
   <proof prover="1" timelimit="5"><result status="valid" time="2.83" steps="244174"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.56" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="1.32" steps="131984"/></proof>
+  <proof prover="1"><result status="valid" time="0.85" steps="131984"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.57" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="interp_instr&#39;vc.57.0" expl="postcondition" proved="true">
-   <proof prover="1" timelimit="5"><result status="valid" time="3.29" steps="327799"/></proof>
+   <proof prover="1" timelimit="5"><result status="valid" time="3.78" steps="327799"/></proof>
    </goal>
   </transf>
   </goal>
@@ -575,7 +559,7 @@
   <goal name="interp_instr&#39;vc.68" expl="postcondition" proved="true">
   <transf name="inline_goal" proved="true" >
    <goal name="interp_instr&#39;vc.68.0" expl="postcondition" proved="true">
-   <proof prover="1"><result status="valid" time="0.72" steps="177509"/></proof>
+   <proof prover="1"><result status="valid" time="1.60" steps="177509"/></proof>
    </goal>
   </transf>
   </goal>
@@ -595,7 +579,7 @@
   <proof prover="3"><result status="valid" time="0.21" steps="61"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.74" expl="postcondition" proved="true">
-  <proof prover="1" timelimit="5"><result status="valid" time="1.86" steps="196289"/></proof>
+  <proof prover="1" timelimit="5"><result status="valid" time="2.20" steps="196289"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.75" expl="postcondition" proved="true">
   <proof prover="3" timelimit="20"><result status="valid" time="0.55" steps="122"/></proof>
@@ -620,13 +604,13 @@
   <proof prover="1" timelimit="10" memlimit="4000"><result status="valid" time="1.01" steps="124655"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.81" expl="variant decrease" proved="true">
-  <proof prover="3" timelimit="5"><result status="valid" time="4.60" steps="5004"/></proof>
+  <proof prover="3" timelimit="5"><result status="valid" time="3.76" steps="5004"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.82" expl="precondition" proved="true">
   <proof prover="3"><result status="valid" time="0.13" steps="28"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.83" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.43" steps="94215"/></proof>
+  <proof prover="1"><result status="valid" time="0.64" steps="94215"/></proof>
   </goal>
   <goal name="interp_instr&#39;vc.84" expl="postcondition" proved="true">
   <proof prover="1"><result status="valid" time="1.10" steps="124701"/></proof>
@@ -642,10 +626,10 @@
    <goal name="interp_instr&#39;vc.87.0" expl="postcondition" proved="true">
    <transf name="inversion_arg_pr" proved="true" arg1="H">
     <goal name="interp_instr&#39;vc.87.0.0" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="100140"/></proof>
+    <proof prover="1"><result status="valid" time="0.62" steps="100140"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.0.1" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.36" steps="100134"/></proof>
+    <proof prover="1"><result status="valid" time="0.62" steps="100134"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.0.2" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.51" steps="105074"/></proof>
@@ -666,7 +650,7 @@
     <proof prover="1"><result status="valid" time="0.55" steps="105312"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.0.8" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.45" steps="105410"/></proof>
+    <proof prover="1"><result status="valid" time="0.62" steps="105410"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.0.9" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.50" steps="101423"/></proof>
@@ -696,7 +680,7 @@
     <proof prover="1"><result status="valid" time="0.61" steps="106959"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.0.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="106957"/></proof>
+    <proof prover="1"><result status="valid" time="0.68" steps="106957"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.0.19" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.60" steps="103838"/></proof>
@@ -795,7 +779,7 @@
     <proof prover="1"><result status="valid" time="0.52" steps="102157"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.1.9" expl="postcondition" proved="true">
-    <proof prover="1" timelimit="10"><result status="valid" time="1.89" steps="398768"/></proof>
+    <proof prover="1" timelimit="10"><result status="valid" time="2.63" steps="398768"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.1.10" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.55" steps="97859"/></proof>
@@ -804,10 +788,10 @@
     <proof prover="1"><result status="valid" time="0.60" steps="103077"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.1.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.57" steps="100135"/></proof>
+    <proof prover="1"><result status="valid" time="0.40" steps="100135"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.1.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="100878"/></proof>
+    <proof prover="1"><result status="valid" time="0.56" steps="100878"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.1.14" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.60" steps="100243"/></proof>
@@ -819,7 +803,7 @@
     <proof prover="1"><result status="valid" time="0.58" steps="100471"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.1.17" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="103552"/></proof>
+    <proof prover="1"><result status="valid" time="0.66" steps="103552"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.1.18" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.64" steps="103550"/></proof>
@@ -883,7 +867,7 @@
     <proof prover="1"><result status="valid" time="0.61" steps="104504"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.2.3" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.43" steps="105043"/></proof>
+    <proof prover="1"><result status="valid" time="0.58" steps="105043"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.2.4" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.63" steps="107966"/></proof>
@@ -928,7 +912,7 @@
     <proof prover="1"><result status="valid" time="0.57" steps="106005"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.2.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.41" steps="106003"/></proof>
+    <proof prover="1"><result status="valid" time="0.60" steps="106003"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.2.19" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.58" steps="103069"/></proof>
@@ -964,7 +948,7 @@
     <proof prover="1"><result status="valid" time="0.60" steps="106022"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.2.30" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="99810"/></proof>
+    <proof prover="1"><result status="valid" time="0.59" steps="99810"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.2.31" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.58" steps="101502"/></proof>
@@ -1013,10 +997,10 @@
     <proof prover="1"><result status="valid" time="0.43" steps="100264"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.3.11" expl="postcondition" proved="true">
-    <proof prover="1" timelimit="5"><result status="valid" time="1.19" steps="211159"/></proof>
+    <proof prover="1" timelimit="5"><result status="valid" time="1.78" steps="211159"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.3.12" expl="postcondition" proved="true">
-    <proof prover="3" timelimit="5"><result status="valid" time="2.08" steps="712"/></proof>
+    <proof prover="3" timelimit="5"><result status="valid" time="1.74" steps="712"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.3.13" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.59" steps="104051"/></proof>
@@ -1064,13 +1048,13 @@
     <proof prover="1"><result status="valid" time="0.65" steps="102838"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.3.28" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.42" steps="102098"/></proof>
+    <proof prover="1"><result status="valid" time="0.58" steps="102098"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.3.29" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.65" steps="106214"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.3.30" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.65" steps="100121"/></proof>
+    <proof prover="1"><result status="valid" time="0.48" steps="100121"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.3.31" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.67" steps="101641"/></proof>
@@ -1127,14 +1111,14 @@
     <goal name="interp_instr&#39;vc.87.4.13" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
      <goal name="interp_instr&#39;vc.87.4.13.0" expl="postcondition" proved="true">
-     <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="4.86" steps="384"/></proof>
+     <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="3.21" steps="384"/></proof>
      </goal>
     </transf>
     </goal>
     <goal name="interp_instr&#39;vc.87.4.14" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
      <goal name="interp_instr&#39;vc.87.4.14.0" expl="postcondition" proved="true">
-     <proof prover="3"><result status="valid" time="0.41" steps="42"/></proof>
+     <proof prover="3"><result status="valid" time="0.21" steps="42"/></proof>
      </goal>
     </transf>
     </goal>
@@ -1148,7 +1132,7 @@
     <proof prover="1"><result status="valid" time="0.63" steps="106509"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.4.18" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.46" steps="106507"/></proof>
+    <proof prover="1"><result status="valid" time="0.66" steps="106507"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.4.19" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.58" steps="103541"/></proof>
@@ -1160,7 +1144,7 @@
     <proof prover="1"><result status="valid" time="0.50" steps="110274"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.4.22" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="105758"/></proof>
+    <proof prover="1"><result status="valid" time="0.64" steps="105758"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.4.23" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.55" steps="100245"/></proof>
@@ -1240,7 +1224,7 @@
     <proof prover="1"><result status="valid" time="0.73" steps="105034"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.5.12" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.70" steps="102062"/></proof>
+    <proof prover="1"><result status="valid" time="0.51" steps="102062"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.5.13" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.67" steps="103137"/></proof>
@@ -1375,7 +1359,7 @@
       <goal name="interp_instr&#39;vc.87.6.17.0.0" expl="postcondition" proved="true">
       <transf name="inversion_arg_pr" proved="true" arg1="H">
        <goal name="interp_instr&#39;vc.87.6.17.0.0.0" expl="postcondition" proved="true">
-       <proof prover="3" timelimit="20"><result status="valid" time="8.97" steps="2599"/></proof>
+       <proof prover="3" timelimit="40"><result status="valid" time="11.28" steps="3009"/></proof>
        </goal>
       </transf>
       </goal>
@@ -1386,7 +1370,7 @@
     <goal name="interp_instr&#39;vc.87.6.18" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
      <goal name="interp_instr&#39;vc.87.6.18.0" expl="postcondition" proved="true">
-     <proof prover="3" timelimit="20"><result status="valid" time="8.59" steps="2821"/></proof>
+     <proof prover="3" timelimit="20"><result status="valid" time="16.35" steps="2821"/></proof>
      </goal>
     </transf>
     </goal>
@@ -1398,10 +1382,10 @@
     </transf>
     </goal>
     <goal name="interp_instr&#39;vc.87.6.20" expl="postcondition" proved="true">
-    <proof prover="1" timelimit="5"><result status="valid" time="0.56" steps="105009"/></proof>
+    <proof prover="1" timelimit="5"><result status="valid" time="0.86" steps="105009"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.6.21" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.66" steps="111948"/></proof>
+    <proof prover="1"><result status="valid" time="0.92" steps="111948"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.6.22" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.62" steps="107415"/></proof>
@@ -1431,7 +1415,7 @@
     <proof prover="1"><result status="valid" time="0.58" steps="101922"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.6.31" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.60" steps="103420"/></proof>
+    <proof prover="1"><result status="valid" time="0.78" steps="103420"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.6.32" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.63" steps="102393"/></proof>
@@ -1450,7 +1434,7 @@
     <proof prover="1"><result status="valid" time="0.58" steps="99861"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.7.2" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.55" steps="104497"/></proof>
+    <proof prover="1"><result status="valid" time="0.71" steps="104497"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.7.3" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.56" steps="105028"/></proof>
@@ -1519,7 +1503,7 @@
     <proof prover="1"><result status="valid" time="0.62" steps="100956"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.7.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.44" steps="101160"/></proof>
+    <proof prover="1"><result status="valid" time="0.68" steps="101160"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.7.26" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.62" steps="100315"/></proof>
@@ -1537,7 +1521,7 @@
     <proof prover="1"><result status="valid" time="0.64" steps="100341"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.7.31" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.67" steps="101456"/></proof>
+    <proof prover="1"><result status="valid" time="0.50" steps="101456"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.7.32" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.57" steps="100745"/></proof>
@@ -1671,7 +1655,7 @@
     <proof prover="1"><result status="valid" time="0.55" steps="101171"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.5" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.49" steps="101174"/></proof>
+    <proof prover="1"><result status="valid" time="0.66" steps="101174"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.6" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.41" steps="105485"/></proof>
@@ -1704,7 +1688,7 @@
     <proof prover="1"><result status="valid" time="0.60" steps="104182"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.16" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.54" steps="103888"/></proof>
+    <proof prover="1"><result status="valid" time="0.72" steps="103888"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.17" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.60" steps="106903"/></proof>
@@ -1731,16 +1715,16 @@
     <proof prover="1"><result status="valid" time="0.64" steps="101656"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.25" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.56" steps="101815"/></proof>
+    <proof prover="1"><result status="valid" time="0.77" steps="101815"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.26" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.67" steps="101405"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.27" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.81" steps="129018"/></proof>
+    <proof prover="1"><result status="valid" time="1.08" steps="129018"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.28" expl="postcondition" proved="true">
-    <proof prover="3" timelimit="5"><result status="valid" time="0.62" steps="277"/></proof>
+    <proof prover="3" timelimit="5"><result status="valid" time="0.43" steps="277"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.9.29" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
@@ -1784,7 +1768,7 @@
     <goal name="interp_instr&#39;vc.87.10.2" expl="postcondition" proved="true">
     <transf name="split_vc" proved="true" >
      <goal name="interp_instr&#39;vc.87.10.2.0" expl="postcondition" proved="true">
-     <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="1.25" steps="1116"/></proof>
+     <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="1.54" steps="1116"/></proof>
      </goal>
      <goal name="interp_instr&#39;vc.87.10.2.1" expl="postcondition" proved="true">
      <proof prover="3"><result status="valid" time="0.22" steps="66"/></proof>
@@ -1822,7 +1806,7 @@
     <proof prover="1"><result status="valid" time="0.64" steps="102730"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.10.13" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.47" steps="103907"/></proof>
+    <proof prover="1"><result status="valid" time="0.69" steps="103907"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.10.14" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.63" steps="102694"/></proof>
@@ -1843,7 +1827,7 @@
     <proof prover="1"><result status="valid" time="0.65" steps="103199"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.10.20" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.65" steps="102981"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="102981"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.10.21" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.67" steps="110033"/></proof>
@@ -1901,7 +1885,7 @@
     <proof prover="1"><result status="valid" time="0.61" steps="102024"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.11.4" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.60" steps="97548"/></proof>
+    <proof prover="1"><result status="valid" time="0.42" steps="97548"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.11.5" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.60" steps="97500"/></proof>
@@ -2139,7 +2123,7 @@
     <proof prover="1"><result status="valid" time="0.51" steps="103196"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.13.10" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.66" steps="102556"/></proof>
+    <proof prover="1"><result status="valid" time="0.46" steps="102556"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.13.11" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.49" steps="108140"/></proof>
@@ -2300,7 +2284,7 @@
     <proof prover="1"><result status="valid" time="0.63" steps="105875"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.14.19" expl="postcondition" proved="true">
-    <proof prover="1"><result status="valid" time="0.65" steps="102941"/></proof>
+    <proof prover="1"><result status="valid" time="0.47" steps="102941"/></proof>
     </goal>
     <goal name="interp_instr&#39;vc.87.14.20" expl="postcondition" proved="true">
     <proof prover="1"><result status="valid" time="0.58" steps="102723"/></proof>
@@ -2487,15 +2471,15 @@
   <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="2.80" steps="1277"/></proof>
   </goal>
   <goal name="interp_foreach&#39;vc.7" expl="postcondition" proved="true">
-  <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="1.59" steps="1024"/></proof>
+  <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="3.19" steps="1024"/></proof>
   </goal>
   <goal name="interp_foreach&#39;vc.8" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="interp_foreach&#39;vc.8.0" expl="postcondition" proved="true">
-   <proof prover="3"><result status="valid" time="0.38" steps="368"/></proof>
+   <proof prover="3"><result status="valid" time="0.80" steps="368"/></proof>
    </goal>
    <goal name="interp_foreach&#39;vc.8.1" expl="postcondition" proved="true">
-   <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="3.21" steps="4178"/></proof>
+   <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="6.84" steps="4178"/></proof>
    </goal>
   </transf>
   </goal>
@@ -2504,10 +2488,10 @@
  <goal name="MakeSemantics.MakeInterpreter.interp_while&#39;vc" expl="VC for interp_while" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="interp_while&#39;vc.0" expl="precondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.22" steps="83825"/></proof>
+  <proof prover="1"><result status="valid" time="0.38" steps="83825"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.1" expl="variant decrease" proved="true">
-  <proof prover="3"><result status="valid" time="0.12" steps="53"/></proof>
+  <proof prover="3"><result status="valid" time="0.27" steps="53"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.2" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.29" steps="83864"/></proof>
@@ -2530,7 +2514,7 @@
   </transf>
   </goal>
   <goal name="interp_while&#39;vc.6" expl="assertion" proved="true">
-  <proof prover="3"><result status="valid" time="0.33" steps="131"/></proof>
+  <proof prover="3"><result status="valid" time="0.48" steps="131"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.7" expl="assertion" proved="true">
   <proof prover="3"><result status="valid" time="0.36" steps="131"/></proof>
@@ -2549,12 +2533,12 @@
   <proof prover="3"><result status="valid" time="0.12" steps="44"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.11" expl="assertion" proved="true">
-  <proof prover="1"><result status="valid" time="1.44" steps="177496"/></proof>
+  <proof prover="1" timelimit="5"><result status="valid" time="0.94" steps="177496"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.12" expl="assertion" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="interp_while&#39;vc.12.0" expl="assertion" proved="true">
-   <proof prover="3" timelimit="20"><result status="valid" time="6.67" steps="1995"/></proof>
+   <proof prover="3" timelimit="20"><result status="valid" time="13.94" steps="1995"/></proof>
    </goal>
   </transf>
   </goal>
@@ -2578,10 +2562,10 @@
   <proof prover="1"><result status="valid" time="0.29" steps="87450"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.17" expl="postcondition" proved="true">
-  <proof prover="3" timelimit="40"><result status="valid" time="12.95" steps="5255"/></proof>
+  <proof prover="3" timelimit="40"><result status="valid" time="19.59" steps="5255"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.18" expl="postcondition" proved="true">
-  <proof prover="3"><result status="valid" time="0.30" steps="127"/></proof>
+  <proof prover="3"><result status="valid" time="0.44" steps="127"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.19" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
@@ -2591,17 +2575,17 @@
   </transf>
   </goal>
   <goal name="interp_while&#39;vc.20" expl="postcondition" proved="true">
-  <proof prover="3"><result status="valid" time="0.41" steps="144"/></proof>
+  <proof prover="3"><result status="valid" time="0.62" steps="144"/></proof>
   </goal>
   <goal name="interp_while&#39;vc.21" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="interp_while&#39;vc.21.0" expl="postcondition" proved="true">
-   <proof prover="3"><result status="valid" time="0.36" steps="433"/></proof>
+   <proof prover="3"><result status="valid" time="0.72" steps="433"/></proof>
    </goal>
    <goal name="interp_while&#39;vc.21.1" expl="postcondition" proved="true">
    <transf name="split_vc" proved="true" >
     <goal name="interp_while&#39;vc.21.1.0" expl="postcondition" proved="true">
-    <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="5.79" steps="3902"/></proof>
+    <proof prover="3" timelimit="10" memlimit="4000"><result status="valid" time="9.08" steps="3902"/></proof>
     </goal>
    </transf>
    </goal>
@@ -2624,7 +2608,7 @@
   <proof prover="1"><result status="valid" time="0.66" steps="114138"/></proof>
   </goal>
   <goal name="interp_instr&#39;&#39;vc.4" expl="postcondition" proved="true">
-  <proof prover="1"><result status="valid" time="0.62" steps="100108"/></proof>
+  <proof prover="1"><result status="valid" time="0.80" steps="100108"/></proof>
   </goal>
  </transf>
  </goal>
@@ -2646,7 +2630,7 @@
   <proof prover="3"><result status="valid" time="0.63" steps="234"/></proof>
   </goal>
   <goal name="interp_str_expr&#39;vc.5" expl="assertion" proved="true">
-  <proof prover="3"><result status="valid" time="0.16" steps="77"/></proof>
+  <proof prover="3"><result status="valid" time="0.35" steps="77"/></proof>
   </goal>
   <goal name="interp_str_expr&#39;vc.6" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
@@ -2699,33 +2683,33 @@
   <proof prover="3"><result status="valid" time="0.08" steps="26"/></proof>
   </goal>
   <goal name="interp_str_expr&#39;vc.14" expl="postcondition" proved="true">
-  <proof prover="3"><result status="valid" time="0.13" steps="94"/></proof>
+  <proof prover="3"><result status="valid" time="0.26" steps="94"/></proof>
   </goal>
   <goal name="interp_str_expr&#39;vc.15" expl="postcondition" proved="true">
-  <proof prover="3"><result status="valid" time="0.19" steps="110"/></proof>
+  <proof prover="3"><result status="valid" time="0.36" steps="110"/></proof>
   </goal>
   <goal name="interp_str_expr&#39;vc.16" expl="postcondition" proved="true">
   <transf name="split_vc" proved="true" >
    <goal name="interp_str_expr&#39;vc.16.0" expl="postcondition" proved="true">
-   <proof prover="3"><result status="valid" time="0.32" steps="582"/></proof>
+   <proof prover="3"><result status="valid" time="0.64" steps="582"/></proof>
    </goal>
    <goal name="interp_str_expr&#39;vc.16.1" expl="postcondition" proved="true">
-   <proof prover="3"><result status="valid" time="0.40" steps="640"/></proof>
+   <proof prover="3"><result status="valid" time="0.61" steps="640"/></proof>
    </goal>
    <goal name="interp_str_expr&#39;vc.16.2" expl="postcondition" proved="true">
-   <proof prover="3"><result status="valid" time="0.43" steps="726"/></proof>
+   <proof prover="3"><result status="valid" time="0.61" steps="726"/></proof>
    </goal>
    <goal name="interp_str_expr&#39;vc.16.3" expl="postcondition" proved="true">
    <transf name="split_vc" proved="true" >
     <goal name="interp_str_expr&#39;vc.16.3.0" expl="postcondition" proved="true">
-    <proof prover="3"><result status="valid" time="0.29" steps="591"/></proof>
+    <proof prover="3"><result status="valid" time="0.65" steps="591"/></proof>
     </goal>
    </transf>
    </goal>
    <goal name="interp_str_expr&#39;vc.16.4" expl="postcondition" proved="true">
    <transf name="split_vc" proved="true" >
     <goal name="interp_str_expr&#39;vc.16.4.0" expl="postcondition" proved="true">
-    <proof prover="3"><result status="valid" time="0.79" steps="1384"/></proof>
+    <proof prover="3"><result status="valid" time="1.89" steps="1384"/></proof>
     </goal>
    </transf>
    </goal>
@@ -2736,7 +2720,7 @@
  <goal name="MakeSemantics.MakeInterpreter.interp_list_expr&#39;vc" expl="VC for interp_list_expr" proved="true">
  <transf name="split_vc" proved="true" >
   <goal name="interp_list_expr&#39;vc.0" expl="variant decrease" proved="true">
-  <proof prover="1"><result status="valid" time="0.51" steps="90213"/></proof>
+  <proof prover="1"><result status="valid" time="0.69" steps="90213"/></proof>
   </goal>
   <goal name="interp_list_expr&#39;vc.1" expl="precondition" proved="true">
   <proof prover="1"><result status="valid" time="0.26" steps="83843"/></proof>
