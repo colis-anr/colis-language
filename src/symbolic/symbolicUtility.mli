@@ -21,11 +21,12 @@ module type CASESPEC = sig
       variable to a clause. *)
   type case_spec
 
-  val noop : case_spec
-
   (** Apply a case specification to a filesystem, resulting in possible multiple new
       filesystems *)
   val apply_spec : filesystem -> case_spec -> filesystem list
+
+  (** The identity case specification *)
+  val noop : case_spec
 end
 
 (** {1 Instantiate the symbolic engine with a given filesystem.}
@@ -204,20 +205,31 @@ module UtilityContext : sig
   }
 end
 
-(** {1 Constraints} *)
+(** {1 Constraints backend} *)
 
 (** Parameter for the symbolic engine using a constraint-based filesystem *)
 module ConstraintsImplementation : sig
+
+  (** A constraints-based filesystem is comprised of a root variable [root] and a
+     satisfiable constraint [clause]. If the variable [root0] is defined, it is retained in the
+     clause. *)
   type filesystem = {
     root: Var.t;
     clause: Clause.sat_conj;
     root0: Var.t option;
   }
+
+  (** A case specification is a function from the current root and the new root to a
+     constraint clause. *)
   type case_spec = Var.t -> Var.t -> Clause.t
-  val noop : case_spec
+
   val apply_spec : filesystem -> case_spec -> filesystem list
+
+  val noop : case_spec
 end
 
+(** Instantiation of the constraints-based backend with the interpreter and
+   specifications. *)
 module Constraints : sig
   include module type of ConstraintsImplementation
     with type filesystem = ConstraintsImplementation.filesystem
@@ -232,7 +244,7 @@ val last_comp_as_hint: root:Var.t -> Path.t -> string option
 
 (** {1 Transducers} *)
 
-(** TODO Parameter for the symbolic engine using transducers as filesystem *)
+(** Parameter for the symbolic engine using transducers as filesystem. TODO *)
 module TransducersImplementation : sig
   type filesystem = unit
   type case_spec = unit
@@ -240,6 +252,8 @@ module TransducersImplementation : sig
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
 
+(** Instantiation of the transducers-based backend with the interpreter and
+   specifications. *)
 module Transducers : sig
   include module type of TransducersImplementation
     with type filesystem = TransducersImplementation.filesystem
@@ -249,6 +263,8 @@ end
 
 (** {1 Mixed constraints/transducers} *)
 
+(** The mixed backend combines the constraints-based backend with the transducers-based
+   backend. *)
 module MixedImplementation : sig
   type filesystem =
     | Constraints of Constraints.filesystem
@@ -260,6 +276,8 @@ module MixedImplementation : sig
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
 
+(** The Mixed interpreter is based on the mixed backend and provides interpreter functions
+   for the constraints-based backend and the transducers-based backend. *)
 module Mixed : sig
   include module type of MixedImplementation
     with type filesystem = MixedImplementation.filesystem

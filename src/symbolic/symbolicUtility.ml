@@ -12,8 +12,8 @@ exception Incomplete_case_spec
 module type CASESPEC = sig
   type filesystem
   type case_spec
-  val noop : case_spec
   val apply_spec : filesystem -> case_spec -> filesystem list
+  val noop : case_spec
 end
 
 module MakeInterpreter (Filesystem: FILESYSTEM) = struct

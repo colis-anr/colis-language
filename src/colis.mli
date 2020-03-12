@@ -98,6 +98,8 @@ module FilesystemSpec = FilesystemSpec
 
 module Constraints = Colis_constraints
 
+(** {1 The interpreters} *)
+
 (** The symbolic interpreter using constraints on the mixed backend of SymbolicUtility *)
 module SymbolicConstraints : sig
   open Constraints
