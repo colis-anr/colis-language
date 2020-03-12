@@ -7,10 +7,10 @@ type 'a test =
     expectation : sat }
 
 let tests =
-  let x = Var.fresh ~hint:"x" () in
-  (* let x' = Var.fresh ~hint:"x" () in *)
-  let y = Var.fresh ~hint:"y" () in
-  let z = Var.fresh ~hint:"z" () in
+  let x = Var.fresh () in
+  (* let x' = Var.fresh () in *)
+  let y = Var.fresh () in
+  let z = Var.fresh () in
 
   let f = Feat.from_string "f" in
   let g = Feat.from_string "g" in
