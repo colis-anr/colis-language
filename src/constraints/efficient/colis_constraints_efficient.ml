@@ -23,20 +23,18 @@ let quantify_over_and_simplify x c =
 
 let with_shadow_variables = Core.with_shadow_variables
 
-let exists ?hint f = fun c ->
-  let x = Var.fresh ?hint () in
+let exists f = fun c ->
+  let x = Var.fresh () in
   c |> f x |> List.map (Core.quantify_over x)
 
-let exists2 ?hint1 ?hint2 f =
-  exists ?hint:hint1 @@ fun x ->
-  exists ?hint:hint2 @@ fun y ->
-  f x y
-
-let exists3 ?hint1 ?hint2 ?hint3 f =
-  exists ?hint:hint1 @@ fun x ->
-  exists ?hint:hint2 @@ fun y ->
-  exists ?hint:hint3 @@ fun z ->
-  f x y z
+let exists2 f = exists  @@ fun x1 -> exists @@ fun x2 -> f x1 x2
+let exists3 f = exists2 @@ fun x1 x2 -> exists @@ fun x3 -> f x1 x2 x3
+let exists4 f = exists3 @@ fun x1 x2 x3 -> exists @@ fun x4 -> f x1 x2 x3 x4
+let exists5 f = exists4 @@ fun x1 x2 x3 x4 -> exists @@ fun x5 -> f x1 x2 x3 x4 x5
+let exists6 f = exists5 @@ fun x1 x2 x3 x4 x5 -> exists @@ fun x6 -> f x1 x2 x3 x4 x5 x6
+let exists7 f = exists6 @@ fun x1 x2 x3 x4 x5 x6 -> exists @@ fun x7 -> f x1 x2 x3 x4 x5 x6 x7
+let exists8 f = exists7 @@ fun x1 x2 x3 x4 x5 x6 x7 -> exists @@ fun x8 -> f x1 x2 x3 x4 x5 x6 x7 x8
+let exists9 f = exists8 @@ fun x1 x2 x3 x4 x5 x6 x7 x8 -> exists @@ fun x9 -> f x1 x2 x3 x4 x5 x6 x7 x8 x9
 
 let and_ r1 r2 = fun c ->
   c |> r1 |> List.map r2 |> List.flatten

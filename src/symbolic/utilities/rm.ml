@@ -19,10 +19,7 @@ let interp1 cwd arg : utility =
       success_case
         ~descr:(asprintf "rm %a: remove file" Path.pp oq)
         begin fun root root' ->
-          let hintx = last_comp_as_hint ~root q in
-          let hinty = Feat.to_string f in
-          exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
-          exists ~hint:hinty @@ fun y ->
+          exists3 @@ fun x x' y ->
           resolve root cwd oq y & ndir y
           & similar root root' cwd q x x'
           & sim x (Feat.Set.singleton f) x'
@@ -31,8 +28,7 @@ let interp1 cwd arg : utility =
       error_case
         ~descr:(asprintf "rm %a: target does not exist or is a directory" Path.pp oq)
         begin fun root root' ->
-          let hinty = Feat.to_string f in
-          exists ~hint:hinty @@ fun y ->
+          exists @@ fun y ->
           maybe_resolve root cwd oq y
           & dir y
           & eq root root'
@@ -53,10 +49,7 @@ let interp1_r cwd arg : utility =
       success_case
         ~descr:(asprintf "rm -r %a: remove file or directory" Path.pp oq)
         begin fun root root' ->
-          let hintx = last_comp_as_hint ~root q in
-          let hinty = Feat.to_string f in
-          exists2 ?hint1:hintx ?hint2:hintx @@ fun x x' ->
-          exists ~hint:hinty @@ fun y ->
+          exists3 @@ fun x x' y ->
           resolve root cwd oq y
           & similar root root' cwd q x x'
           & sim x (Feat.Set.singleton f) x'

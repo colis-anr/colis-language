@@ -341,7 +341,7 @@ module ConstraintsImplementation = struct
       match fs.root0 with
       | Some root0 -> Var.equal root0 fs.root
       | None -> false in
-    let root' = Var.fresh ~hint:(Var.hint fs.root) () in
+    let root' = Var.fresh () in
     let clause = spec fs.root root' in
     let clauses = Clause.add_to_sat_conj clause fs.clause in
     let clauses =
@@ -353,17 +353,6 @@ module ConstraintsImplementation = struct
              clauses) in
     List.map (fun clause -> {fs with clause; root=root'}) clauses
 end
-
-let last_comp_as_hint: root:Var.t -> Path.t -> string option =
-  fun ~root path ->
-  match Path.split_last path with
-  | Some (_, Down f) ->
-    Some (Feat.to_string f)
-  | None -> (* Empty parent path => root *)
-    Some (Var.hint root)
-  | Some (_, (Here|Up)) ->
-    (* We can’t know (if last component in parent path is a symbolic link) *)
-    None
 
 module Constraints = struct
   include ConstraintsImplementation
@@ -475,8 +464,6 @@ module Mixed = struct
     let stas' = List.map sym_state_from_transducers stas in
     let normals, errors, failures = interp_program inp stas' pro in
     List.map state_to_transducers normals, List.map state_to_transducers errors, List.map state_to_transducers failures
-
-  let last_comp_as_hint = last_comp_as_hint
 end
 
 module ConstraintsCompatibility = struct
@@ -494,6 +481,4 @@ module ConstraintsCompatibility = struct
     incomplete_case ~descr (case_spec ~constraints ())
 
   let noop = ConstraintsImplementation.noop
-
-  let last_comp_as_hint = last_comp_as_hint
 end

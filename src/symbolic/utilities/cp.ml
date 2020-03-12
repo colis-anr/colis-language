@@ -42,16 +42,14 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
            error_case
            ~descr:(asprintf "cp: source '%s' is a directory, option '-R' required" src)
            begin fun root root' ->
-             let hintys = last_comp_as_hint ~root qsrc in
-             exists ?hint:hintys @@ fun ys ->
+             exists @@ fun ys ->
              resolve root ctx.cwd qsrc ys & dir ys
              & eq root root'
            end;
            error_case
            ~descr:(asprintf "cp: '%a' is a directory, option '-R' required" Path.pp dstpath)
            begin fun root root' ->
-             let hintys = last_comp_as_hint ~root qsrc in
-             exists2 ?hint1:hintys ?hint2:None @@ fun ys zd ->
+             exists2 @@ fun ys zd ->
              resolve root ctx.cwd qsrc ys & ndir ys
              & resolve root ctx.cwd dstpath zd & dir zd
              & eq root root'
@@ -69,8 +67,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
         error_case
           ~descr:(asprintf "cp: not a directory '%a'" Path.pp qd)
           begin fun root root' ->
-            let hintxd = last_comp_as_hint ~root qd in
-            exists ?hint:hintxd @@ fun xd ->
+            exists @@ fun xd ->
             resolve root ctx.cwd qd xd & ndir xd
             & eq root root'
           end
@@ -90,9 +87,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
            success_case
              ~descr:(asprintf "cp: source dir '%s' in new dir '%s'" src dst)
              begin fun root root' ->
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintxd = last_comp_as_hint ~root qd in
-               exists3 ?hint1:hintys ?hint2:hintxd ?hint3:None @@ fun ys xd xd' ->
+               exists3 @@ fun ys xd xd' ->
                resolve root ctx.cwd qsrc ys & dir ys
                & resolve root ctx.cwd qd xd & abs xd fd
                & similar root root' ctx.cwd qd xd xd'
@@ -104,9 +99,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
            success_case
              ~descr:(asprintf "cp: source file '%s' to new file '%s'" src dst)
              begin fun root root' ->
-               let hintys = last_comp_as_hint ~root qsrc in
-               exists ?hint:hintys @@ fun ys ->
-               exists2 ?hint1:None ?hint2:None @@ fun xd xd' ->
+               exists3 @@ fun ys xd xd' ->
                resolve root ctx.cwd qsrc ys & ndir ys
                & resolve root ctx.cwd qd xd & dir xd
                & nfen xd (Feat.Set.singleton fd) (* first case *)
@@ -117,10 +110,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
            success_case
              ~descr:(asprintf "cp file '%s' to new file '%s'" src dst)
              begin fun root root' ->
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintyd = last_comp_as_hint ~root qdst in
-               exists2 ?hint1:hintys ?hint2:hintyd @@ fun ys yd ->
-               exists2 ?hint1:None ?hint2:None @@ fun xd xd' ->
+               exists4 @@ fun ys yd xd xd' ->
                resolve root ctx.cwd qsrc ys & ndir ys
                & resolve root ctx.cwd qd xd & dir xd
                & feat xd fd yd & ndir yd (* second case *)
@@ -133,10 +123,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
            success_case
              ~descr:(asprintf "cp: source file '%s' to directory '%s'" src dst)
            begin fun root root' ->
-             let hintys = last_comp_as_hint ~root qsrc in
-             let hintyd = last_comp_as_hint ~root qdst in
-             exists ?hint:hintys @@ fun ys ->
-             exists2 ?hint1:hintyd ?hint2:None @@ fun yd yd' ->
+             exists3 @@ fun ys yd yd' ->
              resolve root ctx.cwd qsrc ys & ndir ys
              & resolve root ctx.cwd qdst yd & dir yd
              & abs yd fs (* first case *)
@@ -147,10 +134,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
            success_case
            ~descr:(asprintf "cp: source file '%s' to directory '%s'" src dst)
            begin fun root root' ->
-             let hintys = last_comp_as_hint ~root qsrc in
-             let hintyd = last_comp_as_hint ~root qdst in
-             exists ?hint:hintys @@ fun ys ->
-             exists3 ?hint1:hintyd ?hint2:None ?hint3:None @@ fun yd yd' zd ->
+             exists4 @@ fun ys yd yd' zd ->
              resolve root ctx.cwd qsrc ys & ndir ys
              & resolve root ctx.cwd qdst yd & dir yd
              & feat yd fs zd & ndir zd (* second case *)
@@ -165,10 +149,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
              success_case
                ~descr:(asprintf "cp: destination dir '%s' does not exist" dst)
                begin fun root root' ->
-                 let hintys = last_comp_as_hint ~root qsrc in
-                 let hintyd = last_comp_as_hint ~root qdst in
-                 exists ?hint:hintys @@ fun ys ->
-                 exists2 ?hint1:hintyd ?hint2:None @@ fun yd yd' ->
+                 exists3 @@ fun ys yd yd' ->
                  resolve root ctx.cwd qsrc ys & dir ys
                  & resolve root ctx.cwd qdst yd & dir yd
                  & abs yd fs
@@ -179,8 +160,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
              success_case
                ~descr:(asprintf "cp: empty directory '%a' exists" Path.pp dstpath)
                begin fun root root' ->
-                 let hintys = last_comp_as_hint ~root qsrc in
-                 exists2 ?hint1:hintys ?hint2:None @@ fun ys zd ->
+                 exists2 @@ fun ys zd ->
                  resolve root ctx.cwd qsrc ys & dir ys
                  & resolve root ctx.cwd dstpath zd & dir zd
                  & fen zd Feat.Set.empty
@@ -189,9 +169,7 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
              success_case
                ~descr:(asprintf "cp: non empty directory '%a' exists" Path.pp dstpath)
                begin fun root root' ->
-                 let hintys = last_comp_as_hint ~root qsrc in
-                 exists ?hint:hintys @@ fun ys ->
-                 exists2 ?hint1:None ?hint2:None @@ fun zd zd' ->
+                 exists3 @@ fun ys zd zd' ->
                  resolve root ctx.cwd qsrc ys & dir ys
                  & resolve root ctx.cwd dstpath zd & dir zd
                  & nfen zd Feat.Set.empty

@@ -41,9 +41,7 @@ let interp_rename ctx src dstpath : utility =
            success_case
              ~descr:(asprintf "mv/rename: same file")
              begin fun root root' ->
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintyd = last_comp_as_hint ~root qdst in
-               exists2 ?hint1:hintys ?hint2:hintyd @@ fun ys yd ->
+               exists2 @@ fun ys yd ->
                resolve root ctx.cwd qsrc ys
                & resolve root ctx.cwd qdst yd
                & eq ys yd
@@ -53,9 +51,7 @@ let interp_rename ctx src dstpath : utility =
              ~descr:(asprintf "mv/rename: old '%s' is a directory, new '%s' is not"
                        src dstpath)
              begin fun root root' ->
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintyd = last_comp_as_hint ~root qdst in
-               exists2 ?hint1:hintys ?hint2:hintyd @@ fun ys yd ->
+               exists2 @@ fun ys yd ->
                resolve root ctx.cwd qsrc ys & dir ys
                & resolve root ctx.cwd qdst yd & ndir yd
                & eq root root'
@@ -64,13 +60,7 @@ let interp_rename ctx src dstpath : utility =
              ~descr:(asprintf "mv/rename: old '%s' is directory, new '%s' is an empty directory"
                        src dstpath)
              begin fun root root' ->
-               let hintxs = last_comp_as_hint ~root qs in
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintxd = last_comp_as_hint ~root qd in
-               let hintyd = last_comp_as_hint ~root qdst in
-               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
-               exists2 ?hint1:hintyd ?hint2:None @@ fun yd xd' ->
-               exists3 ?hint1:None ?hint2:hintxs ?hint3:hintxd @@ fun ri xsi xdi ->
+               exists7 @@ fun xs ys yd xd' ri xsi xdi ->
                resolve root ctx.cwd qsrc ys & dir ys
                & resolve root ctx.cwd qdst yd & dir yd
                & neq ys yd & fen yd Feat.Set.empty
@@ -85,9 +75,7 @@ let interp_rename ctx src dstpath : utility =
              ~descr:(asprintf "mv/rename: old '%s' is directory, '%s' is not an empty directory"
                        src dstpath)
              begin fun root root' ->
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintyd = last_comp_as_hint ~root qdst in
-               exists2 ?hint1:hintys ?hint2:hintyd @@ fun ys yd ->
+               exists2 @@ fun ys yd ->
                resolve root ctx.cwd qsrc ys & dir ys
                & resolve root ctx.cwd qdst yd & dir yd
                & neq ys yd & nfen yd Feat.Set.empty
@@ -97,12 +85,7 @@ let interp_rename ctx src dstpath : utility =
              ~descr:(asprintf "mv/rename: old '%s' is file, new '%s' is absent"
                        src dstpath)
              begin fun root root' ->
-               let hintxs = last_comp_as_hint ~root qs in
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintxd = last_comp_as_hint ~root qd in
-               exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
-               exists2 ?hint1:hintxd ?hint2:None @@ fun xd xd' ->
-               exists3 ?hint1:None ?hint2:hintxs ?hint3:hintxd @@ fun ri xsi xdi ->
+               exists7 @@ fun xs ys xd xd' ri xsi xdi ->
                resolve root ctx.cwd qsrc ys & ndir ys
                & resolve root ctx.cwd qd xd
                & abs xd fd (* first case *)
@@ -117,13 +100,7 @@ let interp_rename ctx src dstpath : utility =
              ~descr:(asprintf "mv/rename: old '%s' is file, new '%s' is not directory"
                        src dstpath)
              begin fun root root' ->
-              let hintxs = last_comp_as_hint ~root qs in
-              let hintys = last_comp_as_hint ~root qsrc in
-              let hintxd = last_comp_as_hint ~root qd in
-              let hintyd = last_comp_as_hint ~root qdst in
-              exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
-              exists3 ?hint1:hintxd ?hint2:hintyd ?hint3:None @@ fun xd yd xd' ->
-              exists3 ?hint1:None ?hint2:None ?hint3:None @@ fun ri xsi xdi ->
+              exists8 @@ fun xs ys xd yd xd' ri xsi xdi ->
               resolve root ctx.cwd qsrc ys & ndir ys
               & resolve root ctx.cwd qd xd
               & feat xd fd yd & neq ys yd & ndir yd  (* second case *)
@@ -138,9 +115,7 @@ let interp_rename ctx src dstpath : utility =
              ~descr:(asprintf "mv/rename: old '%s' is a file, new '%s' is a directory"
                        src dstpath)
             begin fun root root' ->
-              let hintys = last_comp_as_hint ~root qsrc in
-              let hintyd = last_comp_as_hint ~root qdst in
-              exists2 ?hint1:hintys ?hint2:hintyd @@ fun ys yd ->
+              exists2 @@ fun ys yd ->
               resolve root ctx.cwd qsrc ys & ndir ys
               & resolve root ctx.cwd qdst yd & dir yd
               & eq root root'
@@ -157,9 +132,7 @@ let interp_rename ctx src dstpath : utility =
              ~descr:(asprintf "mv/rename: old '%s' is ancestor of new '%s'"
                      src dstpath)
              begin fun root root' ->
-               let hintys = last_comp_as_hint ~root qsrc in
-               let hintxd = last_comp_as_hint ~root qd in
-               exists2 ?hint1:hintys ?hint2:hintxd @@ fun ys xd ->
+               exists2 @@ fun ys xd ->
                resolve root ctx.cwd qsrc ys & dir ys
                & resolve root ctx.cwd qd xd
                & eq root root'
@@ -176,9 +149,7 @@ let interp_rename ctx src dstpath : utility =
                ~descr:(asprintf "old '%s' is directory, new '%s' is absent and slash"
                          src dstpath)
                begin fun root root' ->
-                 let hintys = last_comp_as_hint ~root qsrc in
-                 let hintxd = last_comp_as_hint ~root qd in
-                 exists2 ?hint1:hintys ?hint2:hintxd @@ fun ys xd ->
+                 exists2 @@ fun ys xd ->
                  resolve root ctx.cwd qsrc ys & dir ys
                  & resolve root ctx.cwd qd xd
                  & abs xd fd
@@ -191,12 +162,7 @@ let interp_rename ctx src dstpath : utility =
                ~descr:(asprintf "old '%s' is directory, new '%s' is absent"
                      src dstpath)
                begin fun root root' ->
-                 let hintxs = last_comp_as_hint ~root qs in
-                 let hintys = last_comp_as_hint ~root qsrc in
-                 let hintxd = last_comp_as_hint ~root qd in
-                 exists2 ?hint1:hintxs ?hint2:hintys @@ fun xs ys ->
-                 exists2 ?hint1:hintxd ?hint2:None @@ fun xd xd' ->
-                 exists3 ?hint1:None ?hint2:None ?hint3:None @@ fun ri xsi xdi ->
+                 exists7 @@ fun xs ys xd xd' ri xsi xdi ->
                  resolve root ctx.cwd qsrc ys & dir ys
                  & resolve root ctx.cwd qd xd
                  & abs xd fd

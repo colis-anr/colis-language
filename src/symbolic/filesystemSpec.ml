@@ -65,7 +65,7 @@ let rec compile root t =
 and compile_node x name node =
   let f = Feat.from_string name in
   let open Clause in
-  exists ~hint:name @@ fun y ->
+  exists @@ fun y ->
   feat x f y &
   match node with
   | File -> ndir y

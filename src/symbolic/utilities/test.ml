@@ -28,8 +28,7 @@ let interp_test_e cwd path_str : utility =
     success_case
       ~descr:(asprintf "test -e %a: path resolves" Path.pp p)
       begin fun root root' ->
-        let hintx = last_comp_as_hint ~root p in
-        exists ?hint:hintx @@ fun x ->
+        exists @@ fun x ->
         resolve root cwd p x &
         eq root root'
       end;
@@ -101,16 +100,14 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
     success_case
       ~descr:(asprintf "test -%s %a: path resolves to file of type '%s'" attr Path.pp p attr)
       begin fun root root' ->
-        let hintx = last_comp_as_hint ~root p in
-        exists ?hint:hintx @@ fun x ->
+        exists @@ fun x ->
         resolve root cwd p x & is_type x &
         eq root root'
       end;
     error_case
       ~descr:(asprintf "test -%s %a: path does not resolve or to file of type other than '%s'" attr Path.pp p attr)
       begin fun root root' ->
-        let hintx = last_comp_as_hint ~root p in
-        exists ?hint:hintx @@ fun x ->
+        exists @@ fun x ->
         maybe_resolve root cwd p x
         & is_ntype x
         & eq root root'
@@ -124,8 +121,7 @@ let interp_test_attribute ~attr cwd path_str : utility =
       ~descr:(asprintf "test '%a': path resolves, attribute -%s OK (overapprox to -e)"
                 Path.pp p attr)
       begin fun root root' ->
-        let hintx = last_comp_as_hint ~root p in
-        exists ?hint:hintx @@ fun x ->
+        exists @@ fun x ->
         resolve root cwd p x &
         eq root root'
       end;

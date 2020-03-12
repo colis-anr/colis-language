@@ -237,11 +237,6 @@ module Constraints : sig
   include module type of MakeSpecifications (ConstraintsImplementation)
 end
 
-(** Get the name of the last path component, if any, or of the hint
-    root variable otherwise. The result is useful as a hint for
-    creating variables for resolving the path. *)
-val last_comp_as_hint: root:Var.t -> Path.t -> string option
-
 (** {1 Transducers} *)
 
 (** Parameter for the symbolic engine using transducers as filesystem. TODO *)
@@ -290,8 +285,6 @@ module Mixed : sig
 
   (** Symbolically interprete a program using the transducers backend *)
   val interp_program_transducers : input -> Transducers.sym_state list -> program -> (Transducers.state list * Transducers.state list * Transducers.state list)
-
-  val last_comp_as_hint: root:Var.t -> Path.t -> string option
 end
 
 (** Compatibility with module SymbolicUtility before functorization of the symbolic
@@ -304,5 +297,4 @@ module ConstraintsCompatibility : sig
   val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Constraints.case_spec -> case
   val incomplete_case: descr:string -> Constraints.case_spec -> case
   val noop : Constraints.case_spec
-  val last_comp_as_hint: root:Var.t -> Path.t -> string option
 end

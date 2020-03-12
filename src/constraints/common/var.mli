@@ -1,9 +1,7 @@
 type t
 [@@deriving yojson]
 
-val fresh : ?hint:string -> unit -> t
-
-val hint : t -> string
+val fresh : unit -> t
 
 val compare : t -> t -> int
 val equal : t -> t -> bool

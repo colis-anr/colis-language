@@ -38,8 +38,7 @@ let interp_test_regular_and_x cwd path_str : utility =
       ~descr:(asprintf "which '%a': path resolves to a regular executable (overapprox to -f)" Path.pp p)
       ~stdout:Stdout.(empty |> output (asprintf "%a" Path.pp p) |> newline)
       begin fun root root' ->
-        let hintx = last_comp_as_hint ~root p in
-        exists ?hint:hintx @@ fun x ->
+        exists @@ fun x ->
         resolve root cwd p x & reg x & (* no way to constraint "x" mode *)
         eq root root'
       end;
@@ -52,8 +51,7 @@ let interp_test_regular_and_x cwd path_str : utility =
     error_case
       ~descr:(asprintf "which '%a': path resolves but not to regular executable)" Path.pp p)
       begin fun root root' ->
-        let hintx = last_comp_as_hint ~root p in
-        exists ?hint:hintx @@ fun x ->
+        exists @@ fun x ->
         resolve root cwd p x & (* no way to constraint no "x" mode *)
         eq root root'
       end;

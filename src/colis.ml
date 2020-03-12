@@ -288,7 +288,7 @@ module SymbolicConstraints = struct
       exit 0
 
   let run config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
-    let root = Constraints.Var.fresh ~hint:"r" () in
+    let root = Constraints.Var.fresh () in
     let disj = add_fs_spec_to_clause root Constraints.Clause.true_sat_conj fs_spec in
     let stas = List.map (to_state ~prune_init_state:config.prune_init_state ~root) disj in
     let stas' = List.map (to_symbolic_state ~vars ~arguments) stas in

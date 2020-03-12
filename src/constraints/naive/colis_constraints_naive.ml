@@ -5,7 +5,7 @@ type t = Conj.t
 let true_ = (Var.Set.empty, Literal.Set.empty)
 
 let quantify_over x (e, c) =
-  let x' = Var.fresh ~hint:(Var.hint x) () in
+  let x' = Var.fresh () in
   [Var.Set.add x' e,
    Rules.replace_in_literal_set ~var:x ~by:x' c]
   |> Engine.normalize
