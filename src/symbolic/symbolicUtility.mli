@@ -28,6 +28,14 @@ module type CASESPEC = sig
   val apply_spec : filesystem -> case_spec -> filesystem list
 end
 
+(** {1 Instantiate the symbolic engine with a given filesystem.}
+
+    Under the hood, this functor first instantiates the Why3 module
+    [symbolicInterpreter.Interpreter.MakeSemantics] with the given filesystem to obtain a
+    type for symbolic states. It then defines the dispatch functions to interprete symbolic
+    utilities and instantiates the symbolic engine
+    [symbolicInterpreter.Interpreter.MakeSemantics.MakeInterpreter] with the dispatch
+    function as the symbolic interpreter for utilities. *)
 module MakeInterpreter (Filesystem: FILESYSTEM) : sig
 
   type state = {
@@ -74,17 +82,15 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
 
   (** {1 Basic utilities}
 
-      This is the taxonomy of utility behaviours:
+      The symbolic interpretation of a utility call may result in different behaviours:
 
-      utility behaviour:
-      ├─ [known]
-      │  ├─ [ok] the call to the utility was executed (known known)
-      │  │  ├─ [success] the call was valid and succeeded (i.e. exit 0)
-      │  │  └─ [error] the call failed (i.e. exit >0)
-      │  └─ [incomplete] the call is valid but the behaviour has not
-      |     (yet) been implemented (known unknown)
-      └─ [unknown] we don't even know if this call is an error or
-         incomplete behaviour (unknown unknown)
+      Any behaviour
+      ├─ Known behaviour
+      │  ├─ The call was interpreted
+      │  │  ├─ [success]: The call was valid and succeeded (i.e. exit 0)
+      │  │  └─ [error]: The call failed (i.e. exit >0)
+      │  └─ [incomplete]: The utility or option has not been implemented
+      └─ [unknown]: We don't even know if this call is an error or incomplete behaviour
 
       [return true] can be used for a simple [success]. [error] adds
       logging to [return false].
@@ -92,8 +98,8 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
       A call is valid if it corresponds to the syntax of the utility.
 
       The actual behaviour of [unknown] is determined by option
-      [Option.unknown_behaviour] and may be an OCaml exception, error
-      behaviour, or incomplete behaviour.*)
+      [Option.unknown_behaviour] and may be an OCaml exception, or correspond
+      to error behaviour, or incomplete behaviour.*)
 
   (** Error utility *)
   val error : utility:string -> string -> utility
@@ -165,8 +171,10 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
       of the utility. [empty_pos_args] describe whether empty positional arguments
       lists are accepted or not (refused by default). *)
 
-  (** {1 Specifications of a symbolic utility} *)
+  (** {1 Specifications of a symbolic utility}
 
+      Use the function [CaseSpec.apply_spec] to implement symbolic utilities corresponding
+      to the table notation used in the document "Specification of UNIX Utilities "*)
   module MakeSpecifications (CaseSpec: CASESPEC with type filesystem = Filesystem.filesystem) : sig
 
     open CaseSpec
@@ -183,8 +191,7 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
     (** An incomplete case (unknown behaviour, cannot be symbolically executed) *)
     val incomplete_case: descr:string -> case_spec -> case
 
-    (** Use a list of cases to specify a utility. Corresponds to a table in the
-        document "Specification of UNIX Utilities "*)
+    (** Use a list of cases to specify a utility. *)
     val specification_cases : case list -> utility
   end
 end

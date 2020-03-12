@@ -18,6 +18,8 @@ end
 
 module MakeInterpreter (Filesystem: FILESYSTEM) = struct
 
+  (* Application of the why3 module functor [symbolicInterpreter.Interpreter.MakeSemantics]:
+     Instantiate the semantics with the given filesystem to obtain the state type. *)
   module Semantics = SymbolicInterpreter__Interpreter.MakeSemantics (Filesystem)
 
   type state = Semantics.state = {
@@ -74,6 +76,8 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
     | Incomplete -> incomplete ~utility msg
     | Error -> error ~utility msg
 
+  (* Dispatch *)
+
   let table : (string, utility_context -> utility) Hashtbl.t =
     Hashtbl.create 10
 
@@ -101,12 +105,12 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
       (* All known utilities should have incomplete behaviour as default *)
       unknown ~utility:name "command not found" sta
 
-  module Arg = struct
-    let sym_interp_utility (ctx, name, sta) =
-      dispatch ~name ctx sta
-  end
-
-  module Interpreter = MakeInterpreter (Arg)
+  (* Application of the why3 module functor [symbolicInterpreter.Interpreter.MakeSemantics.MakeInterpreter]:
+     Use the dispatch function as the symbolic interpreter for utilities in the symbolic engine *)
+  module Interpreter = MakeInterpreter (struct
+      let sym_interp_utility (ctx, name, sta) =
+        dispatch ~name ctx sta
+    end)
 
   type sym_state = {
     context : Semantics__Context.context;
