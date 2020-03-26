@@ -2,16 +2,13 @@
 replay-concrete-proofs=$(patsubst %, replay-concrete-proof-%, auxiliaries semantics interpreter)
 replay-symbolic-proofs=$(patsubst %, replay-symbolic-proof-%, collection symbolicInterpreter)
 
-.PHONY: ci build test doc clean install uninstall \
+.PHONY: build test doc clean install uninstall \
   extract-why3 clean-why3 replay-proofs \
   $(replay-concrete-proofs) $(replay-symbolic-proofs)
 
 build: extract-why3
 	dune build @install
 	ln -sf _build/install/default/bin .
-
-# Do everything for continuous integration
-ci: build doc test replay-proofs install uninstall clean
 
 clean: clean-why3
 	dune clean
@@ -29,9 +26,6 @@ doc: build
 
 test: build
 	dune runtest
-
-# Do everything for continuous integration
-ci: build doc test replay-proofs install uninstall clean
 
 ## Extract Why3 to OCaml
 
