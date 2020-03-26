@@ -1,21 +1,18 @@
-language: c
-sudo: required
 services:
   - docker
 
-## We build on as many OCaml version as we can support. These versions
-## are in fact tags for the ocaml/opam2 Docker image that we pull.
-
 env:
-  - TAG=4.09
-  - TAG=4.08
-  - TAG=4.07
-  - TAG=4.06
-  - TAG=4.05
+  global:
+    - TARGET=tester
+  jobs:
+    - TAG=4.10 TARGET=prover
+    - TAG=4.09
+    - TAG=4.08
 
 script:
   - docker build
       --build-arg "TAG=$TAG"
       --build-arg "SWITCH=$SWITCH"
       --tag colisanr/colis-language:$TRAVIS_BRANCH
+      --target "$TARGET"
       .
