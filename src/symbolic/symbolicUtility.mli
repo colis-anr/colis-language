@@ -46,6 +46,8 @@ module MakeInterpreter (Filesystem: FILESYSTEM) : sig
     log: Stdout.t;
   }
 
+  val mk_state : Filesystem.filesystem -> state
+
   (** {1 Interpretation of a colis program} *)
 
   type sym_state = {
@@ -235,6 +237,7 @@ module Constraints : sig
     with type filesystem = ConstraintsImplementation.filesystem
   include module type of MakeInterpreter (ConstraintsImplementation)
   include module type of MakeSpecifications (ConstraintsImplementation)
+  val filesystems : prune_init_state:bool -> FilesystemSpec.t -> filesystem list
 end
 
 (** {1 Transducers} *)
@@ -254,6 +257,7 @@ module Transducers : sig
     with type filesystem = TransducersImplementation.filesystem
   include module type of MakeInterpreter (TransducersImplementation)
   include module type of MakeSpecifications (TransducersImplementation)
+  val filesystems : FilesystemSpec.t -> filesystem list
 end
 
 (** {1 Mixed constraints/transducers} *)

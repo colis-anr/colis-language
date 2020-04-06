@@ -24,10 +24,13 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
 
   type state = Semantics.state = {
     filesystem: Filesystem.filesystem;
-    stdin: string list;
+    stdin: Stdin.t;
     stdout: Stdout.t;
     log: Stdout.t;
   }
+
+  let mk_state filesystem =
+    { filesystem; stdin=Stdin.empty; stdout=Stdout.empty; log=Stdout.empty }
 
   open Semantics
 
@@ -92,7 +95,7 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
   let is_registered = Hashtbl.mem table
 
   let () =
-    (* TODO Register all known POSIX utilities:
+    (* TODO Register all essential commands as:
        [incomplete ~utility "not implemented"] *)
     (* TODO Register all known unknown POSIX utilities, if any:
        [error ~utility "command not found"] *)
@@ -358,6 +361,13 @@ module Constraints = struct
   include ConstraintsImplementation
   include MakeInterpreter (ConstraintsImplementation)
   include MakeSpecifications (ConstraintsImplementation)
+
+  let filesystems ~prune_init_state fs_spec =
+    let root = Var.fresh () in
+    let fs_clause = FilesystemSpec.compile_constraints root fs_spec in
+    let conjs = Clause.add_to_sat_conj fs_clause Clause.true_sat_conj in
+    let root0 = if prune_init_state then None else Some root in
+    List.map (fun clause -> {clause; root; root0}) conjs
 end
 
 (* Transducers *)
@@ -374,6 +384,9 @@ module Transducers = struct
   include TransducersImplementation
   include MakeInterpreter (TransducersImplementation)
   include MakeSpecifications (TransducersImplementation)
+
+  let filesystems : FilesystemSpec.t -> filesystem list =
+    fun _ -> failwith "SymbolicUtility.Transducers.filesystems"
 end
 
 (* Mixed *)
