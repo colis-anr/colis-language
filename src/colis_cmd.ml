@@ -3,6 +3,7 @@ open Colis
 
 type source = Colis | Shell
 type action = Run | RunSymbolic | PrintColis | PrintShell
+type backend = ConstraintsBackend | TransducersBackend
 
 let (||>) f g x = f x |> g
 
@@ -16,6 +17,23 @@ let get_action, set_action =
     match !action with
     | None -> action := Some new_action
     | Some _ -> raise (Arg.Bad "only one action among --run, --run-symbolic, --print-colis and --print-shell can be specified"))
+
+let get_symbolic_backend, set_symbolic_backend =
+  let symbolic_backend = ref None in
+  let parse_symbolic_backend = function
+    | "CONSTRAINTS" -> ConstraintsBackend
+    | "TRANSDUCERS" -> TransducersBackend
+    | _ -> raise (Arg.Bad "invalid backend (should be constraints or transducers)") in
+  (fun () ->
+     match !symbolic_backend with
+     | None -> ConstraintsBackend
+     | Some backend -> backend),
+  (fun new_backend ->
+     if get_action () <> RunSymbolic then
+       raise (Arg.Bad "symbolic backend can only be selected after specifying --run-symbolic");
+     match !symbolic_backend with
+     | None -> symbolic_backend := Some (parse_symbolic_backend new_backend)
+     | Some _ -> raise (Arg.Bad "symbolic backend can only specified once"))
 
 let get_source, set_source =
   let source = ref None in
@@ -90,7 +108,8 @@ let speclist =
   let open Internals.Options in
   align [
     "--run",               Unit (set_action Run),         " Concrete execution (default)";
-    "--run-symbolic",      Unit (set_action RunSymbolic), " Symbolic execution";
+    "--run-symbolic",      Unit (set_action RunSymbolic), " Symbolic execution with constraints backend";
+    "--symbolic-backend",  String set_symbolic_backend,   "BACKEND Set backend of symbolic execution (constraints or transducers)";
     "--shell",             Unit (set_source Shell),       " Use the shell parser (default)";
     "--colis",             Unit (set_source Colis),       " Use the colis parser" ;
     "--external-sources",  Set_string external_sources,   "DIR Import absolute sources from DIR";
@@ -112,10 +131,11 @@ let speclist =
 let usage =
   sprintf
     ("Usage: %s <action> <syntax-opts> [--var VAR=VAL ...] FILE [--] [ARG...]\n"^^
-     "       <action>: [--run <opts> <concrete-opts> | --run-symbolic <opts> <symbolic-opts> | --print-colis | --print-shell]\n"^^
+     "       <action>: [--run <opts> <concrete-opts> | --run-symbolic [<opts> <constraints-opts>|<transducers-opts>] | --print-colis | --print-shell]\n"^^
      "       <opts>: [--unknown-behaviour EXCEPTION|UNSUPPORTED|ERROR]\n"^^
      "       <concrete-opts>: [--realworld]\n"^^
-     "       <symbolic-opts>: [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--print-states DIR]\n"^^
+     "       <constraints-opts>: [--symbolic-backend CONSTRAINTS] [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--print-states DIR]\n"^^
+     "       <transducers-opts>: --symbolic-backend TRANSDUCERS [--symbolic-fs FS]\n"^^
      "       <syntax-opts>: [--shell [--external-sources DIR] | --colis]")
     Sys.argv.(0)
 
@@ -144,15 +164,24 @@ let main () =
   match get_action () with
   | Run ->
      Concrete.run ~argument0 ~arguments ~vars program
-  | RunSymbolic ->
-    let open SymbolicConstraints in
-    let config = {
-      prune_init_state = !prune_init_state;
-      loop_limit = !loop_limit;
-      stack_size = !stack_size;
-    } in
-    let fs_spec = get_symbolic_fs () in
-    run config fs_spec ~argument0 ~arguments ~vars program
+  | RunSymbolic -> begin
+      let fs_spec = get_symbolic_fs () in
+      match get_symbolic_backend () with
+      | ConstraintsBackend ->
+        let open SymbolicConstraints in
+        let config = {
+          prune_init_state = !prune_init_state;
+          loop_limit = !loop_limit;
+          stack_size = !stack_size;
+        } in
+        let res = run config fs_spec ~argument0 ~arguments ~vars program in
+        exit res
+      | TransducersBackend ->
+        let open SymbolicTransducers in
+        let loop_limit = !loop_limit and stack_size = !stack_size in
+        let res = run ~loop_limit ~stack_size fs_spec ~argument0 ~arguments ~vars program in
+        exit res
+    end
   | PrintColis ->
     Language.print_colis program;
   | PrintShell ->

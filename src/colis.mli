@@ -103,47 +103,16 @@ module Constraints = Colis_constraints
 (** The symbolic interpreter using constraints on the mixed backend of SymbolicUtility *)
 module SymbolicConstraints : sig
   open Constraints
-  open Common
 
-  type filesystem = SymbolicUtility.Constraints.filesystem = {
-    root: Var.t;
-    clause: Clause.sat_conj;
-    root0: Var.t option;
-  }
-
-  type state = SymbolicUtility.Constraints.state = {
-      filesystem: filesystem;
-      stdin: string list;
-      stdout: Stdout.t;
-      log: Stdout.t;
-    }
-
-  type sym_state = SymbolicUtility.Constraints.sym_state = {
-    context : Context.context;
-    state : state;
-  }
+  type state = SymbolicUtility.Constraints.state
+  type sym_state = SymbolicUtility.Constraints.sym_state
 
   (** Test if an utility is registerered in the mixed backend (the actual backend for this
       module) *)
   val is_registered : string -> bool
 
-  (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
-  val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
-
-  (* Create a state corresponding to a conjunction *)
-  val to_state : prune_init_state:bool -> root:Var.t -> Clause.sat_conj -> state
-
-  (* Create a symbolic states by adding context to a stringe *)
-  val to_symbolic_state : vars:(string * string) list -> arguments:string list -> state -> sym_state
-
   (* Wrapper around [SymbolicUtility.Mixed.interp_program] (sic!) *)
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> sym_state list -> Language.Syntax.program -> (state list * state list * state list)
-
-  val print_state : Format.formatter -> ?id:string -> state -> unit
-
-  val print_states : initials:state list -> (state list * state list * state list) -> unit
-
-  val exit_code : (state list * state list * state list) -> int
 
   type config = {
     prune_init_state: bool;
@@ -154,10 +123,26 @@ module SymbolicConstraints : sig
     (** Maximum height of the call stack in symbolic execution *)
   }
 
-  val run : config -> FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
+  val run : config -> FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
+
+  val print_state : Format.formatter -> ?id:string -> state -> unit
+
+  val print_states : initials:state list -> (state list * state list * state list) -> unit
+
+  (** {3 For colis-batch} *)
+
+  (** [compile_fs_spec root conj fs_spec] creates a disjunction that represents the conjunction [conj] with constraints representing the filesystem specified by [fs_spec] *)
+  val add_fs_spec_to_clause : Var.t -> Clause.sat_conj -> FilesystemSpec.t -> Clause.sat_conj list
+
+  (* Create a state corresponding to a conjunction *)
+  val to_state : prune_init_state:bool -> root:Var.t -> Clause.sat_conj -> state
+
+  (* Create a symbolic states by adding context to a stringe *)
+  val to_symbolic_state : vars:(string * string) list -> arguments:string list -> state -> sym_state
 end
 
 (** The symbolic interpreter using transducers *)
 module SymbolicTransducers : sig
-  val run : FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
+
+  val run : loop_limit:int -> stack_size:int -> FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
 end

@@ -144,56 +144,38 @@ let () =
     (module ColisInternalUnsafeTouch) ;
   ]
 
+let mk_config ~loop_limit ~stack_size =
+  let open Common.Config in
+  let loop_limit = Finite (Z.of_int loop_limit) in
+  let stack_size = Finite (Z.of_int stack_size) in
+  { loop_limit; stack_size }
+
+let mk_context ~arguments ~vars =
+  let open Common.Context in
+  let var_env = add_var_bindings true vars empty_var_env in
+  {empty_context with arguments; var_env}
+
+let exit_code (_, errors, failures) =
+  (* Exit 1 if there is any error result *)
+  if errors <> [] then
+    1
+    (* Exit 10 if there is any failure result *)
+  else if failures <> [] then
+    10
+  else (* Exit 0, if there aren’t any errors or failures *)
+    exit 0
+
 module SymbolicConstraints = struct
-  open Constraints
 
-  type filesystem = SymbolicUtility.Constraints.filesystem = {
-    root: Var.t;
-    clause: Clause.sat_conj;
-    root0: Var.t option;
-  }
-
-  type state = SymbolicUtility.Constraints.state ={
-    filesystem: filesystem;
-    stdin: string list;
-    stdout: Common.Stdout.t;
-    log: Common.Stdout.t;
-  }
-
-  type sym_state = SymbolicUtility.Constraints.sym_state = {
-    context : Common.Context.context;
-    state : state;
-  }
+  type state = SymbolicUtility.Constraints.state
+  type sym_state = SymbolicUtility.Constraints.sym_state
 
   let is_registered = SymbolicUtility.Mixed.is_registered
 
-  let add_fs_spec_to_clause root clause fs_spec =
-    let fs_clause = FilesystemSpec.compile root fs_spec in
-    Constraints.Clause.add_to_sat_conj fs_clause clause
-
-  let to_state ~prune_init_state ~root clause : state =
-    let open SymbolicUtility.Constraints in
-    let root0 = if prune_init_state then None else Some root in
-    {filesystem={root; clause; root0}; stdin=Common.Stdin.empty;
-     stdout=Common.Stdout.empty; log=Common.Stdout.empty}
-
-  let to_symbolic_state ~vars ~arguments state =
-    let context =
-      let open Common.Context in
-      let var_env = add_var_bindings true vars empty_var_env in
-      {empty_context with arguments; var_env; cwd=[]}
-    in
-    {state; context}
-
   let interp_program ~loop_limit ~stack_size ~argument0 stas' program =
     let open Common in
-    let inp =
-      let config =
-        let open Config in
-        let loop_limit = Finite (Z.of_int loop_limit) in
-        let stack_size = Finite (Z.of_int stack_size) in
-        { loop_limit; stack_size } in
-      Input.({ argument0; config; under_condition=false }) in
+    let config = mk_config ~loop_limit ~stack_size in
+    let inp = Input.{ config; argument0; under_condition=false } in
     SymbolicUtility.Mixed.interp_program_constraints inp stas' program
 
   let print_dot filename id clause =
@@ -205,12 +187,6 @@ module SymbolicConstraints = struct
     with e ->
       close_out ch;
       raise e
-
-  type config = {
-    prune_init_state: bool;
-    loop_limit: int;
-    stack_size: int;
-  }
 
   let print_filesystem fmt fs =
     let open Constraints in
@@ -277,32 +253,54 @@ module SymbolicConstraints = struct
     printf "- Error cases: %d@\n" (List.length errors);
     printf "- Incomplete symbolic execution: %d@\n" (List.length failures)
 
-  let exit_code (_, errors, failures) =
-    (* Exit 1 if there is any error result *)
-    if errors <> [] then
-      1
-      (* Exit 10 if there is any failure result *)
-    else if failures <> [] then
-      10
-    else (* Exit 0, if there aren’t any errors or failures *)
-      exit 0
+  type config = {
+    prune_init_state: bool;
+    loop_limit: int;
+    stack_size: int;
+  }
 
   let run config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
-    let root = Constraints.Var.fresh () in
-    let disj = add_fs_spec_to_clause root Constraints.Clause.true_sat_conj fs_spec in
-    let stas = List.map (to_state ~prune_init_state:config.prune_init_state ~root) disj in
-    let stas' = List.map (to_symbolic_state ~vars ~arguments) stas in
+    let open SymbolicUtility in
+    let context = mk_context ~arguments ~vars in
+    let filesystems = Constraints.filesystems ~prune_init_state:config.prune_init_state fs_spec in
+    let stas = List.map Constraints.mk_state filesystems in
+    let sym_stas = List.map (fun state -> Constraints.{ state; context }) stas in
     let results =
       interp_program ~loop_limit:config.loop_limit ~stack_size:config.stack_size ~argument0
-        stas' colis
+        sym_stas colis
     in
     print_states ~initials:stas results;
-    exit (exit_code results)
+    exit_code results
+
+  (** {3 For colis-batch} *)
+
+  let add_fs_spec_to_clause root clause fs_spec =
+    let fs_clause = FilesystemSpec.compile_constraints root fs_spec in
+    Constraints.Clause.add_to_sat_conj fs_clause clause
+
+  let to_state ~prune_init_state ~root clause : state =
+    let open SymbolicUtility.Constraints in
+    let root0 = if prune_init_state then None else Some root in
+    let filesystem =
+      {root; clause; root0} in
+    mk_state filesystem
+
+  let to_symbolic_state ~vars ~arguments state =
+    SymbolicUtility.Constraints.{state; context = mk_context ~arguments ~vars}
 end
 
 module SymbolicTransducers = struct
-  let run : FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit =
-    fun fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis ->
-      ignore (fs_spec, argument0, arguments, vars, colis);
-      failwith "SymbolicTransducers.run: not implemented"
+
+  let run : loop_limit:int -> stack_size:int -> FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int =
+    fun ~loop_limit ~stack_size fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis ->
+      let open SymbolicUtility in
+      let open Common in
+      let config = mk_config ~loop_limit ~stack_size in
+      let inp = Input.{ config; argument0; under_condition=false } in
+      let filesystems = Transducers.filesystems fs_spec in
+      let stas = List.map Transducers.mk_state filesystems in
+      let context = mk_context ~arguments ~vars in
+      let sym_stas = List.map (fun state -> Transducers.{ state; context }) stas in
+      let results = SymbolicUtility.Mixed.interp_program_transducers inp sym_stas colis in
+      exit_code results
 end

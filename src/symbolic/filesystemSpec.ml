@@ -59,17 +59,17 @@ let add_channel cin t =
     assert false
   with End_of_file -> !t
 
-let rec compile root t =
-  SMap.fold (fun name node -> Clause.and_ @@ compile_node root name node) t Clause.true_
+let rec compile_constraints root t =
+  SMap.fold (fun name node -> Clause.and_ @@ compile_constraints_node root name node) t Clause.true_
 
-and compile_node x name node =
+and compile_constraints_node x name node =
   let f = Feat.from_string name in
   let open Clause in
   exists @@ fun y ->
   feat x f y &
   match node with
   | File -> ndir y
-  | Dir t -> dir y & compile y t
+  | Dir t -> dir y & compile_constraints y t
 
 let rec pp fmt t =
   SMap.bindings t |>
