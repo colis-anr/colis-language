@@ -118,7 +118,7 @@ module SymbolicConstraints : sig
 
   (** Test if an utility is registerered in the mixed backend (the actual backend for this
       module) *)
-  val is_registered : string -> bool
+  val is_registered : name:string -> bool
 
   (* Wrapper around [SymbolicUtility.Mixed.interp_program] (sic!) *)
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> sym_state list -> Language.Syntax.program -> (state list * state list * state list)

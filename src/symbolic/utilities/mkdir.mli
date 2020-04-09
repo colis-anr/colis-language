@@ -1,5 +1,5 @@
 (** Symbolic execution of mkdir *)
-open SymbolicUtility.ConstraintsCompatibility
+open SymbolicUtility.Mixed
 
 val name : string
-val interprete : context -> utility
+val interprete : utility_context -> utility
