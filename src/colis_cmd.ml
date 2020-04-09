@@ -20,9 +20,9 @@ let get_action, set_action =
 
 let get_symbolic_backend, set_symbolic_backend =
   let symbolic_backend = ref None in
-  let parse_symbolic_backend = function
-    | "CONSTRAINTS" -> ConstraintsBackend
-    | "TRANSDUCERS" -> TransducersBackend
+  let parse_symbolic_backend str = match String.lowercase_ascii str with
+    | "constraints" -> ConstraintsBackend
+    | "transducers" -> TransducersBackend
     | _ -> raise (Arg.Bad "invalid backend (should be constraints or transducers)") in
   (fun () ->
      match !symbolic_backend with
@@ -96,10 +96,10 @@ let set_unknown_behaviour str =
     raise (Arg.Bad "--unknown-utilities can only be specified with --run or --run-symbolic")
   | _ ->
     let behaviour =
-      match str with
-      | "EXCEPTION" -> Exception
-      | "INCOMPLETE" -> Incomplete
-      | "ERROR" -> Error
+      match String.lowercase_ascii str with
+      | "exception" -> Exception
+      | "incomplete" -> Incomplete
+      | "error" -> Error
       | _ -> raise (Arg.Bad "Invalid value for unknown behaviour") in
     unknown_behaviour := behaviour
 
