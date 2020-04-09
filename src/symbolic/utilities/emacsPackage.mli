@@ -3,12 +3,12 @@ open SymbolicUtility.ConstraintsCompatibility
 
 module Install : sig
   val name : string
-  val interprete : context -> utility
+  val interprete : utility_context -> utility
 end
 
 module Remove : sig
   val name : string
-  val interprete : context -> utility
+  val interprete : utility_context -> utility
 end
 
 
