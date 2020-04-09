@@ -123,7 +123,7 @@ module SymbolicConstraints : sig
   (* Wrapper around [SymbolicUtility.Mixed.interp_program] (sic!) *)
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> sym_state list -> Language.Syntax.program -> (state list * state list * state list)
 
-  val run : sym_config -> config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
+  val run : config -> sym_config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 
   val print_state : Format.formatter -> ?id:string -> state -> unit
 
@@ -144,5 +144,5 @@ end
 (** The symbolic interpreter using transducers *)
 module SymbolicTransducers : sig
   type config = SymbolicUtility.Transducers.config
-  val run : sym_config -> config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
+  val run : config -> sym_config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> unit
 end

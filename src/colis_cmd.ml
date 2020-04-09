@@ -162,24 +162,27 @@ let main () =
   let argument0 = file in
   let arguments = get_arguments () in
   let vars = get_vars () in
+
   match get_action () with
   | Run ->
      Concrete.run ~argument0 ~arguments ~vars program
-  | RunSymbolic -> begin
-      let sym_config = {
-        loop_limit = !loop_limit;
-        stack_size = !stack_size;
-        filesystem_spec = get_symbolic_fs ();
-      } in
+  | RunSymbolic ->
+    let run_backend =
       match get_symbolic_backend () with
       | ConstraintsBackend ->
-        let config = {SymbolicConstraints.prune_init_state = !prune_init_state} in
-        exit (SymbolicConstraints.run sym_config config ~argument0 ~arguments ~vars program)
+        let open SymbolicConstraints in
+        run {prune_init_state = !prune_init_state}
       | TransducersBackend ->
-        exit (SymbolicTransducers.run sym_config () ~argument0 ~arguments ~vars program)
-    end
+        let open SymbolicTransducers in
+        run () in
+    let sym_config = {
+      loop_limit = !loop_limit;
+      stack_size = !stack_size;
+      filesystem_spec = get_symbolic_fs ();
+    } in
+    run_backend sym_config ~argument0 ~arguments ~vars program
   | PrintColis ->
-    Language.print_colis program;
+    Language.print_colis program
   | PrintShell ->
     eprintf "Printing Shell is not supported yet.@.";
     exit 9 (* FIXME *)
