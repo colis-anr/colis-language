@@ -165,6 +165,13 @@ let exit_code (_, errors, failures) =
   else (* Exit 0, if there aren’t any errors or failures *)
     exit 0
 
+type 'backend_config config = {
+  loop_limit: int;
+  stack_size: int;
+  filesystem_spec : FilesystemSpec.t;
+  backend : 'backend_config;
+}
+
 module SymbolicConstraints = struct
 
   type state = SymbolicUtility.Constraints.state
@@ -253,16 +260,14 @@ module SymbolicConstraints = struct
     printf "- Error cases: %d@\n" (List.length errors);
     printf "- Incomplete symbolic execution: %d@\n" (List.length failures)
 
-  type config = {
+  type constraints_config = {
     prune_init_state: bool;
-    loop_limit: int;
-    stack_size: int;
   }
 
-  let run config fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis =
+  let run config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
     let open SymbolicUtility in
     let context = mk_context ~arguments ~vars in
-    let filesystems = Constraints.filesystems ~prune_init_state:config.prune_init_state fs_spec in
+    let filesystems = Constraints.filesystems ~prune_init_state:config.backend.prune_init_state config.filesystem_spec in
     let stas = List.map Constraints.mk_state filesystems in
     let sym_stas = List.map (fun state -> Constraints.{ state; context }) stas in
     let results =
@@ -291,16 +296,20 @@ end
 
 module SymbolicTransducers = struct
 
-  let run : loop_limit:int -> stack_size:int -> FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int =
-    fun ~loop_limit ~stack_size fs_spec ~argument0 ?(arguments=[]) ?(vars=[]) colis ->
+  type transducers_config = unit
+
+  let run config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
       let open SymbolicUtility in
       let open Common in
-      let config = mk_config ~loop_limit ~stack_size in
-      let inp = Input.{ config; argument0; under_condition=false } in
-      let filesystems = Transducers.filesystems fs_spec in
-      let stas = List.map Transducers.mk_state filesystems in
-      let context = mk_context ~arguments ~vars in
-      let sym_stas = List.map (fun state -> Transducers.{ state; context }) stas in
+      let inp =
+        let config = mk_config ~loop_limit:config.loop_limit ~stack_size:config.stack_size in
+        Input.{ config; argument0; under_condition=false } in
+      let sym_stas =
+        let context = mk_context ~arguments ~vars in
+        let stas =
+          List.map Transducers.mk_state
+            (Transducers.filesystems config.filesystem_spec) in
+        List.map (fun state -> Transducers.{ state; context }) stas in
       let results = SymbolicUtility.Mixed.interp_program_transducers inp sym_stas colis in
       exit_code results
 end
