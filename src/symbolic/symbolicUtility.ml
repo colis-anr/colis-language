@@ -95,9 +95,9 @@ module MakeInterpreter (Filesystem: FILESYSTEM) = struct
   let is_registered = Hashtbl.mem table
 
   let () =
-    (* TODO Register all essential commands as:
+    (* TODO Register all essential utilities as:
        [incomplete ~utility "not implemented"] *)
-    (* TODO Register all known unknown POSIX utilities, if any:
+    (* TODO Register all known unknown utilities, if any:
        [error ~utility "command not found"] *)
     ()
 
