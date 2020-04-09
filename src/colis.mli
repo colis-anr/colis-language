@@ -100,6 +100,13 @@ module Constraints = Colis_constraints
 
 (** {1 The interpreters} *)
 
+type 'backend config = {
+  loop_limit: int; (** Maximum number of iterations of while loops in symbolic execution *)
+  stack_size: int; (** Maximum height of the call stack in symbolic execution *)
+  filesystem_spec : FilesystemSpec.t; (** Specification of the initial filesystem *)
+  backend : 'backend;
+}
+
 (** The symbolic interpreter using constraints on the mixed backend of SymbolicUtility *)
 module SymbolicConstraints : sig
   open Constraints
@@ -114,16 +121,11 @@ module SymbolicConstraints : sig
   (* Wrapper around [SymbolicUtility.Mixed.interp_program] (sic!) *)
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> sym_state list -> Language.Syntax.program -> (state list * state list * state list)
 
-  type config = {
-    prune_init_state: bool;
-    (** Prune the initial symbolic state during symbolic execution for a faster execution *)
-    loop_limit: int;
-    (** Maximum number of iterations of while loops in symbolic execution *)
-    stack_size: int;
-    (** Maximum height of the call stack in symbolic execution *)
+  type constraints_config = {
+    prune_init_state: bool; (** Prune the initial symbolic state during symbolic execution for a faster execution *)
   }
 
-  val run : config -> FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
+  val run : constraints_config config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
 
   val print_state : Format.formatter -> ?id:string -> state -> unit
 
@@ -144,5 +146,7 @@ end
 (** The symbolic interpreter using transducers *)
 module SymbolicTransducers : sig
 
-  val run : loop_limit:int -> stack_size:int -> FilesystemSpec.t -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
+  type transducers_config = unit
+
+  val run : transducers_config config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
 end
