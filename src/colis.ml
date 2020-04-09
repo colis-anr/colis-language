@@ -262,7 +262,7 @@ module SymbolicConstraints = struct
     printf "- Error cases: %d@\n" (List.length errors);
     printf "- Incomplete symbolic execution: %d@\n" (List.length failures)
 
- let run sym_config config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
+  let run config sym_config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
     let open SymbolicUtility in
     let context = mk_context ~arguments ~vars in
     let filesystems = Constraints.filesystems config sym_config.filesystem_spec in
@@ -273,7 +273,7 @@ module SymbolicConstraints = struct
         sym_stas colis
     in
     print_states ~initials:stas results;
-    exit_code results
+    exit (exit_code results)
 
   (** {3 For colis-batch} *)
 
@@ -295,7 +295,7 @@ end
 module SymbolicTransducers = struct
   type config = SymbolicUtility.Transducers.config
 
-  let run sym_config config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
+  let run config sym_config ~argument0 ?(arguments=[]) ?(vars=[]) colis =
       let open SymbolicUtility in
       let open Common in
       let inp =
@@ -308,5 +308,5 @@ module SymbolicTransducers = struct
           List.map Transducers.mk_state fs in
         List.map (fun state -> Transducers.{ state; context }) stas in
       let results = SymbolicUtility.Mixed.interp_program_transducers inp sym_stas colis in
-      exit_code results
+      exit (exit_code results)
 end
