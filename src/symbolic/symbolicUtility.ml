@@ -362,11 +362,13 @@ module Constraints = struct
   include MakeInterpreter (ConstraintsImplementation)
   include MakeSpecifications (ConstraintsImplementation)
 
-  let filesystems ~prune_init_state fs_spec =
+  type config = { prune_init_state : bool }
+
+  let filesystems config fs_spec =
     let root = Var.fresh () in
     let fs_clause = FilesystemSpec.compile_constraints root fs_spec in
     let conjs = Clause.add_to_sat_conj fs_clause Clause.true_sat_conj in
-    let root0 = if prune_init_state then None else Some root in
+    let root0 = if config.prune_init_state then None else Some root in
     List.map (fun clause -> {clause; root; root0}) conjs
 end
 
@@ -385,8 +387,10 @@ module Transducers = struct
   include MakeInterpreter (TransducersImplementation)
   include MakeSpecifications (TransducersImplementation)
 
-  let filesystems : FilesystemSpec.t -> filesystem list =
-    fun _ -> failwith "SymbolicUtility.Transducers.filesystems"
+  type config = unit
+
+  let filesystems : config -> FilesystemSpec.t -> filesystem list =
+    fun _ _ -> failwith "SymbolicUtility.Transducers.filesystems"
 end
 
 (* Mixed *)

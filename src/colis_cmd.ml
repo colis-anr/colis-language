@@ -166,27 +166,17 @@ let main () =
   | Run ->
      Concrete.run ~argument0 ~arguments ~vars program
   | RunSymbolic -> begin
+      let sym_config = {
+        loop_limit = !loop_limit;
+        stack_size = !stack_size;
+        filesystem_spec = get_symbolic_fs ();
+      } in
       match get_symbolic_backend () with
       | ConstraintsBackend ->
-        let open SymbolicConstraints in
-        let config = {
-          loop_limit = !loop_limit;
-          stack_size = !stack_size;
-          filesystem_spec = get_symbolic_fs ();
-          backend = {prune_init_state = !prune_init_state};
-        } in
-        let res = run config ~argument0 ~arguments ~vars program in
-        exit res
+        let config = {SymbolicConstraints.prune_init_state = !prune_init_state} in
+        exit (SymbolicConstraints.run sym_config config ~argument0 ~arguments ~vars program)
       | TransducersBackend ->
-        let open SymbolicTransducers in
-        let config = {
-          loop_limit = !loop_limit;
-          stack_size = !stack_size;
-          filesystem_spec = get_symbolic_fs ();
-          backend = ();
-        } in
-        let res = run config ~argument0 ~arguments ~vars program in
-        exit res
+        exit (SymbolicTransducers.run sym_config () ~argument0 ~arguments ~vars program)
     end
   | PrintColis ->
     Language.print_colis program;
