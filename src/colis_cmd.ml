@@ -107,35 +107,36 @@ let speclist =
   let open Arg in
   let open Internals.Options in
   align [
-    "--run",               Unit (set_action Run),         " Concrete execution (default)";
-    "--run-symbolic",      Unit (set_action RunSymbolic), " Symbolic execution with constraints backend";
-    "--symbolic-backend",  String set_symbolic_backend,   "BACKEND Set backend of symbolic execution (constraints or transducers)";
-    "--shell",             Unit (set_source Shell),       " Use the shell parser (default)";
-    "--colis",             Unit (set_source Colis),       " Use the colis parser" ;
-    "--external-sources",  Set_string external_sources,   "DIR Import absolute sources from DIR";
-    "--print-colis",       Unit (set_action PrintColis),  " Print the CoLiS script";
-    "--print-shell",       Unit (set_action PrintShell),  " Print the Shell script";
-    "--var",               String set_var,                " VAR=VAL Set and export variable VAR to VAL in the interpreter";
-    "--realworld",         Set real_world,                " Use system utilities in concrete execution";
-    "--add-symbolic-fs",   String add_symbolic_fs,        "FILE Add files and directories from FILE to the initially empty symbolic file system (One file or directory per line; directories end with '/')";
-    "--prune-init-state",  Set prune_init_state,          " Prune the initial state in symbolic execution";
-    "--loop-limit",        Int ((:=) loop_limit),         sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
-    "--cpu-time-limit",    Float ((:=) cpu_time_limit),   "LIMIT Set CPU time limit for symbolic execution to LIMIT in seconds (default: none)";
-    "--memory-limit",      String set_memory_limit,       "LIMIT Set memory limit for symbolic execution to LIMIT in bytes (default: none)";
-    "--stack-size",        Int ((:=) stack_size),         sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
-    "--print-states",      String ((:=)print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
-    "--unknown-behaviour", String set_unknown_behaviour,  "BHV Behaviour for unknown utilities: raising an exception (by default), like an unsupported utility (incomplete behaviour), or as a colis-level error";
-    "--",                  Rest add_argument,             "ARG... Pass all further arguments directly to the CoLiS interpreter";
+    "--run",               Unit (set_action Run),          " Concrete execution (default)";
+    "--run-symbolic",      Unit (set_action RunSymbolic),  " Symbolic execution with constraints backend";
+    "--symbolic-backend",  String set_symbolic_backend,    "BACKEND Set backend of symbolic execution (constraints or transducers)";
+    "--shell",             Unit (set_source Shell),        " Use the shell parser (default)";
+    "--colis",             Unit (set_source Colis),        " Use the colis parser" ;
+    "--external-sources",  Set_string external_sources,    "DIR Import absolute sources from DIR";
+    "--print-colis",       Unit (set_action PrintColis),   " Print the CoLiS script";
+    "--print-shell",       Unit (set_action PrintShell),   " Print the Shell script";
+    "--var",               String set_var,                 " VAR=VAL Set and export variable VAR to VAL in the interpreter";
+    "--realworld",         Set real_world,                 " Use system utilities in concrete execution";
+    "--add-symbolic-fs",   String add_symbolic_fs,         "FILE Add files and directories from FILE to the initially empty symbolic file system (One file or directory per line; directories end with '/')";
+    "--prune-init-state",  Set prune_init_state,           " Prune the initial state in symbolic execution";
+    "--loop-limit",        Int ((:=) loop_limit),          sprintf "LIMIT Set limit for symbolic execution of while loops to LIMIT (default: %d)" !loop_limit;
+    "--cpu-time-limit",    Float ((:=) cpu_time_limit),    "LIMIT Set CPU time limit for symbolic execution to LIMIT in seconds (default: none)";
+    "--memory-limit",      String set_memory_limit,        "LIMIT Set memory limit for symbolic execution to LIMIT in bytes (default: none)";
+    "--stack-size",        Int ((:=) stack_size),          sprintf "SIZE Set the stack size for symbolic execution to SIZE (default: %d)" !stack_size;
+    "--print-states",      String ((:=) print_states_dir), "DIR Save symbolic states as dot files in directory DIR";
+    "--unknown-behaviour", String set_unknown_behaviour,   "BHV Behaviour for unknown utilities: raising an exception (by default), like an unsupported utility (incomplete behaviour), or as a colis-level error";
+    "--",                  Rest add_argument,              "ARG... Pass all further arguments directly to the CoLiS interpreter";
   ]
 
 let usage =
   sprintf
     ("Usage: %s <action> <syntax-opts> [--var VAR=VAL ...] FILE [--] [ARG...]\n"^^
-     "       <action>: [--run <opts> <concrete-opts> | --run-symbolic [<opts> <constraints-opts>|<transducers-opts>] | --print-colis | --print-shell]\n"^^
+     "       <action>: [--run <opts> <concrete-opts> | --run-symbolic [<symbolic-opts>] [<constraints-opts> <opts>|<transducers-opts>] | --print-colis | --print-shell]\n"^^
      "       <opts>: [--unknown-behaviour EXCEPTION|UNSUPPORTED|ERROR]\n"^^
      "       <concrete-opts>: [--realworld]\n"^^
-     "       <constraints-opts>: [--symbolic-backend CONSTRAINTS] [--symbolic-fs FS] [--prune-init-state] [--loop-boundary] [--print-states DIR]\n"^^
-     "       <transducers-opts>: --symbolic-backend TRANSDUCERS [--symbolic-fs FS]\n"^^
+     "       <symbolic-opts>: [--loop-limit LIMIT] [--stack-size SIZE] [--symbolic-fs FS]\n"^^
+     "       <constraints-opts>: [--symbolic-backend CONSTRAINTS] [--prune-init-state] [--print-states DIR]\n"^^
+     "       <transducers-opts>: --symbolic-backend TRANSDUCERS\n"^^
      "       <syntax-opts>: [--shell [--external-sources DIR] | --colis]")
     Sys.argv.(0)
 
