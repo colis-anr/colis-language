@@ -237,7 +237,10 @@ module Constraints : sig
     with type filesystem = ConstraintsImplementation.filesystem
   include module type of MakeInterpreter (ConstraintsImplementation)
   include module type of MakeSpecifications (ConstraintsImplementation)
-  val filesystems : prune_init_state:bool -> FilesystemSpec.t -> filesystem list
+  type config = {
+    prune_init_state: bool; (** Prune the initial symbolic state during symbolic execution for a faster execution *)
+  }
+  val filesystems : config -> FilesystemSpec.t -> filesystem list
 end
 
 (** {1 Transducers} *)
@@ -257,7 +260,8 @@ module Transducers : sig
     with type filesystem = TransducersImplementation.filesystem
   include module type of MakeInterpreter (TransducersImplementation)
   include module type of MakeSpecifications (TransducersImplementation)
-  val filesystems : FilesystemSpec.t -> filesystem list
+  type config = unit
+  val filesystems : config -> FilesystemSpec.t -> filesystem list
 end
 
 (** {1 Mixed constraints/transducers} *)

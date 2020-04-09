@@ -100,11 +100,10 @@ module Constraints = Colis_constraints
 
 (** {1 The interpreters} *)
 
-type 'backend config = {
+type sym_config = {
   loop_limit: int; (** Maximum number of iterations of while loops in symbolic execution *)
   stack_size: int; (** Maximum height of the call stack in symbolic execution *)
   filesystem_spec : FilesystemSpec.t; (** Specification of the initial filesystem *)
-  backend : 'backend;
 }
 
 (** The symbolic interpreter using constraints on the mixed backend of SymbolicUtility *)
@@ -113,6 +112,9 @@ module SymbolicConstraints : sig
 
   type state = SymbolicUtility.Constraints.state
   type sym_state = SymbolicUtility.Constraints.sym_state
+  type config = SymbolicUtility.Constraints.config = {
+    prune_init_state: bool; (** Prune the initial symbolic state during symbolic execution for a faster execution *)
+  }
 
   (** Test if an utility is registerered in the mixed backend (the actual backend for this
       module) *)
@@ -121,11 +123,7 @@ module SymbolicConstraints : sig
   (* Wrapper around [SymbolicUtility.Mixed.interp_program] (sic!) *)
   val interp_program : loop_limit:int -> stack_size:int -> argument0:string -> sym_state list -> Language.Syntax.program -> (state list * state list * state list)
 
-  type constraints_config = {
-    prune_init_state: bool; (** Prune the initial symbolic state during symbolic execution for a faster execution *)
-  }
-
-  val run : constraints_config config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
+  val run : sym_config -> config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
 
   val print_state : Format.formatter -> ?id:string -> state -> unit
 
@@ -145,8 +143,6 @@ end
 
 (** The symbolic interpreter using transducers *)
 module SymbolicTransducers : sig
-
-  type transducers_config = unit
-
-  val run : transducers_config config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
+  type config = SymbolicUtility.Transducers.config
+  val run : sym_config -> config -> argument0:string -> ?arguments:(string list) -> ?vars:((string * string) list) -> colis -> int
 end
