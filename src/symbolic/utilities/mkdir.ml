@@ -2,6 +2,7 @@ open Format
 open Colis_constraints
 open Clause
 open SymbolicUtility.Mixed
+open SymbolicUtility.Mixed.Specifications
 
 let name = "mkdir"
 
@@ -62,12 +63,12 @@ let interp_mkdir1 cwd path_str =
     ]
 
 let interprete parents ctx args : utility =
-  if parents then incomplete ~utility:name "option -p" else
-  multiple_times (interp_mkdir1 ctx.cwd) args
+  if parents then Interpreter.incomplete ~utility:name "option -p" else
+  Combinators.multiple_times (interp_mkdir1 ctx.Interpreter.cwd) args
 
 let interprete ctx : utility =
   let parents = Cmdliner.Arg.(value & flag & info ["p"; "parents"]) in
-  cmdliner_eval_utility
+  Combinators.cmdliner_eval_utility
     ~utility:name
     Cmdliner.Term.(const interprete $ parents)
     ctx

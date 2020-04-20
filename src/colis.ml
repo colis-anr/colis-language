@@ -120,7 +120,7 @@ module Constraints = Colis_constraints
 let () =
   (* Register the utilities to the mixed backend, which is used in interpreting the
      interfaces for constraints and transducers equally *)
-  List.iter SymbolicUtility.Mixed.register [
+  List.iter SymbolicUtility.Mixed.Interpreter.register [
     (module Basics.True) ;
     (module Basics.Colon) ;
     (module Basics.False) ;
@@ -173,13 +173,13 @@ type sym_config = {
 
 module SymbolicConstraints = struct
 
-  type state = SymbolicUtility.Constraints.state
-  type sym_state = SymbolicUtility.Constraints.sym_state
+  type state = SymbolicUtility.Constraints.Interpreter.state
+  type sym_state = SymbolicUtility.Constraints.Interpreter.sym_state
   type config = SymbolicUtility.Constraints.config = {
     prune_init_state: bool;
   }
 
-  let is_registered = SymbolicUtility.Mixed.is_registered
+  let is_registered = SymbolicUtility.Mixed.Interpreter.is_registered
 
   let interp_program ~loop_limit ~stack_size ~argument0 stas' program =
     let open Common in
@@ -210,10 +210,10 @@ module SymbolicConstraints = struct
         fprintf fmt "id: %s@\n" id;
         if !Colis_internals.Options.print_states_dir <> "" then
           let filename = sprintf "%s/%s.dot" !Colis_internals.Options.print_states_dir id in
-          print_dot filename id sta.Constraints.filesystem.clause;
+          print_dot filename id sta.Constraints.Interpreter.filesystem.clause;
       | None -> ()
     end;
-    print_filesystem fmt sta.Constraints.filesystem;
+    print_filesystem fmt sta.Constraints.Interpreter.filesystem;
     (* Print stdin *)
     if sta.stdin <> [] then begin
       fprintf fmt "stdin: |@\n";
@@ -266,8 +266,8 @@ module SymbolicConstraints = struct
     let open SymbolicUtility in
     let context = mk_context ~arguments ~vars in
     let filesystems = Constraints.filesystems config sym_config.filesystem_spec in
-    let stas = List.map Constraints.mk_state filesystems in
-    let sym_stas = List.map (fun state -> Constraints.{ state; context }) stas in
+    let stas = List.map Constraints.Interpreter.mk_state filesystems in
+    let sym_stas = List.map (fun state -> Constraints.Interpreter.{ state; context }) stas in
     let results =
       interp_program ~loop_limit:sym_config.loop_limit ~stack_size:sym_config.stack_size ~argument0
         sym_stas colis
@@ -286,10 +286,10 @@ module SymbolicConstraints = struct
     let root0 = if prune_init_state then None else Some root in
     let filesystem =
       {root; clause; root0} in
-    mk_state filesystem
+    Interpreter.mk_state filesystem
 
   let to_symbolic_state ~vars ~arguments state =
-    SymbolicUtility.Constraints.{state; context = mk_context ~arguments ~vars}
+    SymbolicUtility.Constraints.Interpreter.{state; context = mk_context ~arguments ~vars}
 end
 
 module SymbolicTransducers = struct
@@ -305,8 +305,8 @@ module SymbolicTransducers = struct
         let context = mk_context ~arguments ~vars in
         let stas =
           let fs = Transducers.filesystems config sym_config.filesystem_spec in
-          List.map Transducers.mk_state fs in
-        List.map (fun state -> Transducers.{ state; context }) stas in
+          List.map Transducers.Interpreter.mk_state fs in
+        List.map (fun state -> Transducers.Interpreter.{ state; context }) stas in
       let results = SymbolicUtility.Mixed.interp_program_transducers inp sym_stas colis in
       exit (exit_code results)
 end

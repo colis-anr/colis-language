@@ -33,6 +33,12 @@ module type INTERPRETER = sig
   val incomplete : utility:string -> string -> utility
   val unknown : utility:string -> string -> utility
 
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
+
   module type SYMBOLIC_UTILITY = sig
     val name : string
     val interprete : utility_context -> utility
@@ -421,10 +427,8 @@ module Concrete = struct
     let apply_spec fs spec = Option.to_list (spec fs)
   end
   module Interpreter = MakeInterpreter (Filesystem)
-  include MakeCombinators (Interpreter)
-  include MakeSpecifications (Interpreter) (CaseSpec)
-  include Filesystem
-  include Interpreter
+  module Combinators = MakeCombinators (Interpreter)
+  module Specifications = MakeSpecifications (Interpreter) (CaseSpec)
   include CaseSpec
 
   type config = unit
@@ -473,10 +477,8 @@ module Constraints = struct
   end
 
   module Interpreter = MakeInterpreter (Filesystem)
-  include MakeCombinators (Interpreter)
-  include MakeSpecifications (Interpreter) (CaseSpec)
-  include Filesystem
-  include Interpreter
+  module Combinators = MakeCombinators (Interpreter)
+  module Specifications = MakeSpecifications (Interpreter) (CaseSpec)
   include CaseSpec
 
   type config = { prune_init_state : bool }
@@ -506,10 +508,8 @@ module Transducers = struct
   end
 
   module Interpreter = MakeInterpreter (Filesystem)
-  include MakeCombinators (Interpreter)
-  include MakeSpecifications (Interpreter) (CaseSpec)
-  include Filesystem
-  include Interpreter
+  module Combinators = MakeCombinators (Interpreter)
+  module Specifications = MakeSpecifications (Interpreter) (CaseSpec)
   include CaseSpec
 
   type config = unit
@@ -567,27 +567,25 @@ module Mixed = struct
   end
 
   module Interpreter = MakeInterpreter (Filesystem)
-  include MakeCombinators (Interpreter)
-  include MakeSpecifications (Interpreter) (CaseSpec)
-  include Filesystem
-  include Interpreter
+  module Combinators = MakeCombinators (Interpreter)
+  module Specifications = MakeSpecifications (Interpreter) (CaseSpec)
   include CaseSpec
 
   (* Concrete interpretation *)
 
-  let state_from_concrete (s : Concrete.state) : state = {
+  let state_from_concrete (s : Concrete.Interpreter.state) : Interpreter.state = {
     filesystem=Concrete s.filesystem;
     stdin=s.stdin;
     stdout=s.stdout;
     log=s.log;
   }
 
-  let sym_state_from_concrete (s: Concrete.sym_state) : sym_state = {
+  let sym_state_from_concrete (s: Concrete.Interpreter.sym_state) : Interpreter.sym_state = {
     state = state_from_concrete s.state;
     context = s.context;
   }
 
-  let state_to_concrete (s: state) : Concrete.state =
+  let state_to_concrete (s: Interpreter.state) : Concrete.Interpreter.state =
     let filesystem =
       match s.filesystem with
       | Concrete fs -> fs
@@ -596,26 +594,26 @@ module Mixed = struct
 
   let interp_program_concrete inp stas pro =
     let stas' = List.map sym_state_from_concrete stas in
-    let normals, errors, failures = interp_program inp stas' pro in
+    let normals, errors, failures = Interpreter.interp_program inp stas' pro in
     List.map state_to_concrete normals,
     List.map state_to_concrete errors,
     List.map state_to_concrete failures
 
   (* Constraints interpretation *)
 
-  let state_from_constraints (s : Constraints.state) : state = {
+  let state_from_constraints (s : Constraints.Interpreter.state) : Interpreter.state = {
     filesystem=Constraints s.filesystem;
     stdin=s.stdin;
     stdout=s.stdout;
     log=s.log;
   }
 
-  let sym_state_from_constraints (s: Constraints.sym_state) : sym_state = {
+  let sym_state_from_constraints (s: Constraints.Interpreter.sym_state) : Interpreter.sym_state = {
     state = state_from_constraints s.state;
     context = s.context;
   }
 
-  let state_to_constraints (s: state) : Constraints.state =
+  let state_to_constraints (s: Interpreter.state) : Constraints.Interpreter.state =
     let filesystem =
       match s.filesystem with
       | Constraints fs -> fs
@@ -624,26 +622,26 @@ module Mixed = struct
 
   let interp_program_constraints inp stas pro =
     let stas' = List.map sym_state_from_constraints stas in
-    let normals, errors, failures = interp_program inp stas' pro in
+    let normals, errors, failures = Interpreter.interp_program inp stas' pro in
     List.map state_to_constraints normals,
     List.map state_to_constraints errors,
     List.map state_to_constraints failures
 
   (* Transducers interpretation *)
 
-  let state_from_transducers (s : Transducers.state) : state = {
+  let state_from_transducers (s : Transducers.Interpreter.state) : Interpreter.state = {
     filesystem=Transducers s.filesystem;
     stdin=s.stdin;
     stdout=s.stdout;
     log=s.log;
   }
 
-  let sym_state_from_transducers (s: Transducers.sym_state) : sym_state = {
+  let sym_state_from_transducers (s: Transducers.Interpreter.sym_state) : Interpreter.sym_state = {
     state = state_from_transducers s.state;
     context = s.context;
   }
 
-  let state_to_transducers (s: state) : Transducers.state =
+  let state_to_transducers (s: Interpreter.state) : Transducers.Interpreter.state =
     let filesystem =
       match s.filesystem with
       | Transducers fs -> fs
@@ -652,7 +650,7 @@ module Mixed = struct
 
   let interp_program_transducers inp stas pro =
     let stas' = List.map sym_state_from_transducers stas in
-    let normals, errors, failures = interp_program inp stas' pro in
+    let normals, errors, failures = Interpreter.interp_program inp stas' pro in
     List.map state_to_transducers normals,
     List.map state_to_transducers errors,
     List.map state_to_transducers failures
@@ -660,16 +658,18 @@ end
 
 module ConstraintsCompatibility = struct
 
-  include Mixed
+  include Mixed.Interpreter
+  include Mixed.Specifications
+  include Mixed.Combinators
 
   let success_case ~descr ?stdout constraints =
-    success_case ~descr ?stdout (case_spec ~constraints ())
+    success_case ~descr ?stdout (Mixed.case_spec ~constraints ())
 
   let error_case ~descr ?stdout ?error_message constraints =
-    error_case ~descr ?stdout ?error_message (case_spec ~constraints ())
+    error_case ~descr ?stdout ?error_message (Mixed.case_spec ~constraints ())
 
   let incomplete_case ~descr constraints =
-    incomplete_case ~descr (case_spec ~constraints ())
+    incomplete_case ~descr (Mixed.case_spec ~constraints ())
 
   let noop = Constraints.noop
 end
