@@ -221,6 +221,9 @@ module MakeSpecifications
 
 (** {2 Concrete backend}
 
+     A symbolic backend that always returns only one state that is obtained by the
+    concrete run of the command.
+
     Incomplete - just a simplest possible showcase. *)
 
 module Concrete : sig
