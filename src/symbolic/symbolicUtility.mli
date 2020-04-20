@@ -275,22 +275,44 @@ module Transducers : sig
   val filesystems : config -> FilesystemSpec.t -> filesystem list
 end
 
+(** {2 Concrete backend}*)
+
+module Concrete : sig
+  type filesystem = FilesystemSpec.t
+  type case_spec = filesystem -> filesystem option
+
+  include INTERPRETER
+    with type filesystem := filesystem
+
+  include COMBINATORS
+    with type state := state
+
+  include SPECIFICATIONS
+    with type state := state
+     and type case_spec := case_spec
+
+  type config = unit
+  val filesystems : config -> FilesystemSpec.t -> filesystem list
+end
+
+
 (** {2 Mixed constraints/transducers}
 
     The mixed backend combines the constraints-based backend with the transducers-based
     backend, while sharing the infrastructure for concrete evaluation. *)
 module Mixed : sig
 
-  type filesystem =
-    | Constraints of Constraints.filesystem
-    | Transducers of Transducers.filesystem
-
+  type filesystem
   type case_spec
 
   (** A mixed case specification combines case specifications of the different backends.
      If the case specification is left unspecified for a backends, it induces incomplete
      behaviour for that backend independently of the specification case. *)
-  val case_spec : ?transducers:Transducers.case_spec -> ?constraints:Constraints.case_spec -> unit -> case_spec
+  val case_spec :
+    ?concrete:Concrete.case_spec ->
+    ?transducers:Transducers.case_spec ->
+    ?constraints:Constraints.case_spec ->
+    unit -> case_spec
 
   include INTERPRETER
     with type filesystem := filesystem
@@ -309,6 +331,10 @@ module Mixed : sig
   (** Symbolically interprete a program using the transducers backend *)
   val interp_program_transducers : input -> Transducers.sym_state list -> program ->
     (Transducers.state list * Transducers.state list * Transducers.state list)
+
+  (** Symbolically interprete a program using the constraints backend *)
+  val interp_program_concrete : input -> Concrete.sym_state list -> program ->
+    (Concrete.state list * Concrete.state list * Concrete.state list)
 
   (** Alias for easier access in the utility implementations. *)
   type utility_context = Semantics__UtilityContext.utility_context = {

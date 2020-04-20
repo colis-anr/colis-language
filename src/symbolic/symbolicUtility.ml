@@ -408,6 +408,30 @@ struct
     List.flatten (List.map (apply_case state) cases)
 end
 
+(** Concrete *)
+
+module Concrete = struct
+  module Filesystem = struct
+    type filesystem = FilesystemSpec.t
+  end
+  module CaseSpec = struct
+    include Filesystem
+    type case_spec = filesystem -> filesystem option
+    let noop fs = Some fs
+    let apply_spec fs spec = Option.to_list (spec fs)
+  end
+  module Interpreter = MakeInterpreter (Filesystem)
+  include MakeCombinators (Interpreter)
+  include MakeSpecifications (Interpreter) (CaseSpec)
+  include Filesystem
+  include Interpreter
+  include CaseSpec
+
+  type config = unit
+
+  let filesystems () fs = [fs]
+end
+
 (* Constraints *)
 
 module Constraints = struct
@@ -500,6 +524,7 @@ module Mixed = struct
 
   module Filesystem = struct
     type filesystem =
+      | Concrete of Concrete.filesystem
       | Constraints of Constraints.filesystem
       | Transducers of Transducers.filesystem
   end
@@ -509,24 +534,30 @@ module Mixed = struct
 
     (* The case_specs are wrapped in a closure because they may raise Incomplete_case_spec *)
     type case_spec = {
+      concrete: unit -> Concrete.CaseSpec.case_spec;
       constraints: unit -> Constraints.CaseSpec.case_spec;
       transducers: unit -> Transducers.CaseSpec.case_spec;
     }
 
-    let case_spec ?transducers ?constraints () : case_spec =
+    let case_spec ?concrete ?transducers ?constraints () : case_spec =
       let case_spec_or_incomplete opt () =
         match opt with Some x -> x | None -> raise Incomplete_case_spec in
-      {constraints = case_spec_or_incomplete constraints;
+      {concrete = case_spec_or_incomplete concrete;
+       constraints = case_spec_or_incomplete constraints;
        transducers = case_spec_or_incomplete transducers}
 
     let noop : case_spec =
       case_spec
+        ~concrete:Concrete.noop
         ~transducers:Transducers.noop
         ~constraints:Constraints.noop
         ()
 
     let apply_spec fs spec =
       match fs with
+      | Concrete fs ->
+        Concrete.apply_spec fs (spec.concrete ()) |>
+        List.map (fun fs -> Concrete fs)
       | Constraints fs ->
         Constraints.apply_spec fs (spec.constraints ()) |>
         List.map (fun fs -> Constraints fs)
@@ -541,6 +572,36 @@ module Mixed = struct
   include Filesystem
   include Interpreter
   include CaseSpec
+
+  (* Concrete interpretation *)
+
+  let state_from_concrete (s : Concrete.state) : state = {
+    filesystem=Concrete s.filesystem;
+    stdin=s.stdin;
+    stdout=s.stdout;
+    log=s.log;
+  }
+
+  let sym_state_from_concrete (s: Concrete.sym_state) : sym_state = {
+    state = state_from_concrete s.state;
+    context = s.context;
+  }
+
+  let state_to_concrete (s: state) : Concrete.state =
+    let filesystem =
+      match s.filesystem with
+      | Concrete fs -> fs
+      | _ -> invalid_arg "state_to_concrete" in
+    {filesystem; stdin=s.stdin; stdout=s.stdout; log=s.log}
+
+  let interp_program_concrete inp stas pro =
+    let stas' = List.map sym_state_from_concrete stas in
+    let normals, errors, failures = interp_program inp stas' pro in
+    List.map state_to_concrete normals,
+    List.map state_to_concrete errors,
+    List.map state_to_concrete failures
+
+  (* Constraints interpretation *)
 
   let state_from_constraints (s : Constraints.state) : state = {
     filesystem=Constraints s.filesystem;
@@ -558,13 +619,17 @@ module Mixed = struct
     let filesystem =
       match s.filesystem with
       | Constraints fs -> fs
-      | Transducers _ -> invalid_arg "state_to_constraints" in
+      | _ -> invalid_arg "state_to_constraints" in
     {filesystem; stdin=s.stdin; stdout=s.stdout; log=s.log}
 
   let interp_program_constraints inp stas pro =
     let stas' = List.map sym_state_from_constraints stas in
     let normals, errors, failures = interp_program inp stas' pro in
-    List.map state_to_constraints normals, List.map state_to_constraints errors, List.map state_to_constraints failures
+    List.map state_to_constraints normals,
+    List.map state_to_constraints errors,
+    List.map state_to_constraints failures
+
+  (* Transducers interpretation *)
 
   let state_from_transducers (s : Transducers.state) : state = {
     filesystem=Transducers s.filesystem;
@@ -582,13 +647,15 @@ module Mixed = struct
     let filesystem =
       match s.filesystem with
       | Transducers fs -> fs
-      | Constraints _ -> invalid_arg "state_to_transducers" in
+      | _ -> invalid_arg "state_to_transducers" in
     {filesystem; stdin=s.stdin; stdout=s.stdout; log=s.log}
 
   let interp_program_transducers inp stas pro =
     let stas' = List.map sym_state_from_transducers stas in
     let normals, errors, failures = interp_program inp stas' pro in
-    List.map state_to_transducers normals, List.map state_to_transducers errors, List.map state_to_transducers failures
+    List.map state_to_transducers normals,
+    List.map state_to_transducers errors,
+    List.map state_to_transducers failures
 end
 
 module ConstraintsCompatibility = struct

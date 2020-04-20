@@ -21,6 +21,11 @@ let interp_mkdir1 cwd path_str =
       success_case
         ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
         (case_spec
+           ~concrete:begin fun fs ->
+             let path = List.map Feat.to_string (cwd @ [f]) in
+             try Some (FilesystemSpec.add_dir path fs)
+             with Invalid_argument _ -> None
+           end
            ~transducers:()
            ~constraints:begin fun root root' ->
              exists3 @@ fun x x' y ->
