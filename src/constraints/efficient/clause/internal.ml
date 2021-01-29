@@ -55,7 +55,7 @@ let abs x f c =
         x info c
     ) |> Dnf.single
 
-  | None | Some DontKnow | Some (Maybe _) | Some Absent -> (* S-Maybe-Abs *)
+  | None | Some DontKnow | Some Absent -> (* S-Maybe-Abs *)
     Core.(
       update_info_for_all_similarities
         (fun fs _ -> if Feat.Set.mem f fs
@@ -175,7 +175,7 @@ let fen x fs c =
       (fun f t ->
          Feat.Set.mem f fs ||
          match t with
-         | DontKnow | Absent | Maybe _ -> true
+         | DontKnow | Absent -> true
          | Present _ -> false (* C-Feat-Fen *))
       info
   then
@@ -212,47 +212,6 @@ let rec feat x f y c =
     ) |> Dnf.single
   | Some (Present z) ->
     eq y z c
-  | Some (Maybe zs) ->
-    let c =
-      Core.(
-        update_info_for_all_similarities
-          (fun fs _ -> if Feat.Set.mem f fs
-            then do_nothing
-            else Info.set_feat f (Present y) (* P-Feat *))
-          x info c
-      )
-    in
-    List.fold_left
-      (fun c z -> eq y z =<< c) (* S-Maybe-Feat *)
-      (Dnf.single c)
-      zs
-
-(** {2 Maybe} *)
-
-and maybe x f y c =
-  let info = Core.get_info x c in
-  implied_by_ndir info c @@ fun () -> (* S-Maybe-Kind, S-Maybe-NDir *)
-  match Core.Info.get_feat f info with
-  | None when Core.Info.has_fen info -> Dnf.single c (* S-Maybe-Fen *)
-  | Some Absent -> Dnf.single c (* S-Maybe-Abs *)
-  | None | Some DontKnow ->
-    Core.(
-      update_info_for_all_similarities
-        (fun fs _ -> if Feat.Set.mem f fs
-          then do_nothing
-          else Info.set_feat f (Maybe [y]) (* P-Maybe *))
-        x info c
-    ) |> Dnf.single
-  | Some (Maybe zs) ->
-    Core.(
-      update_info_for_all_similarities
-        (fun fs _ -> if Feat.Set.mem f fs
-          then do_nothing
-          else Info.set_feat f (Maybe (y :: zs)) (* P-Maybe *))
-        x info c
-    ) |> Dnf.single
-  | Some (Present z) ->
-    eq y z c (* S-Maybe-Feat *)
 
 (** {2 Similarity} *)
 
@@ -348,7 +307,6 @@ and transfer_info_but_sims info_x fs y c =
          | DontKnow -> Dnf.single c
          | Absent -> abs y f c
          | Present z -> feat y f z c
-         | Maybe zs -> List.fold_left (fun c z -> maybe y f z =<< c) (Dnf.single c) zs
       )
       (Dnf.single c)
       info_x
@@ -372,13 +330,8 @@ let nabs x f = exists @@ fun y -> feat x f y
 let neq _x _y =
   Core.not_implemented "neq"
 
-let nfeat x f y =
-  exists @@ fun z ->
-  maybe x f z & neq y z
-
-let nmaybe x f y =
-  exists @@ fun z ->
-  feat x f y & neq y z
+let nfeat _x _f _y =
+  Core.not_implemented "nfeat"
 
 (** {2 Macros} *)
 

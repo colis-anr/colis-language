@@ -17,10 +17,12 @@ let interp1 path_str =
           | [] ->
             reg x'
           | f :: q ->
-            exists2 @@ fun y y' ->
-            sim x (Feat.Set.singleton f) x'
-            & maybe x f y & feat x' f y'
-            & aux y y' q
+            or_
+              (sim x (Feat.Set.singleton f) x' & abs x f)
+              (exists2 @@ fun y y' ->
+               sim x (Feat.Set.singleton f) x'
+               & feat x f y & feat x' f y'
+               & aux y y' q)
         in
         aux root root' q
       end

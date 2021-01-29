@@ -19,7 +19,7 @@ module Info : sig
   val get_kind : t -> kind
   val set_kind : kind -> t -> t
 
-  type feat = DontKnow | Absent | Present of var | Maybe of var list
+  type feat = DontKnow | Absent | Present of var
   val get_feat : Feat.t -> t -> feat option
   val iter_feats : (Feat.t -> feat -> unit) -> t -> unit
   val fold_feats : (Feat.t -> feat -> 'a -> 'a) -> 'a -> t -> 'a

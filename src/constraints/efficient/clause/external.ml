@@ -43,16 +43,6 @@ let nabs x f =
   with_internal x @@ fun x ->
   nabs x f
 
-let maybe x f y =
-  check_if_need_to_stop ();
-  with_internal_2 x y @@ fun x y ->
-  maybe x f y
-
-let nmaybe x f y =
-  check_if_need_to_stop ();
-  with_internal_2 x y @@ fun x y ->
-  nmaybe x f y
-
 let fen x fs =
   check_if_need_to_stop ();
   with_internal x @@ fun x ->

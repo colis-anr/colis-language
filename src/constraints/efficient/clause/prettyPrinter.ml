@@ -53,12 +53,6 @@ module Dot = struct
                 wont be printed at all *)
              if not (Core.VarSet.mem y shadows) then
                fpf fmt "%d -> %d [label=\"%a\"];@\n" (Core.hash x) (Core.hash y) Feat.pp f
-           | Maybe ys ->
-             List.iter
-               (fun y ->
-                  if not (Core.VarSet.mem y shadows) then
-                    fpf fmt "%d -> %d [style=dashed,label=< <I>%a</I>? >];@\n" (Core.hash x) (Core.hash y) Feat.pp f)
-               ys
         )
         info_x
 
@@ -104,9 +98,7 @@ module Dot = struct
             (fun _ feat (seen, shadows) ->
                match feat with
                | DontKnow | Absent -> (seen, shadows)
-               | Present y -> handle_node_and_mark_parent ~parent:x y (seen, shadows)
-               | Maybe ys ->
-                 List.fold_left (fun e y -> handle_node_and_mark_parent ~parent:x y e) (seen, shadows) ys)
+               | Present y -> handle_node_and_mark_parent ~parent:x y (seen, shadows))
             (seen, shadows)
             info_x
         )

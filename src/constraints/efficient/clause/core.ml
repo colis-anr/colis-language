@@ -28,7 +28,6 @@ module Info = struct
     | DontKnow
     | Absent
     | Present of var    (* implies dir *)
-    | Maybe of var list
   [@@deriving yojson]
 
   type t = {
@@ -172,8 +171,7 @@ let pp_debug fmt c =
          (match t with
           | Info.DontKnow -> fpf fmt "?"
           | Absent -> fpf fmt "X"
-          | Present y -> fpf fmt "%d" y
-          | Maybe ys -> fpf fmt "maybe: "; Format.pp_print_list ~pp_sep:(fun fmt () -> fpf fmt ", ") Format.pp_print_int fmt ys);
+          | Present y -> fpf fmt "%d" y);
          fpf fmt "@\n")
       info.feats;
     fpf fmt "fen: %b@\n" info.fen;
@@ -381,8 +379,7 @@ let simplify c =
       (fun _ t accessibles ->
          match t with
          | DontKnow | Absent -> accessibles
-         | Present y -> gather_accessibles_from accessibles y
-         | Maybe ys -> List.fold_left gather_accessibles_from accessibles ys)
+         | Present y -> gather_accessibles_from accessibles y)
       (VSet.add x accessibles)
       (get_info x c)
   in
@@ -425,15 +422,7 @@ let simplify c =
                     | Absent -> Some Absent
                     | Present y ->
                       let y =  find_ancestor y c in
-                      if is_accessible y then Some (Present y) else None
-                    | Maybe ys ->
-                      let ys =
-                        ys
-                        |> List.map (fun y -> find_ancestor y c)
-                        |> List.filter is_accessible
-                        |> List.sort_uniq syntactic_compare
-                      in
-                      if ys = [] then None else Some (Maybe ys))
+                      if is_accessible y then Some (Present y) else None)
                   info.feats ;
               fen = info.fen ;
               sims =
