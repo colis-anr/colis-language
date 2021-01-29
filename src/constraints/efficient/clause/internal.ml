@@ -404,8 +404,9 @@ let rec noresolve x pi q =
      | None ->
        abs x f
      | _ ->
-       exists @@ fun y ->
-       maybe x f y & noresolve y (x::pi) q)
+       or_
+         (abs x f)
+         (exists @@ fun y -> feat x f y & noresolve y (x::pi) q))
   | Some (Here, q) ->
     noresolve x pi q
   | Some (Up, q) ->
@@ -417,8 +418,9 @@ let rec maybe_resolve x pi q z =
   match Path.split_first_rel q with
   | None -> eq x z
   | Some (Down f, q) ->
-    exists @@ fun y ->
-    maybe x f y & maybe_resolve y (x::pi) q z
+    or_
+      (abs x f)
+      (exists @@ fun y -> feat x f y & maybe_resolve y (x::pi) q z)
   | Some (Here, q) ->
     maybe_resolve x pi q z
   | Some (Up, q) ->
