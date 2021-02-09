@@ -41,7 +41,15 @@ let and_ r1 r2 = fun c ->
 
 let (&) = and_
 
+let and_l = function
+  | [] -> true_
+  | r :: rs -> List.fold_left and_ r rs
+
 let add_to_sat_conj = (@@)
 
 let or_ r1 r2 = fun c ->
   (c |> r1) @ (c |> r2)
+
+let or_l = function
+  | [] -> fun _ -> []
+  | r :: rs -> List.fold_left or_ r rs
