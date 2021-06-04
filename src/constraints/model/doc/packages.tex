@@ -1,0 +1,59 @@
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathpartir}
+\usepackage{booktabs}
+\usepackage{bookmark}
+
+\usepackage{hyperref}
+\hypersetup{bookmarks,unicode,colorlinks=true,
+   citecolor=blue,
+   urlcolor=blue,
+   linkcolor=blue}
+%final}
+
+%%%%%% To display ORCID Logo with link, Please add below definition and copy the ORCID_Color.eps in the manuscript package %%%%%
+
+\makeatletter
+ \def\UrlFont{\color{blue}\rmfamily}
+\def\orcidID#1{\smash{\href{http://orcid.org/#1}{\protect\raisebox{-1.25pt}{\protect\includegraphics{orcid_color-eps-converted-to.pdf}}}}}
+\makeatother
+
+\usepackage{url}
+
+
+\usepackage[final]{graphicx}
+
+\usepackage{todonotes} %% FIXME: only for draft; or [obeyDraft]
+% \usepackage[disable]{todonotes} %% use [disable] to hide the notes
+
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes,arrows}
+
+\tikzstyle{tool} = [rectangle, rounded corners, draw, fill=red!10,
+    text centered]
+\tikzstyle{line} = [draw, -triangle 45]
+\tikzstyle{elem} = [ellipse, draw, top color=green!5, bottom color=green!15,
+     text centered, rounded corners]
+\tikzstyle{fcstate} = [rectangle, rounded corners, draw, text centered]
+
+\usepackage{syntax}
+
+\usepackage[final]{listings}
+\lstset{
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bf,
+  showspaces=false,
+  showstringspaces=false,
+}
+
+%\usepackage{paralist}
+
+\usepackage{wrapfig}
+\setlength{\intextsep}{1em} %% Length before and after wrapfigure in text.
+%\setlength{\belowcaptionskip}{-1eX}
+
+\usepackage[normalem]{ulem}

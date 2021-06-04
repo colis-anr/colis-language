@@ -1,0 +1,89 @@
+
+\section{Specifying POSIX Utilities in Feature Tree Logic}
+%% or "Preliminaries"
+
+\subsection{File Systems and their Models}
+
+\paragraph{POSIX file system}
+%---------
+is defined by an i-node table,
+        each entry of this table associates to the i-node a set of attributes,
+        e.g., the type of file (ordinary, directory, link, etc.),
+              the last modification time or
+              a partial mapping from strings to i-nodes (directory content).
+
+We denote by $FS$ the infinite set of file systems.
+
+\paragraph{Feature trees}
+%---------
+is a model of file systems based on labeled bounded-width forests.
+The labels of nodes represent attributes of a file (like its type) and
+labels of edges, called features, represent atomic names used for files.
+We denote by $F$ the set of features and by $D$ the set of node decorations.
+Then $FT \triangleq D \times (F \rightharpoonup FT)$ denotes the set of feature
+trees built with features in $F$ and decorations in $D$.
+Given an element $t=(d,\sigma)\in FT$, we denote
+by $\dot{t}$ the root of $t$,
+by $\hat{t}$ the decoration $d$ of the root and
+by $\vec{t}$ the mapping $\sigma$ at the root.
+
+Features trees are bounded width trees.
+A feature tree $t$ in $FT$ is also represented by the set of paths in the tree,
+denoted by $paths(t)$, where
+a path is an element of $(D\times F)^*D$
+(i.e., a sequence whose elements are pairs of
+        file decorations 
+    and features,
+ended by a decoration).
+
+\subsection{Feature Trees Logic}
+
+In \cite{jeannerod:hal-01807474} is defined a first order logic
+to capture properties of feature trees models.
+It contains the following atoms combined with classic FOL operators:
+\begin{itemize}
+\item $\Feat{x}{f}{y}$ for tree $x$ where the feature $f$ leads to the tree $y$;
+\item $\Abs{x}{f}$ for tree $x$ with no feature $f$ (in the root);
+\item $\Sim{x}{F}{y}$ for tree $x$ and $y$ having similar structure except
+for features in $F$ in the root; $\Sim{x}{\emptyset}{x}$ is valid (and represents \textit{true});
+\item $\Fen{x}{F}$ for $x$ contains in the root features from $F$.
+\end{itemize}
+
+The satisfiability relation $\models$ is defined by
+$FT,\rho \models \varphi$
+where
+$\rho$ is an interpretation of free variables in $\varphi$ over features trees in $FT$.
+
+Quantifier free FTL has a decidable satisfiability problem.
+The decision procedure proposed \cite{jeannerod:hal-01807474}
+proceeds by transforming the input formula to obtain an equi-satisfiable formula
+in disjunctive normal form, where literals are
+the one above plus $\NSim{x}{F}{y}$ and $\NFen{x}{F}$.
+
+
+The set of models of a satisfiable formula $\varphi$ in QF FTL
+does not have, in general, a minimal model with respect to $\prec$.
+This is due to the presence of literals like
+$\lnot (x\stackrel{.}{=}y)$
+(i.e., $x$ denotes a tree which is not equivalent to the one denoted by $y$)
+or $\NFen{x}{\emptyset}$ (i.e., $x$ does not denote an empty directory).
+For example, the model generated for the last formula contains
+        a fresh feature in the directory denoted by $x$;
+        this feature may be different for each model built for this formula.
+Figure~\ref{fig:min-model} provides an example of a satisfiable formula
+which has two incomparable models.
+
+
+\begin{figure}[htbp]
+\begin{center}
+\begin{eqnarray}
+t_1 & ::= & x \stackrel{f}{\rightarrow} y \stackrel{f_1}{\rightarrow} z_1 \\
+t_2 & ::= & x \stackrel{f}{\rightarrow} y \stackrel{f_2}{\rightarrow} z_2
+\end{eqnarray}
+\caption{Two incomparable (wrt $\prec$) models for
+the formula $\Feat{x}{f}{y} \land \NFen{y}{\emptyset}$}
+\label{fig:min-model}
+\end{center}
+\end{figure}
+
+
