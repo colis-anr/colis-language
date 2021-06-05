@@ -28,13 +28,14 @@ module VSet = Set.Make(Var)
 
 type node = { var_l: VSet.t;
 			 feat: var FMap.t;
+       notfeat: (feature*var) list ; (*Not using Map as -x[f]y,-x[f]z can exists together*)
 			 equality: (FSet.t*var) list; 
 			 sim: (FSet.t*var) list;
 			 fen : FSet.t; (*empty signifies no Fen specified so all allowed*)
 			 }
 
-let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];sim = [];fen = FSet.empty}
-let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];sim = [];fen = FSet.empty}
+let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
+let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
 
 
 type atom =
@@ -142,33 +143,39 @@ let rec create_empty_var_map clause  =
   match clause with 
   |[] -> var_map := VarMap.add 0 (empty_node 0) (!var_map);   (*Var 0 is used to respresent absent mapping*)
         ()
-  |Pos Feat(v1,f,v2)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map); 
+  |Pos Feat(v1,f,v2)::t| Neg Feat(v1,f,v2)::t -> 
+                       var_map := VarMap.add v1 (empty_node v1) (!var_map); 
                        var_map := VarMap.add v2 (empty_node v2) (!var_map); 
                        fBigSet := FSet.add f (!fBigSet);
                        create_empty_var_map t  
 
-  |Pos Abs (v1,f)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
+  |Pos Abs (v1,f)::t| Neg Abs (v1,f)::t -> 
+                    var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     fBigSet := FSet.add f (!fBigSet);
                     create_empty_var_map t 
 
-  |Pos Eqf (v1,fl,v2)::t ->var_map := VarMap.add v1 (empty_node v1) (!var_map);
+  |Pos Eqf (v1,fl,v2)::t| Neg Eqf (v1,fl,v2)::t ->
+                    var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     var_map := VarMap.add v2 (empty_node v2) (!var_map);
                     fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
                     create_empty_var_map t 
 
-  |Pos Eq(v1,v2)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
+  |Pos Eq(v1,v2)::t| Neg Eq(v1,v2)::t -> 
+                    var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     var_map := VarMap.add v2 (empty_node v2) (!var_map);
                     create_empty_var_map t 
 
-  |Pos Sim (v1,fl,v2)::t ->var_map := VarMap.add v1 (empty_node v1) (!var_map);
+  |Pos Sim (v1,fl,v2)::t| Neg Sim (v1,fl,v2)::t->
+                    var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     var_map := VarMap.add v2 (empty_node v2) (!var_map);
                     fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
                     create_empty_var_map t 
 
-  |Pos Fen(v1,fl)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
+  |Pos Fen(v1,fl)::t| Neg Fen(v1,fl)::t -> 
+                    var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
                     create_empty_var_map t 
-  |Neg _ :: t -> create_empty_var_map t 
+   
 
 
 let find_node v1 = 
@@ -211,6 +218,24 @@ let add_feat_to_node atom =
              in
              (helper (VSet.elements new_node.var_l))
   |_ -> failwith "add_feat_to_node is only for Feat"
+
+let rec no_feat_abs_to_node atom =
+  match atom with
+  |Feat(v1,f,v2) -> let v1_node = find_node v1 in
+                    if((FMap.find_opt  f v1_node.feat) = (Some v2))
+                    then failwith "Clash x[f]y and -x[f]y both present"
+                    else
+                    let new_node = {v1_node with notfeat =  (f,v2)::v1_node.notfeat} in
+                    let rec helper  vl =
+                       match vl with 
+                       |[]-> () 
+                       |v1::t -> var_map := (VarMap.add v1 new_node (!var_map));
+                           helper t
+                    in
+                    (helper (VSet.elements new_node.var_l))
+
+  |Abs(v1,f) -> no_feat_abs_to_node (Feat(v1,f,0))
+  |_ -> failwith "no_feat_abs_to_node is only for Feat"
 
 
 let add_equal_to_node atom = 
@@ -282,12 +307,13 @@ let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
   let nf_var_l = VSet.union n1.var_l n2.var_l in
   let nf_sim = sim_union n1.sim n2.sim in 
   let nf_fen = FSet.inter n1.fen n2.fen in
+  let nf_notfeat = n1.notfeat@n2.notfeat in
   let merge k n1 n2 = if(n1=n2) then Some n1 (*n1 and n2 are either the same value or are eqivalent*)
             else Some n1 (*Add a clash for if n1 and n2 are not equivalent*)
   in  
   let nf_feat = FMap.union merge n1.feat n2.feat in
 
-  ({var_l = nf_var_l;feat = nf_feat; equality = nf_equality;sim = nf_sim;fen=nf_fen})
+  ({var_l = nf_var_l;feat = nf_feat;notfeat = nf_notfeat; equality = nf_equality;sim = nf_sim;fen=nf_fen})
 
 
 
@@ -442,10 +468,14 @@ let not_eq_sim_transform  atom =
   let rec helper2 info_s =
         match info_s with 
         |[] -> helper3 !info
-        |(f1,Some v_1, None)::t -> add_abs_to_node (Abs (v2,f1));
-                               ()
-        |(f1,None, Some v_2)::t -> add_abs_to_node (Abs (v1,f1)); 
-                               ()
+        |(f1,Some v_1, None)::t ->  
+                                    if(List.mem (f1,0) v2_node.notfeat) then helper2 t
+                                    else add_abs_to_node (Abs (v2,f1))
+                                    
+        |(f1,None, Some v_2)::t -> 
+                                    if(List.mem (f1,0) v1_node.notfeat) then helper2 t
+                                    else add_abs_to_node (Abs (v1,f1)) 
+                                    
         |_::t -> helper2 t
 
         in 
@@ -497,17 +527,27 @@ let rec clause_phase_III (clau:clause) =
                       clause_phase_III t
     | _ :: t -> clause_phase_III t
 
-
 let rec clause_phase_IV (clau:clause) =
     match clau with 
     |[] -> ()
-    |Neg Fen(v1,fl)::t -> not_Fen_transform (Fen(v1,fl));
+    |Neg Feat(v1,f,v2)::t -> no_feat_abs_to_node (Feat(v1,f,v2));
                       clause_phase_IV t
-    |Neg Eqf(v1,fl,v2)::t -> not_eq_sim_transform (Eqf(v1,fl,v2));
-                      clause_phase_IV t
-    |Neg Sim(v1,fl,v2)::t -> not_eq_sim_transform (Sim(v1,fl,v2));
+    |Neg Abs (v1,f)::t -> no_feat_abs_to_node (Abs(v1,f));
                       clause_phase_IV t
     | _ :: t -> clause_phase_IV t
+
+let rec clause_phase_V (clau:clause) =
+    match clau with 
+    |[] -> ()
+    |Neg Fen(v1,fl)::t -> not_Fen_transform (Fen(v1,fl));
+                      clause_phase_V t
+    |Neg Eqf(v1,fl,v2)::t -> not_eq_sim_transform (Eqf(v1,fl,v2));
+                      clause_phase_V t
+    |Neg Eq(v1,v2)::t -> not_eq_sim_transform (Eqf(v1,FSet.elements !fBigSet,v2));
+                      clause_phase_V t
+    |Neg Sim(v1,fl,v2)::t -> not_eq_sim_transform (Sim(v1,fl,v2));
+                      clause_phase_V t
+    | _ :: t -> clause_phase_V t
 
 
 (*EXAMPLE-TEST*)
