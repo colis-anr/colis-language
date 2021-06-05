@@ -1,0 +1,554 @@
+(*In here a single var_map exists which is modified by the functions*)
+(*VARIOUS TYPES NEEDED*)
+type feature = string
+let compare = compare
+let equal f1 f2 = compare f1 f2 = 0
+
+module Feat = struct
+  type t = feature
+  let compare = compare
+end
+
+module FSet = Set.Make(Feat)
+module FMap = Map.Make(Feat)
+
+
+type var = int
+let compare = compare
+let equal m n = compare m n = 0
+
+module Var = struct
+  type t = var
+  let compare = compare
+end
+
+module VarMap = Map.Make(Var)
+module VSet = Set.Make(Var)
+
+
+type node = { var_l: VSet.t;
+			 feat: var FMap.t;
+			 equality: (FSet.t*var) list; 
+			 sim: (FSet.t*var) list;
+			 fen : FSet.t; (*empty signifies no Fen specified so all allowed*)
+			 }
+
+let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];sim = [];fen = FSet.empty}
+let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];sim = [];fen = FSet.empty}
+
+
+type atom =
+  | Eq of var * var
+  | Eqf of var * feature list * var
+  | Feat of var * feature * var
+  | Abs of var * feature
+  | Fen of var * feature list
+  | Sim of var * feature list * var
+
+type var_map_type = node VarMap.t
+
+type clause = atom list
+
+let fresh =
+  let i = ref 0 in
+  fun () -> incr i; !i    
+
+
+let var_map = ref VarMap.empty
+let fBigSet = ref FSet.empty
+
+
+(*VARIOUS FUNCTIONS NEEDED*)
+
+let rec int_list_display = function
+  |[] -> ()
+  |h::t -> Format.printf " %d, " h;
+           int_list_display t
+
+let rec str_list_display = function
+  |[] -> ()
+  |h::t -> Format.printf " %s, " h;
+           str_list_display t
+
+let node_display {var_l = var_l_ ;feat = feat_ ;equality= equality_;sim= sim_;fen = fen_} : unit = 
+    
+    let feat_ = FMap.bindings feat_ in
+    let var_display var_l_ = Format.printf "[" ;
+                       int_list_display (VSet.elements var_l_);
+                       Format.printf "]\t";
+    in
+
+    let rec feat_display feat_ = 
+      match feat_ with 
+      |[] -> ()
+      |(f_1,v_1)::t -> Format.printf "[%s --> %d]\t" f_1 v_1;
+                       feat_display t 
+    in 
+    
+    let fen_ = FSet.elements fen_ in
+    let rec fen_display fen_ = 
+      match fen_ with 
+      |[] -> ()
+      | h::t -> Format.printf "[%s]\t" h;
+                fen_display t
+    in 
+
+    let rec equality_display equality_ = 
+      match equality_ with 
+      |[] -> ()
+      |(f_1,v_1)::t -> Format.printf "[" ;
+                       str_list_display (FSet.elements f_1);
+                       Format.printf " --> %d]\t" v_1;
+                equality_display t
+    in
+
+    let rec sim_display sim_ = 
+      match sim_ with 
+      |[] -> ()
+      |(f_1,v_1)::t -> Format.printf "[" ;
+                       str_list_display (FSet.elements f_1);
+                       Format.printf " --> %d]\t" v_1;
+                sim_display t
+    in
+
+    Format.printf "Variable List:\n";
+    var_display var_l_;
+    Format.printf "\nFeatures:\n";
+    feat_display feat_;
+    Format.printf "\nFen Features:\n";
+    fen_display fen_;
+    Format.printf "\nEquality:\n";
+    equality_display equality_;
+    Format.printf "\nSimilarity:\n";
+    sim_display sim_
+
+let var_map_display var_map = 
+    let var_map = VarMap.bindings var_map in
+    let rec helper var_map = 
+      match var_map with 
+      |[] -> ()
+      |(v_1,n_1)::t -> Format.printf "\n\t\tNODE(VAR) : %d\n" v_1;
+                    node_display n_1;
+                    helper t
+    in 
+    helper var_map
+
+let rec create_empty_var_map clause  = 
+  match clause with 
+  |[] -> var_map := VarMap.add 0 (empty_node 0) (!var_map);   (*Var 0 is used to respresent absent mapping*)
+        ()
+  |Feat(v1,f,v2)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map); 
+                       var_map := VarMap.add v2 (empty_node v2) (!var_map); 
+                       fBigSet := FSet.add f (!fBigSet);
+                       create_empty_var_map t  
+
+  |Abs (v1,f)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
+                    fBigSet := FSet.add f (!fBigSet);
+                    create_empty_var_map t 
+
+  |Eqf (v1,fl,v2)::t ->var_map := VarMap.add v1 (empty_node v1) (!var_map);
+                    var_map := VarMap.add v2 (empty_node v2) (!var_map);
+                    fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
+                    create_empty_var_map t 
+
+  | Eq(v1,v2)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
+                    var_map := VarMap.add v2 (empty_node v2) (!var_map);
+                    create_empty_var_map t 
+
+  |Sim (v1,fl,v2)::t ->var_map := VarMap.add v1 (empty_node v1) (!var_map);
+                    var_map := VarMap.add v2 (empty_node v2) (!var_map);
+                    fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
+                    create_empty_var_map t 
+
+  |Fen(v1,fl)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
+                    fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
+                    create_empty_var_map t 
+
+
+let find_node v1 = 
+  let a = VarMap.find_opt v1 !var_map in
+  match a with
+  | None -> failwith "Could not find Var"
+  | Some nod -> nod 
+
+let add_feat_to_node atom = 
+  match atom with
+  | Feat(v1,f,v2) when v2 = 0 -> add_abs_to_node (Abs(v1,f))
+  | Feat(v1,f,v2) -> 
+             let v1_node = find_node v1 in
+             if (FMap.find_opt f v1_node.feat  = Some 0) then failwith ("Clash: tring to create %d[%s]%d when x[f]abs exists"^(string_of_int v1)^f^(string_of_int v2))
+             else if (not(FSet.is_empty v1_node.fen) && not(FSet.mem f v1_node.fen)) then failwith "Clash: tring to create x[f]y when x[F] exists and f does not belong to F"
+             else 
+             let new_node = {v1_node with feat = FMap.add f v2 v1_node.feat} in
+             let rec helper  vl =
+                match vl with 
+                |[]-> () 
+                |v1::t -> var_map := (VarMap.add v1 new_node (!var_map));
+                    helper t
+             in
+             (helper (VSet.elements new_node.var_l))
+  |_ -> failwith "add_feat_to_node is only for Feat"
+
+let add_abs_to_node atom  = 
+  match atom with
+  | Abs (v1,f) -> let v1_node = find_node v1 in 
+          let absent_var = 0 in 
+          if ((FMap.mem f v1_node.feat)&&(FMap.find_opt f v1_node.feat <> Some 0)) then failwith "Clash: tring to create x[f]abs when x[f]y exists"    
+          else
+          let new_node = {v1_node with feat = FMap.add f absent_var v1_node.feat} in
+             let rec helper vl =
+                match vl with 
+                |[]-> ()
+                |v1::t -> var_map := (VarMap.add v1 new_node !var_map);
+                    helper t
+             in
+             (helper (VSet.elements new_node.var_l))
+          (*All mappings from f to 0 are considered absent*)
+  |_ -> failwith "add_abs_to_node is only for Abs"
+
+let add_equal_to_node atom = 
+  match atom with
+  | Eqf (v1,fl,v2) -> let v1_node = find_node v1 in
+                      let v2_node = find_node v2 in
+            let fl_v = (FSet.of_list fl,v2) in        
+            var_map := (VarMap.add v1 {v1_node with equality = fl_v :: v1_node.equality} !var_map);
+            let fl_v = (FSet.of_list fl,v1) in  
+            var_map := (VarMap.add v2 {v2_node with equality = fl_v :: v2_node.equality} !var_map);
+            ()
+  |_ -> failwith "add_equal_to_node is only for Eqf"
+
+let add_sim_to_node atom = 
+  match atom with
+  | Sim (v1,fl,v2) -> let v1_node = find_node v1 in
+                      let v2_node = find_node v2 in
+            let fl_v = (FSet.of_list fl,v2) in        
+            var_map := (VarMap.add v1 {v1_node with sim = fl_v :: v1_node.sim} !var_map);
+            let fl_v = (FSet.of_list fl,v1) in  
+            var_map := (VarMap.add v2 {v2_node with sim = fl_v :: v2_node.sim} !var_map);
+            ()
+  |_ -> failwith "add_equal_to_node is only for Eqf"
+
+let add_fen_to_node atom = 
+  match atom with
+  | Fen (v1,fl) -> let v1_node = find_node v1 in  
+          let fl = FSet.of_list fl in
+          let fen_new = (if(FSet.is_empty v1_node.fen)then fl else (FSet.inter fl v1_node.fen)) in
+          var_map := (VarMap.add v1 {v1_node with fen = fen_new} !var_map);
+          ()
+  |_ -> failwith "add_abs_to_node is only for Abs"
+
+let eq_union eq1 eq2 = 
+  let n_eq = ref eq1 in
+  let rec helper1 l1 = 
+      match l1 with
+      | [] -> !n_eq
+      | (l,v)::t -> let rec helper2 l2 =
+                        match l2 with
+                        |[]-> n_eq := (l,v)::!n_eq;
+                                      ()
+                        |(l2,v2)::t2 -> if(v=v2) then
+                                        n_eq :=((FSet.union l2 l),v)::!n_eq
+                                        else helper2 t2
+                    in
+                    helper2 eq1;
+                    helper1 t
+  in helper1 eq2
+
+let sim_union sim1 sim2 = 
+  let n_sim = ref sim1 in
+  let rec helper1 l1 = 
+      match l1 with
+      | [] -> !n_sim
+      | (l,v)::t -> let rec helper2 l2 =
+                        match l2 with
+                        |[]-> n_sim := (l,v)::!n_sim;()
+                        |(l2,v2)::t2 -> if(v=v2) then
+                                        n_sim :=((FSet.union l2 l),v)::!n_sim
+                                        else helper2 t2
+                    in
+                    helper2 sim1;
+                    helper1 t
+  in helper1 sim2
+
+let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
+  let nf_equality = eq_union n1.equality n2.equality in
+  let nf_var_l = VSet.union n1.var_l n2.var_l in
+  let nf_sim = sim_union n1.sim n2.sim in 
+  let nf_fen = FSet.inter n1.fen n2.fen in
+  let merge k n1 n2 = if(n1=n2) then Some n1 (*n1 and n2 are either the same value or are eqivalent*)
+            else Some n1 (*Add a clash for if n1 and n2 are not equivalent*)
+  in  
+  let nf_feat = FMap.union merge n1.feat n2.feat in
+
+  ({var_l = nf_var_l;feat = nf_feat; equality = nf_equality;sim = nf_sim;fen=nf_fen})
+
+
+
+
+let add_equal_to_node_ALL atom = 
+  match atom with
+  | Eq (v1,v2) -> let v1_node = find_node v1 in
+          let v2_node = find_node v2 in
+          let new_node = node_union v1_node v2_node in        
+          var_map := VarMap.add v1 new_node !var_map;
+          var_map := VarMap.add v2 new_node !var_map;
+          ()
+
+  |_ -> failwith "add_equal_to_node is only for Eq"
+
+
+
+
+let invertRes (x:bool) (y:bool) = if(y)then (not x) else x
+(*For equality f needs to exist in F and for sim no exist so use this*)
+let contents z = 
+   match z with
+   |Some c -> c
+   |None -> failwith "It was None"
+
+let rec find_feat_link_opt (n:node) (f:feature) (vlist): var option=
+  let var_l = VSet.elements n.var_l in
+  let vlist = vlist@var_l in
+  match (FMap.find_opt f n.feat) with
+  | Some x -> add_feat_to_node (Feat((List.hd var_l),f,x)); 
+              Some x 
+
+  | None ->let rec helper1 l_l (flip:bool) : var option =
+           match l_l with
+           |[] -> None   
+           |(l,v)::t when (not (List.mem v vlist)) -> 
+                  let v_node = find_node v in
+                  if (invertRes (FSet.mem f l) flip)then
+                    begin
+                      let x = (find_feat_link_opt v_node  f vlist) in 
+                      if(x <> None)then
+                        begin
+                          let x = contents x in
+                          add_feat_to_node (Feat((List.hd var_l),f,x)); (*Try Abs(v,f,x) if error *)
+                          Some x 
+                        end
+                      else helper1 t flip
+                    end
+                  else helper1 t flip
+
+            |_::t -> helper1 t flip
+           in
+         let x = helper1 n.equality false in (*Check indirectly trhough equality*)
+         if(x = None) then (helper1 n.sim  true) (*Check indirectly trhough sim*)
+         else x
+
+(*Think about the clash condition where x =F y and x =G z and f belongs to both F,G but y[f] and g[f] are differnt*)
+
+let disolve_node (n:node)= 
+  let l = FSet.elements !fBigSet in
+  let rec helper l =
+    match l with
+    |[] -> ()
+    |f::t -> let _ = find_feat_link_opt n f [] in
+             helper t
+  in
+  helper l 
+
+let dissolve_all () =
+  let var_map_l = VarMap.bindings !var_map in
+  let rec helper var_map_l  = 
+    match var_map_l with 
+    |[] -> ()
+    |(v_1,n_1)::t -> disolve_node n_1 ;
+                     helper t
+  in 
+  helper var_map_l 
+
+let not_Fen_transform atom  =
+  match atom with
+  |Fen(v1,fl) ->  let v1_node = find_node v1 in
+                  let all_f = FSet.elements (FSet.diff !fBigSet (FSet.of_list fl)) in 
+                  let helper2 = 
+                        if(FSet.is_empty v1_node.fen) then
+                          begin
+                            let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
+                            let v_new = (VarMap.cardinal !var_map) + 3 in
+                            var_map := VarMap.add v_new (empty_node v_new) !var_map;
+                            add_feat_to_node (Feat (v1,new_f,v_new));
+                            fBigSet := FSet.add new_f !fBigSet;
+                            ()
+                          end
+                        else failwith "not_Fen_transform: [Clash]It is not possible to satisfy it"
+                  in
+                  let rec helper l  =
+                    match l with
+                    |[] -> helper2
+                    |f::t -> let x = find_feat_link_opt v1_node f [] in
+                             if(x <> None) then helper t 
+                             else ()
+                  in
+                  helper all_f
+  |_ -> failwith "not_Fen_transform is only for Fen"
+
+
+
+
+            
+let not_eq_sim_transform  atom =
+  let getValF  = match atom with 
+               |Eqf(v1,fl,v2) -> (v1,fl,v2,false)
+               |Sim(v1,fl,v2) -> let fl = FSet.elements(FSet.diff !fBigSet (FSet.of_list fl)) in
+                                (v1,fl,v2,true)
+               |_ -> failwith "node_not_eq_sim_transform is only for Eqf and Sim"
+  in
+  let (v1,all_f,v2,isSim) = getValF in
+  let v1_node = find_node v1 in
+  let v2_node = find_node v2 in
+  let info = ref [] in
+  let helper4 = if((FSet.is_empty v1_node.fen) && (FSet.is_empty v2_node.fen)&&(isSim))then
+                  begin
+                    let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
+                    let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
+                    let v_new_2 = (VarMap.cardinal (!var_map)) + 4 in
+                    var_map := VarMap.add v_new_1 (empty_node v_new_1) (!var_map);
+                    var_map := VarMap.add v_new_2 (empty_node v_new_2) (!var_map);
+                    add_feat_to_node (Feat (v1,new_f,v_new_1));
+                    add_feat_to_node (Feat (v2,new_f,v_new_2));
+                    fBigSet := FSet.add new_f !fBigSet;
+                    ()
+                  end
+                else failwith "node_not_eq_transform : Could not find a way to satisfy it"
+    in
+  let rec helper3 info_s=
+        match info_s with 
+        |[] -> helper4 (*For sim we can still add a new feature*)
+        |(f1,None,None)::t -> if ((FSet.is_empty v1_node.fen)||(FSet.mem f1 v1_node.fen)) then 
+                              let v_new = (VarMap.cardinal (!var_map)) + 3 in
+                              var_map := VarMap.add v_new (empty_node v_new) (!var_map);
+                              add_feat_to_node (Feat (v1,f1,v_new));
+                              add_abs_to_node (Abs (v2,f1));
+                              ()
+                           else if((FSet.is_empty v2_node.fen)||(FSet.mem f1 v2_node.fen)) then 
+                              let v_new = (VarMap.cardinal (!var_map)) + 3 in
+                              var_map := VarMap.add v_new (empty_node v_new) (!var_map);
+                              add_feat_to_node (Feat (v2,f1,v_new));
+                              add_abs_to_node (Abs (v1,f1));
+                              ()
+                           else helper3 t
+        |_::t -> helper3 t
+        in
+  let rec helper2 info_s =
+        match info_s with 
+        |[] -> helper3 !info
+        |(f1,Some v_1, None)::t -> add_abs_to_node (Abs (v2,f1));
+                               ()
+        |(f1,None, Some v_2)::t -> add_abs_to_node (Abs (v1,f1)); 
+                               ()
+        |_::t -> helper2 t
+
+        in 
+  let rec helper1 all_f  = 
+      match all_f with 
+      |[]-> helper2 !info
+      |f::t -> let x = (find_feat_link_opt v1_node f [] ) in
+               let y = (find_feat_link_opt v2_node f [] ) in
+               info := (f,x,y)::!info;
+               match !info with
+               |[]-> failwith "Not a possible match" 
+               |(f1,Some v_1,Some v_2)::_ -> if(v_1=v_2) then helper1 t
+                                            else ()
+               |_::_ -> helper1 t  
+      in
+    helper1 all_f 
+                    
+
+
+
+
+
+let rec clause_phase_I (clau:clause) =
+    match clau with 
+    |[] -> ()
+    |Eqf(v1,fl,v2)::t -> add_equal_to_node (Eqf(v1,fl,v2));
+                         clause_phase_I t
+    |Sim(v1,fl,v2)::t -> add_sim_to_node (Sim(v1,fl,v2));
+                         clause_phase_I t
+    |Fen(v1,fl)::t -> add_fen_to_node (Fen(v1,fl));
+                      clause_phase_I t
+    | _ :: t -> clause_phase_I t
+
+let rec clause_phase_II (clau:clause) =
+    match clau with 
+    |[] -> ()
+    |Eq(v1,v2)::t -> let new_node = node_union (find_node v1) (find_node v2) in
+                     var_map := VarMap.add v1 new_node !var_map;
+                     var_map := VarMap.add v2 new_node !var_map;
+                     clause_phase_II t
+    | _ :: t -> clause_phase_II t
+
+let rec clause_phase_III (clau:clause) =
+    match clau with 
+    |[] -> ()
+    |Feat(v1,f,v2)::t -> add_feat_to_node (Feat(v1,f,v2));
+                      clause_phase_III t
+    |Abs (v1,f)::t -> add_abs_to_node (Abs(v1,f));
+                      clause_phase_III t
+    | _ :: t -> clause_phase_III t
+
+
+
+
+
+
+
+
+
+(*EXAMPLE-TEST*)
+
+let v1:var = fresh ()
+let v2:var = fresh ()
+let v3:var = fresh ()
+let v4:var = fresh ()
+let v5:var = fresh ()
+let v6:var = fresh ()
+let v7:var = fresh ()
+let v8:var = fresh ()
+let v9:var = fresh ()
+let v10:var = fresh ()
+let v11:var = fresh ()
+let v12:var = fresh ()
+
+let f1:feature = "lib"
+let f2:feature = "share"
+let f3:feature = "bin"
+let f4:feature = "usr"
+let f5:feature = "racid"
+let f6:feature = "apache.conf"
+let f7:feature = "lg.conf"
+let f8:feature = "etc"
+
+
+let (clau_1:clause) = [Feat(v1,f1,v2);Feat(v1,f2,v3);Feat(v4,f3,v6);Feat(v4,f4,v7);Sim(v1,[f4;f7],v7);
+          Feat(v8,f8,v9);Eq(v8,v4);Feat(v9,f5,v10);Feat(v10,f6,v11);Feat(v10,f7,v12);Abs(v10,f5);Abs(v7,f4)]
+
+(*  [Feat (1, "lib", 2); Feat (1, "share", 3); Feat (4, "bin", 6);
+   Feat (4, "usr", 7); Eqf (1, ["lib"; "share"], 7); Feat (8, "etc", 9);
+   Eqf (8, ["usr"], 4); Feat (9, "racid", 10); Feat (10, "apache.conf", 11);
+   Feat (10, "lg.conf", 12)]
+*)
+
+create_empty_var_map clau_1; 
+
+clause_phase_I clau_1;
+
+
+clause_phase_II clau_1;
+
+
+clause_phase_III clau_1;
+
+var_map_display !var_map
+
+
+dissolve_all ();
+var_map_display !var_map
+(*
+#trace dissolve_all;;
+#trace disolve_node;;
+#trace find_feat_link_opt;;
+*)
