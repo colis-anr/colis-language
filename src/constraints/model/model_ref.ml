@@ -76,7 +76,7 @@ let rec str_list_display = function
   |h::t -> Format.printf " %s, " h;
            str_list_display t
 
-let node_display {var_l = var_l_ ;feat = feat_ ;equality= equality_;sim= sim_;fen = fen_} : unit = 
+let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= equality_;sim= sim_;fen = fen_} : unit = 
     
     let feat_ = FMap.bindings feat_ in
     let var_display var_l_ = Format.printf "[" ;
@@ -90,6 +90,12 @@ let node_display {var_l = var_l_ ;feat = feat_ ;equality= equality_;sim= sim_;fe
       |(f_1,v_1)::t -> Format.printf "[%s --> %d]\t" f_1 v_1;
                        feat_display t 
     in 
+    let rec notfeat_display notfeat_ = 
+      match notfeat_ with 
+      |[] -> ()
+      |(f_1,v_1)::t -> Format.printf "[%s --> %d]\t" f_1 v_1;
+                       notfeat_display t 
+    in
     
     let fen_ = FSet.elements fen_ in
     let rec fen_display fen_ = 
@@ -121,6 +127,8 @@ let node_display {var_l = var_l_ ;feat = feat_ ;equality= equality_;sim= sim_;fe
     var_display var_l_;
     Format.printf "\nFeatures:\n";
     feat_display feat_;
+    Format.printf "\nNot-Features:\n";
+    notfeat_display notfeat_;
     Format.printf "\nFen Features:\n";
     fen_display fen_;
     Format.printf "\nEquality:\n";
@@ -133,7 +141,7 @@ let var_map_display var_map =
     let rec helper var_map = 
       match var_map with 
       |[] -> ()
-      |(v_1,n_1)::t -> Format.printf "\n\t\tNODE(VAR) : %d\n" v_1;
+      |(v_1,n_1)::t -> Format.printf "\n\n\t\tNODE(VAR) : %d\n" v_1;
                     node_display n_1;
                     helper t
     in 
@@ -269,6 +277,11 @@ let add_fen_to_node atom =
           ()
   |_ -> failwith "add_abs_to_node is only for Abs"
 
+let rec list_remove ele = function
+  |[] -> []
+  |h::t when (h=ele) -> list_remove ele t 
+  |h::t -> h::list_remove ele t
+
 let eq_union eq1 eq2 = 
   let n_eq = ref eq1 in
   let rec helper1 l1 = 
@@ -279,7 +292,7 @@ let eq_union eq1 eq2 =
                         |[]-> n_eq := (l,v)::!n_eq;
                                       ()
                         |(l2,v2)::t2 -> if(v=v2) then
-                                        n_eq :=((FSet.union l2 l),v)::!n_eq
+                                        n_eq :=((FSet.union l2 l),v)::(list_remove (l2,v2) !n_eq) 
                                         else helper2 t2
                     in
                     helper2 eq1;
@@ -295,7 +308,7 @@ let sim_union sim1 sim2 =
                         match l2 with
                         |[]-> n_sim := (l,v)::!n_sim;()
                         |(l2,v2)::t2 -> if(v=v2) then
-                                        n_sim :=((FSet.union l2 l),v)::!n_sim
+                                        n_sim :=((FSet.inter l2 l),v)::(list_remove (l2,v2) !n_sim)
                                         else helper2 t2
                     in
                     helper2 sim1;
@@ -493,10 +506,12 @@ let not_eq_sim_transform  atom =
       in
     helper1 all_f 
                     
-
-
-
-
+(*I-> Eqf,Sim,Fen
+  II-> Eq and union
+  III-> Feat and Abs
+  IV -> Not Feat and Not abs
+  V -> Not (Fen,Eq,Eqf,Sim)
+  Dissolve*)
 
 let rec clause_phase_I (clau:clause) =
     match clau with 
