@@ -409,7 +409,7 @@ let not_Fen_transform atom  =
   match atom with
   |Fen(v1,fl) ->  let v1_node = find_node v1 in
                   let all_f = FSet.elements (FSet.diff !fBigSet (FSet.of_list fl)) in 
-                  let helper2 = 
+                  let helper2 () = 
                         if(FSet.is_empty v1_node.fen) then
                           begin
                             let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
@@ -423,9 +423,9 @@ let not_Fen_transform atom  =
                   in
                   let rec helper l  =
                     match l with
-                    |[] -> helper2
+                    |[] -> helper2 ()
                     |f::t -> let x = find_feat_link_opt v1_node f [] in
-                             if(x <> None) then helper t 
+                             if(x = None) then helper t 
                              else ()
                   in
                   helper all_f
@@ -446,15 +446,15 @@ let not_eq_sim_transform  atom =
   let v1_node = find_node v1 in
   let v2_node = find_node v2 in
   let info = ref [] in
-  let helper4 = if((FSet.is_empty v1_node.fen) && (FSet.is_empty v2_node.fen)&&(isSim))then
+  let helper4 () = if((FSet.is_empty v1_node.fen) && (FSet.is_empty v2_node.fen)&&(isSim))then
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
                     let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
-                    let v_new_2 = (VarMap.cardinal (!var_map)) + 4 in
+                    
                     var_map := VarMap.add v_new_1 (empty_node v_new_1) (!var_map);
-                    var_map := VarMap.add v_new_2 (empty_node v_new_2) (!var_map);
+  
                     add_feat_to_node (Feat (v1,new_f,v_new_1));
-                    add_feat_to_node (Feat (v2,new_f,v_new_2));
+                    add_abs_to_node (Abs (v2,new_f));
                     fBigSet := FSet.add new_f !fBigSet;
                     ()
                   end
@@ -462,7 +462,7 @@ let not_eq_sim_transform  atom =
     in
   let rec helper3 info_s=
         match info_s with 
-        |[] -> helper4 (*For sim we can still add a new feature*)
+        |[] -> helper4 () (*For sim we can still add a new feature*)
         |(f1,None,None)::t -> if ((FSet.is_empty v1_node.fen)||(FSet.mem f1 v1_node.fen)) then 
                               let v_new = (VarMap.cardinal (!var_map)) + 3 in
                               var_map := VarMap.add v_new (empty_node v_new) (!var_map);
