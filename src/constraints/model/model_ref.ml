@@ -34,6 +34,9 @@ type node = { var_l: VSet.t;
 			 fen : FSet.t; (*empty signifies no Fen specified so all allowed*)
 			 }
 
+type fT = |Leaf
+          |Node of (var * (fT FMap.t))
+
 let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
 let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
 
@@ -556,12 +559,15 @@ let rec clause_phase_V (clau:clause) =
     |[] -> ()
     |Neg Fen(v1,fl)::t -> not_Fen_transform (Fen(v1,fl));
                       clause_phase_V t
-    |Neg Eqf(v1,fl,v2)::t -> not_eq_sim_transform (Eqf(v1,fl,v2));
-                      clause_phase_V t
-    |Neg Eq(v1,v2)::t -> not_eq_sim_transform (Eqf(v1,FSet.elements !fBigSet,v2));
-                      clause_phase_V t
-    |Neg Sim(v1,fl,v2)::t -> not_eq_sim_transform (Sim(v1,fl,v2));
-                      clause_phase_V t
+    |Neg Eqf(v1,fl,v2)::t -> if(v1=v2) then failwith "Clash: x =/=F x" 
+                             else not_eq_sim_transform (Eqf(v1,fl,v2));
+                                 clause_phase_V t
+    |Neg Eq(v1,v2)::t -> if(v1=v2) then failwith "Clash: x =/= x" 
+                         else not_eq_sim_transform (Eqf(v1,FSet.elements !fBigSet,v2));
+                              clause_phase_V t
+    |Neg Sim(v1,fl,v2)::t -> if(v1=v2) then failwith "Clash: x ~/~F x" 
+                             else not_eq_sim_transform (Sim(v1,fl,v2));
+                             clause_phase_V t
     | _ :: t -> clause_phase_V t
 
 
@@ -599,3 +605,51 @@ let (clau_1:clause) = [ Pos (Feat(v1,f1,v2));Pos (Feat(v1,f2,v3));Pos (Feat(v4,f
    Feat (10, "lg.conf", 12)]
 *)
 
+
+let rec var_to_node (v:var) (dv_list) (cyc_v) : fT =
+  if(List.mem v cyc_v) then failwith "Clash:Cycle Present"
+  else 
+  begin
+    let cyc_v = v::cyc_v in
+    dv_list := v::(!dv_list);
+    let v_node = find_node v in 
+    if (v = 0) then (Leaf)
+    else if(FMap.is_empty v_node.feat) then (Leaf)
+    else
+      let nod = ref FMap.empty in
+      let ll =  FMap.bindings v_node.feat in
+      let rec helper ll = 
+        match ll with
+        |[]-> (Node (v,!nod))
+        |(f,v2)::t -> nod:= FMap.add f (var_to_node v2 dv_list cyc_v) !nod;
+                   helper t
+      in helper ll
+  end
+
+let var_map_to_FT (var_map): fT list  = 
+    let fF = ref [] in(*To store feature forest*)
+    let dv_list = ref [] in
+    let var_map_ele = VarMap.bindings var_map in 
+    let rec helper ll = 
+        match ll with 
+        |[]-> !fF
+        |(v,_)::t-> if not(List.mem v !dv_list) then
+                      begin
+                        fF := (var_to_node v dv_list [])::(!fF);
+                        helper t
+                      end
+                    else helper t
+    in helper var_map_ele    
+
+let engine (clau_1:clause) : fT list =
+  var_map := VarMap.empty;
+  fBigSet := FSet.empty;
+  create_empty_var_map clau_1; 
+  clause_phase_I clau_1;
+  clause_phase_II clau_1;
+  clause_phase_III clau_1;
+  clause_phase_IV clau_1;
+  clause_phase_V clau_1;
+  dissolve_all ();
+  var_map_display !var_map;
+  var_map_to_FT (!var_map)
