@@ -37,10 +37,6 @@ type node = { var_l: VSet.t;
 type fT = |Leaf
           |Node of (var * (fT FMap.t))
 
-let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
-let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
-
-
 type atom =
   | Eq of var * var
   | Eqf of var * feature list * var
@@ -57,17 +53,18 @@ type literal =
 
 type clause = literal list
 
-let fresh =
-  let i = ref 0 in
-  fun () -> incr i; !i    
-
-
-
 let var_map = ref VarMap.empty
 let fBigSet = ref FSet.empty
-
+let mkdir = ref []
 
 (*VARIOUS FUNCTIONS NEEDED*)
+
+let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
+let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
+
+let fresh =
+  let i = ref 0 in
+  fun () -> incr i; !i  
 
 let rec int_list_display = function
   |[] -> ()
@@ -449,7 +446,7 @@ let not_eq_sim_transform  atom =
   let v1_node = find_node v1 in
   let v2_node = find_node v2 in
   let info = ref [] in
-  let helper4 () = if((FSet.is_empty v1_node.fen) && (FSet.is_empty v2_node.fen)&&(isSim))then
+  let helper4 () = if((FSet.is_empty v1_node.fen)&&(isSim))then   (*BUG: add feature to one without fen*)
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
                     let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
@@ -458,6 +455,18 @@ let not_eq_sim_transform  atom =
   
                     add_feat_to_node (Feat (v1,new_f,v_new_1));
                     add_abs_to_node (Abs (v2,new_f));
+                    fBigSet := FSet.add new_f !fBigSet;
+                    ()
+                  end
+                else if((FSet.is_empty v2_node.fen)&&(isSim)) then
+                  begin
+                    let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
+                    let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
+                    
+                    var_map := VarMap.add v_new_1 (empty_node v_new_1) (!var_map);
+  
+                    add_feat_to_node (Feat (v2,new_f,v_new_1));
+                    add_abs_to_node (Abs (v1,new_f));
                     fBigSet := FSet.add new_f !fBigSet;
                     ()
                   end
@@ -606,42 +615,59 @@ let (clau_1:clause) = [ Pos (Feat(v1,f1,v2));Pos (Feat(v1,f2,v3));Pos (Feat(v4,f
 *)
 
 
-let rec var_to_node (v:var) (dv_list) (cyc_v) : fT =
-  if(List.mem v cyc_v) then failwith "Clash:Cycle Present"
-  else 
-  begin
-    let cyc_v = v::cyc_v in
-    dv_list := v::(!dv_list);
-    let v_node = find_node v in 
-    if (v = 0) then (Leaf)
-    else if(FMap.is_empty v_node.feat) then (Leaf)
-    else
-      let nod = ref FMap.empty in
-      let ll =  FMap.bindings v_node.feat in
-      let rec helper ll = 
-        match ll with
-        |[]-> (Node (v,!nod))
-        |(f,v2)::t -> nod:= FMap.add f (var_to_node v2 dv_list cyc_v) !nod;
-                   helper t
-      in helper ll
-  end
+let get_vBigSet () =
+    let ll = VarMap.bindings !var_map in
+    let rec helper ll =
+      match ll with
+      |[] -> []
+      |(v,n)::t -> v::(helper t)
+    in helper ll
 
-let var_map_to_FT (var_map): fT list  = 
-    let fF = ref [] in(*To store feature forest*)
-    let dv_list = ref [] in
-    let var_map_ele = VarMap.bindings var_map in 
-    let rec helper ll = 
-        match ll with 
-        |[]-> !fF
-        |(v,_)::t-> if not(List.mem v !dv_list) then
-                      begin
-                        fF := (var_to_node v dv_list [])::(!fF);
-                        helper t
-                      end
-                    else helper t
-    in helper var_map_ele    
+let get_unreachable () =
+  let vBigSet = ref (get_vBigSet ())in
+  let ll = VarMap.bindings !var_map in
+  let rec helper1 ll =
+    match ll with
+    |[] -> !vBigSet
+    |(v,v_node)::t -> let l = FMap.bindings (v_node.feat) in
+                      let rec helper2 l =
+                        match l with
+                        |[] -> helper1 t
+                        |(_,v2)::t2-> vBigSet := (list_remove v2 !vBigSet);
+                                   helper2 t2
+                      in helper2 l
+  in helper1 ll
 
-let engine (clau_1:clause) : fT list =
+let rec mkdir_path (v) (v_cycle) (path) =
+  let ll = FMap.bindings ((find_node v).feat) in
+  if(List.mem v v_cycle)then failwith "Cycle Clash"
+  else if((ll=[])||(v=0)) then
+      mkdir := path::(!mkdir)
+  else
+    (let rec helper ll =
+      match ll with
+      |[] -> ()
+      |(f2,v2)::t -> mkdir_path (v2) (v::v_cycle) (path^"/"^(string_of_int v)^f2);
+                     helper t
+    in helper ll)
+
+
+let find_mkdir ()=
+  mkdir:= [];
+  let l = get_unreachable () in
+  let rec helper l =
+    match l with 
+    |[] -> ()
+    |h::t -> mkdir_path h [] "mkdir -p .";
+             helper t
+  in helper l
+
+let rec execute mkdir =
+  match mkdir with
+  |[]->()
+  |h::t -> Format.printf "%s\n" h ;ignore (Sys.command h); execute t
+
+let engine (clau_1:clause) =
   var_map := VarMap.empty;
   fBigSet := FSet.empty;
   create_empty_var_map clau_1; 
@@ -652,4 +678,9 @@ let engine (clau_1:clause) : fT list =
   clause_phase_V clau_1;
   dissolve_all ();
   var_map_display !var_map;
-  var_map_to_FT (!var_map)
+  find_mkdir ();
+  (*execute !mkdir*)
+
+
+
+
