@@ -55,7 +55,7 @@ type clause = literal list
 
 let var_map = ref VarMap.empty
 let fBigSet = ref FSet.empty
-let mkdir = ref []
+let paths = ref []
 
 (*VARIOUS FUNCTIONS NEEDED*)
 
@@ -242,8 +242,12 @@ let rec no_feat_abs_to_node atom =
                     in
                     (helper (VSet.elements new_node.var_l))
 
-  |Abs(v1,f) -> no_feat_abs_to_node (Feat(v1,f,0))
+  |Abs(v1,f) -> no_feat_abs_to_node (Feat(v1,f,0));
+                let v_new = ((VarMap.cardinal !var_map) + 3) in
+                var_map := VarMap.add v_new (empty_node v_new) !var_map;
+                add_feat_to_node (Feat (v1,f,v_new))  (*BUG : ADD A FEATURE to make sure not absent*)
   |_ -> failwith "no_feat_abs_to_node is only for Feat"
+
 
 
 let add_equal_to_node atom = 
@@ -282,7 +286,35 @@ let rec list_remove ele = function
   |h::t when (h=ele) -> list_remove ele t 
   |h::t -> h::list_remove ele t
 
-let eq_union eq1 eq2 = 
+let z_eq_update vz v_l eq= 
+  let vz_node = (find_node vz) in
+  let vzeq = vz_node.equality in
+  let rec helper ll vze =
+    match ll with 
+    |[]-> vze
+    |(fl,v)::t -> if(List.mem v v_l) then
+                  helper t (list_remove (fl,v) vze)
+                  else helper t vze
+  in 
+  let n_eq =  (eq,List.hd v_l)::(helper vzeq vzeq) in
+  var_map := (VarMap.add vz {vz_node with equality = n_eq} !var_map);
+  ()
+
+let z_sim_update vz v_l sim= 
+  let vz_node = (find_node vz) in
+  let vzeq = vz_node.sim in
+  let rec helper ll vze =
+    match ll with 
+    |[]-> vze
+    |(fl,v)::t -> if(List.mem v v_l) then
+                  helper t (list_remove (fl,v) vze)
+                  else helper t vze
+  in 
+  let n_sim =  (sim,List.hd v_l)::(helper vzeq vzeq) in
+  var_map := (VarMap.add vz {vz_node with sim = n_sim} !var_map);
+  ()
+
+let eq_union eq1 eq2 v_l = 
   let n_eq = ref eq1 in
   let rec helper1 l1 = 
       match l1 with
@@ -293,13 +325,13 @@ let eq_union eq1 eq2 =
                                       ()
                         |(l2,v2)::t2 -> if(v=v2) then
                                         n_eq :=((FSet.union l2 l),v)::(list_remove (l2,v2) !n_eq) 
-                                        else helper2 t2
+                                        else helper2 t2  (*BUG IMPLEMENT  z_eq_update vz vx vy eq*)
                     in
                     helper2 eq1;
                     helper1 t
   in helper1 eq2
 
-let sim_union sim1 sim2 = 
+let sim_union sim1 sim2 v_l = 
   let n_sim = ref sim1 in
   let rec helper1 l1 = 
       match l1 with
@@ -309,16 +341,16 @@ let sim_union sim1 sim2 =
                         |[]-> n_sim := (l,v)::!n_sim;()
                         |(l2,v2)::t2 -> if(v=v2) then
                                         n_sim :=((FSet.inter l2 l),v)::(list_remove (l2,v2) !n_sim)
-                                        else helper2 t2
+                                        else helper2 t2 (*BUG IMPLEMENT  z_sim_update vz vx vy eq*)
                     in
                     helper2 sim1;
                     helper1 t
   in helper1 sim2
 
 let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
-  let nf_equality = eq_union n1.equality n2.equality in
   let nf_var_l = VSet.union n1.var_l n2.var_l in
-  let nf_sim = sim_union n1.sim n2.sim in 
+  let nf_equality = eq_union n1.equality n2.equality (VSet.elements nf_var_l)in
+  let nf_sim = sim_union n1.sim n2.sim (VSet.elements nf_var_l)in 
   let nf_fen = FSet.inter n1.fen n2.fen in
   let nf_notfeat = n1.notfeat@n2.notfeat in
   let merge k n1 n2 = if(n1=n2) then Some n1 (*n1 and n2 are either the same value or are eqivalent*)
@@ -431,7 +463,11 @@ let not_Fen_transform atom  =
                   helper all_f
   |_ -> failwith "not_Fen_transform is only for Fen"
 
-
+let is_allowed (atom):bool =
+  match atom with 
+  |Feat(v1,f,v2)-> not (List.mem (f,v2) (find_node v1).notfeat)
+  |Abs(v1,f) ->  not (List.mem (f,0) (find_node v1).notfeat)
+  |_ -> failwith "is_allowed: is only for Feat and Abs"
 
 
             
@@ -446,13 +482,11 @@ let not_eq_sim_transform  atom =
   let v1_node = find_node v1 in
   let v2_node = find_node v2 in
   let info = ref [] in
-  let helper4 () = if((FSet.is_empty v1_node.fen)&&(isSim))then   (*BUG: add feature to one without fen*)
+  let helper4 () = if((FSet.is_empty v1_node.fen)&&(isSim))then  
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
                     let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
-                    
                     var_map := VarMap.add v_new_1 (empty_node v_new_1) (!var_map);
-  
                     add_feat_to_node (Feat (v1,new_f,v_new_1));
                     add_abs_to_node (Abs (v2,new_f));
                     fBigSet := FSet.add new_f !fBigSet;
@@ -462,9 +496,7 @@ let not_eq_sim_transform  atom =
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
                     let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
-                    
                     var_map := VarMap.add v_new_1 (empty_node v_new_1) (!var_map);
-  
                     add_feat_to_node (Feat (v2,new_f,v_new_1));
                     add_abs_to_node (Abs (v1,new_f));
                     fBigSet := FSet.add new_f !fBigSet;
@@ -475,13 +507,13 @@ let not_eq_sim_transform  atom =
   let rec helper3 info_s=
         match info_s with 
         |[] -> helper4 () (*For sim we can still add a new feature*)
-        |(f1,None,None)::t -> if ((FSet.is_empty v1_node.fen)||(FSet.mem f1 v1_node.fen)) then 
+        |(f1,None,None)::t -> if (((FSet.is_empty v1_node.fen)||(FSet.mem f1 v1_node.fen))&&(is_allowed (Abs (v2,f1)) )) then 
                               let v_new = (VarMap.cardinal (!var_map)) + 3 in
                               var_map := VarMap.add v_new (empty_node v_new) (!var_map);
                               add_feat_to_node (Feat (v1,f1,v_new));
                               add_abs_to_node (Abs (v2,f1));
                               ()
-                           else if((FSet.is_empty v2_node.fen)||(FSet.mem f1 v2_node.fen)) then 
+                           else if(((FSet.is_empty v2_node.fen)||(FSet.mem f1 v2_node.fen))&&(is_allowed (Abs (v1,f1)) )) then 
                               let v_new = (VarMap.cardinal (!var_map)) + 3 in
                               var_map := VarMap.add v_new (empty_node v_new) (!var_map);
                               add_feat_to_node (Feat (v2,f1,v_new));
@@ -493,12 +525,10 @@ let not_eq_sim_transform  atom =
   let rec helper2 info_s =
         match info_s with 
         |[] -> helper3 !info
-        |(f1,Some v_1, None)::t ->  
-                                    if(List.mem (f1,0) v2_node.notfeat) then helper2 t
+        |(f1,Some v_1, None)::t ->  if(is_allowed (Abs (v2,f1))) then helper2 t
                                     else add_abs_to_node (Abs (v2,f1))
                                     
-        |(f1,None, Some v_2)::t -> 
-                                    if(List.mem (f1,0) v1_node.notfeat) then helper2 t
+        |(f1,None, Some v_2)::t ->  if(is_allowed (Abs (v1,f1))) then helper2 t
                                     else add_abs_to_node (Abs (v1,f1)) 
                                     
         |_::t -> helper2 t
@@ -628,7 +658,7 @@ let get_unreachable () =
   let ll = VarMap.bindings !var_map in
   let rec helper1 ll =
     match ll with
-    |[] -> !vBigSet
+    |[] -> (list_remove 0 !vBigSet)
     |(v,v_node)::t -> let l = FMap.bindings (v_node.feat) in
                       let rec helper2 l =
                         match l with
@@ -638,34 +668,69 @@ let get_unreachable () =
                       in helper2 l
   in helper1 ll
 
-let rec mkdir_path (v) (v_cycle) (path) =
+let rec get_path (v) (v_cycle) (path) =
   let ll = FMap.bindings ((find_node v).feat) in
   if(List.mem v v_cycle)then failwith "Cycle Clash"
   else if((ll=[])||(v=0)) then
-      mkdir := path::(!mkdir)
+      paths := path::(!paths)
   else
     (let rec helper ll =
       match ll with
       |[] -> ()
-      |(f2,v2)::t -> mkdir_path (v2) (v::v_cycle) (path^"/"^(string_of_int v)^f2);
+      |(f2,v2)::t -> get_path (v2) (v::v_cycle) (path^"/"^f2);
                      helper t
     in helper ll)
 
+let rec mkdir_from_path path_list =
+  match path_list with 
+  |[] -> ()
+  |h::t -> let h = "mkdir -p "^h in
+           Format.printf "%s\n" h ;ignore (Sys.command h); mkdir_from_path t
 
-let find_mkdir ()=
-  mkdir:= [];
+let rec check_path path_list =
+  match path_list with 
+  |[] -> Format.printf "CHECK SUCCESS";()
+  |h::t -> let h = ""^h in
+           Format.printf "check : %s\n" h ;ignore (Sys.is_directory h); check_path t
+
+
+
+(*COMMON BUG: Remember to replace nessary "./" to "./TR"*)
+let shell_script () =
+  ignore (Sys.command "mv ./a/b ./c");()
+
+let safe_dir =  "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
+let create_TR () =
+  ignore (Sys.chdir safe_dir);
+  ignore (Sys.command "mkdir ./TR");
+  Sys.chdir("./TR");()
+
+let clean_TR () = 
+  Sys.chdir("..");
+  ignore (Sys.command "rm -r ./TR/*");
+  Sys.chdir("./TR");()
+
+let test_files ()=
   let l = get_unreachable () in
-  let rec helper l =
+  let rec helper l count = 
     match l with 
-    |[] -> ()
-    |h::t -> mkdir_path h [] "mkdir -p .";
-             helper t
-  in helper l
+    |[root_after;root_before] -> 
+                      if(count = 3) then failwith "Test Fail"
+                      else
+                        create_TR ();
+                        clean_TR ();
+                        paths:= [];
+                        get_path root_before [] ".";
+                        mkdir_from_path (!paths);
+                        shell_script ();
+                        paths:= [];
+                        get_path root_after [] ".";
+                        try check_path (!paths) with 
+                        Sys_error s ->  Format.printf "%s"s ;(helper [root_before;root_after] (count+1))
+                     
+    |_ -> failwith "Not exactly 2 unreachable"
+  in helper l 1
 
-let rec execute mkdir =
-  match mkdir with
-  |[]->()
-  |h::t -> Format.printf "%s\n" h ;ignore (Sys.command h); execute t
 
 let engine (clau_1:clause) =
   var_map := VarMap.empty;
@@ -678,7 +743,6 @@ let engine (clau_1:clause) =
   clause_phase_V clau_1;
   dissolve_all ();
   var_map_display !var_map;
-  find_mkdir ();
   (*execute !mkdir*)
 
 

@@ -119,8 +119,16 @@ let (clau_1:clause) = [ Pos (Feat(v1,f1,v2));Pos (Feat(v1,f2,v3));
           Pos (Feat(v8,f8,v9));Pos (Eq(v8,v4));Pos (Feat(v9,f5,v10));
           Pos (Feat(v10,f6,v11));Pos (Feat(v10,f7,v12)); Neg(Sim(v1,[f1;f2;f4],v7))]
 
-(*20 Neg Sim - Add a new feature for absent and mapping - PASS*)
+(*21 Neg Sim - Add a new feature for absent and mapping - PASS*)
 let (clau_1:clause) = [ Pos (Feat(v1,f1,v2));Pos (Feat(v1,f2,v3));
           Pos (Feat(v4,f3,v6));Pos (Feat(v4,f4,v7));Pos (Eqf(v1,[f1;f2],v7));
           Pos (Feat(v8,f8,v9));Pos (Eq(v8,v4));Pos (Feat(v9,f5,v10));
           Pos (Feat(v10,f6,v11));Pos (Feat(v10,f7,v12)); Neg(Sim(v1,[f3;f4;f5;f6;f7;f8],v7))]
+
+
+
+
+(*------------TEST SET 2-----------------------*)
+let (clau_1:clause) = [ Pos (Feat(v1,"a",v2));Pos (Feat(v1,"c",v3));
+          Pos (Feat(v1,"d",v4));Pos (Feat(v5,"a",v6));Pos (Feat(v5,"c",v7));
+          Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8)); Pos (Eq(v2,v7))]
