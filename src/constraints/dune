@@ -1,9 +1,1 @@
 (include_subdirs no)
-
-(library
- (name colis_constraints)
- (public_name colis-language.constraints)
- (libraries colis-language.constraints.common
-            colis-language.constraints.efficient
-            colis-language.constraints.naive
-            colis-language.constraints.model))

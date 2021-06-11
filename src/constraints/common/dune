@@ -1,5 +1,0 @@
-(library
- (name colis_constraints_common)
- (public_name colis-language.constraints.common)
- (libraries batteries yojson ppx_deriving_yojson.runtime)
- (preprocess (pps ppx_deriving.std ppx_deriving_yojson)))

@@ -1,5 +1,0 @@
-(library
- (name colis_constraints_naive)
- (public_name colis-language.constraints.naive)
- (libraries colis-language.internals colis-language.constraints.common)
- (preprocess (pps ppx_deriving.std)))

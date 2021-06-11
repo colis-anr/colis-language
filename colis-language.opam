@@ -21,6 +21,7 @@ maintainer: "Nicolas Jeannerod <nicolas.jeannerod@irif.fr>"
 pin-depends: [
   [ "morbig.dev"   "git+https://github.com/colis-anr/morbig.git" ]
   [ "morsmall.dev" "git+https://github.com/colis-anr/morsmall.git" ]
+  [ "colis-constraints.dev" "git+https://github.com/colis-anr/colis-constraints.git" ]
   [ "why3.dev"     "git+https://gitlab.inria.fr/why3/why3.git#268e19920" ] # Will be 1.3
 ]
 
@@ -35,6 +36,7 @@ depends: [
   "batteries"
   "camlzip"                {(build | with-test) & = "1.07"}  # Version fixed for alt-ergo 2.2.0
   "cmdliner"
+  "colis-constraints"      {= "dev"}
   "morbig"                 {= "dev"}
   "morsmall"               {= "dev"}
   "ocaml"                  {build & >= "4.05"}
