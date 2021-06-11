@@ -442,9 +442,8 @@ module Constraints = struct
         if root_is_root0 then
           clauses
         else
-          List.flatten
-            (List.map (Clause.quantify_over_and_simplify fs.root)
-               clauses) in
+          List.map (Clause.quantify_over_and_simplify fs.root)
+            clauses in
       List.map (fun clause -> {fs with clause; root=root'}) clauses
   end
 
