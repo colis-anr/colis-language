@@ -635,8 +635,9 @@ let f7:feature = "lg.conf"
 let f8:feature = "etc"
 
 
-let (clau_1:clause) = [ Pos (Feat(v1,f1,v2));Pos (Feat(v1,f2,v3));Pos (Feat(v4,f3,v6));Pos (Feat(v4,f4,v7));Pos (Sim(v1,[f4;f7],v7));
-          Pos (Feat(v8,f8,v9));Pos (Eq(v8,v4));Pos (Feat(v9,f5,v10));Pos (Feat(v10,f6,v11));Pos (Feat(v10,f7,v12));Pos (Abs(v10,f5));Pos (Abs(v7,f4))]
+let (clau_1:clause) = [ Pos (Feat(v1,"a",v2));Pos (Feat(v1,"c",v3));
+          Pos (Feat(v1,"d",v4));Pos (Feat(v5,"a",v6));Pos (Feat(v5,"c",v7));
+          Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8)); Pos (Eq(v2,v7));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"))]
 
 (*  [Feat (1, "lib", 2); Feat (1, "share", 3); Feat (4, "bin", 6);
    Feat (4, "usr", 7); Eqf (1, ["lib"; "share"], 7); Feat (8, "etc", 9);
@@ -668,34 +669,44 @@ let get_unreachable () =
                       in helper2 l
   in helper1 ll
 
-let rec get_path (v) (v_cycle) (path) =
+let rec get_path (v) (v_cycle) (path) (f)=
   let ll = FMap.bindings ((find_node v).feat) in
   if(List.mem v v_cycle)then failwith "Cycle Clash"
   else if((ll=[])||(v=0)) then
-      paths := path::(!paths)
+      paths := (path,f)::(!paths)
   else
     (let rec helper ll =
       match ll with
       |[] -> ()
-      |(f2,v2)::t -> get_path (v2) (v::v_cycle) (path^"/"^f2);
+      |(f2,v2)::t when v2 = 0 -> 
+                     get_path (v2) (v::v_cycle) (path) (f2);
+                     helper t
+      |(f2,v2)::t -> 
+                     get_path (v2) (v::v_cycle) (path^"/"^f2) ("");
                      helper t
     in helper ll)
 
 let rec mkdir_from_path path_list =
   match path_list with 
   |[] -> ()
-  |h::t -> let h = "mkdir -p "^h in
+  |(h,f)::t -> let h = "mkdir -p "^h in
            Format.printf "%s\n" h ;ignore (Sys.command h); mkdir_from_path t
 
 let rec check_path path_list =
   match path_list with 
-  |[] -> Format.printf "CHECK SUCCESS";()
-  |h::t -> let h = ""^h in
-           Format.printf "check : %s\n" h ;ignore (Sys.is_directory h); check_path t
+  |[] -> true
+  |(h,f)::t when f = "" -> 
+                Format.printf "check : %s\n" h ;
+                if(Sys.file_exists h)then check_path t else false
+  |(h,f)::t->
+                let h = (h^"/"^f) in
+                Format.printf "check Abs : %s\n" h ;
+                if(not (Sys.file_exists h))then check_path t else false  
 
 
 
-(*COMMON BUG: Remember to replace nessary "./" to "./TR"*)
+
+
 let shell_script () =
   ignore (Sys.command "mv ./a/b ./c");()
 
@@ -720,13 +731,14 @@ let test_files ()=
                         create_TR ();
                         clean_TR ();
                         paths:= [];
-                        get_path root_before [] ".";
+                        get_path root_before [] "." "";
                         mkdir_from_path (!paths);
                         shell_script ();
                         paths:= [];
-                        get_path root_after [] ".";
-                        try check_path (!paths) with 
-                        Sys_error s ->  Format.printf "%s"s ;(helper [root_before;root_after] (count+1))
+                        get_path root_after [] "." ""; 
+                        if(check_path (!paths)) then Format.printf "CHECK SUCCESS"
+                        else 
+                        (Format.printf "Failure\n" ;(helper [root_before;root_after] (count+1)))
                      
     |_ -> failwith "Not exactly 2 unreachable"
   in helper l 1

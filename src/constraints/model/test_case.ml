@@ -131,4 +131,4 @@ let (clau_1:clause) = [ Pos (Feat(v1,f1,v2));Pos (Feat(v1,f2,v3));
 (*------------TEST SET 2-----------------------*)
 let (clau_1:clause) = [ Pos (Feat(v1,"a",v2));Pos (Feat(v1,"c",v3));
           Pos (Feat(v1,"d",v4));Pos (Feat(v5,"a",v6));Pos (Feat(v5,"c",v7));
-          Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8)); Pos (Eq(v2,v7))]
+          Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8)); Pos (Eq(v2,v7));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"))]
