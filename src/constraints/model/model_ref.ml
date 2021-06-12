@@ -243,9 +243,11 @@ let rec no_feat_abs_to_node atom =
                     (helper (VSet.elements new_node.var_l))
 
   |Abs(v1,f) -> no_feat_abs_to_node (Feat(v1,f,0));
-                let v_new = ((VarMap.cardinal !var_map) + 3) in
-                var_map := VarMap.add v_new (empty_node v_new) !var_map;
-                add_feat_to_node (Feat (v1,f,v_new))  (*BUG : ADD A FEATURE to make sure not absent*)
+                if((FMap.find_opt  f (find_node v1).feat) = None) then
+                    let v_new = ((VarMap.cardinal !var_map) + 3) in
+                    var_map := VarMap.add v_new (empty_node v_new) !var_map;
+                    add_feat_to_node (Feat (v1,f,v_new))  (*BUG : ADD A FEATURE to make sure not absent*)
+                else ()
   |_ -> failwith "no_feat_abs_to_node is only for Feat"
 
 
@@ -721,6 +723,8 @@ let clean_TR () =
   ignore (Sys.command "rm -r ./TR/*");
   Sys.chdir("./TR");()
 
+
+(*make it boolean return for engine.ml and take the roots as input*)
 let test_files ()=
   let l = get_unreachable () in
   let rec helper l count = 
