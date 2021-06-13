@@ -2,7 +2,7 @@
 (*VARIOUS TYPES NEEDED*)
 type feature = string
 let compare = compare
-let equal f1 f2 = compare f1 f2 = 0
+(*let equal f1 f2 = compare f1 f2 = 0*)
 
 module Feat = struct
   type t = feature
@@ -59,7 +59,7 @@ let paths = ref []
 
 (*VARIOUS FUNCTIONS NEEDED*)
 
-let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
+(*let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}*)
 let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
 
 let fresh =
@@ -316,7 +316,7 @@ let z_sim_update vz v_l sim=
   var_map := (VarMap.add vz {vz_node with sim = n_sim} !var_map);
   ()
 
-let eq_union eq1 eq2 v_l = 
+let eq_union eq1 eq2 = 
   let n_eq = ref eq1 in
   let rec helper1 l1 = 
       match l1 with
@@ -333,7 +333,7 @@ let eq_union eq1 eq2 v_l =
                     helper1 t
   in helper1 eq2
 
-let sim_union sim1 sim2 v_l = 
+let sim_union sim1 sim2 = 
   let n_sim = ref sim1 in
   let rec helper1 l1 = 
       match l1 with
@@ -351,11 +351,11 @@ let sim_union sim1 sim2 v_l =
 
 let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
   let nf_var_l = VSet.union n1.var_l n2.var_l in
-  let nf_equality = eq_union n1.equality n2.equality (VSet.elements nf_var_l)in
-  let nf_sim = sim_union n1.sim n2.sim (VSet.elements nf_var_l)in 
+  let nf_equality = eq_union n1.equality n2.equality in
+  let nf_sim = sim_union n1.sim n2.sim in 
   let nf_fen = FSet.inter n1.fen n2.fen in
   let nf_notfeat = n1.notfeat@n2.notfeat in
-  let merge k n1 n2 = if(n1=n2) then Some n1 (*n1 and n2 are either the same value or are eqivalent*)
+  let merge _ n1 n2 = if(n1=n2) then Some n1 (*n1 and n2 are either the same value or are eqivalent*)
             else Some n1 (*Add a clash for if n1 and n2 are not equivalent*)
   in  
   let nf_feat = FMap.union merge n1.feat n2.feat in
@@ -434,7 +434,7 @@ let dissolve_all () =
   let rec helper var_map_l  = 
     match var_map_l with 
     |[] -> ()
-    |(v_1,n_1)::t -> disolve_node n_1 ;
+    |(_,n_1)::t -> disolve_node n_1 ;
                      helper t
   in 
   helper var_map_l 
@@ -527,10 +527,10 @@ let not_eq_sim_transform  atom =
   let rec helper2 info_s =
         match info_s with 
         |[] -> helper3 !info
-        |(f1,Some v_1, None)::t ->  if(is_allowed (Abs (v2,f1))) then helper2 t
+        |(f1,Some _, None)::t ->  if(is_allowed (Abs (v2,f1))) then helper2 t
                                     else add_abs_to_node (Abs (v2,f1))
                                     
-        |(f1,None, Some v_2)::t ->  if(is_allowed (Abs (v1,f1))) then helper2 t
+        |(f1,None, Some _)::t ->  if(is_allowed (Abs (v1,f1))) then helper2 t
                                     else add_abs_to_node (Abs (v1,f1)) 
                                     
         |_::t -> helper2 t
@@ -544,7 +544,7 @@ let not_eq_sim_transform  atom =
                info := (f,x,y)::!info;
                match !info with
                |[]-> failwith "Not a possible match" 
-               |(f1,Some v_1,Some v_2)::_ -> if(v_1=v_2) then helper1 t
+               |(_,Some v_1,Some v_2)::_ -> if(v_1=v_2) then helper1 t
                                             else ()
                |_::_ -> helper1 t  
       in
@@ -653,7 +653,7 @@ let get_vBigSet () =
     let rec helper ll =
       match ll with
       |[] -> []
-      |(v,n)::t -> v::(helper t)
+      |(v,_)::t -> v::(helper t)
     in helper ll
 
 let get_unreachable () =
@@ -662,7 +662,7 @@ let get_unreachable () =
   let rec helper1 ll =
     match ll with
     |[] -> (list_remove 0 !vBigSet)
-    |(v,v_node)::t -> let l = FMap.bindings (v_node.feat) in
+    |(_,v_node)::t -> let l = FMap.bindings (v_node.feat) in
                       let rec helper2 l =
                         match l with
                         |[] -> helper1 t
@@ -691,7 +691,7 @@ let rec get_path (v) (v_cycle) (path) (f)=
 let rec mkdir_from_path path_list =
   match path_list with 
   |[] -> ()
-  |(h,f)::t -> let h = "mkdir -p "^h in
+  |(h,_)::t -> let h = "mkdir -p "^h in
            Format.printf "%s\n" h ;ignore (Sys.command h); mkdir_from_path t
 
 let rec check_path path_list =
