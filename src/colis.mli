@@ -1,6 +1,7 @@
 (** {2 CoLiS-Language} *)
 
 module Internals = Colis_internals
+module SymbolicUtility = SymbolicUtility
 
 (** The abstract syntax of CoLiS programs. *)
 type colis = Syntax__Syntax.program

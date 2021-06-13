@@ -1,6 +1,7 @@
 open Format
 
 module Internals = Colis_internals
+module SymbolicUtility = SymbolicUtility
 
 type colis = Syntax__Syntax.program
 
