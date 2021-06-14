@@ -32,6 +32,7 @@ type node = { var_l: VSet.t;
 			 equality: (FSet.t*var) list; 
 			 sim: (FSet.t*var) list;
 			 fen : FSet.t; (*empty signifies no Fen specified so all allowed*)
+       id : string;
 			 }
 
 type fT = |Leaf
@@ -61,7 +62,7 @@ let paths = ref []
 (*VARIOUS FUNCTIONS NEEDED*)
 
 (*let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}*)
-let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}
+let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty;id = ""}
 
 let fresh =
   let i = ref 0 in
@@ -77,7 +78,7 @@ let rec str_list_display = function
   |h::t -> Format.printf " %s, " h;
            str_list_display t
 
-let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= equality_;sim= sim_;fen = fen_} : unit = 
+let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= equality_;sim= sim_;fen = fen_;id=id_} : unit = 
     
     let feat_ = FMap.bindings feat_ in
     let var_display var_l_ = Format.printf "[" ;
@@ -135,7 +136,8 @@ let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= eq
     Format.printf "\nEquality:\n";
     equality_display equality_;
     Format.printf "\nSimilarity:\n";
-    sim_display sim_
+    sim_display sim_;
+    Format.printf "\nInode: %s \n" id_
 
 let var_map_display var_map = 
     let var_map = VarMap.bindings var_map in
@@ -359,12 +361,13 @@ let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
   let nf_sim = sim_union n1.sim n2.sim in 
   let nf_fen = FSet.inter n1.fen n2.fen in
   let nf_notfeat = n1.notfeat@n2.notfeat in
+  let nf_id = "" in (*union occurs before we set the ids*)
   let merge _ n1 n2 = if(n1=n2) then Some n1 (*n1 and n2 are either the same value or are eqivalent*)
             else Some n1 (*Add a clash for if n1 and n2 are not equivalent*)
   in  
   let nf_feat = FMap.union merge n1.feat n2.feat in
 
-  ({var_l = nf_var_l;feat = nf_feat;notfeat = nf_notfeat; equality = nf_equality;sim = nf_sim;fen=nf_fen})
+  ({var_l = nf_var_l;feat = nf_feat;notfeat = nf_notfeat; equality = nf_equality;sim = nf_sim;fen=nf_fen; id = nf_id})
 
 
 
