@@ -6,19 +6,8 @@ WORKDIR /home/opam/workdir
 
 ## ======================== [ Install Dependencies ] ======================== ##
 
-RUN opam install dune
-
-## Copy only the dune-project file. This is the file that contains the
-## specification of dependencies and, therefore, only this file is necessary to
-## install dependencies. Moreover, adding only this file allows to change other
-## files in the project and re-run the dockerfiles while caching all the part
-## that installs dependencies.
-ADD dune-project .
+ADD *.opam .
 RUN sudo chown -R opam .
-
-## Generate OPAM files from dune-project.
-RUN opam exec -- dune build || true
-## FIXME: The caught failure of dune build is here to mitigate #4487.
 
 ## Install dependencies -- both external and OPAM -- for installation, but also
 ## for documentation and testing.

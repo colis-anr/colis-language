@@ -39,8 +39,6 @@ jobs:
 
       - name: Install Dune/OPAM Dependencies
         run: |
-          opam install dune
-          opam exec -- dune build 2>/dev/null || true
           opam pin . --no-action
           for pkg in $(opam pin list --short); do
             opam depext $pkg --with-doc --with-test
@@ -51,8 +49,6 @@ jobs:
 
       - name: Install Dune/OPAM Dependencies (Windows)
         run: |
-          opam install dune
-          opam exec -- dune build
           opam pin $_ . --no-action
           opam pin list --short | ForEach {
             opam depext $_ --with-doc --with-test
