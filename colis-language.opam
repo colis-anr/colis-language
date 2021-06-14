@@ -37,7 +37,7 @@ depends: [
   "cmdliner"
   "morbig"                 {= "dev"}
   "morsmall"               {= "dev"}
-  "ocaml"                  {build & >= "4.05"}
+  "ocaml"                  {build & >= "4.08"}
   "odoc"                   {with-doc}
   "ppx_deriving"           {build}
   "ppx_protocol_conv_yaml" {with-test}
