@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  - pull_request
+  - push
+
+jobs:
+
+  ## ========================= [ OPAM-based CI ] ========================= ##
+
+  opam-based:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        ocaml-version:
+          - 4.05.0
+          - 4.06.1
+          - 4.07.1
+          - 4.08.1
+          - 4.09.1
+          - 4.10.2
+          - 4.11.2
+        include:
+          - { os: ubuntu-latest, ocaml-version: 4.12.0, deploy-doc: deploy-doc }
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v1
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - name: Install Dune/OPAM Dependencies
+        run: |
+          opam install dune
+          opam exec -- dune build 2>/dev/null || true
+          opam pin . --no-action
+          for pkg in $(opam pin list --short); do
+            opam depext $pkg --with-doc --with-test
+            opam install $pkg --deps-only --with-doc --with-test
+          done
+          ## FIXME: The caught failure of dune build is here to mitigate #4487.
+        if: runner.os != 'Windows'
+
+      - name: Install Dune/OPAM Dependencies (Windows)
+        run: |
+          opam install dune
+          opam exec -- dune build
+          opam pin $_ . --no-action
+          opam pin list --short | ForEach {
+            opam depext $_ --with-doc --with-test
+            opam install $_ --deps-only --with-doc --with-test
+          }
+        if: runner.os == 'Windows'
+
+      - name: Try Building
+        run: opam exec -- make
+
+      - name: Run Tests
+        run: opam exec -- make test
+        if: runner.os != 'Windows'
+
+      - name: Try Building Documentation
+        run: opam exec -- make doc
+        if: runner.os != 'macOS'
+
+      - name: Try Installing
+        run: opam exec -- make install
+
+      - name: Try Uninstalling
+        run: opam exec -- make uninstall
+
+      - name: Try Cleaning
+        run: opam exec -- make clean
+
+      - name: Generate Documentation for Auto-Deployment
+        run: opam exec -- make doc
+        if: github.event_name == 'push' && matrix.deploy-doc == 'deploy-doc'
+
+      - name: Auto-Deploy Documentation
+        uses: Niols/deploy-odoc-action@main
+        with:
+          GENERATED_DOC_DIR: doc/
+        if: github.event_name == 'push' && matrix.deploy-doc == 'deploy-doc'
+
+  ## ======================== [ Docker-based CI ] ======================== ##
+
+  docker-based:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        tag:
+          - alpine
+          - archlinux
+          - centos
+          - debian
+          - debian-testing
+          - debian-unstable
+          - fedora
+          - opensuse
+          - oraclelinux
+          - ubuntu
+          - ubuntu-lts
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        run: docker build . --file .github/workflows/ci.dockerfile --build-arg tag=${{matrix.tag}}
