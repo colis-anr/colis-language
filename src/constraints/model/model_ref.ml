@@ -44,6 +44,7 @@ type atom =
   | Abs of var * feature
   | Fen of var * feature list
   | Sim of var * feature list * var
+  | Kind_dir
 
 type var_map_type = node VarMap.t
 
@@ -183,6 +184,9 @@ let rec create_empty_var_map clause  =
                     var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
                     create_empty_var_map t 
+  |Pos Kind_dir::t| Neg Kind_dir::t -> 
+                    create_empty_var_map t        
+
    
 
 
@@ -701,11 +705,11 @@ let rec check_path path_list =
                 Format.printf "check : %s\n" h ;
                 if(Sys.file_exists h)then check_path t else false
   |(h,f)::t->
-                let h = (h^"/"^f) in
-                Format.printf "check Abs : %s\n" h ;
-                if(not (Sys.file_exists h))then check_path t else false  
-
-
+                let h2 = (h^"/"^f) in
+                Format.printf "check : %s\t" h ;
+                Format.printf "check Abs : %s\n" h2 ;
+                if((Sys.file_exists h) && (not (Sys.file_exists h2)))then 
+                   check_path t else false
 
 
 
