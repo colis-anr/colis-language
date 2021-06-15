@@ -87,12 +87,18 @@ let fset_to_fset (x:Colis_constraints_common.Feat.Set.t): string list =
    |h::t -> (feat_to_string h)::helper t
   in (helper lis)
 
+let kind_to_kind (x:Colis_constraints_common.Kind.t): Model_ref.kindt =
+  match x with
+  | Dir -> Dir
+  | Reg -> Reg
+  | Char | Sock | Pipe | Symlink | Block -> Other
+
 let atom_to_Atom (x: Colis_constraints_common.Atom.t): Model_ref.atom =
   match x with
   | Eq(v1,v2) -> Eq(var_to_int v1,var_to_int v2)
   | Feat(v1,f,v2) -> Feat (var_to_int v1,feat_to_string f,var_to_int v2)
   | Abs(v1,f) -> Abs(var_to_int v1,feat_to_string f)
-  | Kind(_,_) -> Kind_dir
+  | Kind(v1,k) -> Kind(var_to_int v1,(kind_to_kind k))
   | Fen(v1,f) -> Fen(var_to_int v1,fset_to_fset f)
   | Sim(v1,f,v2) -> Sim(var_to_int v1,fset_to_fset f,var_to_int v2)
 

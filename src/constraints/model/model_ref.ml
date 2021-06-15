@@ -25,6 +25,7 @@ end
 module VarMap = Map.Make(Var)
 module VSet = Set.Make(Var)
 
+type kindt = Reg | Dir | Other | Unknown (*Unknown will be treated as Dir*)
 
 type node = { var_l: VSet.t;
 			 feat: var FMap.t;
@@ -33,6 +34,7 @@ type node = { var_l: VSet.t;
 			 sim: (FSet.t*var) list;
 			 fen : FSet.t; (*empty signifies no Fen specified so all allowed*)
        id : string;
+       kind: kindt;
 			 }
 
 type fT = |Leaf
@@ -45,7 +47,7 @@ type atom =
   | Abs of var * feature
   | Fen of var * feature list
   | Sim of var * feature list * var
-  | Kind_dir
+  | Kind of var * kindt
 
 type var_map_type = node VarMap.t
 
@@ -62,7 +64,7 @@ let paths = ref []
 (*VARIOUS FUNCTIONS NEEDED*)
 
 (*let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}*)
-let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty;id = ""}
+let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty;id = "";kind = Unknown}
 
 let fresh =
   let i = ref 0 in
@@ -78,7 +80,13 @@ let rec str_list_display = function
   |h::t -> Format.printf " %s, " h;
            str_list_display t
 
-let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= equality_;sim= sim_;fen = fen_;id=id_} : unit = 
+let kind_to_str = function
+  |Dir -> "Dir"
+  |Reg -> "Reg"
+  |Other -> "Other"
+  |Unknown -> "Unknown"
+
+let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= equality_;sim= sim_;fen = fen_;id=id_;kind = kind_} : unit = 
     
     let feat_ = FMap.bindings feat_ in
     let var_display var_l_ = Format.printf "[" ;
@@ -137,7 +145,8 @@ let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= eq
     equality_display equality_;
     Format.printf "\nSimilarity:\n";
     sim_display sim_;
-    Format.printf "\nInode: %s \n" id_
+    Format.printf "\nInode: %s \n" id_;
+    Format.printf "\nKind: %s \n" (kind_to_str kind_)
 
 let var_map_display var_map = 
     let var_map = VarMap.bindings var_map in
@@ -186,10 +195,8 @@ let rec create_empty_var_map clause  =
                     var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
                     create_empty_var_map t 
-  |Pos Kind_dir::t| Neg Kind_dir::t -> 
+  |Pos Kind(v1,_)::t| Neg Kind(v1,_)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
                     create_empty_var_map t        
-
-   
 
 
 let find_node v1 = 
@@ -256,7 +263,12 @@ let rec no_feat_abs_to_node atom =
                 else ()
   |_ -> failwith "no_feat_abs_to_node is only for Feat"
 
-
+let add_kind_to_node atom =
+  match atom with
+  | Kind(v1,k) -> let v1_node = find_node v1 in
+                  var_map := (VarMap.add v1 {v1_node with kind = k} !var_map); 
+                  ()
+  |_ -> failwith "add_equal_to_node is only for kind"
 
 let add_equal_to_node atom = 
   match atom with
@@ -278,7 +290,7 @@ let add_sim_to_node atom =
             let fl_v = (FSet.of_list fl,v1) in  
             var_map := (VarMap.add v2 {v2_node with sim = fl_v :: v2_node.sim} !var_map);
             ()
-  |_ -> failwith "add_equal_to_node is only for Eqf"
+  |_ -> failwith " add_sim_to_node is only for Sim"
 
 let add_fen_to_node atom = 
   match atom with
@@ -287,7 +299,7 @@ let add_fen_to_node atom =
           let fen_new = (if(FSet.is_empty v1_node.fen)then fl else (FSet.inter fl v1_node.fen)) in
           var_map := (VarMap.add v1 {v1_node with fen = fen_new} !var_map);
           ()
-  |_ -> failwith "add_abs_to_node is only for Abs"
+  |_ -> failwith "add_fen_to_node is only for Fen"
 
 let rec list_remove ele = function
   |[] -> []
@@ -355,6 +367,14 @@ let sim_union sim1 sim2 =
                     helper1 t
   in helper1 sim2
 
+let kind_union k1 k2 =
+  match(k1,k2) with
+  |(Unknown,Unknown)-> Unknown
+  |(Unknown,k) -> k
+  |(k,Unknown) -> k
+  |(k,k3) when (k=k3) -> k
+  | _ -> failwith "Kind miss match during union"
+
 let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
   let nf_var_l = VSet.union n1.var_l n2.var_l in
   let nf_equality = eq_union n1.equality n2.equality in
@@ -362,12 +382,14 @@ let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
   let nf_fen = FSet.inter n1.fen n2.fen in
   let nf_notfeat = n1.notfeat@n2.notfeat in
   let nf_id = "" in (*union occurs before we set the ids*)
+  let nf_kind = kind_union n1.kind n2.kind in
+
   let merge _ n1 n2 = if(n1=n2) then Some n1 (*n1 and n2 are either the same value or are eqivalent*)
             else Some n1 (*Add a clash for if n1 and n2 are not equivalent*)
   in  
   let nf_feat = FMap.union merge n1.feat n2.feat in
 
-  ({var_l = nf_var_l;feat = nf_feat;notfeat = nf_notfeat; equality = nf_equality;sim = nf_sim;fen=nf_fen; id = nf_id})
+  ({var_l = nf_var_l;feat = nf_feat;notfeat = nf_notfeat; equality = nf_equality;sim = nf_sim;fen=nf_fen; id = nf_id; kind = nf_kind})
 
 
 
@@ -573,6 +595,11 @@ let rec clause_phase_I (clau:clause) =
                          clause_phase_I t
     |Pos Fen(v1,fl)::t -> add_fen_to_node (Fen(v1,fl));
                       clause_phase_I t
+    |Pos Kind(v1,k)::t -> add_kind_to_node (Kind(v1,k));
+                      clause_phase_I t
+    |Neg Kind(v1,k)::t -> let k  = if(k = Dir) then Reg else if(k= Reg) then Dir else Other in
+                          add_kind_to_node (Kind(v1,k));  
+                      clause_phase_I t
     | _ :: t -> clause_phase_I t
 
 let rec clause_phase_II (clau:clause) =
@@ -646,7 +673,8 @@ let f8:feature = "etc"
 
 let (clau_1:clause) = [ Pos (Feat(v1,"a",v2));Pos (Feat(v1,"c",v3));
           Pos (Feat(v1,"d",v4));Pos (Feat(v5,"a",v6));Pos (Feat(v5,"c",v7));
-          Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8)); Pos (Eq(v2,v7));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"))]
+          Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8));
+          Pos (Eq(v2,v7));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"));Pos (Kind(v9,Reg))]
 
 (*  [Feat (1, "lib", 2); Feat (1, "share", 3); Feat (4, "bin", 6);
    Feat (4, "usr", 7); Eqf (1, ["lib"; "share"], 7); Feat (8, "etc", 9);
@@ -682,7 +710,7 @@ let rec get_path (v) (v_cycle) (path) (f)=
   let ll = FMap.bindings ((find_node v).feat) in
   if(List.mem v v_cycle)then failwith "Cycle Clash"
   else if((ll=[])||(v=0)) then
-      paths := (path,f)::(!paths)
+      paths := (path,f,v)::(!paths)
   else
     (let rec helper ll =
       match ll with
@@ -690,29 +718,42 @@ let rec get_path (v) (v_cycle) (path) (f)=
       |(f2,v2)::t when v2 = 0 -> 
                      get_path (v2) (v::v_cycle) (path) (f2);
                      helper t
-      |(f2,v2)::t -> 
-                     get_path (v2) (v::v_cycle) (path^"/"^f2) ("");
-                     helper t
+      |(f2,v2)::t -> if((find_node v2).kind = Reg) then
+                        (get_path (v2) (v::v_cycle) (path) (f2);
+                        helper t)
+                     else   
+                        (get_path (v2) (v::v_cycle) (path^"/"^f2) ("");
+                        helper t)
     in helper ll)
 
 let rec mkdir_from_path path_list =
   match path_list with 
   |[] -> ()
-  |(h,_)::t -> let h = "mkdir -p "^h in
-           Format.printf "%s\n" h ;ignore (Sys.command h); mkdir_from_path t
+  |(h,f,v)::t when ((v <> 0) && (f <> "")) -> 
+           let h1 = "mkdir -p "^h in
+           let h2 = "touch "^(h^"/"^f) in
+           Format.printf "%s\n %s\n" h1 h2 ;ignore (Sys.command h1);
+           ignore (Sys.command h2); 
+           mkdir_from_path t
+
+  |(h,_,_)::t -> let h = "mkdir -p "^h in
+           Format.printf "%s\n" h ;ignore (Sys.command h); 
+           mkdir_from_path t
 
 let rec check_path path_list =
   match path_list with 
   |[] -> true
-  |(h,f)::t when f = "" -> 
+  |(h,f,_)::t when f = "" -> 
                 Format.printf "check : %s\n" h ;
                 if(Sys.file_exists h)then check_path t else false
-  |(h,f)::t->
+  |(h,f,v)::t when v = 0->
                 let h2 = (h^"/"^f) in
                 Format.printf "check : %s\t" h ;
                 Format.printf "check Abs : %s\n" h2 ;
                 if((Sys.file_exists h) && (not (Sys.file_exists h2)))then 
-                   check_path t else false
+                check_path t else false
+  |(h,f,_)::t -> Format.printf "check Reg : %s\n" (h^"/"^f) ;
+              if(Sys.file_exists h)then check_path t else false
 
 
 
