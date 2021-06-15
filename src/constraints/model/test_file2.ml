@@ -58,7 +58,7 @@ let rec check_id (v) (v_cycle) (path)=
                      if ((v2_id = (FMap.find f2 id_map))||(v2_id = "")) then
                      (check_id (v2) (v::v_cycle) (path^"/"^f2) ;
                      helper t)
-                     else failwith ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2))
+                     else failwith ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2: "^v2_id)
     in helper ll)
 
 let rec mkdir_from_path path_list =
@@ -84,7 +84,7 @@ let test_files_1_2 ()=
   let l = get_unreachable () in
   let rec helper l count = 
     match l with 
-    |[root_after;root_before] -> 
+    |[root_before;root_after] -> 
                       if(count = 3) then failwith "Test Fail"
                       else
                         create_TR ();
@@ -98,10 +98,10 @@ let test_files_1_2 ()=
                         get_path root_after [] "." ""; 
                         if(check_path (!paths)) then 
                             (Format.printf "CHECK SUCCESS - Phase 1\n\n";
-                            set_id root_after [] ".";
+                            (*check_id root_after [] "."; change to check_id*)
                             Format.printf "CHECK SUCCESS - Phase 2")
                         else 
-                        (Format.printf "Failure\n" ;(helper [root_before;root_after] (count+1)))
+                        (Format.printf "Failure\n") (*(helper [root_before;root_after] (count+1)))*)
                      
     |_ -> failwith "Not exactly 2 unreachable"
   in helper l 1

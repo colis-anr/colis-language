@@ -1,4 +1,4 @@
-(library
- (name colis_constraints_model)
- (public_name colis-language.constraints.model)
- (libraries colis-constraints))
+(executable
+ (name engine)
+ (public_name engine)
+ (libraries colis-constraints colis))
