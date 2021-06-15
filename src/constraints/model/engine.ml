@@ -27,6 +27,17 @@ type state =  {
 
 type utility = state -> (state * bool Colis__.Semantics__Result.result) list
 *)
+(*Doc : Colis->Language->Nat*)
+let () =
+   List.iter Colis.SymbolicUtility.Mixed.register [
+     (module Colis__.Basics.True) ;
+     (module Colis__.Basics.Colon) ;
+     (module Colis__.Basics.False) ;
+     (module Colis__.Basics.Echo) ;
+     (module Colis__.Cp) ;
+     (module Colis__.Mkdir) ;
+     (module Colis__.Mv) ;
+   ]
 
 let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
   cwd = !cwd;
@@ -107,6 +118,7 @@ let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_r
   | [] -> []
   | Pos a::t -> Pos (atom_to_Atom a):: literal_to_Literal t
   | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
+
 
 let result_list = utility_ intial_state
 
