@@ -53,33 +53,61 @@ let (intial_state:Colis__.SymbolicUtility.Constraints.state) =  {
        stdout = Colis__.Semantics__Buffers.Stdout.empty;
        log = Colis__.Semantics__Buffers.Stdout.empty;
      }
+
 let feat_to_string (x:Colis_constraints_common.Feat.t):string = Colis_constraints_common.Feat.to_string x
 
+let var_to_int (x:Colis_constraints_common.Var.t):int =
+  let rec helper in_s out_s=
+    if((String.length in_s) < 3) then
+      int_of_string out_s
+    else
+    let ch = String.sub in_s 0 3 in
+    let digit =
+      (match ch with
+       | "₀" -> "0"
+       | "₁" -> "1"
+       | "₂" -> "2"
+       | "₃" -> "3"
+       | "₄" -> "4"
+       | "₅" -> "5"
+       | "₆" -> "6"
+       | "₇" -> "7"
+       | "₈" -> "8"
+       | "₉" -> "9"
+       | _ -> assert false) in
+    let in_s = String.sub in_s 3 ((String.length in_s) - 3) in
+    helper in_s (out_s^digit)
+  in 
+  (helper (Colis_constraints_common.Var.to_string x) "")
 
-let result_list = utility_ intial_state
-
-let printStdout stdO =
-  Format.printf "%s" (Colis__.Semantics__Buffers.Stdout.to_string stdO)
-
-(*
-let var_to_int (x:Colis_constraints_common.Var.t):int = x
-let fear_to_string (x:Colis_constraints_common.Feat.t):string = x
+let fset_to_fset (x:Colis_constraints_common.Feat.Set.t): string list = 
+  let lis = Colis_constraints_common.Feat.Set.elements x in
+  let rec helper = function
+   |[]-> []
+   |h::t -> (feat_to_string h)::helper t
+  in (helper lis)
 
 let atom_to_Atom (x: Colis_constraints_common.Atom.t): Model_ref.atom =
   match x with
-  | Eq(v1,v2) -> Eq(v1,v2)
-  | Feat(v1,f,v2) -> Feat (v1,f,v2)
-  | Abs(v1,f) -> Abs(v1,f)
+  | Eq(v1,v2) -> Eq(var_to_int v1,var_to_int v2)
+  | Feat(v1,f,v2) -> Feat (var_to_int v1,feat_to_string f,var_to_int v2)
+  | Abs(v1,f) -> Abs(var_to_int v1,feat_to_string f)
   | Kind(_,_) -> Kind_dir
-  | Fen(v1,f) -> Fen(v1,Model_ref.FSet.to_list f)
-  | Sim(v1,f,v2) -> Sim(v1,Model_ref.FSet.to_list f,v2)
+  | Fen(v1,f) -> Fen(var_to_int v1,fset_to_fset f)
+  | Sim(v1,f,v2) -> Sim(var_to_int v1,fset_to_fset f,var_to_int v2)
 
-let literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_ref.literal list =
+let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_ref.literal list =
   match x with
   | [] -> []
   | Pos a::t -> Pos (atom_to_Atom a):: literal_to_Literal t
   | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
-  
+
+let result_list = utility_ intial_state
+
+(*
+let printStdout stdO =
+  Format.printf "%s" (Colis__.Semantics__Buffers.Stdout.to_string stdO)
+
 
 let rec run_model (res_l:(Colis.SymbolicUtility.Constraints.state *
             bool Colis__Semantics__Result.result)
