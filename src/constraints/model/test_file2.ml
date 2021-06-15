@@ -1,12 +1,14 @@
 open Model_ref
 
+let print_collect = ref "" 
+
 let get_id_feat_str path =
- let tmp_file = Filename.temp_file "" ".txt" in
+ (let tmp_file = Filename.temp_file "" ".txt" in
  let _ = Sys.command @@ "ls -i "^path^" >" ^ tmp_file in
  let chan = open_in tmp_file in
  let s = really_input_string chan (in_channel_length chan) in
  close_in chan;
- s
+ s)
 
 let get_id_map path =
     let s = get_id_feat_str path in
@@ -20,33 +22,59 @@ let get_id_map path =
       |_::t -> helper t
     in helper s
 
-let rec set_id (v) (v_cycle) (path)=
+let add_id_node v id_i = 
+    let v_node = find_node v in
+    let new_node = {v_node with id = id_i} in
+    let rec helper vl =
+       match vl with 
+       |[]-> ()
+       |v1::t -> var_map := (VarMap.add v1 new_node !var_map);
+           helper t
+    in
+    (helper (VSet.elements new_node.var_l))
+
+let set_same_id v1 v2 s=
+   let v1_id = (find_node v1).id in
+   let v2_id = (find_node v2).id in
+   (match (v1_id,v2_id) with 
+   |("","")-> ()
+   |("",id2)-> add_id_node v1 id2
+   |(id1,"")-> add_id_node v2 id1
+   |(id1,id2) when id1 <> id2-> 
+              Format.printf "%s" ("\nDifferent ID of V"^(string_of_int v1)^" and V"^(string_of_int v2)^" on "^s);()
+   | _ -> ())
+ 
+let rec dissolve_id_sim (clau:clause) =
+    match clau with 
+    |[] -> ()
+    |Pos Sim(v1,fl,v2)::t -> set_same_id v1 v2 "SIM";
+                            dissolve_id_sim t
+    | _::t -> dissolve_id_sim t
+
+let rec dissolve_id_eqf (clau:clause) =
+    match clau with 
+    |[] -> ()
+    |Pos Eqf(v1,fl,v2)::t -> set_same_id v1 v2 "EQF";
+                            dissolve_id_sim t
+    | _::t -> dissolve_id_eqf t
+
+let rec set_id (v) (path)=
   let ll = FMap.bindings ((find_node v).feat) in
-  if(List.mem v v_cycle)then failwith "Cycle Clash"
-  else if((ll=[])||(v=0)) then ()
+  if((ll=[])||(v=0)) then ()
   else
     ( let id_map = get_id_map path in
       let rec helper ll =
       match ll with
       |[] -> ()
       |(_,v2)::t when v2 = 0 -> helper t
-      |(f2,v2)::t -> let v2_node = find_node v2 in
-                     let new_node = {v2_node with id = (FMap.find f2 id_map)} in
-                     let rec helper2 vl =
-                        match vl with 
-                        |[]-> ()
-                        |v1::t -> var_map := (VarMap.add v1 new_node !var_map);
-                            helper2 t
-                     in
-                     (helper2 (VSet.elements new_node.var_l));
-                     set_id (v2) (v::v_cycle) (path^"/"^f2) ;
+      |(f2,v2)::t -> add_id_node v2 (FMap.find f2 id_map);
+                     set_id (v2) (path^"/"^f2) ;
                      helper t
     in helper ll)
 
-let rec check_id (v) (v_cycle) (path)=
+let rec check_id (v) (path)=
   let ll = FMap.bindings ((find_node v).feat) in
-  if(List.mem v v_cycle)then failwith "Cycle Clash"
-  else if((ll=[])||(v=0)) then
+  if((ll=[])||(v=0)) then
       ()
   else
     ( let id_map = get_id_map path in
@@ -54,54 +82,44 @@ let rec check_id (v) (v_cycle) (path)=
       match ll with
       |[] -> ()
       |(_,v2)::t when v2 = 0 -> helper t
-      |(f2,v2)::t -> let v2_id = (find_node v2).id in
+      |(f2,v2)::t ->
+                     let v2_id = (find_node v2).id in
                      if ((v2_id = (FMap.find f2 id_map))||(v2_id = "")) then
-                     (check_id (v2) (v::v_cycle) (path^"/"^f2) ;
+                     (check_id (v2) (path^"/"^f2) ;
                      helper t)
-                     else failwith ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2: "^v2_id)
+                     else 
+                     (Format.printf "%s" ("\nID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2_id(stored): "^v2_id^", v2_id(FS): "^(FMap.find f2 id_map));
+                     check_id (v2) (path^"/"^f2);
+                     helper t)
     in helper ll)
 
-let rec mkdir_from_path path_list =
-  match path_list with 
-  |[] -> ()
-  |(h,_)::t -> let h = "mkdir -p "^h in
-           Format.printf "%s\n" h ;ignore (Sys.command h); mkdir_from_path t
 
-let rec check_path path_list =
-  match path_list with 
-  |[] -> true
-  |(h,f)::t when f = "" -> 
-                Format.printf "check : %s\n" h ;
-                if(Sys.file_exists h)then check_path t else false
-  |(h,f)::t->
-                let h2 = (h^"/"^f) in
-                Format.printf "check : %s\t" h ;
-                Format.printf "check Abs : %s\n" h2 ;
-                if((Sys.file_exists h) && (not (Sys.file_exists h2)))then 
-                   check_path t else false
 
-let test_files_1_2 ()=
-  let l = get_unreachable () in
-  let rec helper l count = 
-    match l with 
-    |[root_before;root_after] -> 
-                      if(count = 3) then failwith "Test Fail"
-                      else
-                        create_TR ();
-                        clean_TR ();
-                        paths:= [];
-                        get_path root_before [] "." "";
-                        mkdir_from_path (!paths);
-                        set_id root_before [] ".";
-                        shell_script ();
-                        paths:= [];
-                        get_path root_after [] "." ""; 
-                        if(check_path (!paths)) then 
-                            (Format.printf "CHECK SUCCESS - Phase 1\n\n";
-                            (*check_id root_after [] "."; change to check_id*)
-                            Format.printf "CHECK SUCCESS - Phase 2")
-                        else 
-                        (Format.printf "Failure\n") (*(helper [root_before;root_after] (count+1)))*)
+let test_files_1_2 (root_before) (root_after) (clau) =
+    create_TR ();
+    clean_TR ();
+    paths:= [];
+    get_path root_before [] "." "";
+    mkdir_from_path (!paths);
+    set_id root_before ".";
+    shell_script ();
+    paths:= [];
+    get_path root_after [] "." ""; 
+    if(check_path (!paths)) then 
+        (Format.printf "PATH CHECK SUCCESS\n\n";
+        Format.printf "%s" "\n\tID Dissolve Repot\nEquality(*) Dissolve Error:\n";
+        check_id root_after ".";
+
+        Format.printf "%s" "\n\nSIM(F) Dissolve Error:\n";
+        dissolve_id_sim clau;
+        check_id root_after ".";
+
+        Format.printf "%s" "\n\nEquality(F) Dissolve Error:\n";
+        dissolve_id_eqf clau;
+        check_id root_after ".";
+
+        )
+    else 
+    (Format.printf "Failure\n") 
                      
-    |_ -> failwith "Not exactly 2 unreachable"
-  in helper l 1
+let test_eng () = engine clau_1;test_files_1_2 1 5 clau_1

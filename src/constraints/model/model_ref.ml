@@ -227,7 +227,7 @@ let add_feat_to_node atom =
   | Feat(v1,f,v2) when v2 = 0 -> add_abs_to_node (Abs(v1,f))
   | Feat(v1,f,v2) -> 
              let v1_node = find_node v1 in
-             if(v1_node.kind <> Reg) then failwith ("Clash a Reg cant have feature mappings V:"^(string_of_int v1)
+             if(v1_node.kind = Reg) then failwith ("Clash a Reg cant have feature mappings V:"^(string_of_int v1))
              else if (FMap.find_opt f v1_node.feat  = Some 0) then failwith ("Clash: tring to create %d[%s]%d when x[f]abs exists"^(string_of_int v1)^f^(string_of_int v2))
              else if (not(FSet.is_empty v1_node.fen) && not(FSet.mem f v1_node.fen)) then failwith "Clash: tring to create x[f]y when x[F] exists and f does not belong to F"
              else 
@@ -675,7 +675,7 @@ let f8:feature = "etc"
 let (clau_1:clause) = [ Pos (Feat(v1,"a",v2));Pos (Feat(v1,"c",v3));
           Pos (Feat(v1,"d",v4));Pos (Feat(v5,"a",v6));Pos (Feat(v5,"c",v7));
           Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8));
-          Pos (Eq(v2,v6));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"));Pos (Kind(v9,Reg))]
+          Pos (Eqf(v2,["b"],v7));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"));Pos (Kind(v9,Reg))]
 
 (*  [Feat (1, "lib", 2); Feat (1, "share", 3); Feat (4, "bin", 6);
    Feat (4, "usr", 7); Eqf (1, ["lib"; "share"], 7); Feat (8, "etc", 9);
@@ -754,7 +754,7 @@ let rec check_path path_list =
                 if((Sys.file_exists h) && (not (Sys.file_exists h2)))then 
                 check_path t else false
   |(h,f,_)::t -> Format.printf "check Reg : %s\n" (h^"/"^f) ;
-              if(Sys.file_exists h)then check_path t else false
+              if(Sys.file_exists (h^"/"^f))then check_path t else false
 
 
 
