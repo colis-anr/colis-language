@@ -35,6 +35,7 @@ let () =
      (module Colis__Basics.False) ;
      (module Colis__Basics.Echo) ;
      (module Colis__Cp) ;
+     (module Colis__Touch) ;
      (module Colis__Mkdir) ;
      (module Colis__Mv) ;
      (module Colis__Test) ;
@@ -47,8 +48,8 @@ let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
   args = [];
 }
 
-let utility_name = "mv"
-let args = ["./a/b";"./c"]
+let utility_name = "touch"
+let args = ["./a/b"]
 
 let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
 
@@ -124,24 +125,24 @@ let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_r
 
 let result_list = utility_ initial_state
 
-(*
+
 let printStdout stdO =
   Format.printf "%s" (Colis__.Semantics__Buffers.Stdout.to_string stdO)
 
 
-let rec run_model (res_l:(Colis.SymbolicUtility.Constraints.state *
+let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
             bool Colis__Semantics__Result.result)
            list) = 
   match res_l with
   | [] -> false
   | (state_,r)::t when (r = Ok true) -> (*Assuming r is a simple bool for now*)
-                  let out_fs = state_.filesystem in
+                  let (out_fs:Colis__.SymbolicUtility.Mixed.filesystem) = state_.filesystem in
                   printStdout state_.stdout ;
                   let s_c = out_fs.clause in
                   let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c) in
                   let s_c = List.of_seq s_c in
-                  Model_ref.engine s_c;
-                  if(test_file out_fs.root out_fs.root0)then true
-                  else run_model t
+                  Model_ref.print_clause (literal_to_Literal s_c);
+                  run_model t
   | _::t -> run_model t
-  *)
+
+let _ = run_model result_list
