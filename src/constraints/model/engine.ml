@@ -30,13 +30,15 @@ type utility = state -> (state * bool Colis__.Semantics__Result.result) list
 (*Doc : Colis->Language->Nat*)
 let () =
    List.iter Colis.SymbolicUtility.Mixed.register [
-     (module Colis__.Basics.True) ;
-     (module Colis__.Basics.Colon) ;
-     (module Colis__.Basics.False) ;
-     (module Colis__.Basics.Echo) ;
-     (module Colis__.Cp) ;
-     (module Colis__.Mkdir) ;
-     (module Colis__.Mv) ;
+     (module Colis__Basics.True) ;
+     (module Colis__Basics.Colon) ;
+     (module Colis__Basics.False) ;
+     (module Colis__Basics.Echo) ;
+     (module Colis__Cp) ;
+     (module Colis__Mkdir) ;
+     (module Colis__Mv) ;
+     (module Colis__Test) ;
+     (module Colis__Test.Bracket) ;
    ]
 
 let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
@@ -48,17 +50,17 @@ let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
 let utility_name = "mv"
 let args = ["./a/b";"./c"]
 
-let utility_ = Colis.SymbolicUtility.Constraints.call (utility_name) (utility_context_) (args)
+let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
 
 let root_v = 1 (*Replace by fresh*)
 
-let (initial_fs:Colis__.SymbolicUtility.Constraints.filesystem) = {
+let (initial_fs:Colis__.SymbolicUtility.Mixed.filesystem) = Constraints {
       root = (Colis_constraints_common__Var.fresh ());
       clause = Colis_constraints_efficient.true_sat_conj;
       root0 = Some (Colis_constraints_common__Var.fresh ());
     }
     
-let (intial_state:Colis__.SymbolicUtility.Constraints.state) =  {
+let (initial_state:Colis__.SymbolicUtility.Mixed.state) =  {
        filesystem = initial_fs;
        stdin = [];
        stdout = Colis__.Semantics__Buffers.Stdout.empty;
@@ -120,7 +122,7 @@ let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_r
   | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
 
 
-let result_list = utility_ intial_state
+let result_list = utility_ initial_state
 
 (*
 let printStdout stdO =
