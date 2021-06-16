@@ -72,12 +72,12 @@ let fresh =
 
 let rec int_list_display = function
   |[] -> ()
-  |h::t -> Format.printf " %d, " h;
+  |h::t -> Format.printf "%d, " h;
            int_list_display t
 
 let rec str_list_display = function
   |[] -> ()
-  |h::t -> Format.printf " %s, " h;
+  |h::t -> Format.printf "%s, " h;
            str_list_display t
 
 let kind_to_str = function
@@ -158,6 +158,22 @@ let var_map_display var_map =
                     helper t
     in 
     helper var_map
+
+let print_Atom (x:atom)  =
+  match x with
+  | Eq(v1,v2) -> Format.printf " Eq(%d,%d) " v1 v2
+  | Feat(v1,f,v2) -> Format.printf " Feat (%d,%s,%d) " v1 f v2
+  | Abs(v1,f) -> Format.printf " Abs(%d,%s) " v1 f
+  | Kind(v1,k) -> Format.printf " Kind(%d,%s) " v1 (kind_to_str k)
+  | Fen(v1,f) -> Format.printf " Fen(%d,[ " v1; (str_list_display f); Format.printf "]) "
+  | Sim(v1,f,v2) -> Format.printf " Sim(%d,[ " v1; (str_list_display f); Format.printf " ],%d) " v2
+  | Eqf(v1,f,v2) -> Format.printf " Eqf(%d,[ " v1; (str_list_display f); Format.printf " ],%d) " v2
+
+let rec print_clause (x:literal list)  =
+  match x with
+  | [] -> Format.printf "\n\n"
+  | Pos a::t -> print_Atom a; print_clause t
+  | Neg a::t -> print_Atom a; print_clause t
 
 let rec create_empty_var_map clause  = 
   match clause with 
@@ -675,7 +691,9 @@ let f8:feature = "etc"
 let (clau_1:clause) = [ Pos (Feat(v1,"a",v2));Pos (Feat(v1,"c",v3));
           Pos (Feat(v1,"d",v4));Pos (Feat(v5,"a",v6));Pos (Feat(v5,"c",v7));
           Pos (Feat(v5,"d",v8));Pos (Feat(v2,"b",v9)); Pos (Eq(v4,v8));
-          Pos (Eqf(v2,["b"],v7));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"));Pos (Kind(v9,Reg))]
+          Pos (Eqf(v2,["b"],v7));Pos (Abs(v1,"abc"));Pos (Abs(v5,"abc"));Pos (Kind(v9,Reg));
+          Pos (Sim(v3,["b"],v7));Pos (Sim(v2,["b"],v6));Pos (Abs(v6,"b"));Pos (Abs(v3,"b"))]
+
 
 (*  [Feat (1, "lib", 2); Feat (1, "share", 3); Feat (4, "bin", 6);
    Feat (4, "usr", 7); Eqf (1, ["lib"; "share"], 7); Feat (8, "etc", 9);
