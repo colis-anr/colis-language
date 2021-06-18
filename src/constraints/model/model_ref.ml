@@ -283,7 +283,8 @@ let rec no_feat_abs_to_node atom =
 let add_kind_to_node atom =
   match atom with
   | Kind(v1,k) -> let v1_node = find_node v1 in
-                  var_map := (VarMap.add v1 {v1_node with kind = k} !var_map); 
+                  let fen_n = if(k = Reg)then FSet.of_list ["RegEmpty62o"] else v1_node.fen in
+                  var_map := (VarMap.add v1 {v1_node with kind = k; fen = fen_n} !var_map); 
                   ()
   |_ -> failwith "add_equal_to_node is only for kind"
 
@@ -815,8 +816,45 @@ let clean_TR () =
   in helper l 1*)
 
 
-let engine (clau_1:clause) =
+let mutate (clau:clause) (num:int) = 
+  let v_all = ref VSet.empty in
+  let v_max = ref 0 in
+  let clau = ref clau in
+  create_empty_var_map !clau; (*Need to be gone again in engine for new vars*)
+  clause_phase_I !clau; (*To make sure of fen and kind*)
+  let rec helper vm_l = 
+    match vm_l with
+    |[]-> ()
+    |(v,_)::t-> v_all := VSet.add v !v_all;
+         v_max := if(!v_max < v)then v else !v_max;
+         helper t
+  in 
+  let _ = helper (VarMap.bindings !var_map) in
+  let v_max_old = !v_max in
+
+  let rec add_noise = function
+    |x when x > num -> (!clau)
+    |x -> let v1 = 1 + Random.int !v_max in
+        if (not (VSet.mem v1 !v_all))then add_noise x
+        else if ((v1<=v_max_old)&&((not(FSet.is_empty (find_node v1).fen)) || ((find_node v1).kind = Reg))) then add_noise x
+        else if((Random.int 10) < 8) then
+          (v_max := !v_max + 1;
+          let f_new = "GenFto"^(string_of_int !v_max) in
+          v_all := VSet.add !v_max !v_all;
+          clau := Pos(Feat(v1,f_new,!v_max)) :: (!clau);
+          add_noise (x+1))
+        else 
+          (let f_new = "GenFAbs"^(string_of_int (Random.int !v_max)) in
+          clau:= Pos(Abs(v1,f_new)) :: (!clau);
+          add_noise (x+1))
+  in add_noise 1
+
+
+let engine (clau_1:clause) ?(m = false) ?(m_v = 10) () =
   var_map := VarMap.empty;
+  let clau_1 = (if (m) then (mutate clau_1 m_v) else clau_1) in
+  Format.printf "Mutant Clause :";
+  print_clause clau_1;
   fBigSet := FSet.empty;
   create_empty_var_map clau_1; 
   clause_phase_I clau_1;
@@ -831,3 +869,4 @@ let engine (clau_1:clause) =
 
 
 
+(*engine clau_1 ~m:true ();;*)

@@ -110,15 +110,15 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) =
         (paths:= [];
         get_path root_after [] "." ""; 
         if(check_path (!paths)) then 
-            (Format.printf "PATH CHECK SUCCESS\n\n";
-            Format.printf "%s" "\n\tID Dissolve Repot\nEquality(*) Dissolve Error:\n";
+            (Format.printf "\t\t***PATH CHECK SUCCESS***\n";
+            Format.printf "%s" "\tID Dissolve Repot\nEquality(*) Dissolve Error:\n";
             check_id root_after ".";
 
-            Format.printf "%s" "\n\nSIM(F) Dissolve Error:\n";
+            Format.printf "%s" "SIM(F) Dissolve Error:\n";
             dissolve_id_sim clau;
             check_id root_after ".";
 
-            Format.printf "%s" "\n\nEquality(F) Dissolve Error:\n";
+            Format.printf "%s" "Equality(F) Dissolve Error:\n";
             dissolve_id_eqf clau;
             check_id root_after ".";
 
@@ -127,4 +127,4 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) =
         (Format.printf "Failure\n") )
     else Format.printf "%s" (if(is_error)then "\nCMD does not give an error\n" else "\nCMD gives an error\n")
                      
-let test_eng () = engine clau_1;test_files_1_2 1 5 clau_1
+let test_eng () = engine clau_1 ();test_files_1_2 1 5 clau_1

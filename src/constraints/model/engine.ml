@@ -48,9 +48,9 @@ let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
   args = [];
 }
 
-let utility_name = "rm"
-let args = ["-r";"./a/b/../c/d/./e";"./a/b"]
-let cmd = "rm -r ./a/b/../c/d/./e ./a/b"
+let utility_name = "mkdir"
+let args = ["./a/b/../c/d/./e"]
+let cmd = "mkdir ./a/b/../c/d/./e"
 
 let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
 
@@ -145,14 +145,14 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let rootb = match rootb with | Some v -> v |None -> failwith "no root before" in
                   let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c) in
                   let s_c = List.of_seq s_c in
-                  Format.printf "\n\n\tOutput Clause[RootB: %d ;RootA: %d] : \n" (var_to_int rootb) (var_to_int roota);
+                  Format.printf "\n\n\n\tOutput Clause [RootB: %d ;RootA: %d; isError: %b] : \n" (var_to_int rootb) (var_to_int roota) (not x);
                   let s_c = literal_to_Literal s_c in
                   Model_ref.print_clause (s_c);
-                  Model_ref.engine (s_c);
+                  Model_ref.engine (s_c) ~m:true ();
                   Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd); 
                   run_model t
   | _::t -> run_model t
 
-let _ = Format.printf "\n%d\n" (List.length result_list)
+let _ = Format.printf "\nNo of Clauses : %d\n" (List.length result_list)
 let _ = run_model result_list
 
