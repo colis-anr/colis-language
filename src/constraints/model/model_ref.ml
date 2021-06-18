@@ -32,6 +32,7 @@ type node = { var_l: VSet.t;
        notfeat: (feature*var) list ; (*Not using Map as -x[f]y,-x[f]z can exists together*)
 			 equality: (FSet.t*var) list; 
 			 sim: (FSet.t*var) list;
+       fen_p: bool;
 			 fen : FSet.t; (*empty signifies no Fen specified so all allowed*)
        id : string;
        kind: kindt;
@@ -64,7 +65,7 @@ let paths = ref []
 (*VARIOUS FUNCTIONS NEEDED*)
 
 (*let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}*)
-let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty;id = "";kind = Unknown}
+let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty;fen_p=false;id = "";kind = Unknown}
 
 let fresh =
   let i = ref 0 in
@@ -86,7 +87,7 @@ let kind_to_str = function
   |Other -> "Other"
   |Unknown -> "Unknown"
 
-let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= equality_;sim= sim_;fen = fen_;id=id_;kind = kind_} : unit = 
+let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= equality_;sim= sim_;fen_p =fen_p_;fen = fen_;id=id_;kind = kind_} : unit = 
     
     let feat_ = FMap.bindings feat_ in
     let var_display var_l_ = Format.printf "[" ;
@@ -139,7 +140,7 @@ let node_display {var_l = var_l_ ;feat = feat_ ;notfeat = notfeat_; equality= eq
     feat_display feat_;
     Format.printf "\nNot-Features:\n";
     notfeat_display notfeat_;
-    Format.printf "\nFen Features:\n";
+    Format.printf "\nFen Features(present: %b):\n" fen_p_;
     fen_display fen_;
     Format.printf "\nEquality:\n";
     equality_display equality_;
@@ -245,7 +246,7 @@ let add_feat_to_node atom =
              let v1_node = find_node v1 in
              if(v1_node.kind = Reg) then failwith ("Clash a Reg cant have feature mappings V:"^(string_of_int v1))
              else if (FMap.find_opt f v1_node.feat  = Some 0) then failwith ("Clash: tring to create %d[%s]%d when x[f]abs exists"^(string_of_int v1)^f^(string_of_int v2))
-             else if (not(FSet.is_empty v1_node.fen) && not(FSet.mem f v1_node.fen)) then failwith "Clash: tring to create x[f]y when x[F] exists and f does not belong to F"
+             else if (v1_node.fen_p && not(FSet.mem f v1_node.fen)) then failwith "Clash: tring to create x[f]y when x[F] exists and f does not belong to F"
              else 
              let new_node = {v1_node with feat = FMap.add f v2 v1_node.feat} in
              let rec helper  vl =
@@ -314,8 +315,8 @@ let add_fen_to_node atom =
   match atom with
   | Fen (v1,fl) -> let v1_node = find_node v1 in  
           let fl = FSet.of_list fl in
-          let fen_new = (if(FSet.is_empty v1_node.fen)then fl else (FSet.inter fl v1_node.fen)) in
-          var_map := (VarMap.add v1 {v1_node with fen = fen_new} !var_map);
+          let fen_new = (if(not v1_node.fen_p)then fl else (FSet.inter fl v1_node.fen)) in
+          var_map := (VarMap.add v1 {v1_node with fen = fen_new; fen_p = true} !var_map);
           ()
   |_ -> failwith "add_fen_to_node is only for Fen"
 
@@ -393,11 +394,20 @@ let kind_union k1 k2 =
   |(k,k3) when (k=k3) -> k
   | _ -> failwith "Kind miss match during union"
 
+let fen_inter n1 n2 = 
+  match(n1.fen_p,n2.fen_p)with
+  |(true,true)-> FSet.inter n1.fen n2.fen
+  |(true,false)-> n1.fen
+  |(false,true)-> n2.fen
+  |(false,false)-> n1.fen
+
+
 let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
   let nf_var_l = VSet.union n1.var_l n2.var_l in
   let nf_equality = eq_union n1.equality n2.equality in
   let nf_sim = sim_union n1.sim n2.sim in 
-  let nf_fen = FSet.inter n1.fen n2.fen in
+  let nf_fen = fen_inter n1 n2 in
+  let nf_fen_p = n1.fen_p || n2.fen_p in
   let nf_notfeat = n1.notfeat@n2.notfeat in
   let nf_id = "" in (*union occurs before we set the ids*)
   let nf_kind = kind_union n1.kind n2.kind in
@@ -407,7 +417,7 @@ let node_union (n1:node) (n2:node):node = (*Do a clash check maybe*)
   in  
   let nf_feat = FMap.union merge n1.feat n2.feat in
 
-  ({var_l = nf_var_l;feat = nf_feat;notfeat = nf_notfeat; equality = nf_equality;sim = nf_sim;fen=nf_fen; id = nf_id; kind = nf_kind})
+  ({var_l = nf_var_l;feat = nf_feat;notfeat = nf_notfeat; equality = nf_equality;sim = nf_sim;fen=nf_fen;fen_p = nf_fen_p; id = nf_id; kind = nf_kind})
 
 
 
@@ -491,7 +501,7 @@ let not_Fen_transform atom  =
   |Fen(v1,fl) ->  let v1_node = find_node v1 in
                   let all_f = FSet.elements (FSet.diff !fBigSet (FSet.of_list fl)) in 
                   let helper2 () = 
-                        if(FSet.is_empty v1_node.fen) then
+                        if(not v1_node.fen_p) then
                           begin
                             let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
                             let v_new = (VarMap.cardinal !var_map) + 3 in
@@ -531,7 +541,7 @@ let not_eq_sim_transform  atom =
   let v1_node = find_node v1 in
   let v2_node = find_node v2 in
   let info = ref [] in
-  let helper4 () = if((FSet.is_empty v1_node.fen)&&(isSim))then  
+  let helper4 () = if((not v1_node.fen_p)&&(isSim))then  
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
                     let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
@@ -541,7 +551,7 @@ let not_eq_sim_transform  atom =
                     fBigSet := FSet.add new_f !fBigSet;
                     ()
                   end
-                else if((FSet.is_empty v2_node.fen)&&(isSim)) then
+                else if((not v2_node.fen_p)&&(isSim)) then
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
                     let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
@@ -556,13 +566,13 @@ let not_eq_sim_transform  atom =
   let rec helper3 info_s=
         match info_s with 
         |[] -> helper4 () (*For sim we can still add a new feature*)
-        |(f1,None,None)::t -> if (((FSet.is_empty v1_node.fen)||(FSet.mem f1 v1_node.fen))&&(is_allowed (Abs (v2,f1)) )) then 
+        |(f1,None,None)::t -> if (((not v1_node.fen_p)||(FSet.mem f1 v1_node.fen))&&(is_allowed (Abs (v2,f1)) )) then 
                               let v_new = (VarMap.cardinal (!var_map)) + 3 in
                               var_map := VarMap.add v_new (empty_node v_new) (!var_map);
                               add_feat_to_node (Feat (v1,f1,v_new));
                               add_abs_to_node (Abs (v2,f1));
                               ()
-                           else if(((FSet.is_empty v2_node.fen)||(FSet.mem f1 v2_node.fen))&&(is_allowed (Abs (v1,f1)) )) then 
+                           else if(((not v2_node.fen_p)||(FSet.mem f1 v2_node.fen))&&(is_allowed (Abs (v1,f1)) )) then 
                               let v_new = (VarMap.cardinal (!var_map)) + 3 in
                               var_map := VarMap.add v_new (empty_node v_new) (!var_map);
                               add_feat_to_node (Feat (v2,f1,v_new));
@@ -836,7 +846,7 @@ let mutate (clau:clause) (num:int) =
     |x when x > num -> (!clau)
     |x -> let v1 = 1 + Random.int !v_max in
         if (not (VSet.mem v1 !v_all))then add_noise x
-        else if ((v1<=v_max_old)&&((not(FSet.is_empty (find_node v1).fen)) || ((find_node v1).kind = Reg))) then add_noise x
+        else if ((v1<=v_max_old)&&(((find_node v1).fen_p) || ((find_node v1).kind = Reg))) then add_noise x
         else if((Random.int 10) < 8) then
           (v_max := !v_max + 1;
           let f_new = "GenFto"^(string_of_int !v_max) in
