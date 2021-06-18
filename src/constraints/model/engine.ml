@@ -4,7 +4,6 @@
 let cwd = ref []
 let cwd_update ()= cwd := Colis_constraints.Path.normalize (Colis_constraints.Path.from_string ( Sys.getcwd ()));()
 
-
 (*
 type utility_context = {
   cwd : Colis_constraints.Path.normal;
@@ -35,6 +34,7 @@ let () =
      (module Colis__Basics.False) ;
      (module Colis__Basics.Echo) ;
      (module Colis__Cp) ;
+     (module Colis__Rm) ;
      (module Colis__Touch) ;
      (module Colis__Mkdir) ;
      (module Colis__Mv) ;
@@ -48,8 +48,9 @@ let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
   args = [];
 }
 
-let utility_name = "touch"
-let args = ["./a/b/../c/d/./e"]
+let utility_name = "rm"
+let args = ["-r";"./a/b/../c/d/./e";"./a/b"]
+let cmd = "rm -r ./a/b/../c/d/./e ./a/b"
 
 let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
 
@@ -144,11 +145,11 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let rootb = match rootb with | Some v -> v |None -> failwith "no root before" in
                   let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c) in
                   let s_c = List.of_seq s_c in
-                  Format.printf "\n\n\tOutput Clause : \n";
+                  Format.printf "\n\n\tOutput Clause[RootB: %d ;RootA: %d] : \n" (var_to_int rootb) (var_to_int roota);
                   let s_c = literal_to_Literal s_c in
                   Model_ref.print_clause (s_c);
                   Model_ref.engine (s_c);
-                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) s_c (not x); 
+                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd); 
                   run_model t
   | _::t -> run_model t
 

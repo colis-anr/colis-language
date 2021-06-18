@@ -95,14 +95,18 @@ let rec check_id (v) (path)=
 
 
 
-let test_files_1_2 (root_before) (root_after) (clau) (is_error) =
+let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) =
+    let _ = if(VarMap.find_opt root_before !var_map)=None 
+            then var_map := VarMap.add root_before (empty_node root_before) (!var_map) else () in
+    let _ = if(VarMap.find_opt root_after !var_map)=None 
+            then var_map := VarMap.add root_after (empty_node root_after) (!var_map) else () in
     create_TR ();
     clean_TR ();
     paths:= [];
     get_path root_before [] "." "";
     mkdir_from_path (!paths);
     set_id root_before ".";
-    if(shell_script () <> is_error) then
+    if(shell_script cmd <> is_error) then
         (paths:= [];
         get_path root_after [] "." ""; 
         if(check_path (!paths)) then 

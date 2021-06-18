@@ -159,21 +159,21 @@ let var_map_display var_map =
     in 
     helper var_map
 
-let print_Atom (x:atom)  =
+let print_Atom (x:atom) y  =
   match x with
-  | Eq(v1,v2) -> Format.printf " Eq(%d,%d) " v1 v2
-  | Feat(v1,f,v2) -> Format.printf " Feat (%d,%s,%d) " v1 f v2
-  | Abs(v1,f) -> Format.printf " Abs(%d,%s) " v1 f
-  | Kind(v1,k) -> Format.printf " Kind(%d,%s) " v1 (kind_to_str k)
-  | Fen(v1,f) -> Format.printf " Fen(%d,[ " v1; (str_list_display f); Format.printf "]) "
-  | Sim(v1,f,v2) -> Format.printf " Sim(%d,[ " v1; (str_list_display f); Format.printf " ],%d) " v2
-  | Eqf(v1,f,v2) -> Format.printf " Eqf(%d,[ " v1; (str_list_display f); Format.printf " ],%d) " v2
+  | Eq(v1,v2) -> Format.printf " %s(Eq(%d,%d)) " y v1 v2
+  | Feat(v1,f,v2) -> Format.printf " %s(Feat(%d,%s,%d)) " y v1 f v2
+  | Abs(v1,f) -> Format.printf " %s(Abs(%d,%s)) " y v1 f
+  | Kind(v1,k) -> Format.printf " %s(Kind(%d,%s)) " y v1 (kind_to_str k)
+  | Fen(v1,f) -> Format.printf " %s(Fen(%d,[" y v1; (str_list_display f); Format.printf "])) "
+  | Sim(v1,f,v2) -> Format.printf " %s(Sim(%d,[" y v1; (str_list_display f); Format.printf "],%d)) " v2
+  | Eqf(v1,f,v2) -> Format.printf " %s(Eqf(%d,[" y v1; (str_list_display f); Format.printf "],%d)) " v2
 
 let rec print_clause (x:literal list)  =
   match x with
   | [] -> Format.printf "\n\n"
-  | Pos a::t -> print_Atom a; print_clause t
-  | Neg a::t -> print_Atom a; print_clause t
+  | Pos a::t -> print_Atom a "Pos"; print_clause t
+  | Neg a::t -> print_Atom a "Neg"; print_clause t
 
 let rec create_empty_var_map clause  = 
   match clause with 
@@ -776,8 +776,8 @@ let rec check_path path_list =
 
 
 
-let shell_script () =
-  if(Sys.command "touch ./a/b/../c/d/./e"=0)then true else false
+let shell_script cmd =
+  if(Sys.command cmd = 0)then true else false
 
 let safe_dir =  "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
 let create_TR () =
