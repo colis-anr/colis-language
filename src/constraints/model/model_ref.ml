@@ -777,7 +777,7 @@ let rec check_path path_list =
 
 
 let shell_script () =
-  ignore (Sys.command "mv ./a/b ./c");()
+  if(Sys.command "touch ./a/b/../c/d/./e"=0)then true else false
 
 let safe_dir =  "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
 let create_TR () =
@@ -792,7 +792,7 @@ let clean_TR () =
 
 
 (*make it boolean return for engine.ml and take the roots as input*)
-let test_files ()=
+(*let test_files ()=
   let l = get_unreachable () in
   let rec helper l count = 
     match l with 
@@ -812,7 +812,7 @@ let test_files ()=
                         (Format.printf "Failure\n" ;(helper [root_before;root_after] (count+1)))
                      
     |_ -> failwith "Not exactly 2 unreachable"
-  in helper l 1
+  in helper l 1*)
 
 
 let engine (clau_1:clause) =

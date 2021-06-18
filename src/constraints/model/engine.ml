@@ -49,16 +49,16 @@ let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
 }
 
 let utility_name = "touch"
-let args = ["./a/b"]
+let args = ["./a/b/../c/d/./e"]
 
 let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
 
-let root_v = 1 (*Replace by fresh*)
+let root_v = (Colis_constraints_common__Var.fresh ()) (*Replace by fresh*)
 
 let (initial_fs:Colis__.SymbolicUtility.Mixed.filesystem) = Constraints {
-      root = (Colis_constraints_common__Var.fresh ());
+      root = root_v;
       clause = Colis_constraints_efficient.true_sat_conj;
-      root0 = Some (Colis_constraints_common__Var.fresh ());
+      root0 = Some root_v;
     }
     
 let (initial_state:Colis__.SymbolicUtility.Mixed.state) =  {
@@ -138,11 +138,58 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
   | (state_,r)::t when (r = Ok true) -> (*Assuming r is a simple bool for now*)
                   let (out_fs:Colis__.SymbolicUtility.Mixed.filesystem) = state_.filesystem in
                   printStdout state_.stdout ;
-                  let s_c = out_fs.clause in
+                  let s_c = match out_fs with Constraints r -> r.clause | _ -> failwith "not a good fs" in
+                  let rootb = match out_fs with Constraints r -> r.root0 | _ -> failwith "not a good fs" in 
+                  let roota = match out_fs with Constraints r -> r.root | _ -> failwith "not a good fs" in  
+                  let rootb = match rootb with | Some v -> v |None -> failwith "no root before" in
                   let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c) in
                   let s_c = List.of_seq s_c in
-                  Model_ref.print_clause (literal_to_Literal s_c);
+                  Format.printf "Output Clause : ";
+                  let s_c = literal_to_Literal s_c in
+                  Model_ref.print_clause (s_c);
+                  Model_ref.engine (s_c);
+                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) s_c false; 
                   run_model t
   | _::t -> run_model t
 
+let _ = Format.printf "\n%d\n" (List.length result_list)
 let _ = run_model result_list
+
+(*
+let (state_,r) = List.hd result_list
+let _ = Format.printf "A" 
+
+let (out_fs:Colis__.SymbolicUtility.Mixed.filesystem) = state_.filesystem 
+let _ =   Format.printf "B" 
+
+let _ = printStdout state_.stdout
+let _ =   Format.printf "C" 
+
+let s_c = (match out_fs with Constraints r -> r.clause | _ -> failwith "not a good fs") 
+let _ =   Format.printf "D" 
+
+let _ = Colis_constraints_efficient.pp_sat_conj Format.std_formatter (s_c)
+let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c)
+let _ =   Format.printf "E" 
+
+type 'a seq =
+ |Nil
+ |Cons of 'a * (unit -> 'a seq)
+
+let rec get n (s:Colis_constraints_common.Literal.t Seq.node) =
+  if n = 0 then ()
+  else
+    match s with
+    | Nil -> ()
+    | Cons(x,xf) -> Model_ref.print_clause (literal_to_Literal [x]); get (n-1) (xf ())
+let _ = Seq.iter (fun x -> Model_ref.print_clause (literal_to_Literal [x])) s_c
+
+
+
+let _ = get 10 (s_c ())
+let s_c = List.of_seq s_c 
+let _ =   Format.printf "F" 
+
+
+let _ =  Model_ref.print_clause (literal_to_Literal s_c)
+*)

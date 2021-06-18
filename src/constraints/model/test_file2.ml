@@ -47,14 +47,14 @@ let set_same_id v1 v2 s=
 let rec dissolve_id_sim (clau:clause) =
     match clau with 
     |[] -> ()
-    |Pos Sim(v1,fl,v2)::t -> set_same_id v1 v2 "SIM";
+    |Pos Sim(v1,_,v2)::t -> set_same_id v1 v2 "SIM";
                             dissolve_id_sim t
     | _::t -> dissolve_id_sim t
 
 let rec dissolve_id_eqf (clau:clause) =
     match clau with 
     |[] -> ()
-    |Pos Eqf(v1,fl,v2)::t -> set_same_id v1 v2 "EQF";
+    |Pos Eqf(v1,_,v2)::t -> set_same_id v1 v2 "EQF";
                             dissolve_id_sim t
     | _::t -> dissolve_id_eqf t
 
@@ -95,31 +95,32 @@ let rec check_id (v) (path)=
 
 
 
-let test_files_1_2 (root_before) (root_after) (clau) =
+let test_files_1_2 (root_before) (root_after) (clau) (is_error) =
     create_TR ();
     clean_TR ();
     paths:= [];
     get_path root_before [] "." "";
     mkdir_from_path (!paths);
     set_id root_before ".";
-    shell_script ();
-    paths:= [];
-    get_path root_after [] "." ""; 
-    if(check_path (!paths)) then 
-        (Format.printf "PATH CHECK SUCCESS\n\n";
-        Format.printf "%s" "\n\tID Dissolve Repot\nEquality(*) Dissolve Error:\n";
-        check_id root_after ".";
+    if(shell_script () <> is_error) then
+        (paths:= [];
+        get_path root_after [] "." ""; 
+        if(check_path (!paths)) then 
+            (Format.printf "PATH CHECK SUCCESS\n\n";
+            Format.printf "%s" "\n\tID Dissolve Repot\nEquality(*) Dissolve Error:\n";
+            check_id root_after ".";
 
-        Format.printf "%s" "\n\nSIM(F) Dissolve Error:\n";
-        dissolve_id_sim clau;
-        check_id root_after ".";
+            Format.printf "%s" "\n\nSIM(F) Dissolve Error:\n";
+            dissolve_id_sim clau;
+            check_id root_after ".";
 
-        Format.printf "%s" "\n\nEquality(F) Dissolve Error:\n";
-        dissolve_id_eqf clau;
-        check_id root_after ".";
+            Format.printf "%s" "\n\nEquality(F) Dissolve Error:\n";
+            dissolve_id_eqf clau;
+            check_id root_after ".";
 
-        )
-    else 
-    (Format.printf "Failure\n") 
+            )
+        else 
+        (Format.printf "Failure\n") )
+    else Format.printf "%s" (if(is_error)then "\nCMD does not give an error\n" else "\nCMD gives an error\n")
                      
 let test_eng () = engine clau_1;test_files_1_2 1 5 clau_1
