@@ -825,7 +825,7 @@ let engine (clau_1:clause) =
   clause_phase_IV clau_1;
   clause_phase_V clau_1;
   dissolve_all ();
-  var_map_display !var_map;
+  (*var_map_display !var_map;*)
   (*execute !mkdir*)
 
 
