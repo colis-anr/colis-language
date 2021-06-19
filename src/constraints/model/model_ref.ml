@@ -61,6 +61,8 @@ type clause = literal list
 let var_map = ref VarMap.empty
 let fBigSet = ref FSet.empty
 let paths = ref []
+let v_all = ref VSet.empty
+let v_max = ref 0 
 
 (*VARIOUS FUNCTIONS NEEDED*)
 
@@ -504,9 +506,9 @@ let not_Fen_transform atom  =
                         if(not v1_node.fen_p) then
                           begin
                             let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
-                            let v_new = (VarMap.cardinal !var_map) + 3 in
-                            var_map := VarMap.add v_new (empty_node v_new) !var_map;
-                            add_feat_to_node (Feat (v1,new_f,v_new));
+                            v_max :=  !v_max + 1; (*Make sure max has already been stored*)
+                            var_map := VarMap.add !v_max (empty_node !v_max) !var_map;
+                            add_feat_to_node (Feat (v1,new_f,!v_max));
                             fBigSet := FSet.add new_f !fBigSet;
                             ()
                           end
@@ -544,9 +546,9 @@ let not_eq_sim_transform  atom =
   let helper4 () = if((not v1_node.fen_p)&&(isSim))then  
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
-                    let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
-                    var_map := VarMap.add v_new_1 (empty_node v_new_1) (!var_map);
-                    add_feat_to_node (Feat (v1,new_f,v_new_1));
+                    v_max :=  !v_max + 1;
+                    var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
+                    add_feat_to_node (Feat (v1,new_f,!v_max));
                     add_abs_to_node (Abs (v2,new_f));
                     fBigSet := FSet.add new_f !fBigSet;
                     ()
@@ -554,9 +556,9 @@ let not_eq_sim_transform  atom =
                 else if((not v2_node.fen_p)&&(isSim)) then
                   begin
                     let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
-                    let v_new_1 = (VarMap.cardinal (!var_map)) + 3 in
-                    var_map := VarMap.add v_new_1 (empty_node v_new_1) (!var_map);
-                    add_feat_to_node (Feat (v2,new_f,v_new_1));
+                    v_max :=  !v_max + 1;
+                    var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
+                    add_feat_to_node (Feat (v2,new_f,!v_max));
                     add_abs_to_node (Abs (v1,new_f));
                     fBigSet := FSet.add new_f !fBigSet;
                     ()
@@ -567,17 +569,17 @@ let not_eq_sim_transform  atom =
         match info_s with 
         |[] -> helper4 () (*For sim we can still add a new feature*)
         |(f1,None,None)::t -> if (((not v1_node.fen_p)||(FSet.mem f1 v1_node.fen))&&(is_allowed (Abs (v2,f1)) )) then 
-                              let v_new = (VarMap.cardinal (!var_map)) + 3 in
-                              var_map := VarMap.add v_new (empty_node v_new) (!var_map);
-                              add_feat_to_node (Feat (v1,f1,v_new));
+                              (v_max :=  !v_max + 1;
+                              var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
+                              add_feat_to_node (Feat (v1,f1,!v_max));
                               add_abs_to_node (Abs (v2,f1));
-                              ()
+                              ())
                            else if(((not v2_node.fen_p)||(FSet.mem f1 v2_node.fen))&&(is_allowed (Abs (v1,f1)) )) then 
-                              let v_new = (VarMap.cardinal (!var_map)) + 3 in
-                              var_map := VarMap.add v_new (empty_node v_new) (!var_map);
-                              add_feat_to_node (Feat (v2,f1,v_new));
+                              (v_max :=  !v_max + 1;
+                              var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
+                              add_feat_to_node (Feat (v2,f1,!v_max));
                               add_abs_to_node (Abs (v1,f1));
-                              ()
+                              ())
                            else helper3 t
         |_::t -> helper3 t
         in
@@ -863,8 +865,7 @@ let mutate (clau:clause) (num:int) =
 let engine (clau_1:clause) ?(m = false) ?(m_v = 10) () =
   var_map := VarMap.empty;
   let clau_1 = (if (m) then (mutate clau_1 m_v) else clau_1) in
-  Format.printf "Mutant Clause :";
-  print_clause clau_1;
+  let _ = (if(m)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
   fBigSet := FSet.empty;
   create_empty_var_map clau_1; 
   clause_phase_I clau_1;
