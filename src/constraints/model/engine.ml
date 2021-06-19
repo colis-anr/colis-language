@@ -126,10 +126,12 @@ let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_r
   | Pos a::t -> Pos (atom_to_Atom a):: literal_to_Literal t
   | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
 
+let _ = Format.printf "\nCMD: %s" (cmd)
 
 let result_list = try utility_ initial_state with 
-                  _ -> 
-                    Format.printf "\n\t-------EXCEPTION WAS ENCOUNTERED(while finding clause)------";
+                  e -> 
+                    let msg = Printexc.to_string e in
+                    Format.printf "\n-------EXCEPTION: [%s] ------" msg;
                     [initial_state,Incomplete]
 
 
@@ -161,6 +163,6 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
   | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
             run_model t print_b (num+1)
 
-let _ = Format.printf "\nCMD: %s\nNo of Clauses : %d" (cmd) (List.length result_list)
-let _ = run_model result_list false 1 (*False-> less print*)
+let _ = Format.printf "\nNo of Clauses : %d" (List.length result_list)
+let _ = run_model result_list true 1 (*False-> less print*)
 
