@@ -739,6 +739,22 @@ let get_unreachable () =
                       in helper2 l
   in helper1 ll
 
+let get_reachable_from_v v = 
+  let v_reach = ref VSet.empty in
+  v_reach := VSet.add v (!v_reach);
+  let rec get_reach (v)=
+    let ll = FMap.bindings ((find_node v).feat) in
+      let rec helper ll =
+        match ll with
+        |[] -> ()
+        |(_,v2)::t ->v_reach := VSet.add v2 (!v_reach);
+                      get_reach (v2);
+                      helper t
+      in helper ll
+  in get_reach v;(!v_reach)
+
+
+
 let rec get_path (v) (v_cycle) (path) (f)=
   let ll = FMap.bindings ((find_node v).feat) in
   if(List.mem v v_cycle)then failwith "Cycle Clash"
@@ -828,11 +844,19 @@ let clean_TR () =
     |_ -> failwith "Not exactly 2 unreachable"
   in helper l 1*)
 
+let set_v_max_all () = 
+  let rec helper vm_l = 
+    match vm_l with
+    |[]-> ()
+    |(v,_)::t-> v_all := VSet.add v !v_all;
+         v_max := if(!v_max < v)then v else !v_max;
+         helper t
+  in 
+  helper (VarMap.bindings !var_map)
 
-let mutate (clau:clause) (num:int) = 
-  let v_all = ref VSet.empty in
+
+  (*let v_all = ref VSet.empty in
   let v_max = ref 0 in
-  let clau = ref clau in
   create_empty_var_map !clau; (*Need to be gone again in engine for new vars*)
   clause_phase_I !clau; (*To make sure of fen and kind*)
   let rec helper vm_l = 
@@ -842,39 +866,56 @@ let mutate (clau:clause) (num:int) =
          v_max := if(!v_max < v)then v else !v_max;
          helper t
   in 
-  let _ = helper (VarMap.bindings !var_map) in
+  let _ = helper (VarMap.bindings !var_map) in*)
+let mutate (clau:clause) (num:int) (rootb)= 
+  let clau = ref clau in
+  let v_reach = ref (get_reachable_from_v rootb) in
   let v_max_old = !v_max in
-
   let rec add_noise = function
     |x when x > num -> (!clau)
     |x -> let v1 = 1 + Random.int !v_max in
-        if (not (VSet.mem v1 !v_all))then add_noise x
+        if (not (VSet.mem v1 !v_reach))then add_noise x
         else if ((v1<=v_max_old)&&(((find_node v1).fen_p) || ((find_node v1).kind = Reg))) then add_noise x
         else if((Random.int 10) < 8) then
           (v_max := !v_max + 1;
           let f_new = "GenFto"^(string_of_int !v_max) in
           v_all := VSet.add !v_max !v_all;
+          v_reach := VSet.add !v_max !v_reach;
+          var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
           clau := Pos(Feat(v1,f_new,!v_max)) :: (!clau);
+          add_feat_to_node (Feat(v1,f_new,!v_max));
           add_noise (x+1))
         else 
           (let f_new = "GenFAbs"^(string_of_int (Random.int !v_max)) in
+          var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
           clau:= Pos(Abs(v1,f_new)) :: (!clau);
+          add_abs_to_node (Abs(v1,f_new));
           add_noise (x+1))
   in add_noise 1
 
-
-let engine (clau_1:clause) ?(m = false) ?(p = true) ?(m_v = 10) () =
+let reintializ_ref () =
   var_map := VarMap.empty;
-  let clau_1 = (if (m) then (mutate clau_1 m_v) else clau_1) in
-  let _ = (if(m&&p)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
   fBigSet := FSet.empty;
+  v_all := VSet.empty;
+  v_max := 0; 
+  print_collect := "" 
+
+let engine (clau_1:clause) ?(m = false) ?(p = true) ?(m_v = 10) ?(rootb = 1) () =
+  reintializ_ref ();
+  (*let clau_1 = (if (m) then (mutate clau_1 m_v rootb) else clau_1) in
+  let _ = (if(m&&p)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in*)
+  
   create_empty_var_map clau_1; 
   clause_phase_I clau_1;
+  set_v_max_all ();
   clause_phase_II clau_1;
   clause_phase_III clau_1;
   clause_phase_IV clau_1;
   clause_phase_V clau_1;
   dissolve_all ();
+  let clau_1 = (if (m) then (mutate clau_1 m_v rootb) else clau_1) in
+  let _ = (if(m&&p)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
+  dissolve_all ()
   (*var_map_display !var_map;*)
   (*execute !mkdir*)
 

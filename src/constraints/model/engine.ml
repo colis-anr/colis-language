@@ -52,7 +52,7 @@ let split_cmd (cmd) =
   let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
   (List.hd sl,List.tl sl)
 
-let cmd = "mv ./a/b/../c/d/./e ./a/d"
+let cmd = "touch ./a/b/../c/d/./e"
 let (utility_name,args) = split_cmd (cmd)
 
 let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
@@ -157,12 +157,12 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let _ = if(print_b) then
                   (Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
                   Model_ref.print_clause (s_c)) else (Format.printf "\n\nClause %d:"(num)) in
-                  Model_ref.engine (s_c) ~m:true ~p:print_b ();
+                  Model_ref.engine (s_c) ~m:true ~p:print_b ~rootb:(var_to_int rootb) ();
                   Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd) (print_b); 
                   run_model t print_b (num+1)
   | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
             run_model t print_b (num+1)
 
 let _ = Format.printf "\nNo of Clauses : %d" (List.length result_list)
-let _ = run_model result_list true 1 (*False-> less print*)
+let _ = run_model result_list false 1 (*False-> less print*)
 
