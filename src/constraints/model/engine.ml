@@ -48,9 +48,12 @@ let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
   args = [];
 }
 
-let utility_name = "mkdir"
-let args = ["./a/b/../c/d/./e"]
+let split_cmd (cmd) =
+  let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
+  (List.hd sl,List.tl sl)
+
 let cmd = "mkdir ./a/b/../c/d/./e"
+let (utility_name,args) = split_cmd (cmd)
 
 let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
 
@@ -155,6 +158,6 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
   | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
             run_model t print_b (num+1)
 
-let _ = Format.printf "\nNo of Clauses : %d\n" (List.length result_list)
-let _ = run_model result_list true 1 (*False-> less print*)
+let _ = Format.printf "\nCMD: %s\nNo of Clauses : %d" (cmd) (List.length result_list)
+let _ = run_model result_list false 1 (*False-> less print*)
 
