@@ -52,7 +52,7 @@ let split_cmd (cmd) =
   let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
   (List.hd sl,List.tl sl)
 
-let cmd = "mkdir ./a/b/../c/d/./e"
+let cmd = "mv ./a/b/../c/d/./e ./a/d"
 let (utility_name,args) = split_cmd (cmd)
 
 let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
@@ -127,7 +127,10 @@ let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_r
   | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
 
 
-let result_list = utility_ initial_state
+let result_list = try utility_ initial_state with 
+                  _ -> 
+                    Format.printf "\n\t-------EXCEPTION WAS ENCOUNTERED(while finding clause)------";
+                    [initial_state,Incomplete]
 
 
 let printStdout stdO =
