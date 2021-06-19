@@ -148,11 +148,11 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let s_c = literal_to_Literal s_c in
                   let _ = if(print_b) then
                   (Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
-                  Model_ref.print_clause (s_c)) else (Format.printf "\n\tClause %d\n"(num)) in
+                  Model_ref.print_clause (s_c)) else (Format.printf "\n\nClause %d:"(num)) in
                   Model_ref.engine (s_c) ~m:true ~p:print_b ();
                   Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd) (print_b); 
                   run_model t print_b (num+1)
-  | _::t -> Format.printf "\n\tClause %d : Incomplete\n"(num);
+  | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
             run_model t print_b (num+1)
 
 let _ = Format.printf "\nNo of Clauses : %d\n" (List.length result_list)

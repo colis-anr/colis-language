@@ -86,7 +86,7 @@ let rec check_id (v) (path)=
                      (check_id (v2) (path^"/"^f2) ;
                      helper t)
                      else 
-                     (Format.printf "%s" ("\nID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2_id(stored): "^v2_id^", v2_id(FS): "^(FMap.find f2 id_map));
+                     (Format.printf "%s" ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2_id(stored): "^v2_id^", v2_id(FS): "^(FMap.find f2 id_map)^"\n");
                      check_id (v2) (path^"/"^f2);
                      helper t)
     in helper ll)
@@ -111,14 +111,14 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) (print_b) 
             let _ = if(print_b) then Format.printf "%s" (!print_collect) else () in
             print_collect := "";
             (Format.printf "\t\t***PATH CHECK SUCCESS***\n";
-            Format.printf "%s" "\tID Dissolve Repot\nEquality(*) Dissolve Error:\n";
+            Format.printf "%s" "\t\t\tID Dissolve Repot\nEquality(*) Dissolve Error:\t";
             check_id root_after ".";
 
-            Format.printf "%s" "SIM(F) Dissolve Error:\n";
+            Format.printf "%s" "SIM(F) Dissolve Error:\t";
             dissolve_id_sim clau;
             check_id root_after ".";
 
-            Format.printf "%s" "Equality(F) Dissolve Error:\n";
+            Format.printf "%s" "Equality(F) Dissolve Error:\t";
             dissolve_id_eqf clau;
             check_id root_after ".";
 
