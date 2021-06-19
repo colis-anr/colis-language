@@ -63,6 +63,7 @@ let fBigSet = ref FSet.empty
 let paths = ref []
 let v_all = ref VSet.empty
 let v_max = ref 0 
+let print_collect = ref "" 
 
 (*VARIOUS FUNCTIONS NEEDED*)
 
@@ -764,27 +765,27 @@ let rec mkdir_from_path path_list =
   |(h,f,v)::t when ((v <> 0) && (f <> "")) -> 
            let h1 = "mkdir -p "^h in
            let h2 = "touch "^(h^"/"^f) in
-           Format.printf "%s\n %s\n" h1 h2 ;ignore (Sys.command h1);
+           print_collect := !print_collect^h1^"\n"^h2^"\n" ;ignore (Sys.command h1);
            ignore (Sys.command h2); 
            mkdir_from_path t
 
   |(h,_,_)::t -> let h = "mkdir -p "^h in
-           Format.printf "%s\n" h ;ignore (Sys.command h); 
+           print_collect := !print_collect^h^"\n" ;ignore (Sys.command h); 
            mkdir_from_path t
 
 let rec check_path path_list =
   match path_list with 
   |[] -> true
   |(h,f,_)::t when f = "" -> 
-                Format.printf "check : %s\n" h ;
+                print_collect := !print_collect^"check : "^h^"\n" ;
                 if(Sys.file_exists h)then check_path t else false
   |(h,f,v)::t when v = 0->
                 let h2 = (h^"/"^f) in
-                Format.printf "check : %s\t" h ;
-                Format.printf "check Abs : %s\n" h2 ;
+                print_collect := !print_collect^"check : "^h^"\t" ;
+                print_collect := !print_collect^"check Abs : "^h2^"\n" ;
                 if((Sys.file_exists h) && (not (Sys.file_exists h2)))then 
                 check_path t else false
-  |(h,f,_)::t -> Format.printf "check Reg : %s\n" (h^"/"^f) ;
+  |(h,f,_)::t -> print_collect := !print_collect^"check Reg : "^(h^"/"^f)^"\n" ;
               if(Sys.file_exists (h^"/"^f))then check_path t else false
 
 
@@ -862,10 +863,10 @@ let mutate (clau:clause) (num:int) =
   in add_noise 1
 
 
-let engine (clau_1:clause) ?(m = false) ?(m_v = 10) () =
+let engine (clau_1:clause) ?(m = false) ?(p = true) ?(m_v = 10) () =
   var_map := VarMap.empty;
   let clau_1 = (if (m) then (mutate clau_1 m_v) else clau_1) in
-  let _ = (if(m)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
+  let _ = (if(m&&p)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
   fBigSet := FSet.empty;
   create_empty_var_map clau_1; 
   clause_phase_I clau_1;

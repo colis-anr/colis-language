@@ -1,7 +1,5 @@
 open Model_ref
 
-let print_collect = ref "" 
-
 let get_id_feat_str path =
  (let tmp_file = Filename.temp_file "" ".txt" in
  let _ = Sys.command @@ "ls -i "^path^" >" ^ tmp_file in
@@ -95,7 +93,7 @@ let rec check_id (v) (path)=
 
 
 
-let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) =
+let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) (print_b) =
     let _ = if(VarMap.find_opt root_before !var_map)=None 
             then var_map := VarMap.add root_before (empty_node root_before) (!var_map) else () in
     let _ = if(VarMap.find_opt root_after !var_map)=None 
@@ -110,6 +108,8 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) =
         (paths:= [];
         get_path root_after [] "." ""; 
         if(check_path (!paths)) then 
+            let _ = if(print_b) then Format.printf "%s" (!print_collect) else () in
+            print_collect := "";
             (Format.printf "\t\t***PATH CHECK SUCCESS***\n";
             Format.printf "%s" "\tID Dissolve Repot\nEquality(*) Dissolve Error:\n";
             check_id root_after ".";
@@ -124,7 +124,7 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) =
 
             )
         else 
-        (Format.printf "Failure\n") )
-    else Format.printf "%s" (if(is_error)then "\nCMD does not give an error\n" else "\nCMD gives an error\n")
+        (Format.printf "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect)) )
+    else Format.printf "%s" (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n")
                      
 let test_eng () = engine clau_1 ();test_files_1_2 1 5 clau_1
