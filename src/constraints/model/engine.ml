@@ -1,9 +1,9 @@
 (*open Model_ref*)
 (*open Path*)
 
-let cwd = ref []
-let cwd_update ()= cwd := Colis_constraints.Path.normalize (Colis_constraints.Path.from_string ( Sys.getcwd ()));()
-
+(*let cwd = "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
+let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd))*)
+let cwd = [] (*When CWD is set to something else it gives an error*)
 (*
 type utility_context = {
   cwd : Colis_constraints.Path.normal;
@@ -41,36 +41,6 @@ let () =
      (module Colis__Test) ;
      (module Colis__Test.Bracket) ;
    ]
-
-let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
-  cwd = !cwd;
-  env = Colis__.Env.SMap.empty;
-  args = [];
-}
-
-let split_cmd (cmd) =
-  let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
-  (List.hd sl,List.tl sl)
-
-let cmd = "touch ./a/b/../c/d/./e"
-let (utility_name,args) = split_cmd (cmd)
-
-let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args)
-
-let root_v = (Colis_constraints_common__Var.fresh ()) (*Replace by fresh*)
-
-let (initial_fs:Colis__.SymbolicUtility.Mixed.filesystem) = Constraints {
-      root = root_v;
-      clause = Colis_constraints_efficient.true_sat_conj;
-      root0 = Some root_v;
-    }
-    
-let (initial_state:Colis__.SymbolicUtility.Mixed.state) =  {
-       filesystem = initial_fs;
-       stdin = [];
-       stdout = Colis__.Semantics__Buffers.Stdout.empty;
-       log = Colis__.Semantics__Buffers.Stdout.empty;
-     }
 
 let feat_to_string (x:Colis_constraints_common.Feat.t):string = Colis_constraints_common.Feat.to_string x
 
@@ -126,22 +96,13 @@ let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_r
   | Pos a::t -> Pos (atom_to_Atom a):: literal_to_Literal t
   | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
 
-let _ = Format.printf "\nCMD: %s" (cmd)
-
-let result_list = try utility_ initial_state with 
-                  e -> 
-                    let msg = Printexc.to_string e in
-                    Format.printf "\n-------EXCEPTION: [%s] ------" msg;
-                    [initial_state,Incomplete]
-
-
 let printStdout stdO =
   Format.printf "%s" (Colis__.Semantics__Buffers.Stdout.to_string stdO)
 
 
 let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
             bool Colis__Semantics__Result.result)
-           list) (print_b:bool) (num:int)= 
+           list) (print_b:bool) (num:int) (cmd)= 
   match res_l with
   | [] -> false
   | (state_,Ok x)::t ->
@@ -159,10 +120,53 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   Model_ref.print_clause (s_c)) else (Format.printf "\n\nClause %d:"(num)) in
                   Model_ref.engine (s_c) ~m:true ~p:print_b ~rootb:(var_to_int rootb) ();
                   Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd) (print_b); 
-                  run_model t print_b (num+1)
+                  run_model t print_b (num+1) cmd
   | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
-            run_model t print_b (num+1)
+            run_model t print_b (num+1) cmd
 
-let _ = Format.printf "\nNo of Clauses : %d" (List.length result_list)
-let _ = run_model result_list false 1 (*False-> less print*)
+let get_result (cmd) = 
+    
+    let split_cmd (cmd) =
+      let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
+      (List.hd sl,List.tl sl) in
+    
+    let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
+      cwd = cwd;
+      env = Colis__.Env.SMap.empty;
+      args = [];
+    } in   
+    let (utility_name,args) = split_cmd (cmd) in   
+    let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args) in  
+    let root_v = (Colis_constraints_common__Var.fresh ()) in
+    let (initial_fs:Colis__.SymbolicUtility.Mixed.filesystem) = Constraints {
+          root = root_v;
+          clause = Colis_constraints_efficient.true_sat_conj;
+          root0 = Some root_v;
+        } in
+    let (initial_state:Colis__.SymbolicUtility.Mixed.state) =  {
+           filesystem = initial_fs;
+           stdin = [];
+           stdout = Colis__.Semantics__Buffers.Stdout.empty;
+           log = Colis__.Semantics__Buffers.Stdout.empty;
+         } in
+    let _ = Format.printf "\nCMD: %s" (cmd) in
 
+    let result_list = try utility_ initial_state with 
+                    e -> 
+                    let msg = Printexc.to_string e in
+                    Format.printf "\n-------EXCEPTION: [%s] ------" msg;
+                    [initial_state,Incomplete] in
+    let _ = Format.printf "\nNo of Clauses : %d" (List.length result_list) in
+    let _ = run_model result_list false 1 cmd (*False-> less print*) in 
+    ()
+
+let rec loop_cmd (cmd_l) =
+  match cmd_l with
+  |[] -> ()
+  |h::t ->  Format.printf "----------------------------------------------";
+            get_result h;Format.printf "----------------------------------------------";
+            loop_cmd t
+
+let cmd_list = ["touch ./a/b/../c/d/./e";"mkdir ./a/b/../c/d/./e";"mkdir ./a/b/e"]
+
+let _ = loop_cmd cmd_list
