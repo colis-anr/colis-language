@@ -125,6 +125,6 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) (print_b) 
             )
         else 
         (Format.printf "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect)) )
-    else Format.printf "%s" (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n")
+    else Format.printf "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n")
                      
 let test_eng () = engine clau_1 ();test_files_1_2 1 5 clau_1

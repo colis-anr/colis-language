@@ -86,7 +86,7 @@ let atom_to_Atom (x: Colis_constraints_common.Atom.t): Model_ref.atom =
   | Eq(v1,v2) -> Eq(var_to_int v1,var_to_int v2)
   | Feat(v1,f,v2) -> Feat (var_to_int v1,feat_to_string f,var_to_int v2)
   | Abs(v1,f) -> Abs(var_to_int v1,feat_to_string f)
-  | Maybe _ -> assert false
+  | Maybe (v1,f,v2) -> Maybe (var_to_int v1,feat_to_string f,var_to_int v2)
   | Kind(v1,k) -> Kind(var_to_int v1,(kind_to_kind k))
   | Fen(v1,f) -> Fen(var_to_int v1,fset_to_fset f)
   | Sim(v1,f,v2) -> Sim(var_to_int v1,fset_to_fset f,var_to_int v2)
@@ -119,24 +119,31 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let _ = if(print_b) then
                   (Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
                   Model_ref.print_clause (s_c)) else (Format.printf "\n\nClause %d:"(num)) in
-                  Model_ref.engine (s_c) ~m:true ~p:print_b ~rootb:(var_to_int rootb) ();
+                  Model_ref.engine (s_c) ~m:false ~p:print_b ~rootb:(var_to_int rootb) ~roota:(var_to_int roota)();
                   Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd) (print_b); 
                   run_model t print_b (num+1) cmd
   | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
             run_model t print_b (num+1) cmd
 
-let get_result (cmd) (print_b:bool) = 
-    
-    let split_cmd (cmd) =
+let split_cmd (cmd) =
       let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
-      (List.hd sl,List.tl sl) in
+      let rec helper stl =
+        match stl with
+         |[]-> []
+         |h::t -> let h = if(String.contains h '/')then "./"^h else h in 
+                  h::(helper t)
+      in
+      (List.hd sl,helper (List.tl sl))
+
+let get_result (cmd) (print_b:bool) = 
     
     let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
       cwd = cwd;
       env = Colis__.Env.SMap.empty;
       args = [];
     } in   
-    let (utility_name,args) = split_cmd (cmd) in   
+    let (utility_name,args) = split_cmd (cmd) in  
+    let cmd = utility_name^" "^(String.concat " " args) in 
     let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args) in  
     let root_v = (Colis_constraints_common__Var.fresh ()) in
     let (initial_fs:Colis__.SymbolicUtility.Mixed.filesystem) = Constraints {
@@ -181,9 +188,9 @@ let read_file filename =
     close_in chan;
     List.rev !lines ;;
 
-let _ = loop_cmd (read_file cmd_file)
+(*let _ = loop_cmd (read_file cmd_file)*)
 
-(* For single cmd (use for debugging)
-let cmd = "touch ./a/b/../c/d/./e"
+(* For single cmd (use for debugging)*)
+let cmd = "touch a/b/c/d a/l/f"
 let _ = get_result cmd true(*False-> less print*)
-*)
+

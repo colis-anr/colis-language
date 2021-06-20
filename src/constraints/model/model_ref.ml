@@ -49,6 +49,7 @@ type atom =
   | Fen of var * feature list
   | Sim of var * feature list * var
   | Kind of var * kindt
+  | Maybe of var * feature * var (*Unimplemented*)
 
 type var_map_type = node VarMap.t
 
@@ -172,7 +173,7 @@ let print_Atom (x:atom) y  =
   | Fen(v1,f) -> Format.printf " %s(Fen(%d,[" y v1; (str_list_display f); Format.printf "])) "
   | Sim(v1,f,v2) -> Format.printf " %s(Sim(%d,[" y v1; (str_list_display f); Format.printf "],%d)) " v2
   | Eqf(v1,f,v2) -> Format.printf " %s(Eqf(%d,[" y v1; (str_list_display f); Format.printf "],%d)) " v2
-
+  | Maybe(v1,f,v2) -> Format.printf " %s(Maybe(%d,%s,%d)) " y v1 f v2
 let rec print_clause (x:literal list)  =
   match x with
   | [] -> Format.printf "\n\n"
@@ -216,7 +217,13 @@ let rec create_empty_var_map clause  =
                     fBigSet := FSet.union (FSet.of_list fl) (!fBigSet);
                     create_empty_var_map t 
   |Pos Kind(v1,_)::t| Neg Kind(v1,_)::t -> var_map := VarMap.add v1 (empty_node v1) (!var_map);
-                    create_empty_var_map t        
+                    create_empty_var_map t  
+  |Pos Maybe(v1,f,v2)::t| Neg Maybe(v1,f,v2)::t -> 
+                       var_map := VarMap.add v1 (empty_node v1) (!var_map); 
+                       var_map := VarMap.add v2 (empty_node v2) (!var_map); 
+                       fBigSet := FSet.add f (!fBigSet);
+                       create_empty_var_map t   
+
 
 
 let find_node v1 = 
@@ -807,6 +814,7 @@ let rec check_path path_list =
 
 
 let shell_script cmd =
+  print_collect := !print_collect^cmd^"\n" ;
   if(Sys.command cmd = 0)then true else false
 
 let safe_dir =  "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
@@ -893,15 +901,17 @@ let mutate (clau:clause) (num:int) (rootb)=
           add_noise (x+1))
   in add_noise 1
 
-let reintializ_ref () =
+let reintializ_ref roota rootb =
   var_map := VarMap.empty;
   fBigSet := FSet.empty;
   v_all := VSet.empty;
   v_max := 0; 
-  print_collect := "" 
+  print_collect := "";
+  var_map := VarMap.add roota (empty_node roota) (!var_map);
+  var_map := VarMap.add rootb (empty_node rootb) (!var_map) 
 
-let engine (clau_1:clause) ?(m = false) ?(p = true) ?(m_v = 10) ?(rootb = 1) () =
-  reintializ_ref ();
+let engine (clau_1:clause) ?(m = false) ?(p = true) ?(m_v = 10) ?(rootb = 1) ?(roota = 1)() =
+  reintializ_ref roota rootb;
   (*let clau_1 = (if (m) then (mutate clau_1 m_v rootb) else clau_1) in
   let _ = (if(m&&p)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in*)
   
