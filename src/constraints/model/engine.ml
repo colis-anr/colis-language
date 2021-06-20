@@ -124,7 +124,7 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
   | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
             run_model t print_b (num+1) cmd
 
-let get_result (cmd) = 
+let get_result (cmd) (print_b:bool) = 
     
     let split_cmd (cmd) =
       let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
@@ -154,19 +154,35 @@ let get_result (cmd) =
     let result_list = try utility_ initial_state with 
                     e -> 
                     let msg = Printexc.to_string e in
-                    Format.printf "\n-------EXCEPTION: [%s] ------" msg;
+                    Format.printf "\nEXCEPTION: [%s]" msg;
                     [initial_state,Incomplete] in
     let _ = Format.printf "\nNo of Clauses : %d" (List.length result_list) in
-    let _ = run_model result_list false 1 cmd (*False-> less print*) in 
+    let _ = run_model result_list print_b 1 cmd (*False-> less print*) in 
     ()
 
 let rec loop_cmd (cmd_l) =
   match cmd_l with
   |[] -> ()
-  |h::t ->  Format.printf "----------------------------------------------";
-            get_result h;Format.printf "----------------------------------------------";
+  |h::t ->  Format.printf "-------------------------------------------------------------------------";
+            get_result h false;
             loop_cmd t
 
-let cmd_list = ["touch ./a/b/../c/d/./e";"mkdir ./a/b/../c/d/./e";"mkdir ./a/b/e"]
+let cmd_file = "cmd.dat"
 
-let _ = loop_cmd cmd_list
+let read_file filename = 
+  let lines = ref [] in
+  let chan = open_in filename in
+  try
+    while true; do
+      lines := input_line chan :: !lines
+    done; !lines
+  with End_of_file ->
+    close_in chan;
+    List.rev !lines ;;
+
+let _ = loop_cmd (read_file cmd_file)
+
+(* For single cmd (use for debugging)
+let cmd = "touch ./a/b/../c/d/./e"
+let _ = get_result cmd true(*False-> less print*)
+*)
