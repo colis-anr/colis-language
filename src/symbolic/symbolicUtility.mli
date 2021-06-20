@@ -231,7 +231,7 @@ module Constraints : sig
 
   (** A case specification is a function [fun r r' -> c] from the current root [r] and
      the new root [r] to a constraint clause [c]. *)
-  type case_spec = Var.t -> Var.t -> Clause.t
+  type case_spec = Var.t -> Var.t -> t
 
   include INTERPRETER
     with type filesystem := filesystem

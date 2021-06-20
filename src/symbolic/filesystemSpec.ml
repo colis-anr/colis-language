@@ -1,5 +1,4 @@
 open Format
-open Colis_constraints
 
 module SMap = Map.Make(String)
 
@@ -60,11 +59,11 @@ let add_channel cin t =
   with End_of_file -> !t
 
 let rec compile_constraints root t =
-  SMap.fold (fun name node -> Clause.and_ @@ compile_constraints_node root name node) t Clause.true_
+  SMap.fold (fun name node -> Colis_constraints.and_ @@ compile_constraints_node root name node) t Colis_constraints.true_
 
 and compile_constraints_node x name node =
+  let open Colis_constraints in
   let f = Feat.from_string name in
-  let open Clause in
   exists @@ fun y ->
   feat x f y &
   match node with

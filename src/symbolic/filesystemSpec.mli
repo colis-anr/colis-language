@@ -24,7 +24,7 @@ val add_channel : in_channel -> t -> t
 
 (** Compile the specification of a filesystem into a feature constraint at the given root
     variable.*)
-val compile_constraints : Colis_constraints.Var.t -> t -> Colis_constraints.Clause.t
+val compile_constraints : Colis_constraints.Var.t -> t -> Colis_constraints.t
 
 (** Print the FS spec as a tree *)
 val pp : Format.formatter -> t -> unit

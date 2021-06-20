@@ -423,9 +423,9 @@ module Constraints = struct
   module CaseSpec = struct
     include Filesystem
 
-    type case_spec = Var.t -> Var.t -> Clause.t
+    type case_spec = Var.t -> Var.t -> Colis_constraints.t
 
-    let noop = Clause.eq
+    let noop = Colis_constraints.eq
 
     (** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
     let apply_spec fs spec =

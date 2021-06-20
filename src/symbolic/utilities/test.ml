@@ -1,7 +1,5 @@
-
 open Format
 open Colis_constraints
-open Clause
 open SymbolicUtility.ConstraintsCompatibility
 
 let name = "test"
