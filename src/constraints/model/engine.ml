@@ -1,9 +1,14 @@
 (*open Model_ref*)
 (*open Path*)
 
-(*let cwd = "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
-let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd))*)
-let cwd = [] (*When CWD is set to something else it gives an error*)
+(*
+let cwd = "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
+let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd))
+*)
+
+let cwd = [] (*It is better to keep it this way or ID check malfunctions also as the test actually takes place in the system, rm(s) present can be dangerous*)
+
+
 (*
 type utility_context = {
   cwd : Colis_constraints.Path.normal;
@@ -42,7 +47,7 @@ let () =
      (module Colis__Test.Bracket) ;
    ]
 
-let feat_to_string (x:Colis_constraints_common.Feat.t):string = Colis_constraints_common.Feat.to_string x
+let feat_to_string (x:Colis_constraints_common.Feat.t):string = let x = Colis_constraints_common.Feat.to_string x in if (x = "") then "blank" else x
 
 let var_to_int (x:Colis_constraints_common.Var.t):int =
   let rec helper in_s out_s=
@@ -103,7 +108,7 @@ let printStdout stdO =
 
 let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
             bool Colis__Semantics__Result.result)
-           list) (print_b:bool) (num:int) (cmd)= 
+           list) (print_b:bool) (num:int) (cmd) (mutate:bool)= 
   match res_l with
   | [] -> false
   | (state_,Ok x)::t ->
@@ -119,11 +124,11 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let _ = if(print_b) then
                   (Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
                   Model_ref.print_clause (s_c)) else (Format.printf "\n\nClause %d:"(num)) in
-                  Model_ref.engine (s_c) ~m:false ~p:print_b ~rootb:(var_to_int rootb) ~roota:(var_to_int roota)();
-                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd) (print_b); 
-                  run_model t print_b (num+1) cmd
+                  Model_ref.engine (s_c) ~m:mutate ~p:print_b ~rootb:(var_to_int rootb) ~roota:(var_to_int roota)();
+                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd) (print_b);
+                  run_model t print_b (num+1) cmd mutate
   | _::t -> Format.printf "\n\n\tClause %d : Incomplete\n"(num);
-            run_model t print_b (num+1) cmd
+            run_model t print_b (num+1) cmd mutate
 
 let split_cmd (cmd) =
       let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
@@ -135,7 +140,7 @@ let split_cmd (cmd) =
       in
       (List.hd sl,helper (List.tl sl))
 
-let get_result (cmd) (print_b:bool) = 
+let get_result (cmd) ?(m = false) ?(p = true) () = 
     
     let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
       cwd = cwd;
@@ -165,15 +170,15 @@ let get_result (cmd) (print_b:bool) =
                     Format.printf "\nEXCEPTION: [%s]" msg;
                     [initial_state,Incomplete] in
     let _ = Format.printf "\nNo of Clauses : %d" (List.length result_list) in
-    let _ = run_model result_list print_b 1 cmd (*False-> less print*) in 
+    let _ = run_model result_list p 1 cmd m (*False-> less print*) in 
     ()
 
-let rec loop_cmd (cmd_l) =
+let rec loop_cmd (cmd_l) ?(m = false) ?(p = true) ()=
   match cmd_l with
   |[] -> ()
   |h::t ->  Format.printf "-------------------------------------------------------------------------";
-            get_result h false;
-            loop_cmd t
+            get_result h ~m:m ~p:p (); (*False-> less print*)
+            loop_cmd t ~m:m ~p:p ()
 
 let cmd_file = "cmd.dat"
 
@@ -188,9 +193,11 @@ let read_file filename =
     close_in chan;
     List.rev !lines ;;
 
-(*let _ = loop_cmd (read_file cmd_file)*)
+(*m-> boolean specifying if mutuate; p->boolean specifying if print detail*)
+(*
+let _ = loop_cmd (read_file cmd_file) ~m:true ~p:true ()
 
-(* For single cmd (use for debugging)*)
-let cmd = "touch a/b/c/d a/l/f"
-let _ = get_result cmd true(*False-> less print*)
+For single cmd (use for debugging)*)
+let cmd = "mkdir ntfsfix/./../"
+let _ = get_result cmd ~m:true ~p:true ()
 

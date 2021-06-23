@@ -1,5 +1,5 @@
-touch ./a/b/../c/d/./e
-mkdir ./a/b/../c/d/./e
-mkdir ./a/b/e/f
-man touch
-mv ./a/b/../c/d/./e ./a/d
+test -e ./a/b/../c/d/./e
+test -e ./a/b/../c/d/./e ./d/l
+test -d ./a/b/../c/d/./e
+test -d ./a/b/../c/d/./e ./d/l
+

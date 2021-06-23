@@ -875,15 +875,16 @@ let set_v_max_all () =
          helper t
   in 
   let _ = helper (VarMap.bindings !var_map) in*)
-let mutate (clau:clause) (num:int) (rootb)= 
+let mutate (clau:clause) (num:int) (rootb) = 
   let clau = ref clau in
   let v_reach = ref (get_reachable_from_v rootb) in
   let v_max_old = !v_max in
-  let rec add_noise = function
-    |x when x > num -> (!clau)
-    |x -> let v1 = 1 + Random.int !v_max in
-        if (not (VSet.mem v1 !v_reach))then add_noise x
-        else if ((v1<=v_max_old)&&(((find_node v1).fen_p) || ((find_node v1).kind = Reg))) then add_noise x
+  let rec add_noise x safety = 
+    match (x,safety) with
+    |(x,safety) when ((x > num) || (safety>(10*num))) -> (!clau)
+    |(x,safety) -> let v1 = 1 + Random.int !v_max in
+        if (not (VSet.mem v1 !v_reach))then add_noise x (safety+1)
+        else if ((v1<=v_max_old)&&(((find_node v1).fen_p) || ((find_node v1).kind = Reg))) then add_noise x (safety+1)
         else if((Random.int 10) < 8) then
           (v_max := !v_max + 1;
           let f_new = "GenFto"^(string_of_int !v_max) in
@@ -892,14 +893,14 @@ let mutate (clau:clause) (num:int) (rootb)=
           var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
           clau := Pos(Feat(v1,f_new,!v_max)) :: (!clau);
           add_feat_to_node (Feat(v1,f_new,!v_max));
-          add_noise (x+1))
+          add_noise (x+1)(safety+1))
         else 
           (let f_new = "GenFAbs"^(string_of_int (Random.int !v_max)) in
           var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
           clau:= Pos(Abs(v1,f_new)) :: (!clau);
           add_abs_to_node (Abs(v1,f_new));
-          add_noise (x+1))
-  in add_noise 1
+          add_noise (x+1) (safety+1))
+  in add_noise 1 1
 
 let reintializ_ref roota rootb =
   var_map := VarMap.empty;
@@ -926,7 +927,7 @@ let engine (clau_1:clause) ?(m = false) ?(p = true) ?(m_v = 10) ?(rootb = 1) ?(r
   let clau_1 = (if (m) then (mutate clau_1 m_v rootb) else clau_1) in
   let _ = (if(m&&p)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
   dissolve_all ()
-  (*var_map_display !var_map;*)
+  (*var_map_display !var_map*)
   (*execute !mkdir*)
 
 

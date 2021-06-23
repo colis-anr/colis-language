@@ -65,9 +65,11 @@ let rec set_id (v) (path)=
       match ll with
       |[] -> ()
       |(_,v2)::t when v2 = 0 -> helper t
-      |(f2,v2)::t -> add_id_node v2 (FMap.find f2 id_map);
+      |(f2,v2)::t -> try(
+                     add_id_node v2 (FMap.find f2 id_map);
                      set_id (v2) (path^"/"^f2) ;
-                     helper t
+                     helper t)
+                    with Not_found-> Format.printf "Not_Found during check_id(%d,%s,%d)\n" v f2 v2
     in helper ll)
 
 let rec check_id (v) (path)=
@@ -80,7 +82,7 @@ let rec check_id (v) (path)=
       match ll with
       |[] -> ()
       |(_,v2)::t when v2 = 0 -> helper t
-      |(f2,v2)::t ->
+      |(f2,v2)::t -> try(
                      let v2_id = (find_node v2).id in
                      if ((v2_id = (FMap.find f2 id_map))||(v2_id = "")) then
                      (check_id (v2) (path^"/"^f2) ;
@@ -88,7 +90,8 @@ let rec check_id (v) (path)=
                      else 
                      (Format.printf "%s" ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2_id(stored): "^v2_id^", v2_id(FS): "^(FMap.find f2 id_map)^"\n");
                      check_id (v2) (path^"/"^f2);
-                     helper t)
+                     helper t))
+                    with Not_found-> Format.printf "Not_Found during check_id(%d,%s,%d)\n" v f2 v2
     in helper ll)
 
 
