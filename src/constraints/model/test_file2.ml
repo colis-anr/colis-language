@@ -39,6 +39,7 @@ let set_same_id v1 v2 s=
    |("",id2)-> add_id_node v1 id2
    |(id1,"")-> add_id_node v2 id1
    |(id1,id2) when id1 <> id2-> 
+              Printf.fprintf out_f_l "%s" ("\nDifferent ID of V"^(string_of_int v1)^" and V"^(string_of_int v2)^" on "^s);
               Format.printf "%s" ("\nDifferent ID of V"^(string_of_int v1)^" and V"^(string_of_int v2)^" on "^s);()
    | _ -> ())
  
@@ -69,7 +70,8 @@ let rec set_id (v) (path)=
                      add_id_node v2 (FMap.find f2 id_map);
                      set_id (v2) (path^"/"^f2) ;
                      helper t)
-                    with Not_found-> Format.printf "Not_Found during check_id(%d,%s,%d)\n" v f2 v2
+                    with Not_found-> Printf.fprintf out_f_l "Not_Found during check_id(%d,%s,%d)\n" v f2 v2;
+                    Format.printf "Not_Found during check_id(%d,%s,%d)\n" v f2 v2
     in helper ll)
 
 let rec check_id (v) (path)=
@@ -88,10 +90,12 @@ let rec check_id (v) (path)=
                      (check_id (v2) (path^"/"^f2) ;
                      helper t)
                      else 
-                     (Format.printf "%s" ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2_id(stored): "^v2_id^", v2_id(FS): "^(FMap.find f2 id_map)^"\n");
+                     ( Printf.fprintf out_f_l "%s" ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2_id(stored): "^v2_id^", v2_id(FS): "^(FMap.find f2 id_map)^"\n");
+                     Format.printf "%s" ("ID Mismatch f: "^f2^" , v1: "^(string_of_int v)^" , v2: "^(string_of_int v2)^ ", v2_id(stored): "^v2_id^", v2_id(FS): "^(FMap.find f2 id_map)^"\n");
                      check_id (v2) (path^"/"^f2);
                      helper t))
-                    with Not_found-> Format.printf "Not_Found during check_id(%d,%s,%d)\n" v f2 v2
+                    with Not_found-> Printf.fprintf out_f_l "Not_Found during check_id(%d,%s,%d)\n" v f2 v2;
+                    Format.printf "Not_Found during check_id(%d,%s,%d)\n" v f2 v2
     in helper ll)
 
 
@@ -111,23 +115,30 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) (print_b) 
         (paths:= [];
         get_path root_after [] "." ""; 
         if(check_path (!paths)) then 
-            let _ = if(print_b) then Format.printf "%s" (!print_collect) else () in
+            let _ = if(print_b) then (Printf.fprintf out_f_l "%s" (!print_collect);Format.printf "%s" (!print_collect) ) else () in
             print_collect := "";
-            (Format.printf "\t\t***PATH CHECK SUCCESS***\n";
+            (Printf.fprintf out_f_l "\t\t***PATH CHECK SUCCESS***\n";
+            Format.printf "\t\t***PATH CHECK SUCCESS***\n";
+            Printf.fprintf out_f_l "%s" "\t\t\tID Dissolve Repot\nEquality(*) Dissolve Error:\t";
             Format.printf "%s" "\t\t\tID Dissolve Repot\nEquality(*) Dissolve Error:\t";
             check_id root_after ".";
 
+            Printf.fprintf out_f_l "%s" "SIM(F) Dissolve Error:\t";
             Format.printf "%s" "SIM(F) Dissolve Error:\t";
             dissolve_id_sim clau;
             check_id root_after ".";
 
+            Printf.fprintf out_f_l "%s" "Equality(F) Dissolve Error:\t";
             Format.printf "%s" "Equality(F) Dissolve Error:\t";
             dissolve_id_eqf clau;
             check_id root_after ".";
 
+
             )
         else 
-        (Format.printf "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect)) )
-    else Format.printf "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n")
-                     
+        (Printf.fprintf out_f_l "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect);
+        Format.printf "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect)) )
+    
+    else (Printf.fprintf out_f_l "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n");
+    Format.printf "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n"))                
 let test_eng () = engine clau_1 ();test_files_1_2 1 5 clau_1

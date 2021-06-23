@@ -65,8 +65,13 @@ let paths = ref []
 let v_all = ref VSet.empty
 let v_max = ref 0 
 let print_collect = ref "" 
+let file1 = "print.dat"
+let out_f_l = open_out file1 
+
+
 
 (*VARIOUS FUNCTIONS NEEDED*)
+let close_file () = close_out out_f_l
 
 (*let empty_node ():node = {var_l = VSet.empty;feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty}*)
 let empty_node v:node = {var_l = VSet.of_list [v];feat = FMap.empty;equality = [];notfeat=[];sim = [];fen = FSet.empty;fen_p=false;id = "";kind = Unknown}
@@ -77,12 +82,14 @@ let fresh =
 
 let rec int_list_display = function
   |[] -> ()
-  |h::t -> Format.printf "%d, " h;
+  |h::t -> Printf.fprintf out_f_l "%d, " h;
+           Format.printf "%d, " h;
            int_list_display t
 
 let rec str_list_display = function
   |[] -> ()
-  |h::t -> Format.printf "%s, " h;
+  |h::t -> Printf.fprintf out_f_l "%s, " h;
+           Format.printf "%s, " h;
            str_list_display t
 
 let kind_to_str = function
@@ -166,17 +173,42 @@ let var_map_display var_map =
 
 let print_Atom (x:atom) y  =
   match x with
-  | Eq(v1,v2) -> Format.printf " %s(Eq(%d,%d)) " y v1 v2
-  | Feat(v1,f,v2) -> Format.printf " %s(Feat(%d,%s,%d)) " y v1 f v2
-  | Abs(v1,f) -> Format.printf " %s(Abs(%d,%s)) " y v1 f
-  | Kind(v1,k) -> Format.printf " %s(Kind(%d,%s)) " y v1 (kind_to_str k)
-  | Fen(v1,f) -> Format.printf " %s(Fen(%d,[" y v1; (str_list_display f); Format.printf "])) "
-  | Sim(v1,f,v2) -> Format.printf " %s(Sim(%d,[" y v1; (str_list_display f); Format.printf "],%d)) " v2
-  | Eqf(v1,f,v2) -> Format.printf " %s(Eqf(%d,[" y v1; (str_list_display f); Format.printf "],%d)) " v2
-  | Maybe(v1,f,v2) -> Format.printf " %s(Maybe(%d,%s,%d)) " y v1 f v2
+  | Eq(v1,v2) ->  Printf.fprintf out_f_l " %s(Eq(%d,%d)) " y v1 v2;
+                  Format.printf " %s(Eq(%d,%d)) " y v1 v2
+
+  | Feat(v1,f,v2) -> Printf.fprintf out_f_l " %s(Feat(%d,%s,%d)) " y v1 f v2;
+                  Format.printf " %s(Feat(%d,%s,%d)) " y v1 f v2
+
+  | Abs(v1,f) ->  Printf.fprintf out_f_l " %s(Abs(%d,%s)) " y v1 f;
+                  Format.printf " %s(Abs(%d,%s)) " y v1 f
+
+  | Kind(v1,k) -> Printf.fprintf out_f_l " %s(Kind(%d,%s)) " y v1 (kind_to_str k);
+                  Format.printf " %s(Kind(%d,%s)) " y v1 (kind_to_str k)
+
+  | Fen(v1,f) ->Printf.fprintf out_f_l " %s(Fen(%d,[" y v1;
+                Format.printf " %s(Fen(%d,[" y v1;
+                (str_list_display f);
+                Printf.fprintf out_f_l "])) "; 
+                Format.printf "])) "
+  
+  | Sim(v1,f,v2) -> Printf.fprintf out_f_l " %s(Sim(%d,[" y v1;
+                Format.printf " %s(Sim(%d,[" y v1;
+                (str_list_display f);
+                Printf.fprintf out_f_l "],%d)) " v2; 
+                Format.printf "],%d)) " v2
+
+  | Eqf(v1,f,v2) ->  Printf.fprintf out_f_l " %s(Eqf(%d,[" y v1;
+                Format.printf " %s(Eqf(%d,[" y v1;
+                (str_list_display f);
+                Printf.fprintf out_f_l "],%d)) " v2; 
+                Format.printf "],%d)) " v2
+
+  | Maybe(v1,f,v2) -> Printf.fprintf out_f_l " %s(Maybe(%d,%s,%d)) " y v1 f v2;
+                Format.printf " %s(Maybe(%d,%s,%d)) " y v1 f v2
+
 let rec print_clause (x:literal list)  =
   match x with
-  | [] -> Format.printf "\n\n"
+  | [] -> Printf.fprintf out_f_l "\n\n";Format.printf "\n\n"
   | Pos a::t -> print_Atom a "Pos"; print_clause t
   | Neg a::t -> print_Atom a "Neg"; print_clause t
 
@@ -875,13 +907,13 @@ let set_v_max_all () =
          helper t
   in 
   let _ = helper (VarMap.bindings !var_map) in*)
-let mutate (clau:clause) (num:int) (rootb) = 
+let mutate (clau:clause) (num:int) (rootb)= 
   let clau = ref clau in
   let v_reach = ref (get_reachable_from_v rootb) in
   let v_max_old = !v_max in
   let rec add_noise x safety = 
     match (x,safety) with
-    |(x,safety) when ((x > num) || (safety>(10*num))) -> (!clau)
+    |(x,safety) when (x > num) || (safety>(num*10)) -> (!clau)
     |(x,safety) -> let v1 = 1 + Random.int !v_max in
         if (not (VSet.mem v1 !v_reach))then add_noise x (safety+1)
         else if ((v1<=v_max_old)&&(((find_node v1).fen_p) || ((find_node v1).kind = Reg))) then add_noise x (safety+1)
@@ -893,7 +925,7 @@ let mutate (clau:clause) (num:int) (rootb) =
           var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
           clau := Pos(Feat(v1,f_new,!v_max)) :: (!clau);
           add_feat_to_node (Feat(v1,f_new,!v_max));
-          add_noise (x+1)(safety+1))
+          add_noise (x+1) (safety+1))
         else 
           (let f_new = "GenFAbs"^(string_of_int (Random.int !v_max)) in
           var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
@@ -925,7 +957,7 @@ let engine (clau_1:clause) ?(m = false) ?(p = true) ?(m_v = 10) ?(rootb = 1) ?(r
   clause_phase_V clau_1;
   dissolve_all ();
   let clau_1 = (if (m) then (mutate clau_1 m_v rootb) else clau_1) in
-  let _ = (if(m&&p)then (Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
+  let _ = (if(m&&p)then (Printf.fprintf out_f_l "Mutant Clause :";Format.printf "Mutant Clause :";print_clause clau_1) else ()) in
   dissolve_all ()
   (*var_map_display !var_map*)
   (*execute !mkdir*)

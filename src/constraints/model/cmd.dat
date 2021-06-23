@@ -1,5 +1,1 @@
-test -e ./a/b/../c/d/./e
-test -e ./a/b/../c/d/./e ./d/l
-test -d ./a/b/../c/d/./e
-test -d ./a/b/../c/d/./e ./d/l
-
+touch ./false/../
