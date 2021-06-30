@@ -1,13 +1,13 @@
 open Model_ref
 (*open Path*)
 
+
+let cwd_s = "/tmp/InnerTR/Inner2TR/Inner3TR"
+let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd_s))
+
 (*
-let cwd = "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
-let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd))
-*)
-
 let cwd = [] (*It is better to keep it this way or ID check malfunctions also as the test actually takes place in the system, rm(s) present can be dangerous*)
-
+*)
 
 (*
 type utility_context = {
@@ -47,7 +47,7 @@ let () =
      (module Colis__Test.Bracket) ;
    ]
 
-let feat_to_string (x:Colis_constraints_common.Feat.t):string = Colis_constraints_common.Feat.to_string x
+let feat_to_string (x:Colis_constraints_common.Feat.t):string = let x = Colis_constraints_common.Feat.to_string x in x
 
 let var_to_int (x:Colis_constraints_common.Var.t):int =
   let rec helper in_s out_s=
@@ -96,6 +96,7 @@ let atom_to_Atom (x: Colis_constraints_common.Atom.t): Model_ref.atom =
   | Fen(v1,f) -> Fen(var_to_int v1,fset_to_fset f)
   | Sim(v1,f,v2) -> Sim(var_to_int v1,fset_to_fset f,var_to_int v2)
 
+(*Change name to clause_to_clause *)
 let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_ref.literal list =
   match x with
   | [] -> []
@@ -109,9 +110,9 @@ let printStdout stdO =
 
 let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
             bool Colis__Semantics__Result.result)
-           list) (print_b:bool) (num:int) (cmd) (mutate:bool)= 
+           list) (print_b:bool) (num:int) (cmd_mod) (mutate:bool)= 
   match res_l with
-  | [] -> false
+  | [] -> false (*why returning a bool*)
   | (state_,Ok x)::t ->
                   let (out_fs:Colis__.SymbolicUtility.Mixed.filesystem) = state_.filesystem in
                   printStdout state_.stdout ;
@@ -126,21 +127,28 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   ( Printf.fprintf out_f_l "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);
                     Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
                   
-                  Model_ref.print_clause (s_c)) else (Printf.fprintf out_f_l "\n\nClause %d:"(num);Format.printf "\n\nClause %d:"(num)) in
+                  Model_ref.print_clause (s_c)) else (Printf.fprintf out_f_l "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num);Format.printf "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num)) in
                   Model_ref.engine (s_c) ~m:mutate ~p:print_b ~rootb:(var_to_int rootb) ~roota:(var_to_int roota)();
-                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd) (print_b); 
-                  run_model t print_b (num+1) cmd mutate
+                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd_mod) (print_b); 
+                  run_model t print_b (num+1) cmd_mod mutate
   | _::t -> Printf.fprintf out_f_l "\n\n\tClause %d : Incomplete\n"(num);
             Format.printf "\n\n\tClause %d : Incomplete\n"(num);
-            run_model t print_b (num+1) cmd mutate
+            run_model t print_b (num+1) cmd_mod mutate
+
+let isRel s = (let p = String.sub (String.trim(s)) 0 1 in not (p = "/"))
+let isOpt s = (let p = String.sub (String.trim(s)) 0 1 in ((p = "-")||(String.trim(s)="!")))
 
 let split_cmd (cmd) =
-      let sl = Model_ref.list_remove "" (String.split_on_char ' ' cmd) in
+      let sl = list_remove "" (String.split_on_char ' ' cmd) in
       let rec helper stl =
         match stl with
-         |[]-> []
-         |h::t -> let h = if(String.contains h '/')then "./"^h else h in 
-                  h::(helper t)
+         |[]-> ([],[])
+         |h::t -> let h_mod = (if(not (isOpt h))then
+                            (if(isRel h) then "."^cwd_s^"/"^h 
+                            else "./"^h)
+                          else h) in     (*CHANGE HERE*)
+                  let (hl_1,hl_2) = helper t in
+                  (h::hl_1,h_mod::hl_2)
       in
       (List.hd sl,helper (List.tl sl))
 
@@ -151,8 +159,8 @@ let get_result (cmd) ?(m = false) ?(p = true) () =
       env = Colis__.Env.SMap.empty;
       args = [];
     } in   
-    let (utility_name,args) = split_cmd (cmd) in  
-    let cmd = utility_name^" "^(String.concat " " args) in 
+    let (utility_name,(args,args_mod)) = split_cmd (cmd) in  
+    let cmd_mod = utility_name^" "^(String.concat " " args_mod) in 
     let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args) in  
     let root_v = (Colis_constraints_common__Var.fresh ()) in
     let (initial_fs:Colis__.SymbolicUtility.Mixed.filesystem) = Constraints {
@@ -167,7 +175,9 @@ let get_result (cmd) ?(m = false) ?(p = true) () =
            log = Colis__.Semantics__Buffers.Stdout.empty;
          } in
     let _ = Printf.fprintf out_f_l "\nCMD: %s" (cmd);
-            Format.printf "\nCMD: %s" (cmd) in
+            Format.printf "\nCMD: %s" (cmd);
+            Printf.fprintf out_f_l "\nCMD_Mod: %s" (cmd_mod);
+            Format.printf "\nCMD_Mod: %s" (cmd_mod) in
 
     let result_list = try utility_ initial_state with 
                     e -> 
@@ -177,7 +187,7 @@ let get_result (cmd) ?(m = false) ?(p = true) () =
                     [initial_state,Incomplete] in
     let _ =  Printf.fprintf out_f_l "\nNo of Clauses : %d" (List.length result_list);
           Format.printf "\nNo of Clauses : %d" (List.length result_list) in
-    let _ = run_model result_list p 1 cmd m (*False-> less print*) in 
+    let _ = run_model result_list p 1 cmd_mod m (*False-> less print*) in 
     ()
 
 let rec loop_cmd (cmd_l) ?(m = false) ?(p = true) ()=
@@ -202,8 +212,8 @@ let read_file filename =
     List.rev !lines ;;
 
 (*m-> boolean specifying if mutuate; p->boolean specifying if print detail*)
-let _ =  Printf.fprintf out_f_l "\t\tMUTATION ON\n";Format.printf "\t\tMUTATION ON\n"
-let _ = loop_cmd (read_file cmd_file) ~m:true ~p:true ()
+let _ =  Printf.fprintf out_f_l "\t\tMUTATION OFF\n"
+let _ = loop_cmd (read_file cmd_file) ~m:false ~p:true ()
 
 (*For single cmd (use for debugging)
 let cmd = "mkdir ./a/b"

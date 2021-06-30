@@ -828,33 +828,60 @@ let rec mkdir_from_path path_list =
            print_collect := !print_collect^h^"\n" ;ignore (Sys.command h); 
            mkdir_from_path t
 
+let path_exists p = (Sys.command("test -e "^p)=0)
+let file_exists p = (Sys.command("test -f "^p)=0)
+
 let rec check_path path_list =
   match path_list with 
   |[] -> true
   |(h,f,_)::t when f = "" -> 
                 print_collect := !print_collect^"check : "^h^"\n" ;
-                if(Sys.file_exists h)then check_path t else false
+                if(path_exists h)then check_path t else false
   |(h,f,v)::t when v = 0->
                 let h2 = (h^"/"^f) in
                 print_collect := !print_collect^"check : "^h^"\t" ;
                 print_collect := !print_collect^"check Abs : "^h2^"\n" ;
-                if((Sys.file_exists h) && (not (Sys.file_exists h2)))then 
+                if((path_exists h) && (not (path_exists h2)))then 
                 check_path t else false
   |(h,f,_)::t -> print_collect := !print_collect^"check Reg : "^(h^"/"^f)^"\n" ;
-              if(Sys.file_exists (h^"/"^f))then check_path t else false
+              if(file_exists (h^"/"^f))then check_path t else false
 
 
 
-let shell_script cmd =
-  print_collect := !print_collect^cmd^"\n" ;
-  if(Sys.command cmd = 0)then true else false
 
+(*FOR PC USE BELOW*)
+(*
 let safe_dir =  "/media/ap/New Volume/IIIT Kalyani/Internships/Feature Tree Logic/Reverse/ADifferentWay/Test region/InnerTR/Inner2TR/Inner3TR"
 let create_TR () =
   ignore (Sys.chdir safe_dir);
   ignore (Sys.command "mkdir ./TR");
-  Sys.chdir("./TR");()
+  Sys.chdir("./TR");() *)
 
+(*FOR DOCKET USE BELOW*)
+
+let safe_dir =  "/tmp/InnerTR/Inner2TR/Inner3TR"
+let create_TR () =
+  ignore (Sys.command ("mkdir -p "^safe_dir));
+  ignore (Sys.chdir safe_dir);
+  ignore (Sys.command ("mkdir -p ./TR"^safe_dir));
+  Sys.chdir("./TR");() 
+
+let shell_script cmd =
+  ignore (Sys.command ("mkdir -p ."^safe_dir));
+  (*ignore (Sys.chdir ("."^safe_dir));
+  print_collect := !print_collect^"\ncd ."^safe_dir^" \n" ;*)
+  print_collect := !print_collect^cmd^"\n" ;
+  let bo = (Sys.command cmd = 0) in
+  (*ignore (Sys.chdir (safe_dir^"/TR"));
+  print_collect := !print_collect^"cd "^safe_dir^"/TR\n\n" ;*)
+  (*print_collect := !print_collect^"CWD ->"^(Sys.getcwd ())^"\n" ;*)
+  if(bo)then true else false
+
+(*
+let shell_script cmd =
+  print_collect := !print_collect^cmd^"\n" ;
+  if(Sys.command cmd = 0)then true else false
+*)
 let clean_TR () = 
   Sys.chdir("..");
   ignore (Sys.command "rm -r ./TR/*");
