@@ -1,4 +1,4 @@
-open Model_ref
+open Common
 
 let get_id_feat_str path =
  (let tmp_file = Filename.temp_file "" ".txt" in
@@ -99,46 +99,3 @@ let rec check_id (v) (path)=
     in helper ll)
 
 
-
-let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) (print_b) =
-    let _ = if(VarMap.find_opt root_before !var_map)=None 
-            then var_map := VarMap.add root_before (empty_node root_before) (!var_map) else () in
-    let _ = if(VarMap.find_opt root_after !var_map)=None 
-            then var_map := VarMap.add root_after (empty_node root_after) (!var_map) else () in
-    create_TR ();
-    clean_TR ();
-    paths:= [];
-    get_path root_before [] "." "";
-    mkdir_from_path (!paths);
-    set_id root_before ".";
-    if(shell_script cmd <> is_error) then
-        (paths:= [];
-        get_path root_after [] "." ""; 
-        if(check_path (!paths)) then 
-            let _ = if(print_b) then (Printf.fprintf out_f_l "%s" (!print_collect);Format.printf "%s" (!print_collect) ) else () in
-            print_collect := "";
-            (Printf.fprintf out_f_l "\t\t***PATH CHECK SUCCESS***\n";
-            Format.printf "\t\t***PATH CHECK SUCCESS***\n";
-            Printf.fprintf out_f_l "%s" "\t\t\tID Dissolve Repot\nEquality(*) Dissolve Error:\t";
-            Format.printf "%s" "\t\t\tID Dissolve Repot\nEquality(*) Dissolve Error:\t";
-            check_id root_after ".";
-
-            Printf.fprintf out_f_l "%s" "SIM(F) Dissolve Error:\t";
-            Format.printf "%s" "SIM(F) Dissolve Error:\t";
-            dissolve_id_sim clau;
-            check_id root_after ".";
-
-            Printf.fprintf out_f_l "%s" "Equality(F) Dissolve Error:\t";
-            Format.printf "%s" "Equality(F) Dissolve Error:\t";
-            dissolve_id_eqf clau;
-            check_id root_after ".";
-
-
-            )
-        else 
-        (Printf.fprintf out_f_l "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect);
-        Format.printf "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect)) )
-    
-    else (Printf.fprintf out_f_l "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n");
-    Format.printf "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n"))                
-let test_eng () = engine clau_1 ();test_files_1_2 1 5 clau_1

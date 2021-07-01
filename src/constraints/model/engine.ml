@@ -1,10 +1,11 @@
-open Model_ref
+open Convert
+open Phases
+open File_system
+open Common
+open Print
 (*open Path*)
 
-
-let cwd_s = "/tmp/InnerTR/Inner2TR/Inner3TR"
 let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd_s))
-
 (*
 let cwd = [] (*It is better to keep it this way or ID check malfunctions also as the test actually takes place in the system, rm(s) present can be dangerous*)
 *)
@@ -47,62 +48,6 @@ let () =
      (module Colis__Test.Bracket) ;
    ]
 
-let feat_to_string (x:Colis_constraints_common.Feat.t):string = let x = Colis_constraints_common.Feat.to_string x in x
-
-let var_to_int (x:Colis_constraints_common.Var.t):int =
-  let rec helper in_s out_s=
-    if((String.length in_s) < 3) then
-      int_of_string out_s
-    else
-    let ch = String.sub in_s 0 3 in
-    let digit =
-      (match ch with
-       | "₀" -> "0"
-       | "₁" -> "1"
-       | "₂" -> "2"
-       | "₃" -> "3"
-       | "₄" -> "4"
-       | "₅" -> "5"
-       | "₆" -> "6"
-       | "₇" -> "7"
-       | "₈" -> "8"
-       | "₉" -> "9"
-       | _ -> assert false) in
-    let in_s = String.sub in_s 3 ((String.length in_s) - 3) in
-    helper in_s (out_s^digit)
-  in 
-  (helper (Colis_constraints_common.Var.to_string x) "")
-
-let fset_to_fset (x:Colis_constraints_common.Feat.Set.t): string list = 
-  let lis = Colis_constraints_common.Feat.Set.elements x in
-  let rec helper = function
-   |[]-> []
-   |h::t -> (feat_to_string h)::helper t
-  in (helper lis)
-
-let kind_to_kind (x:Colis_constraints_common.Kind.t): Model_ref.kindt =
-  match x with
-  | Dir -> Dir
-  | Reg -> Reg
-  | Char | Sock | Pipe | Symlink | Block -> Other
-
-let atom_to_Atom (x: Colis_constraints_common.Atom.t): Model_ref.atom =
-  match x with
-  | Eq(v1,v2) -> Eq(var_to_int v1,var_to_int v2)
-  | Feat(v1,f,v2) -> Feat (var_to_int v1,feat_to_string f,var_to_int v2)
-  | Abs(v1,f) -> Abs(var_to_int v1,feat_to_string f)
-  | Maybe (v1,f,v2) -> Maybe (var_to_int v1,feat_to_string f,var_to_int v2)
-  | Kind(v1,k) -> Kind(var_to_int v1,(kind_to_kind k))
-  | Fen(v1,f) -> Fen(var_to_int v1,fset_to_fset f)
-  | Sim(v1,f,v2) -> Sim(var_to_int v1,fset_to_fset f,var_to_int v2)
-
-(*Change name to clause_to_clause *)
-let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Model_ref.literal list =
-  match x with
-  | [] -> []
-  | Pos a::t -> Pos (atom_to_Atom a):: literal_to_Literal t
-  | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
-
 let printStdout stdO =
   Printf.fprintf out_f_l "%s" (Colis__.Semantics__Buffers.Stdout.to_string stdO);
   Format.printf "%s" (Colis__.Semantics__Buffers.Stdout.to_string stdO)
@@ -127,9 +72,9 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   ( Printf.fprintf out_f_l "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);
                     Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
                   
-                  Model_ref.print_clause (s_c)) else (Printf.fprintf out_f_l "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num);Format.printf "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num)) in
-                  Model_ref.engine (s_c) ~m:mutate ~p:print_b ~rootb:(var_to_int rootb) ~roota:(var_to_int roota)();
-                  Test_file2.test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd_mod) (print_b); 
+                  print_clause (s_c)) else (Printf.fprintf out_f_l "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num);Format.printf "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num)) in
+                  engine (s_c) ~m:mutate ~p:print_b ~rootb:(var_to_int rootb) ~roota:(var_to_int roota)();
+                  test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd_mod) (print_b); 
                   run_model t print_b (num+1) cmd_mod mutate
   | _::t -> Printf.fprintf out_f_l "\n\n\tClause %d : Incomplete\n"(num);
             Format.printf "\n\n\tClause %d : Incomplete\n"(num);
