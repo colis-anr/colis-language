@@ -1,7 +1,7 @@
 let cwd_s = "/tmp/InnerTR/Inner2TR/Inner3TR"
 type feature = string
 let compare = compare
-(*let equal f1 f2 = compare f1 f2 = 0*)
+
 module type OrderedType = sig
   type t
   val compare : t -> t -> int
@@ -18,7 +18,7 @@ module FMap = Map.Make(Feat)
 
 type var = int
 let compare2 = compare
-let equal2 m n = compare m n = 0
+
 
 module Var = struct
   type t = var
@@ -67,6 +67,7 @@ let fBigSet = ref FSet.empty
 let paths = ref []
 let v_all = ref VSet.empty
 let v_max = ref 0 
+let v_min = ref max_int
 let print_collect = ref "" 
 let file1 = "print.dat"
 let out_f_l = open_out file1 

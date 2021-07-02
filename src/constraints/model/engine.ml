@@ -3,36 +3,13 @@ open Phases
 open File_system
 open Common
 open Print
-(*open Path*)
 
 let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd_s))
 (*
-let cwd = [] (*It is better to keep it this way or ID check malfunctions also as the test actually takes place in the system, rm(s) present can be dangerous*)
+let cwd = [] (*apply cmd from root dir*)
 *)
 
-(*
-type utility_context = {
-  cwd : Colis_constraints.Path.normal;
-  env : string Colis__.Env.SMap.t;
-  args : string list;
-}
 
-type filesystem = {
-root : Colis_constraints.Var.t;
-clause : Colis_constraints.Clause.sat_conj;
-root0 : Colis_constraints.Var.t option;
-}
-
-type state =  {
-           filesystem : filesystem;
-           stdin : Colis__.Semantics__Buffers.Stdin.t;
-           stdout : Colis__.Semantics__Buffers.Stdout.t;
-           log : Colis__.Semantics__Buffers.Stdout.t;
-         }
-
-type utility = state -> (state * bool Colis__.Semantics__Result.result) list
-*)
-(*Doc : Colis->Language->Nat*)
 let () =
    List.iter Colis.SymbolicUtility.Mixed.register [
      (module Colis__Basics.True) ;
@@ -57,7 +34,7 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
             bool Colis__Semantics__Result.result)
            list) (print_b:bool) (num:int) (cmd_mod) (mutate:bool)= 
   match res_l with
-  | [] -> false (*why returning a bool*)
+  | [] -> ()
   | (state_,Ok x)::t ->
                   let (out_fs:Colis__.SymbolicUtility.Mixed.filesystem) = state_.filesystem in
                   printStdout state_.stdout ;
@@ -67,7 +44,7 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let rootb = match rootb with | Some v -> v |None -> failwith "no root before" in
                   let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c) in
                   let s_c = List.of_seq s_c in
-                  let s_c = literal_to_Literal s_c in
+                  let s_c = clause_to_clause s_c in
                   let _ = if(print_b) then
                   ( Printf.fprintf out_f_l "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);
                     Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
@@ -130,9 +107,10 @@ let get_result (cmd) ?(m = false) ?(p = true) () =
                     Printf.fprintf out_f_l "\nEXCEPTION: [%s]" msg;
                     Format.printf "\nEXCEPTION: [%s]" msg;
                     [initial_state,Incomplete] in
+
     let _ =  Printf.fprintf out_f_l "\nNo of Clauses : %d" (List.length result_list);
           Format.printf "\nNo of Clauses : %d" (List.length result_list) in
-    let _ = run_model result_list p 1 cmd_mod m (*False-> less print*) in 
+    let _ = run_model result_list p 1 cmd_mod m in 
     ()
 
 let rec loop_cmd (cmd_l) ?(m = false) ?(p = true) ()=
@@ -140,10 +118,8 @@ let rec loop_cmd (cmd_l) ?(m = false) ?(p = true) ()=
   |[] -> ()
   |h::t ->  Printf.fprintf out_f_l "-------------------------------------------------------------------------";
             Format.printf "-------------------------------------------------------------------------";
-            get_result h ~m:m ~p:p (); (*False-> less print*)
+            get_result h ~m:m ~p:p (); 
             loop_cmd t ~m:m ~p:p ()
-
-let cmd_file = "cmd.dat"
 
 let read_file filename = 
   let lines = ref [] in
@@ -156,15 +132,12 @@ let read_file filename =
     close_in chan;
     List.rev !lines ;;
 
+let cmd_file = "cmd.dat"
 (*m-> boolean specifying if mutuate; p->boolean specifying if print detail*)
 let _ =  Printf.fprintf out_f_l "\t\tMUTATION OFF\n"
-let _ = loop_cmd (read_file cmd_file) ~m:false ~p:true ()
+let _ = loop_cmd (read_file cmd_file) ~m:true ~p:true ()
 
 (*For single cmd (use for debugging)
 let cmd = "mkdir ./a/b"
 let _ = get_result cmd ~m:true ~p:true ()
-
-let _ = close_file ();Sys.command "cp ./print.dat ./large_print.dat"
-let _ = Format.printf "ASADAS\n"
-let _ = loop_cmd (read_file cmd_file) ~m:true ~p:false ()
 *)

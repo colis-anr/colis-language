@@ -16,7 +16,7 @@ module FMap : Map.S with type key = feature
 
 type var = int
 val compare2 : var -> var -> int
-val equal2 : var -> var -> bool
+
 module Var: OrderedType with type t = var
 
 module VarMap : Map.S with type key = var
@@ -62,6 +62,7 @@ val fBigSet: FSet.t ref
 val paths: (string*feature*var) list ref 
 val v_all: VSet.t ref
 val v_max: var ref
+val v_min: var ref
 val print_collect: string ref
 val file1 : string 
 val out_f_l: out_channel

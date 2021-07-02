@@ -89,7 +89,7 @@ let create_TR () =
   ignore (Sys.command "mkdir ./TR");
   Sys.chdir("./TR");() *)
 
-(*FOR DOCKET USE BELOW*)
+(*FOR DOCKER USE BELOW*)
 
 let safe_dir =  cwd_s
 
@@ -101,14 +101,8 @@ let create_TR () =
 
 let shell_script cmd =
   ignore (Sys.command ("mkdir -p ."^safe_dir));
-  (*ignore (Sys.chdir ("."^safe_dir));
-  print_collect := !print_collect^"\ncd ."^safe_dir^" \n" ;*)
   print_collect := !print_collect^cmd^"\n" ;
-  let bo = (Sys.command cmd = 0) in
-  (*ignore (Sys.chdir (safe_dir^"/TR"));
-  print_collect := !print_collect^"cd "^safe_dir^"/TR\n\n" ;*)
-  (*print_collect := !print_collect^"CWD ->"^(Sys.getcwd ())^"\n" ;*)
-  if(bo)then true else false
+  if(Sys.command cmd = 0)then true else false
 
 (*
 let shell_script cmd =
@@ -120,9 +114,8 @@ let clean_TR () =
   ignore (Sys.command "rm -r ./TR/*");
   Sys.chdir("./TR");()
 
-
-(*make it boolean return for engine.ml and take the roots as input*)
-(*let test_files ()=
+(*DEPRICATED:without ID check
+  let test_files ()=
   let l = get_unreachable () in
   let rec helper l count = 
     match l with 
@@ -176,8 +169,6 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) (print_b) 
             Format.printf "%s" "Equality(F) Dissolve Error:\t";
             dissolve_id_eqf clau;
             check_id root_after ".";
-
-
             )
         else 
         (Printf.fprintf out_f_l "%s \t\t-----PATH CHECK FAILURE-----\n" (!print_collect);
@@ -185,5 +176,3 @@ let test_files_1_2 (root_before) (root_after) (clau) (is_error) (cmd) (print_b) 
     
     else (Printf.fprintf out_f_l "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n");
     Format.printf "%s %s" (!print_collect) (if(is_error)then "\nCMD does not give an error(But it should)\n" else "\nCMD gives an error\n"))                
-
-(*let test_eng () = engine clau_1 ();test_files_1_2 1 5 clau_1*)

@@ -135,6 +135,7 @@ let set_v_max_all () =
     |[]-> ()
     |(v,_)::t-> v_all := VSet.add v !v_all;
          v_max := if(!v_max < v)then v else !v_max;
+         v_min := if((!v_min > v)&&(v<>0))then v else !v_min;
          helper t
   in 
   helper (VarMap.bindings !var_map)
@@ -144,6 +145,7 @@ let reintializ_ref roota rootb =
   fBigSet := FSet.empty;
   v_all := VSet.empty;
   v_max := 0; 
+  v_min := max_int;
   print_collect := "";
   var_map := VarMap.add roota (empty_node roota) (!var_map);
   var_map := VarMap.add rootb (empty_node rootb) (!var_map) 

@@ -1,6 +1,6 @@
 open Common
 
-let feat_to_string (x:Colis_constraints_common.Feat.t):string = let x = Colis_constraints_common.Feat.to_string x in x
+let feat_to_string (x:Colis_constraints_common.Feat.t):string = (Colis_constraints_common.Feat.to_string x) 
 
 let var_to_int (x:Colis_constraints_common.Var.t):int =
   let rec helper in_s out_s=
@@ -49,10 +49,9 @@ let atom_to_Atom (x: Colis_constraints_common.Atom.t): Common.atom =
   | Fen(v1,f) -> Fen(var_to_int v1,fset_to_fset f)
   | Sim(v1,f,v2) -> Sim(var_to_int v1,fset_to_fset f,var_to_int v2)
 
-(*Change name to clause_to_clause *)
-let rec literal_to_Literal (x: Colis_constraints_common.Literal.t list): Common.literal list =
+let rec clause_to_clause (x: Colis_constraints_common.Literal.t list): Common.literal list =
   match x with
   | [] -> []
-  | Pos a::t -> Pos (atom_to_Atom a):: literal_to_Literal t
-  | Neg a::t -> Neg (atom_to_Atom a):: literal_to_Literal t
+  | Pos a::t -> Pos (atom_to_Atom a):: clause_to_clause t
+  | Neg a::t -> Neg (atom_to_Atom a):: clause_to_clause t
  

@@ -22,7 +22,7 @@ let mutate (clau:clause) (num:int) (rootb)=
   let rec add_noise x safety = 
     match (x,safety) with
     |(x,safety) when (x > num) || (safety>(num*10)) -> (!clau)
-    |(x,safety) -> let v1 = 1 + Random.int !v_max in
+    |(x,safety) -> let v1 = !v_min + Random.int (!v_max - !v_min) in
         if (not (VSet.mem v1 !v_reach))then add_noise x (safety+1)
         else if ((v1<=v_max_old)&&(((find_node v1).fen_p) || ((find_node v1).kind = Reg))) then add_noise x (safety+1)
         else if((Random.int 10) < 8) then
