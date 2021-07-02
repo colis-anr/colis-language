@@ -17,7 +17,7 @@ let interp1 cwd arg : utility =
   | Some (q, Down f) ->
      if String.equal "" (Colis_constraints_common.Feat.to_string f)
      then
-       [error_case ~descr:("rm %a: cannot remove a firectory" arg) noop]
+       [error_case ~descr:"rm: cannot remove a firectory" noop]
      else
        [success_case
           ~descr:(asprintf "rm %a: remove file" Path.pp oq)
