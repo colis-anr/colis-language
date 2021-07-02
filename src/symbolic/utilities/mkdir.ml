@@ -5,7 +5,9 @@ open SymbolicUtility.Mixed
 let name = "mkdir"
 
 let interp_mkdir1 cwd path_str =
-  let p = Path.from_string path_str in
+  (* let p = Path.from_string path_str in *)
+  let path = Path.strip_trailing_slashes path_str in
+  let p = Path.from_string path in
   match Path.split_last p with
   | None ->
     specification_cases [
