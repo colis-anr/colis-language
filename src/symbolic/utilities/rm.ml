@@ -14,28 +14,34 @@ let interp1 cwd arg : utility =
     [error_case ~descr:"rm: invalid path ''" noop]
   | Some (_q, (Here|Up)) ->
     [error_case ~descr:"rm: cannot remove .. or ." noop]
-  | Some (q, Down f) -> [
-      success_case
-        ~descr:(asprintf "rm %a: remove file" Path.pp oq)
-        begin fun root root' ->
+  | Some (q, Down f) ->
+     if String.equal "" (Colis_constraints_common.Feat.to_string f)
+     then
+       [error_case ~descr:("rm %a: cannot remove a firectory" arg) noop]
+     else
+       [success_case
+          ~descr:(asprintf "rm %a: remove file" Path.pp oq)
+          begin fun root root' ->
           exists3 @@ fun x x' y ->
-          resolve root cwd oq y & ndir y
-          & similar root root' cwd q x x'
-          & sim x (Feat.Set.singleton f) x'
-          & dir x' & abs x' f
-        end;
-      error_case
-        ~descr:(asprintf "rm %a: target does not exist or is a directory" Path.pp oq)
-        begin fun root root' ->
-          exists @@ fun y ->
-          maybe_resolve root cwd oq y
-          & dir y
-          & eq root root'
-        end;
-    ]
+            resolve root cwd oq y & ndir y
+            & similar root root' cwd q x x'
+            & sim x (Feat.Set.singleton f) x'
+            & dir x' & abs x' f
+          end;
+        error_case
+          ~descr:(asprintf "rm %a: target does not exist or is a directory" Path.pp oq)
+          begin fun root root' ->
+            exists @@ fun y ->
+            maybe_resolve root cwd oq y
+            & dir y
+            & eq root root'
+          end;
+       ]
 
 let interp1_r cwd arg : utility =
-  let oq = Path.from_string arg in
+  (* let oq = Path.from_string arg in *)
+  let strip_arg = Path.strip_trailing_slashes arg in
+  let oq = Path.from_string strip_arg in
   specification_cases @@
   match Path.split_last oq with
   (* FIXME: Here, I reuse the same programming scheme as in mkdir. *)
