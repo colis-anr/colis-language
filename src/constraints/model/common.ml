@@ -41,9 +41,10 @@ type node = { var_l: VSet.t;
        kind: kindt;
 			 }
 
+(*
 type fT = |Leaf
           |Node of (var * (fT FMap.t))
-
+*)
 type atom =
   | Eq of var * var
   | Eqf of var * feature list * var

@@ -101,7 +101,7 @@ let add_fen_to_node atom =
           var_map := (VarMap.add v1 {v1_node with fen = fen_new; fen_p = true} !var_map);
           ()
   |_ -> failwith "add_fen_to_node is only for Fen"
-
+(*
 let z_eq_update vz v_l eq= 
   let vz_node = (find_node vz) in
   let vzeq = vz_node.equality in
@@ -129,7 +129,7 @@ let z_sim_update vz v_l sim=
   let n_sim =  (sim,List.hd v_l)::(helper vzeq vzeq) in
   var_map := (VarMap.add vz {vz_node with sim = n_sim} !var_map);
   ()
-
+*)
 let eq_union eq1 eq2 = 
   let n_eq = ref eq1 in
   let rec helper1 l1 = 
@@ -157,7 +157,7 @@ let sim_union sim1 sim2 =
                         |[]-> n_sim := (l,v)::!n_sim;()
                         |(l2,v2)::t2 -> if(v=v2) then
                                         n_sim :=((FSet.inter l2 l),v)::(list_remove (l2,v2) !n_sim)
-                                        else helper2 t2 (*BUG IMPLEMENT  z_sim_update vz vx vy eq*)
+                                        else helper2 t2 (*IMPLEMENT  z_sim_update vz vx vy eq*)
                     in
                     helper2 sim1;
                     helper1 t

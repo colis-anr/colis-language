@@ -135,7 +135,7 @@ let read_file filename =
 let cmd_file = "cmd.dat"
 (*m-> boolean specifying if mutuate; p->boolean specifying if print detail*)
 let _ =  Printf.fprintf out_f_l "\t\tMUTATION OFF\n"
-let _ = loop_cmd (read_file cmd_file) ~m:true ~p:true ()
+let _ = loop_cmd (read_file cmd_file) ~m:false ~p:true ()
 
 (*For single cmd (use for debugging)
 let cmd = "mkdir ./a/b"
