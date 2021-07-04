@@ -1,0 +1,680 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{color}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linktoc=all,
+    linkcolor=blue,
+}
+
+
+\title{Model Documentation}
+\author{Author}
+\date{June 2021}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+\section{Common.ml}
+
+\begin{description}
+\item \textbf{\textit{feature:}} a string
+\item \textbf{\textit{FSet:}} set of features
+\item \textbf{\textit{FMap:}} mapping from features to a certain type
+\item \textbf{\textit{var (variable):}} a integer
+\item \textbf{\textit{VSet:}} set of var
+\item \textbf{\textit{VarMap:}} mapping from var to a certain type
+\item \textbf{\textit{kind\_t:}} kind of file which could be a Regular file, Directory, Others or Unknown
+\item \textbf{\textit{node:}} a record containing:
+    \begin{description}
+    \item [var\_l:] set of variables that are mapped to this node (if $x =_* y$ then both the variables are mapped to identical nodes)
+    \item [feat:] mapping from features to a variable (for $x[f]y$)
+    \item [notfeat:] list of features and variable, list is used instead of mapping as for x it can have neg feat to multiple variable through a feature f(for $\lnot x[f]y$)
+    \item [equality:] list of feature sets and a variable. (for $x =_F y$ )
+    \item [sim:] list of feature sets and a variable. (for $x ~_F y$ )
+    \item [fen:] a feature Set (for $x[F]$).Default: empty set of features.
+    \item [fen\_p:] a boolean for if a Fen condition is present. This exist to differentiate a fen not being specified and fen on an empty set of features.
+    \item [id:] string to store the inode 
+    \item [kind:] kind of file (for $x[kind]$)
+    \end{description}
+
+\item \textbf{\textit{atom:}} used to store various possible atoms of first order logic allowed by the system.(These include : $x[f]y$, $x[F]$, $x[f]\uparrow$, $x=_\star y$, $x=_F y$, $x\sim_F y$ ,$x[kind]$, $maybe:x[f]y$)
+\item \textbf{\textit{literal:}} a positive or negative atom
+\item \textbf{\textit{clause:}} a list of literals connected by conjunctions
+\item \textbf{\textit{var\_map (Global Variable) :}} store mappings from a variable to its corresponding node.
+\item \textbf{\textit{fBigSet(Global Variable) :}} store all the features in the clauses and those generated.
+\item \textbf{\textit{paths(Global Variable) :}} store feature names while traversing a branch of the feature tree
+\item \textbf{\textit{v\_all(Global Variable) :}} store all the variable in the clauses and those generated.
+\item \textbf{\textit{v\_max(Global Variable) :}} store the max variable number. Useful for generating new variables
+\item \textbf{\textit{v\_min(Global Variable) :}} store the min variable number.
+
+\item \textbf{\textit{empty\_node}}
+\begin{description}
+    \item[Input:] var(optional)
+    \item[Output:] a node with var in var\_l
+\end{description}
+
+\item \textbf{\textit{find\_node}} 
+\begin{description}
+    \item[Input:] var
+    \item[Output:] node with mapping of the var in the global var\_map
+\end{description}
+
+\item \textbf{\textit{list\_remove}}
+\begin{description}
+    \item[Input:] an element and a list
+    \item[Output:] list without the element
+\end{description}
+
+\end{description}
+
+\section{print.ml}
+
+\begin{description}
+    
+\item \textbf{\textit{node\_display}}
+\begin{description}
+    \item[Input:] node
+    \item[Output:] unit
+    \item[Side Effect:] print the details of the node
+\end{description}
+
+\item \textbf{\textit{var\_map\_display}}
+\begin{description}
+    \item[Input:] var\_map
+    \item[Output:] unit
+    \item[Side Effect:] go though each node and execute node\_display on it
+\end{description}
+
+\item \textbf{\textit{print\_Atom}}
+\begin{description}
+    \item[Input:] node
+    \item[Output:] unit
+    \item[Side Effect:] print an atom
+\end{description}
+
+\item \textbf{\textit{print\_clause}}
+\begin{description}
+    \item[Input:] node
+    \item[Output:] unit
+    \item[Side Effect:] print all the literals in the clause using print\_Atom
+\end{description}
+
+\end{description}
+\section{process\_atom.ml}
+\begin{description}
+
+\item \textbf{\textit{fresh}}
+\begin{description}
+    \item[Input:] var
+    \item[Output:] a node with var(if provided) in var\_l
+\end{description}
+
+
+\item \textbf{\textit{add\_abs\_to\_node}}
+\begin{description}
+    \item[Input:] atom($x[f]\uparrow$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Clash Test: check if $x[f]y$ already exists in feat of node of x\\
+	Add a mapping from f to 0(variable used to represent absent) in feat of node of x\\
+	Update node of all variable equivalent to x\\
+\end{description}
+
+\item \textbf{\textit{add\_feat\_to\_node}}
+\begin{description}
+    \item[Input:] atom($x[f]y$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Clash Test 1 :check if x[f]0 already exists in feat of node of x\\
+	Clash Test 2 : for x[f]y check if f in F, if a x[F] is specified\\
+	Add a mapping from f to y in feat of node of x\\
+	Update node of all variable equivalent to x\\
+\end{description}
+
+
+\item \textbf{\textit{no\_feat\_abs\_to\_node}}
+\begin{description}
+    \item[Input:] atom($x[f]y$ or $x[f]\uparrow$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\For ($\lnot x[f]y$)\\ 
+	Clash Test :check if x[f]y already exists in feat of node of x\\
+	Add a mapping from f to y in notfeat of node of x\\
+	Update node of all variable equivalent to x\\
+	For ($\lnot x[f]\uparrow$)\\ perform no\_feat\_abs\_to\_node with ($x[f]0$)\\
+\end{description}
+
+\item \textbf{\textit{add\_kind\_to\_node}}
+\begin{description}
+    \item[Input:] atom($x[Kind]$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]: Set the kind of node.It is useful when creating and verifying file-systems. Anything other than Regular File is considered to be Directory while creating and verifying
+\end{description}
+
+\item \textbf{\textit{add\_equal\_to\_node}}
+\begin{description}
+    \item[Input:] atom($x=_F y$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Add (set of F, y) to equality list of node of x and y\\
+	No need to update node of all variable equivalent to x. Its done later by eq\_union.\\
+\end{description}
+
+\item \textbf{\textit{add\_sim\_to\_node}}
+\begin{description}
+    \item[Input:] atom($x\sim_F y$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Add (set of F, y) to sim list of node of x and y\\
+	No need to update node of all variable equivalent to x. Its done later by eq\_sim.
+\end{description}
+
+
+\item \textbf{\textit{add\_fen\_to\_node}}
+\begin{description}
+    \item[Input:] atom($x[F]$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Update fen of node x with FSet of F if previously empty else previous fen of x intersection F\\
+	No need to update node of all variable equivalent to x. Its done later during node\_union.\\
+\end{description}
+
+
+
+\item \textbf{\textit{eq\_union}}
+\begin{description}
+    \item[Input:] equality entry of two nodes
+    \item[Output:] a equality entry
+    \item[Algorithm]: Concatenate the equality lists with the special case :\\ $x = y \wedge x =_F z\wedge y =_G z$ results to $x=_{F \cup G} z\wedge y=_{F \cup G} z$\\
+\end{description}
+
+\item \textbf{\textit{sim\_union}}
+\begin{description}
+    \item[Input:] sim entry of two nodes
+    \item[Output:] a sim entry
+    \item[Algorithm]: Concatenate the sim lists with the special case : \\$x = y \wedge  x \sim_F z \wedge y \sim_G z$ results to $x\sim_{F\cap G}z\wedge y\sim_{F \cap G} z$\\
+\end{description}
+
+\item \textbf{\textit{kind\_union}}
+\begin{description}
+    \item[Input:] kind entry of two nodes
+    \item[Output:] a kind entry
+    \item[Algorithm]: if both are "Unknown" return "Unknown". If exactly one of them is know return that. If both are know them must be same and returned else there is a clash
+\end{description}
+
+\item \textbf{\textit{fen\_inter}}
+\begin{description}
+    \item[Input:] two nodes
+    \item[Output:] a fen entry
+    \item[Algorithm]: check "fen\_p" of the nodes. If both have true take the intersection of the Fen. If one is true take its fen. If both false return the empty FSet
+\end{description}
+
+\item \textbf{\textit{node\_union}}
+\begin{description}
+    \item[Input:] 2 nodes
+    \item[Output:] node
+    \item[Algorithm]: Obtain a node (record) with entries: 
+    \begin{itemize}
+	\item equality: obtained from eq\_union
+	\item sim: obtained from eq\_sim
+	\item var\_l: union of var\_l of the two nodes
+	\item fen: obtained from fen\_iter
+	\item notfeat: concatenation of notfeat of the two nodes
+	\item kind: obtained from kind\_union
+	\item id: It is always empty string for all nodes at this stage
+	\item feat: union of feat of the two nodes
+	\end{itemize}
+\end{description}
+
+\item \textbf{\textit{add\_equal\_to\_node\_ALL}}
+\begin{description}
+    \item[Input:] atom($x =_* y$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\ Find the union of nodes of x and y, using node\_union.\\
+	Map both x and y to this node.\\
+\end{description}
+
+\item \textbf{\textit{find\_feat\_link\_opt}}
+\begin{description}
+    \item[Input:] node n,feature f
+    \item[Output:] Indirect or direct mapping for f in the n if present else none
+    \item[Side Effect/Algorithm]:
+    \begin{itemize}
+        \item Check if there is a direct mapping in feat of node if so return it
+        \item If not go though all its equalities(and similarities) on a list of features. If there is a equality on F,where $f \in F$,(or there is a similarity on F, f $\not\in$ F) recursively search on the node the equality is with. Keep record of path to prevent loops
+        \item If finally a mapping is found add a direct map to all nodes in the path taken.
+        \item If no mapping is found return None
+    \end{itemize}
+\end{description}
+
+
+\item \textbf{\textit{dissolve\_node}}
+\begin{description}
+    \item[Input:] node n
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Apply find\_feat\_link\_opt on node n and all features (one by one) on global variable fBigSet and if a indirect mapping was present a direct mapping will also be added.\\
+\end{description}
+
+
+
+\item \textbf{\textit{not\_Fen\_transform atom}}
+\begin{description}
+    \item[Input:] atom($x[F]$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\To solve for $\lnot x[F]$ we need two phases
+    \begin{itemize}
+        \item Phase I: Go through all features $f \not\in F$ and if any of them has a direct or indirect mapping in node of x. $\lnot x[F]$ is already satisfied.If not go for Phase II
+        \item Phase II: if x has some $x[G]$ then its a Clash else create a new feature f' and variable v' and atom($x[f']v'$) and make necessary updates.
+    \end{itemize}
+\end{description}
+
+\item \textbf{\textit{is\_allowed}}
+\begin{description}
+    \item[Input:] atom($x[f]y , x[f]\uparrow$)
+    \item[Output:] bool (false if there is a negative of the atom encountered earlier else true)
+\end{description}
+
+\item \textbf{\textit{not\_eq\_sim\_transform atom}}
+\begin{description}
+    \item[Input:]  atom($x=_F y$ or $x\sim_F y$)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\To solve for $\lnot x=_F y$, F' is F and for $\lnot x\sim_F y$, F' is (fBigSet - F). 
+    
+    %$x=_F y$ iff $\forall f\in F\cdot (f\in dom(x)\cap dom(y)) \Rightarrow x(f)=y(f)$ \\
+    %$\lnot x=_F y$ iff $\exists f\in F \cdot (x[f]\uparrow \land y[f]z) \lor (x[f]z \land y[f]\uparrow) \lor (f\in dom(x) \cap dom(y) \land x(f)\ne y(f))$
+
+    \begin{itemize} % None means don't know
+        \item Phase I: Go through all features $f\in F'$ and apply find\_feat\_link\_opt on x and y for f [store the results for next phases] if it matches (Some v1,Some v2) and $v1\neq v2$ then atom is satisfied else move to Phase II
+        \item Phase II: Now if for some feature $f\in F'$ there is a match with (None,Some v2) or (Some v1,None) add an absent mapping for f to the node that results to None if it has no $\lnot v[f]\uparrow$. Otherwise move to Phase III 
+        \item Phase III: If for some feature f there is a match with (None,None) 
+        and if one of the nodes of $x$ or $y$,
+        $n'$ has no $n'[G]$. Create a new variable $v'$ and add $n'[f]v'$ and $n''[f] \uparrow$ ($n''$ is the other node). Else Phase IV
+        \item Phase IV: For $\lnot x=_F y$ clash. For  $\lnot x\sim_F y$ and if one of the node n' has no $n'[G]$. Create a new variable v' and feature f' and add $n'[f']v'$ and $n''[f']\uparrow$ ($n''$ is the other node). Else clash
+
+    \end{itemize}
+\end{description}
+
+\end{description}
+\section{phase.ml}
+\begin{description}
+
+\item \textbf{\textit{is\_feature\_in\_cwd}}
+\begin{description}
+    \item[Input:] string for cwd, feature
+    \item[Output:] boolean. True if cwd contains feature
+\end{description}
+
+\item \textbf{\textit{create\_empty\_var\_map}}
+\begin{description}
+    \item[Input:] clause
+    \item[Output:] unit
+    \item[Side Effect Algorithm:]  Go through each literal and modify the global var\_map to add a mapping to a new node for each unique variable encountered
+\end{description}
+
+\item \textbf{\textit{dissolve\_all}}
+\begin{description}
+    \item[Input:] unit
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Apply dissolve\_node on all nodes(one by one) to which there is a mapping in global variable var\_map
+\end{description}
+
+\item \textbf{\textit{clause\_phase\_I}}
+\begin{description}
+    \item[Input:] a clause
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Collect information from  $x=_F y $,  $x[F]$, $x \sim_F y$ , $x[Kind]$,$\lnot x[Kind]$ atoms and store them in the required node. With the help of add\_equal\_to\_node , add\_fen\_to\_node, add\_sim\_to\_node, add\_kind\_to\_node respectively.
+\end{description}
+
+\item \textbf{\textit{clause\_phase\_II}}
+\begin{description}
+    \item[Input:] a clause
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Collect information from  $x=_* y $, and join nodes using  node\_union.
+\end{description}
+
+
+\item \textbf{\textit{clause\_phase\_III}}
+\begin{description}
+    \item[Input:] a clause
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Collect information from  $x[f]y$,  $x[f]\uparrow$ and add feature mapping into the required node using add\_feat\_to\_node , add\_abs\_to\_node.
+\end{description}
+
+
+
+\item \textbf{\textit{clause\_phase\_IV}}
+\begin{description}
+    \item[Input:] a clause
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Collect information from  $\lnot x[f]y$,  $\lnot x[f]\uparrow$ and add neg feature mapping into the required node using no\_feat\_abs\_to\_node
+\end{description}
+
+\item \textbf{\textit{clause\_phase\_V}}
+\begin{description}
+    \item[Input:] a clause
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Collect information from  $x\neq_F y $, $x\neq y $,  $\lnot x[F]$ and $ x \not\sim_F y$. Add necessary mappings to satisfy them if not already satisfied. This is done using not\_eq\_sim\_transform and not\_Fen\_transform
+\end{description}
+
+\item \textbf{\textit{set\_v\_max\_all}}
+\begin{description}
+    \item[Input:] unit
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]: Go though golbal varmap and set values of global variables v\_max and v\_all
+\end{description}
+
+\item \textbf{\textit{reinitialize\_ref}}
+\begin{description}
+    \item[Input:] var of root after(ra), var of root before(rb)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]: Set all global variables to their default value. Add a mapping for ra and rb in var\_map
+\end{description}
+
+\item \textbf{\textit{engine}}
+\begin{description}
+    \item[Input:] a clause , {optional: if\_mutate(m), if\_print\_detail(p),no\_of\_mutation(m\_v),root before, root after}
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]: call the functions in the order :
+    \begin{itemize}
+        \item reinitialize\_ref
+        \item create\_empty\_var\_map
+        \item clause\_phase\_I
+        \item set\_v\_max\_all
+        \item clause\_phase\_II
+        \item clause\_phase\_III
+        \item clause\_phase\_IV
+        \item clause\_phase\_V
+        \item dissolve\_all
+        \item mutate [if m is true]
+        \item dissolve\_all
+    \end{itemize}
+\end{description}
+
+\end{description}
+\section{file\_system.ml}
+\begin{description}
+
+\item \textbf{\textit{get\_vBigSet}} : Deprecated
+\begin{description}
+    \item[Input:] unit
+    \item[Output:] all variables in var\_map
+\end{description}
+
+\item \textbf{\textit{get\_unreachable}} : Deprecated
+\begin{description}
+    \item[Input:] unit
+    \item[Output:] list of variables not reachable from any other variable through feature mapping. This are suitable to be the root nodes
+\end{description}
+
+\item \textbf{\textit{get\_path}}
+\begin{description}
+    \item[Input:] variable
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Apply recursively get\_path to variables to get all paths using direct feature mapping from v.
+    \begin{itemize}
+            \item If v is a leaf node(no mappings present) or var 0(representing absent) then add the path taken to reach it is added to global variable paths.
+            \item Information is added to paths to flag if path ends at a regular file or absence.
+            \item If last variable is 0 or if it represents a regular file the last feature is kept separately.The last variable is also stored in paths.
+    \end{itemize}
+    Keeps track of variables in current path to clash if a cycle is encountered.
+\end{description}
+
+\item \textbf{\textit{mkdir\_from\_path}}
+\begin{description}
+    \item[Input:] value in global variable paths[path p,feature f ,var v]
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Going recursively through paths. Execute "mkdir" and "touch" to create the file system.
+    \begin{itemize}
+            \item If f is not empty[in case of v being a reg file] then use "mkdir -p" on p to create directories recursively. Followed by a "touch" on p+f to create a file with name f at the end of path p.
+            \item  If f is empty we simply use "mkdir -p" on p to create directories recursively.
+    \end{itemize}
+    
+\end{description}
+
+\item \textbf{\textit{check\_path}}
+\begin{description}
+    \item[Input:] value in global variable paths[path p,feature f ,var v]
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Going recursively through paths.Check if specified path is present or absent in file system. \begin{itemize}
+            \item If f is empty check is path p exists.
+            \item If v is 0, check if path p exists and path p+f does not
+            \item If f is not empty[in case of v being a reg file] check if path p+f points to a regular file. 
+    \end{itemize}
+\end{description}
+
+\item \textbf{\textit{create\_TR}}
+\begin{description}
+    \item[Input:] unit
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Create a test region for testing the commands.This directory will be treated as a pseudo root by the model
+\end{description}
+
+\item \textbf{\textit{shell\_script}}
+\begin{description}
+    \item[Input:] unit
+    \item[Output:] boolean
+    \item[Side Effect/Algorithm]:execute the command being tested. Return False if it is an error, else True
+\end{description}
+
+\item \textbf{\textit{clean\_TR}}
+\begin{description}
+    \item[Input:] unit
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Clean the test region before next test
+\end{description}
+
+\item \textbf{\textit{test\_files\_1\_2}}
+\begin{description}
+    \item[Input:] var of root before(rb),var of root after(ra), clause(c), boolean is\_error,String command(cmd), boolean if\_print\_detail(p)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:
+     \begin{itemize}
+        \item Make sure there is mapping for ra and rb.
+        \item Create or clean the test region for the cmd.
+        \item Use get\_path mkdir\_from\_path to generate the before file system.
+        \item Use set\_id to collect the inode from the file system created.
+        \item Execute cmd using function shell\_script and if output equal to is\_error then fail and exit.
+        \item Use get\_path and check\_path to verify the change in file system is as defined by the clause.Fail if there is a mismatch
+        \item Use check\_id to verify if inodes set equal in case of $x=_*y$ are same in the File System.
+        \item After which set inode equal in case of $x\sim_F y$ and then $x=_F y$ and verify using check\_id.
+        \item Print the mismatches if present. If if\_print\_detail is set false only print the results.
+    \end{itemize}
+\end{description}    
+
+\end{description} 
+\section{mutate.ml}
+\begin{description}
+
+\item \textbf{\textit{get\_reachable\_from\_v}}
+\begin{description}
+    \item[Input:] variable
+    \item[Output:] list of variables reachable from input variable. Used to find all variables reachable from root before during mutation
+\end{description}
+
+\item \textbf{\textit{mutate}}
+\begin{description}
+    \item[Input:] a clause, int(no\_of\_mutation), var of root before(rb)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:
+     \begin{itemize}
+        \item Find all variables reachable from rb. Store in v\_reach
+        \item Loop until no\_of\_mutation are added or 10*no\_of\_mutation iterations are crossed\\
+        \begin{itemize}
+            \item Pick one such variable v less than v\_max. Move to the next iteration if $v\not\in v\_reach$
+            \item If node of v has a fen\_p true or kind set to Reg, move to the next iteration.
+            \item Add a feature mapping(with a generated name) to a new variable or an absence mapping[with a certain ratio, eg: (8:2)]. 
+            \item Update the required global variables.
+        \end{itemize}
+    \end{itemize}
+\end{description}
+
+\end{description}
+\section{inode.ml}
+\begin{description}
+
+\item \textbf{\textit{get\_id\_feat\_str}}
+\begin{description}
+    \item[Input:] path
+    \item[Output:] Next line separated string of feature name and inode. For all features that have a mapping from variable pointed by input path
+\end{description}
+
+\item \textbf{\textit{get\_id\_map}}
+\begin{description}
+    \item[Input:] path
+    \item[Output:] For a path apply get\_id\_feat\_str and return its output as a mapping from features to inode
+\end{description}
+
+\item \textbf{\textit{add\_id\_node}}
+\begin{description}
+    \item[Input:] a variable and its inode
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:] set inode to id of node of variable and update all required mappings.
+\end{description}
+
+\item \textbf{\textit{set\_same\_id}}
+\begin{description}
+    \item[Input:] 2 variables and a String(for failure print)
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]: If both have no id then do nothing, if one has an id set it for both.If they have different id then it is a failure.
+\end{description}
+
+\item \textbf{\textit{dissolve\_id\_sim}}
+\begin{description}
+    \item[Input:] clause
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]: for all $x\sim_F y$ atoms use set\_same\_id to set same id to x and y.
+\end{description}
+
+\item \textbf{\textit{dissolve\_id\_eqf}}
+\begin{description}
+    \item[Input:] clause
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]: for all $x=_F y$ atoms use set\_same\_id to set same id to x and y.
+\end{description}
+
+\item \textbf{\textit{set\_id}}
+\begin{description}
+    \item[Input:] variable v
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Apply recursively set\_id starting from a root variable(root before) to get all paths that have a direct feature mapping from v.
+    \begin{itemize}
+        \item And at every step of each path get the feature to inode mapping using get\_id\_map.
+        \item And set these inodes to the node of variable the corresponding feature points to
+    \end{itemize}
+
+\end{description}
+
+\item \textbf{\textit{check\_id}}
+\begin{description}
+    \item[Input:] variable v
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:Apply recursively check\_id to starting from a variable v to get all paths formed by direct feature mapping from v.
+     \begin{itemize}
+        \item And at every step of each path get the feature to inode mapping using get\_id\_map.
+        \item And verify these inodes to the node of variable the corresponding feature points to. If its a mismatch print the mismatch and continue.
+    \end{itemize}
+\end{description}
+    
+\end{description}
+\section{convert.ml}
+\begin{description}
+
+
+\item \textbf{\textit{feat\_to\_string}}
+\begin{description}
+    \item[Input:] Colis\_constraints\_common.Feat.t
+    \item[Output:] Colis\_constraints\_model.feature
+\end{description}
+
+\item \textbf{\textit{var\_to\_int}}
+\begin{description}
+    \item[Input:] Colis\_constraints\_common.Var.t
+    \item[Output:] Colis\_constraints\_model.var
+\end{description}
+
+\item \textbf{\textit{fset\_to\_fset}}
+\begin{description}
+    \item[Input:] Colis\_constraints\_common.Var.Feat.Set.t
+    \item[Output:] Colis\_constraints\_model.FSet.t
+\end{description}
+
+\item \textbf{\textit{kind\_to\_kind}}
+\begin{description}
+    \item[Input:] Colis\_constraints\_common.Var.Kind.t
+    \item[Output:] Colis\_constraints\_model.kind [Everything other than Dir,Reg is set as Other and treated like a Dir]
+\end{description}
+
+\item \textbf{\textit{atom\_to\_Atom}}
+\begin{description}
+    \item[Input:] Colis\_constraints\_common.Atom.t
+    \item[Output:] Colis\_constraints\_model.atom
+\end{description}
+
+\item \textbf{\textit{clause\_to\_clause}}
+\begin{description}
+    \item[Input:] Colis\_constraints\_common.Literal.t list
+    \item[Output:] Colis\_constraints\_model.literal list
+\end{description}
+
+\end{description}
+\section{engine.ml}
+\begin{description}
+
+\item \textbf{\textit{Modified command:}} There exists a test region, which in perspective of the tool is a pseudo root. Thus the current working directory(with path) given to the tool is actually "./p" on the pseudo root. To implement the pseudo root the path in the commands are modified accordingly. The pseudo root(test region) is used instead of the actual root as the tool is meant test on huge dataset of unverified commands and the test region needs to be cleaned.[Cleaning is required as if the data-set had "mkdir abc" twice, for the second occurrence it will always be an error, if test-region is not cleaned after fast]
+
+\item \textbf{\textit{run\_model}}
+\begin{description}
+    \item[Input]:
+    \begin{itemize}
+        \item list of state and result obtained from colis\_language(res\_l)
+        \item string for modified command
+        \item boolean for if\_print\_detail and if\_mutate
+        \item int for number of mutations.
+    \end{itemize}
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\Recursively go though each element in res\_l.
+    \begin{itemize}
+        \item For an element if "result" is Incomplete skip it. If not get the clause,root before and root after from "state".
+        \item  Convert the clause using literal\_to\_literal.
+        \item  Use them to run Model\_ref.engine and Test\_file2.test\_files\_1\_2. To test the clause.
+    \end{itemize}
+    
+\end{description}
+
+\item \textbf{\textit{split\_cmd}}
+\begin{description}
+    \item[Input:] String command (cmd)
+    \item[Output:] command name,list of arguments, list of modified arguments
+\end{description}
+
+\item \textbf{\textit{get\_result}}
+\begin{description}
+    \item[Input:] String command (cmd), Optional : boolean for if\_print\_detail and if\_mutate
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:
+    \begin{itemize}
+        \item For cmd obtain the name,arguments,and modfied arguments using split\_cmd.
+        \item Form the modified command by concatenation of cmd name and modified arguments.
+        \item  Use Colis.SymbolicUtility to obtain the list of state and result for cmd name and arguments. Handel exceptions that might occur.
+        \item  Call run\_model with the list and modified command.
+    \end{itemize} 
+\end{description}
+
+\item \textbf{\textit{loop\_cmd}}
+\begin{description}
+    \item[Input:] String list of commands, Optional : boolean for if\_print\_detail and if\_mutate
+    \item[Output:] unit
+    \item[Side Effect/Algorithm]:\\ For each command run get\_result
+\end{description}
+
+\item \textbf{\textit{read\_files}}
+\begin{description}
+    \item[Input:] filename
+    \item[Output:]  String list of commands in the file
+\end{description}
+
+
+\end{description}
+\end{document}
+
+
+
