@@ -1,19 +1,42 @@
 \documentclass{llncs}
-\usepackage{xargs}
-\usepackage{stmaryrd}
+
+
 \input{packages}
 \input{constraints}
 
 %% Title
-\title{Model Synthesis for Feature Tree Logic}
-\author{Draft}
+\title{Testing POSIX Utilities using Feature Tree Logic}
+\author{Abhinandan Pal}
 \date{\today}
 
 \begin{document}
 
 \maketitle
 
+%% Summary of contributions
+\input{abstract}
+
+%% Introduction, motivation and overview
+\input{introduction}
+
+%% Presentation of FTL and its decision procedure
+\input{logic-FTL}
+
+%% Presentation of specifications for POSIX utilities
+\input{spec-POSIX}
 \input{preliminaries}
+
+%% Model synthesis from specs
+\input{synthesis}
+
+%% Testing specs
+\input{testing}
+
+%% eXperimental results
+\input{xperiments}
+
+%% Conclusion
+\input{conclusion}
 
 \bibliographystyle{alpha}
 \bibliography{colis}
