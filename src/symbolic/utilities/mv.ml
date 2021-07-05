@@ -180,16 +180,17 @@ let interp_rename ctx src dstpath : utility =
 
 let interp_mv2dir ctx dst src : utility =
   (* Assume: dst resolves to an existing directory *)
-  let qsrc = Path.from_string src in
+  let stripsrc = Path.strip_trailing_slashes src in
+  let qsrc = Path.from_string stripsrc in
   match Path.split_last qsrc with
   | None ->
      error ~utility:"mv" "invalid source path ''"
   | Some (_, (Here|Up)) ->
      error ~utility:"mv" "source path ends in . or .."
   | Some (_, Down fs) ->
-     let stripdst = Path.strip_trailing_slashes dst in
-     let dstpath = String.concat "/" [stripdst; (Feat.to_string fs)] in
-     interp_rename ctx src dstpath
+    let stripdst = Path.strip_trailing_slashes dst in
+    let dstpath = String.concat "/" [stripdst; (Feat.to_string fs)] in
+      interp_rename ctx stripsrc dstpath
 
 
 let interprete ctx : utility =
