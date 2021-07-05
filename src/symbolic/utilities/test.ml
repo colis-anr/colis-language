@@ -93,24 +93,45 @@ let interp_test_f cwd path_str : utility =
  *)
 
 let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
+  let strip_path = Path.strip_trailing_slashes path_str in
+  let sp = Path.from_string strip_path in
   let p = Path.from_string path_str in
-  specification_cases [
-    success_case
+  let ok_case = success_case
       ~descr:(asprintf "test -%s %a: path resolves to file of type '%s'" attr Path.pp p attr)
       begin fun root root' ->
         exists @@ fun x ->
-        resolve root cwd p x & is_type x &
+        resolve root cwd sp x & is_type x &
         eq root root'
-      end;
+      end in
+  let err_case = 
     error_case
       ~descr:(asprintf "test -%s %a: path does not resolve or to file of type other than '%s'" attr Path.pp p attr)
       begin fun root root' ->
         exists @@ fun x ->
-        maybe_resolve root cwd p x
+        maybe_resolve root cwd sp x
         & is_ntype x
         & eq root root'
-      end;
-  ]
+      end in
+  let is_dir = (is_type = dir) || (is_ntype = nreg) (* TODO: fill *)
+  in
+    specification_cases @@
+    match Path.split_last p with
+    | None ->  
+      [ error_case ~descr:"test: invalid path ''" noop ]
+    | Some(_q, (Here|Up)) ->
+      if is_dir then
+        [ ok_case; err_case; ]
+      else
+        [ error_case ~descr:"test: invalid path to file /. or /.." noop ]
+    | Some(_q, (Down f)) ->
+    if String.equal "" (Colis_constraints_common.Feat.to_string f)
+    then (if is_dir then
+        [ ok_case; err_case; ]
+      else
+        [ error_case ~descr:"test: path to file ends with / " noop ]
+      )
+    else
+      [ ok_case; err_case; ]
 
 let interp_test_attribute ~attr cwd path_str : utility =
   let p = Path.from_string path_str in

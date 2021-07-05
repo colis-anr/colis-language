@@ -1,4 +1,8 @@
+(include_subdirs unqualified)
+
 (executable
  (name engine)
  (public_name engine)
- (libraries colis-constraints colis))
+ (ocamlopt_flags "-dprofile")
+ (ocamlc_flags "-g")
+ (libraries colis-constraints colis-language colis))
