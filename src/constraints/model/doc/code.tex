@@ -1,12 +1,12 @@
 \documentclass[12pt]{article}
 \usepackage[utf8]{inputenc}
-\usepackage{color}
+\usepackage{color}   %May be necessary if you want to color links
 \usepackage{hyperref}
 
 \hypersetup{
-    colorlinks=true,
-    linktoc=all,
-    linkcolor=blue,
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=blue,  %choose some color if you want links to stand out
 }
 
 
@@ -120,8 +120,8 @@
     \item[Input:] atom($x[f]\uparrow$)
     \item[Output:] unit
     \item[Side Effect/Algorithm]:\\Clash Test: check if $x[f]y$ already exists in feat of node of x\\
-	Add a mapping from f to 0(variable used to represent absent) in feat of node of x\\
-	Update node of all variable equivalent to x\\
+    Add a mapping from f to 0(variable used to represent absent) in feat of node of x\\
+    Update node of all variable equivalent to x\\
 \end{description}
 
 \item \textbf{\textit{add\_feat\_to\_node}}
@@ -129,9 +129,9 @@
     \item[Input:] atom($x[f]y$)
     \item[Output:] unit
     \item[Side Effect/Algorithm]:\\Clash Test 1 :check if x[f]0 already exists in feat of node of x\\
-	Clash Test 2 : for x[f]y check if f in F, if a x[F] is specified\\
-	Add a mapping from f to y in feat of node of x\\
-	Update node of all variable equivalent to x\\
+    Clash Test 2 : for x[f]y check if f in F, if a x[F] is specified\\
+    Add a mapping from f to y in feat of node of x\\
+    Update node of all variable equivalent to x\\
 \end{description}
 
 
@@ -140,10 +140,10 @@
     \item[Input:] atom($x[f]y$ or $x[f]\uparrow$)
     \item[Output:] unit
     \item[Side Effect/Algorithm]:\\For ($\lnot x[f]y$)\\ 
-	Clash Test :check if x[f]y already exists in feat of node of x\\
-	Add a mapping from f to y in notfeat of node of x\\
-	Update node of all variable equivalent to x\\
-	For ($\lnot x[f]\uparrow$)\\ perform no\_feat\_abs\_to\_node with ($x[f]0$)\\
+    Clash Test :check if x[f]y already exists in feat of node of x\\
+    Add a mapping from f to y in notfeat of node of x\\
+    Update node of all variable equivalent to x\\
+    For ($\lnot x[f]\uparrow$)\\ perform no\_feat\_abs\_to\_node with ($x[f]0$)\\
 \end{description}
 
 \item \textbf{\textit{add\_kind\_to\_node}}
@@ -158,7 +158,7 @@
     \item[Input:] atom($x=_F y$)
     \item[Output:] unit
     \item[Side Effect/Algorithm]:\\Add (set of F, y) to equality list of node of x and y\\
-	No need to update node of all variable equivalent to x. Its done later by eq\_union.\\
+    No need to update node of all variable equivalent to x. Its done later by eq\_union.\\
 \end{description}
 
 \item \textbf{\textit{add\_sim\_to\_node}}
@@ -166,7 +166,7 @@
     \item[Input:] atom($x\sim_F y$)
     \item[Output:] unit
     \item[Side Effect/Algorithm]:\\Add (set of F, y) to sim list of node of x and y\\
-	No need to update node of all variable equivalent to x. Its done later by eq\_sim.
+    No need to update node of all variable equivalent to x. Its done later by eq\_sim.
 \end{description}
 
 
@@ -175,10 +175,8 @@
     \item[Input:] atom($x[F]$)
     \item[Output:] unit
     \item[Side Effect/Algorithm]:\\Update fen of node x with FSet of F if previously empty else previous fen of x intersection F\\
-	No need to update node of all variable equivalent to x. Its done later during node\_union.\\
+    No need to update node of all variable equivalent to x. Its done later during node\_union.\\
 \end{description}
-
-
 
 \item \textbf{\textit{eq\_union}}
 \begin{description}
@@ -214,15 +212,15 @@
     \item[Output:] node
     \item[Algorithm]: Obtain a node (record) with entries: 
     \begin{itemize}
-	\item equality: obtained from eq\_union
-	\item sim: obtained from eq\_sim
-	\item var\_l: union of var\_l of the two nodes
-	\item fen: obtained from fen\_iter
-	\item notfeat: concatenation of notfeat of the two nodes
-	\item kind: obtained from kind\_union
-	\item id: It is always empty string for all nodes at this stage
-	\item feat: union of feat of the two nodes
-	\end{itemize}
+    \item equality: obtained from eq\_union
+    \item sim: obtained from eq\_sim
+    \item var\_l: union of var\_l of the two nodes
+    \item fen: obtained from fen\_iter
+    \item notfeat: concatenation of notfeat of the two nodes
+    \item kind: obtained from kind\_union
+    \item id: It is always empty string for all nodes at this stage
+    \item feat: union of feat of the two nodes
+    \end{itemize}
 \end{description}
 
 \item \textbf{\textit{add\_equal\_to\_node\_ALL}}
@@ -230,7 +228,7 @@
     \item[Input:] atom($x =_* y$)
     \item[Output:] unit
     \item[Side Effect/Algorithm]:\\ Find the union of nodes of x and y, using node\_union.\\
-	Map both x and y to this node.\\
+    Map both x and y to this node.\\
 \end{description}
 
 \item \textbf{\textit{find\_feat\_link\_opt}}
@@ -284,7 +282,7 @@
 
     \begin{itemize} % None means don't know
         \item Phase I: Go through all features $f\in F'$ and apply find\_feat\_link\_opt on x and y for f [store the results for next phases] if it matches (Some v1,Some v2) and $v1\neq v2$ then atom is satisfied else move to Phase II
-        \item Phase II: Now if for some feature $f\in F'$ there is a match with (None,Some v2) or (Some v1,None) add an absent mapping for f to the node that results to None if it has no $\lnot v[f]\uparrow$. Otherwise move to Phase III 
+        \item Phase II: Now if for some feature $f\in F'$ there is a match with (None,Some v2) or (Some v1,None) add an absent mapping for f to the node that results to None [if there is a $\lnot v[f]\uparrow$, there would already be a mapping from v to a new var though f, as $\lnot v[f]\uparrow$ is processed earlier] Otherwise move to Phase III 
         \item Phase III: If for some feature f there is a match with (None,None) 
         and if one of the nodes of $x$ or $y$,
         $n'$ has no $n'[G]$. Create a new variable $v'$ and add $n'[f]v'$ and $n''[f] \uparrow$ ($n''$ is the other node). Else Phase IV
@@ -675,6 +673,5 @@
 
 \end{description}
 \end{document}
-
 
 
