@@ -40,6 +40,20 @@ let add_feat_to_node atom =
              (helper (VSet.elements new_node.var_l))
   |_ -> failwith "add_feat_to_node is only for Feat"
 
+let new_v_mod v1 f =
+  v_max :=  !v_max + 1;
+  var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
+  add_feat_to_node (Feat (v1,f,!v_max));
+  ()
+
+let new_v_f_mod v1=
+  let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
+  v_max :=  !v_max + 1;
+  var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
+  add_feat_to_node (Feat (v1,new_f,!v_max));
+  fBigSet := FSet.add new_f !fBigSet;
+  new_f
+  
 let rec no_feat_abs_to_node atom =
   match atom with
   |Feat(v1,f,v2) -> let v1_node = find_node v1 in
@@ -57,9 +71,7 @@ let rec no_feat_abs_to_node atom =
 
   |Abs(v1,f) -> no_feat_abs_to_node (Feat(v1,f,0));
                 if((FMap.find_opt  f (find_node v1).feat) = None) then
-                    let v_new = ((VarMap.cardinal !var_map) + 3) in
-                    var_map := VarMap.add v_new (empty_node v_new) !var_map;
-                    add_feat_to_node (Feat (v1,f,v_new))  (*BUG : ADD A FEATURE to make sure not absent*)
+                    (new_v_mod v1 f )  (*BUG : ADD A FEATURE to make sure not absent*)
                 else ()
   |_ -> failwith "no_feat_abs_to_node is only for Feat"
 
@@ -267,17 +279,19 @@ let not_Fen_transform atom  =
   match atom with
   |Fen(v1,fl) ->  let v1_node = find_node v1 in
                   let all_f = FSet.elements (FSet.diff !fBigSet (FSet.of_list fl)) in 
+                  let rec helper3 l  =
+                    match l with
+                    |[] -> failwith "not_Fen_transform: [Clash]It is not possible to satisfy it"
+                    |f::t -> 
+                             (*we already know mapping for f on v1 is None and v1 has a fen*)
+                            if (FSet.mem f v1_node.fen) then 
+                              (new_v_mod v1 f; ())
+                            else helper3 t                             
+                  in
                   let helper2 () = 
                         if(not v1_node.fen_p) then
-                          begin
-                            let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
-                            v_max :=  !v_max + 1; (*Make sure max has already been stored*)
-                            var_map := VarMap.add !v_max (empty_node !v_max) !var_map;
-                            add_feat_to_node (Feat (v1,new_f,!v_max));
-                            fBigSet := FSet.add new_f !fBigSet;
-                            ()
-                          end
-                        else failwith "not_Fen_transform: [Clash]It is not possible to satisfy it"
+                            (let _ = (new_v_f_mod v1) in ())
+                        else helper3 all_f
                   in
                   let rec helper l  =
                     match l with
@@ -295,8 +309,6 @@ let is_allowed (atom):bool =
   |Abs(v1,f) ->  not (List.mem (f,0) (find_node v1).notfeat)
   |_ -> failwith "is_allowed: is only for Feat and Abs"
 
-
-            
 let not_eq_sim_transform  atom =
   let getValF  = match atom with 
                |Eqf(v1,fl,v2) -> (v1,fl,v2,false)
@@ -309,52 +321,37 @@ let not_eq_sim_transform  atom =
   let v2_node = find_node v2 in
   let info = ref [] in
   let helper4 () = if((not v1_node.fen_p)&&(isSim))then  
-                  begin
-                    let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
-                    v_max :=  !v_max + 1;
-                    var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
-                    add_feat_to_node (Feat (v1,new_f,!v_max));
+                    (let new_f = new_v_f_mod v1 in
                     add_abs_to_node (Abs (v2,new_f));
-                    fBigSet := FSet.add new_f !fBigSet;
-                    ()
-                  end
+                    ())
                 else if((not v2_node.fen_p)&&(isSim)) then
-                  begin
-                    let (new_f:feature) = "GeneratedF"^ string_of_int (fresh ()) in
-                    v_max :=  !v_max + 1;
-                    var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
-                    add_feat_to_node (Feat (v2,new_f,!v_max));
+                    (let new_f = new_v_f_mod v2 in
                     add_abs_to_node (Abs (v1,new_f));
-                    fBigSet := FSet.add new_f !fBigSet;
-                    ()
-                  end
+                    ())
                 else failwith "node_not_eq_transform : Could not find a way to satisfy it"
     in
   let rec helper3 info_s=
         match info_s with 
         |[] -> helper4 () (*For sim we can still add a new feature*)
         |(f1,None,None)::t -> if (((not v1_node.fen_p)||(FSet.mem f1 v1_node.fen))&&(is_allowed (Abs (v2,f1)) )) then 
-                              (v_max :=  !v_max + 1;
-                              var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
-                              add_feat_to_node (Feat (v1,f1,!v_max));
+                              (new_v_mod v1 f1;
                               add_abs_to_node (Abs (v2,f1));
                               ())
                            else if(((not v2_node.fen_p)||(FSet.mem f1 v2_node.fen))&&(is_allowed (Abs (v1,f1)) )) then 
-                              (v_max :=  !v_max + 1;
-                              var_map := VarMap.add !v_max (empty_node !v_max) (!var_map);
-                              add_feat_to_node (Feat (v2,f1,!v_max));
+                              (new_v_mod v2 f1;
                               add_abs_to_node (Abs (v1,f1));
                               ())
                            else helper3 t
         |_::t -> helper3 t
         in
+
   let rec helper2 info_s =
         match info_s with 
-        |[] -> helper3 !info
-        |(f1,Some _, None)::t ->  if(is_allowed (Abs (v2,f1))) then helper2 t
+        |[] -> helper3!info
+        |(f1,Some _, None)::t ->  if not(is_allowed (Abs (v2,f1))) then helper2 t
                                     else add_abs_to_node (Abs (v2,f1))
                                     
-        |(f1,None, Some _)::t ->  if(is_allowed (Abs (v1,f1))) then helper2 t
+        |(f1,None, Some _)::t ->  if not(is_allowed (Abs (v1,f1))) then helper2 t
                                     else add_abs_to_node (Abs (v1,f1)) 
                                     
         |_::t -> helper2 t
@@ -373,3 +370,4 @@ let not_eq_sim_transform  atom =
                |_::_ -> helper1 t  
       in
     helper1 all_f 
+                 
