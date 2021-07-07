@@ -112,8 +112,7 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
         & is_ntype x
         & eq root root'
       end in
-  let is_dir = (is_type = dir) || (is_ntype = nreg) (* TODO: fill *)
-  in
+  let is_dir = (String.equal attr "-d") in
     specification_cases @@
     match Path.split_last p with
     | None ->  
