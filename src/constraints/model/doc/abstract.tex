@@ -1,0 +1,17 @@
+%! TEX root = main.tex
+
+\begin{abstract}
+This paper presents a specification based testing of POSIX utilities 
+manipulating the file system, e.g., copy, moving or removing files and directories.
+The specification used in this work is the outcome of the Colis project, 
+which proposed a formal specification of POSIX utilities using the 
+Feature Tree Logic (FTL).
+To obtain test suites for a POSIX command, we propose an algorithm 
+which synthesizes the model of the command's specification. 
+The model is then used to create the input file system of the 
+command under test and to check that the output file system 
+conforms to the formal specification.
+We report on the application of this method to several POSIX commands.
+The main result we obtained is the improvement of the FTL specifications 
+for dealing with special file system's paths.
+\end{abstract}
