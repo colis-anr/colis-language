@@ -21,7 +21,8 @@ let interp_test_empty () : utility =
   ]
 
 let interp_test_e cwd path_str : utility =
-  let p = Path.from_string path_str in
+  let strip_path = Path.strip_trailing_slashes path_str in
+  let p = Path.from_string strip_path in
   specification_cases [
     success_case
       ~descr:(asprintf "test -e %a: path resolves" Path.pp p)
@@ -112,7 +113,7 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
         & is_ntype x
         & eq root root'
       end in
-  let is_dir = (String.equal attr "-d") in
+  let is_dir = (String.equal attr "d") in
     specification_cases @@
     match Path.split_last p with
     | None ->  
