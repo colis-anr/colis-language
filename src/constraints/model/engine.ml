@@ -4,6 +4,8 @@ open File_system
 open Common
 open Print
 
+let if_mutate = false
+let if_print_detail = true
 let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd_s))
 (*
 let cwd = [] (*apply cmd from root dir*)
@@ -135,7 +137,7 @@ let read_file filename =
 let cmd_file = "cmd.dat"
 (*m-> boolean specifying if mutuate; p->boolean specifying if print detail*)
 let _ =  Printf.fprintf out_f_l "\t\tMUTATION OFF\n"
-let _ = loop_cmd (read_file cmd_file) ~m:false ~p:true ()
+let _ = loop_cmd (read_file cmd_file) ~m:if_mutate ~p:if_print_detail ()
 
 (*For single cmd (use for debugging)
 let cmd = "mkdir ./a/b"
