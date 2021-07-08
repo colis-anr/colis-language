@@ -8,11 +8,10 @@ Experiments can be performed in a docker container using the following steps:
 - **compile the test engine:** in the directory 
     ``colis-language/src/constraints/model`` (called MDIR), 
     execute ``dune build engine.exe``;
-    the mutation and verbose modes are toggled by
-    Boolean flags in ``engine.ml``;
     
 - **run the test for one command:** in the MDIR,
     write the command in the ``cmd.dat`` file;
-    the test is run by calling ``dune exec ./engine.exe``;
+    the test is run by calling ``dune exec ./engine.exe [if_mutate] [if_verbose]``;
+    the mutation and verbose modes can be specified in the arguments (0 for false and 1 for true);
     multiple commands may be tested by writing them, one by line,
     in the ``cmd.dat`` file.
