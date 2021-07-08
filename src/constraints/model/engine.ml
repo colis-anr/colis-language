@@ -4,8 +4,16 @@ open File_system
 open Common
 open Print
 
-let if_mutate = false
-let if_print_detail = true
+let _ = for i = 0 to Array.length Sys.argv - 1 do
+  Printf.printf "[%i] %s\n" i Sys.argv.(i)
+done
+(*Arg 1 -> mutate ; Arg 2 -> verbose*)
+let (if_mutate,if_print_detail) = if(Array.length Sys.argv >= 3)then
+                                   ((Sys.argv.(1) = "1"),(Sys.argv.(2) = "1"))
+                                  else (false,true)
+let _ = Format.printf "\tMUTATE: %b ; VERBOSE: %b\n\n" if_mutate if_print_detail;
+        Printf.fprintf out_f_l "\tMUTATE: %b ; VERBOSE: %b\n\n" if_mutate if_print_detail
+
 let cwd = Colis_constraints.Path.normalize (Colis_constraints.Path.from_string (cwd_s))
 (*
 let cwd = [] (*apply cmd from root dir*)
@@ -136,7 +144,6 @@ let read_file filename =
 
 let cmd_file = "cmd.dat"
 (*m-> boolean specifying if mutuate; p->boolean specifying if print detail*)
-let _ =  Printf.fprintf out_f_l "\t\tMUTATION OFF\n"
 let _ = loop_cmd (read_file cmd_file) ~m:if_mutate ~p:if_print_detail ()
 
 (*For single cmd (use for debugging)
