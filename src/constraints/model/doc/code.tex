@@ -261,7 +261,8 @@
     \item[Side Effect/Algorithm]:\\To solve for $\lnot x[F]$ we need two phases
     \begin{itemize}
         \item Phase I: Go through all features $f \not\in F$ and if any of them has a direct or indirect mapping in node of x. $\lnot x[F]$ is already satisfied.If not go for Phase II
-        \item Phase II: if x has some $x[G]$ then its a Clash else create a new feature f' and variable v' and atom($x[f']v'$) and make necessary updates.
+        \item Phase II: if x has some $x[G]$ then Phase III else create a new feature f' and variable v' and add atom($x[f']v'$) and make necessary updates.
+        \item Phase III: For Some $f \not\in F$ create a new variable v' and add atom($x[f]v'$) and make necessary updates.
     \end{itemize}
 \end{description}
 
