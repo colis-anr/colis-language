@@ -1,3 +1,5 @@
+To get a better insight of the modules and their functions check the latex file ```colis-language/src/constraints/model/doc/code.tex```
+<br /><br />
 Experiments can be performed in a docker container using the following steps:
 <br />
 - **build the docker:** obtain the docker image of the git-repository of colis-language using ``docker build -t [Image-name] .`` in the directory with the dockerfile;
