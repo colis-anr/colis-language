@@ -111,8 +111,8 @@ type sym_config = {
 module SymbolicConstraints : sig
   open Constraints
 
-  type state = SymbolicUtility.Constraints.state
-  type sym_state = SymbolicUtility.Constraints.sym_state
+  type state = SymbolicUtility.Constraints.Interpreter.state
+  type sym_state = SymbolicUtility.Constraints.Interpreter.sym_state
   type config = SymbolicUtility.Constraints.config = {
     prune_init_state: bool; (** Prune the initial symbolic state during symbolic execution for a faster execution *)
   }

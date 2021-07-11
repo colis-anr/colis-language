@@ -73,6 +73,13 @@ module type INTERPRETER = sig
 
   (** {4 Registration and dispatch} *)
 
+  (** Alias for easier access in the utility implementations. *)
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
+
   (** A symbolic utility is comprised of a name and a function that interpretes a [utility]
       in a [context]. *)
   module type SYMBOLIC_UTILITY = sig
@@ -212,10 +219,35 @@ module MakeSpecifications
 
 (** {1 Backends} *)
 
+(** {2 Concrete backend}
+
+     A symbolic backend that always returns only one state that is obtained by the
+    concrete run of the command.
+
+    Incomplete - just a simplest possible showcase. *)
+
+module Concrete : sig
+  type filesystem = FilesystemSpec.t
+  type case_spec = filesystem -> filesystem option
+
+  module Interpreter : INTERPRETER
+    with type filesystem := filesystem
+
+  module Combinators : COMBINATORS
+    with type state := Interpreter.state
+
+  module Specifications : SPECIFICATIONS
+    with type state := Interpreter.state
+     and type case_spec := filesystem -> filesystem option
+
+  type config = unit
+  val filesystems : config -> FilesystemSpec.t -> filesystem list
+end
+
 (** {2 Constraints} *)
 
 (** Instantiation of the constraints-based backend with the interpreter and
-   specifications. *)
+    specifications. *)
 module Constraints : sig
 
   open Colis_constraints
@@ -233,14 +265,14 @@ module Constraints : sig
      the new root [r] to a constraint clause [c]. *)
   type case_spec = Var.t -> Var.t -> t
 
-  include INTERPRETER
+  module Interpreter : INTERPRETER
     with type filesystem := filesystem
 
-  include COMBINATORS
-    with type state := state
+  module Combinators : COMBINATORS
+    with type state := Interpreter.state
 
-  include SPECIFICATIONS
-    with type state := state
+  module Specifications : SPECIFICATIONS
+    with type state := Interpreter.state
      and type case_spec := case_spec
 
   type config = {
@@ -261,14 +293,14 @@ module Transducers : sig
   type filesystem = unit
   type case_spec = unit
 
-  include INTERPRETER
+  module Interpreter : INTERPRETER
     with type filesystem := filesystem
 
-  include COMBINATORS
-    with type state := state
+  module Combinators : COMBINATORS
+    with type state := Interpreter.state
 
-  include SPECIFICATIONS
-    with type state := state
+  module Specifications : SPECIFICATIONS
+    with type state := Interpreter.state
      and type case_spec := case_spec
 
   type config = unit
@@ -281,41 +313,39 @@ end
     backend, while sharing the infrastructure for concrete evaluation. *)
 module Mixed : sig
 
-  type filesystem =
-    | Constraints of Constraints.filesystem
-    | Transducers of Transducers.filesystem
-
+  type filesystem
   type case_spec
 
   (** A mixed case specification combines case specifications of the different backends.
      If the case specification is left unspecified for a backends, it induces incomplete
      behaviour for that backend independently of the specification case. *)
-  val case_spec : ?transducers:Transducers.case_spec -> ?constraints:Constraints.case_spec -> unit -> case_spec
+  val case_spec :
+    ?concrete:Concrete.case_spec ->
+    ?transducers:Transducers.case_spec ->
+    ?constraints:Constraints.case_spec ->
+    unit -> case_spec
 
-  include INTERPRETER
+  module Interpreter : INTERPRETER
     with type filesystem := filesystem
 
-  include COMBINATORS
-    with type state := state
+  module Combinators : COMBINATORS
+    with type state := Interpreter.state
 
-  include SPECIFICATIONS
-    with type state := state
+  module Specifications : SPECIFICATIONS
+    with type state := Interpreter.state
      and type case_spec := case_spec
 
   (** Symbolically interprete a program using the constraints backend *)
-  val interp_program_constraints : input -> Constraints.sym_state list -> program ->
-    (Constraints.state list * Constraints.state list * Constraints.state list)
+  val interp_program_concrete : input -> Concrete.Interpreter.sym_state list -> program ->
+    Concrete.Interpreter.state list * Concrete.Interpreter.state list * Concrete.Interpreter.state list
+
+  (** Symbolically interprete a program using the constraints backend *)
+  val interp_program_constraints : input -> Constraints.Interpreter.sym_state list -> program ->
+    Constraints.Interpreter.state list * Constraints.Interpreter.state list * Constraints.Interpreter.state list
 
   (** Symbolically interprete a program using the transducers backend *)
-  val interp_program_transducers : input -> Transducers.sym_state list -> program ->
-    (Transducers.state list * Transducers.state list * Transducers.state list)
-
-  (** Alias for easier access in the utility implementations. *)
-  type utility_context = Semantics__UtilityContext.utility_context = {
-    cwd: Colis_constraints.Path.normal;
-    env: string Env.SMap.t;
-    args: string list;
-  }
+  val interp_program_transducers : input -> Transducers.Interpreter.sym_state list -> program ->
+    Transducers.Interpreter.state list * Transducers.Interpreter.state list * Transducers.Interpreter.state list
 end
 
 (** {2 Compatibility}
@@ -323,12 +353,21 @@ end
     Compatibility with module SymbolicUtility before functorization of the symbolic
    engine: Create mixed utilities with the interface of constraints-based backend. *)
 module ConstraintsCompatibility : sig
-  include module type of Mixed
-    with type filesystem = Mixed.filesystem
-     and type state = Mixed.state
 
-  val success_case: descr:string -> ?stdout:Stdout.t -> Constraints.case_spec -> case
-  val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Constraints.case_spec -> case
-  val incomplete_case: descr:string -> Constraints.case_spec -> case
+  include INTERPRETER
+    with type filesystem = Mixed.filesystem
+     and type state := Mixed.Interpreter.state
+
+  include COMBINATORS
+    with type state := Mixed.Interpreter.state
+
+  include SPECIFICATIONS
+    with type state := Mixed.Interpreter.state
+     and type case_spec = Mixed.case_spec
+     and type case := Mixed.Specifications.case
+
+  val success_case: descr:string -> ?stdout:Stdout.t -> Constraints.case_spec -> Mixed.Specifications.case
+  val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Constraints.case_spec -> Mixed.Specifications.case
+  val incomplete_case: descr:string -> Constraints.case_spec -> Mixed.Specifications.case
   val noop : Constraints.case_spec
 end

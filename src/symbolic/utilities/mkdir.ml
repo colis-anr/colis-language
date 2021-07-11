@@ -1,6 +1,7 @@
 open Format
 open Colis_constraints
 open SymbolicUtility.Mixed
+open SymbolicUtility.Mixed.Specifications
 
 let name = "mkdir"
 
@@ -22,6 +23,11 @@ let interp_mkdir1 cwd path_str =
       success_case
         ~descr:(asprintf "mkdir %a: create directory" Path.pp p)
         (case_spec
+           ~concrete:begin fun fs ->
+             let path = List.map Feat.to_string (cwd @ [f]) in
+             try Some (FilesystemSpec.add_dir path fs)
+             with Invalid_argument _ -> None
+           end
            ~transducers:()
            ~constraints:begin fun root root' ->
              exists3 @@ fun x x' y ->
@@ -58,12 +64,12 @@ let interp_mkdir1 cwd path_str =
     ]
 
 let interprete parents ctx args : utility =
-  if parents then incomplete ~utility:name "option -p" else
-  multiple_times (interp_mkdir1 ctx.cwd) args
+  if parents then Interpreter.incomplete ~utility:name "option -p" else
+  Combinators.multiple_times (interp_mkdir1 ctx.Interpreter.cwd) args
 
 let interprete ctx : utility =
   let parents = Cmdliner.Arg.(value & flag & info ["p"; "parents"]) in
-  cmdliner_eval_utility
+  Combinators.cmdliner_eval_utility
     ~utility:name
     Cmdliner.Term.(const interprete $ parents)
     ctx
