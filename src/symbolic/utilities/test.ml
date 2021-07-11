@@ -106,7 +106,7 @@ let interp_test_file_type ~attr is_type is_ntype cwd path_str : utility =
       end in
   let err_case = 
     error_case
-      ~descr:(asprintf "test -%s %a: path does not resolve or to file of type other than '%s'" attr Path.pp p attr)
+      ~descr:(asprintf "test -%s %a: path does not resolve or file of type other than '%s'" attr Path.pp p attr)
       begin fun root root' ->
         exists @@ fun x ->
         maybe_resolve root cwd sp x
