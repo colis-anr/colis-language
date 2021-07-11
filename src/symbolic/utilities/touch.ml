@@ -7,7 +7,8 @@ let name = "touch"
 let interp_touch1 cwd path_str : utility =
   (* FIXME: we can merge two cases here (parent path does not resolve & parent
      path isn't a directory) *)
-  let p = Path.from_string path_str in
+  let strip_path = Path.strip_trailing_slashes path_str in
+  let p = Path.from_string strip_path in
   match Path.split_last p with
   | None -> (* `touch ''` *)
     specification_cases [
