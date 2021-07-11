@@ -8,8 +8,10 @@ let name = "mv"
  *    used by 'mv'
  *)
 let interp_rename ctx src dstpath : utility =
-  let qsrc = Path.from_string src in
-  let qdst = Path.from_string dstpath in
+  let strip_src = Path.strip_trailing_slashes src in
+  let strip_dst = Path.strip_trailing_slashes dstpath in
+  let qsrc = Path.from_string strip_src in
+  let qdst = Path.from_string strip_dst in
   match Path.split_last qsrc, Path.split_last qdst with
     | (None, _) ->
       specification_cases [
@@ -79,7 +81,14 @@ let interp_rename ctx src dstpath : utility =
                & resolve root ctx.cwd qdst yd & dir yd
                & neq ys yd & nfen yd Feat.Set.empty
                & eq root root'
-             end;
+             end
+          ]
+       in
+       let src_file = 
+         if (String.length strip_src) < (String.length src) 
+         then []
+         else
+           [ 
            success_case
              ~descr:(asprintf "mv/rename: old '%s' is file, new '%s' is absent"
                        src dstpath)
@@ -139,8 +148,7 @@ let interp_rename ctx src dstpath : utility =
            ]
          else []
        in
-       let b_slash = (String.length dstpath) >
-                       (String.length (Path.strip_trailing_slashes dstpath)) in
+       let b_slash = (String.length dstpath) > (String.length strip_dst) in
        let slash_case =
          if b_slash then
            [
@@ -175,13 +183,13 @@ let interp_rename ctx src dstpath : utility =
            ]
        in
        specification_cases @@
-       List.concat [ unconditional_cases; ancestor_case ; slash_case ]
+       List.concat [ unconditional_cases; src_file; ancestor_case ; slash_case ]
 
 
 let interp_mv2dir ctx dst src : utility =
   (* Assume: dst resolves to an existing directory *)
   let stripsrc = Path.strip_trailing_slashes src in
-  let qsrc = Path.from_string stripsrc in
+  let qsrc = Path.from_string src in
   match Path.split_last qsrc with
   | None ->
      error ~utility:"mv" "invalid source path ''"
