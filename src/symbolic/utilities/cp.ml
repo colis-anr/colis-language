@@ -7,8 +7,9 @@ let name = "cp"
  * Copy the src into a dst which should be an existing directory if todir.
  * Recursive copy if isrec.
  *)
-let interp_cp2 ctx ~todir ~isrec src dst : utility =
-  let qsrc = Path.from_string src in
+let interp_cp2 ctx ~todir ~isrec dst src: utility =
+  let stripsrc = Path.strip_trailing_slashes src in
+  let qsrc = Path.from_string stripsrc in
   let qdst = Path.from_string dst in
   specification_cases @@
   match Path.split_last qsrc, Path.split_last qdst with
@@ -118,7 +119,9 @@ let interp_cp2 ctx ~todir ~isrec src dst : utility =
                & feat xd' fd ys
              end
          ] in
-       let src_file_cases = [
+       let src_file_cases = 
+         if (String.length src) > (String.length stripsrc) then []
+         else [
            success_case
              ~descr:(asprintf "cp: source file '%s' to directory '%s'" src dst)
            begin fun root root' ->
@@ -213,12 +216,12 @@ let interprete ctx : utility =
       | [] -> error ~utility:"cp" "missing operand"
       | [_arg] -> error ~utility:"cp" "not enough arguments"
       | [src; dst] -> (* 2 arguments: first, second and third synopsis forms *)
-          interp_cp2 ctx ~todir:false ~isrec:!r src dst
+          interp_cp2 ctx ~todir:false ~isrec:!r dst src
       | src::_ -> (* second and third synopsis forms, cp in existing directory *)
         let dir = List.hd !args_rev in
         let srcs = List.rev (List.tl !args_rev) in
         (uand
-           (interp_cp2 ctx ~todir:true ~isrec:!r src dir) (* Dest created by the first cp *)
+           (interp_cp2 ctx ~todir:true ~isrec:!r dir src) (* Dest created by the first cp *)
            (multiple_times
               (interp_cp2 ctx ~todir:true ~isrec:!r dir)
               (List.tl srcs)
