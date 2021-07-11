@@ -5,7 +5,6 @@ open SymbolicUtility.Mixed
 let name = "mkdir"
 
 let interp_mkdir1 cwd path_str =
-  (* let p = Path.from_string path_str in *)
   let path = Path.strip_trailing_slashes path_str in
   let p = Path.from_string path in
   match Path.split_last p with
@@ -13,9 +12,26 @@ let interp_mkdir1 cwd path_str =
     specification_cases [
       error_case ~descr:"mkdir: cannot create directory ''" noop
     ]
-  | Some (_q, (Here|Up)) ->
+  | Some (q, (Here|Up)) ->
     specification_cases [
-      error_case ~descr:"mkdir: file exists" noop (* CHECK *)
+      error_case
+        ~descr:(asprintf "mkdir %a: target already exists" Path.pp q)
+        (case_spec
+          ~constraints:begin fun root root' ->
+             exists @@ fun x ->
+             resolve root cwd q x &
+             dir x &
+             eq root root'
+           end ());
+      error_case
+        ~descr:(asprintf "mkdir %a: path does not resolve" Path.pp q)
+        (case_spec
+           ~constraints:begin fun root root' ->
+             exists @@ fun x ->
+             maybe_resolve root cwd q x
+             & ndir x
+             & eq root root'
+           end ());
     ]
   | Some (q, Down f) ->
     specification_cases [
