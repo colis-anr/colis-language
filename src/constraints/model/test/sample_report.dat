@@ -1,0 +1,60 @@
+        MUTATE: true ; VERBOSE: true
+
+-------------------------------------------------------------------------
+CMD: test -e stty/gunzip/touch
+CMD_Mod: test -e ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip/touch
+No of Clauses : 2
+
+
+        Clause 1 [RootB: 1 ;RootA: 2; isError: false] : 
+ Pos(Eq(10,3))  Pos(Eq(1,2))  Pos(Kind(9,Dir))  Pos(Feat(9,touch,10))  Pos(Kind(8,Dir))  Pos(Feat(8,gunzip,9))  Pos(Kind(7,Dir))  Pos(Feat(7,stty,8))  Pos(Kind(6,Dir))  Pos(Feat(6,Inner3TR,7))  Pos(Kind(5,Dir))  Pos(Feat(5,Inner2TR,6))  Pos(Kind(4,Dir))  Pos(Feat(4,InnerTR,5))  Pos(Kind(2,Dir))  Pos(Feat(2,tmp,4)) 
+
+Mutant Clause : Pos(Feat(16,GenFto18,18))  Pos(Feat(14,GenFto17,17))  Pos(Abs(9,GenFAbs9))  Pos(Feat(5,GenFto16,16))  Pos(Abs(6,GenFAbs5))  Pos(Feat(4,GenFto15,15))  Pos(Feat(6,GenFto14,14))  Pos(Feat(8,GenFto13,13))  Pos(Feat(10,GenFto12,12))  Pos(Feat(1,GenFto11,11))  Pos(Eq(10,3))  Pos(Eq(1,2))  Pos(Kind(9,Dir))  Pos(Feat(9,touch,10))  Pos(Kind(8,Dir))  Pos(Feat(8,gunzip,9))  Pos(Kind(7,Dir))  Pos(Feat(7,stty,8))  Pos(Kind(6,Dir))  Pos(Feat(6,Inner3TR,7))  Pos(Kind(5,Dir))  Pos(Feat(5,Inner2TR,6))  Pos(Kind(4,Dir))  Pos(Feat(4,InnerTR,5))  Pos(Kind(2,Dir))  Pos(Feat(2,tmp,4)) 
+
+mkdir -p ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip/touch/GenFto12
+mkdir -p ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip
+mkdir -p ./tmp/InnerTR/Inner2TR/Inner3TR/stty/GenFto13
+mkdir -p ./tmp/InnerTR/Inner2TR/GenFto14/GenFto17
+mkdir -p ./tmp/InnerTR/Inner2TR
+mkdir -p ./tmp/InnerTR/GenFto16/GenFto18
+mkdir -p ./tmp/GenFto15
+mkdir -p ./GenFto11
+test -e ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip/touch
+check : ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip/touch/GenFto12
+check : ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip     check Abs : ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip/GenFAbs9
+check : ./tmp/InnerTR/Inner2TR/Inner3TR/stty/GenFto13
+check : ./tmp/InnerTR/Inner2TR/GenFto14/GenFto17
+check : ./tmp/InnerTR/Inner2TR  check Abs : ./tmp/InnerTR/Inner2TR/GenFAbs5
+check : ./tmp/InnerTR/GenFto16/GenFto18
+check : ./tmp/GenFto15
+check : ./GenFto11
+                ***PATH CHECK SUCCESS***
+                        ID Dissolve Repot
+Equality(*) Dissolve Error:     SIM(F) Dissolve Error:  Equality(F) Dissolve Error:
+
+
+        Clause 2 [RootB: 1 ;RootA: 11; isError: true] : 
+ Pos(Eq(1,11))  Pos(Maybe(16,gunzip,17))  Pos(Maybe(15,stty,16))  Pos(Maybe(14,Inner3TR,15))  Pos(Maybe(13,Inner2TR,14))  Pos(Maybe(12,InnerTR,13))  Pos(Abs(17,touch))  Pos(Maybe(11,tmp,12)) 
+
+Mutant Clause : Pos(Feat(18,GenFto24,24))  Pos(Feat(15,GenFto23,23))  Pos(Abs(21,GenFAbs14))  Pos(Abs(1,GenFAbs10))  Pos(Feat(1,GenFto22,22))  Pos(Abs(20,GenFAbs15))  Pos(Feat(18,GenFto21,21))  Pos(Feat(1,GenFto20,20))  Pos(Feat(12,GenFto19,19))  Pos(Feat(13,GenFto18,18))  Pos(Eq(1,11))  Pos(Maybe(16,gunzip,17))  Pos(Maybe(15,stty,16))  Pos(Maybe(14,Inner3TR,15))  Pos(Maybe(13,Inner2TR,14))  Pos(Maybe(12,InnerTR,13))  Pos(Abs(17,touch))  Pos(Maybe(11,tmp,12)) 
+
+mkdir -p ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip
+mkdir -p ./tmp/InnerTR/Inner2TR/Inner3TR/GenFto23
+mkdir -p ./tmp/InnerTR/GenFto18/GenFto24
+mkdir -p ./tmp/InnerTR/GenFto18/GenFto21
+mkdir -p ./tmp/GenFto19
+mkdir -p ./GenFto22
+mkdir -p ./GenFto20
+mkdir -p .
+test -e ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip/touch
+check : ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip     check Abs : ./tmp/InnerTR/Inner2TR/Inner3TR/stty/gunzip/touch
+check : ./tmp/InnerTR/Inner2TR/Inner3TR/GenFto23
+check : ./tmp/InnerTR/GenFto18/GenFto24
+check : ./tmp/InnerTR/GenFto18/GenFto21 check Abs : ./tmp/InnerTR/GenFto18/GenFto21/GenFAbs14
+check : ./tmp/GenFto19
+check : ./GenFto22
+check : ./GenFto20      check Abs : ./GenFto20/GenFAbs15
+check : .       check Abs : ./GenFAbs10
+                ***PATH CHECK SUCCESS***
+                        ID Dissolve Repot
+Equality(*) Dissolve Error:     SIM(F) Dissolve Error:  Equality(F) Dissolve Error:     
