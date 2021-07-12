@@ -49,8 +49,8 @@ let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
                   let (out_fs:Colis__.SymbolicUtility.Mixed.filesystem) = state_.filesystem in
                   printStdout state_.stdout ;
                   let s_c = match out_fs with Constraints r -> r.clause | _ -> failwith "not a good fs" in
-                  let rootb = match out_fs with Constraints r -> r.root0 | _ -> failwith "not a good fs" in 
-                  let roota = match out_fs with Constraints r -> r.root | _ -> failwith "not a good fs" in  
+                  let rootb = match out_fs with Constraints r -> r.root0 | _ -> failwith "not a good root0" in 
+                  let roota = match out_fs with Constraints r -> r.root | _ -> failwith "not a good root" in  
                   let rootb = match rootb with | Some v -> v |None -> failwith "no root before" in
                   let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c) in
                   let s_c = List.of_seq s_c in
