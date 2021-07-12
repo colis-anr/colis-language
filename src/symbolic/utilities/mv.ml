@@ -194,7 +194,10 @@ let interp_mv2dir ctx dst src : utility =
   | None ->
      error ~utility:"mv" "invalid source path ''"
   | Some (_, (Here|Up)) ->
-     error ~utility:"mv" "source path ends in . or .."
+     (* error ~utility:"mv" "source path ends in . or .." *)
+     specification_cases [
+        error_case ~descr:"mv: source path ends in . or .." noop
+      ]
   | Some (_, Down fs) ->
     let stripdst = Path.strip_trailing_slashes dst in
     let dstpath = String.concat "/" [stripdst; (Feat.to_string fs)] in
