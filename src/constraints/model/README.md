@@ -1,19 +1,54 @@
-To get a better insight of the modules and their functions check the latex file ```colis-language/src/constraints/model/doc/code.tex```
-<br /><br />
-Experiments can be performed in a docker container using the following steps:
-<br />
-- **build the docker:** obtain the docker image of the git-repository of colis-language using ``docker build -t [Image-name] .`` in the directory with the dockerfile;
- the image uploaded includes ocaml (based on opam package "ocaml/opam2:latest") which runs on "Debian GNU/Linux 10 (buster)";
 
-- **run a container:** after the image is build create a a container of it to run a terminal using ``docker run -it [Image-name]``
+Package for model generation and specification testing
 
-- **compile the test engine:** in the directory 
-    ``colis-language/src/constraints/model`` (called MDIR), 
-    execute ``dune build engine.exe``;
+Documentation is available in 'doc/code.tex'.
+
+Experiments can be performed in a docker container using
+the follozing steps:
+
+0. Install docker
+'''''''''''''''''
+Use instructions from https://docs.docker.com/engine/install
+
+1. Build the docker image
+'''''''''''''''''''''''''
+In the directory colis-language.git, execute:
+
+sudo docker build -t [image-tag] .
+
+which uses 'Dockerfile' to create an image from colis-language repository
+based on 'ocaml/opam2:latest'. This may take a while.
+
+2. Run a docker image (container)
+'''''''''''''''''''''''''''''''''
+Use the command
+
+sudo docker run -it [image-tag]
+
+3. Compile the test engine
+''''''''''''''''''''''''''
+Move in the container in the directory colis-language/src/constraints/model
+(called from now MDIR)
+
+cd colis-language/src/constraints/model
+
+Compile the engine using
+
+dune build engine.exe
     
-- **run the test for one command:** in the MDIR,
-    write the command in the ``cmd.dat`` file;
-    the test is run by calling ``dune exec ./engine.exe [if_mutate] [if_verbose]``;
-    the mutation and verbose modes can be specified in the arguments (0 for false and 1 for true);
-    multiple commands may be tested by writing them, one by line,
-    in the ``cmd.dat`` file.
+4. Test one command
+'''''''''''''''''''
+
+Create a file 'cmd.dat' where the commad is in the first line.
+
+Execute the test using
+
+dune exec ./engine.exe [if_mutate] [if_verbose]
+
+where the options are
+  if_mutate     0 not to apply test mutation, by default
+  if_verbose    1 print explanations, by default
+
+
+To test multiple commands, write each command on a line of file 'cmd.dat'
+
