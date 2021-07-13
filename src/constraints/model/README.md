@@ -19,15 +19,38 @@ sudo docker build -t [image-tag] .
 which uses 'Dockerfile' to create an image from colis-language repository
 based on 'ocaml/opam2:latest'. This may take a while.
 
-2. Run a docker image (container)
-'''''''''''''''''''''''''''''''''
+To remove an image, stop all the containers using this image (see below)
+and use the command :
+
+sudo docker images
+
+to list the existing images, and the command
+
+sudo docker rmi xxxx
+
+to remove the image of ID xxxx.
+
+
+2. Run a docker container (from an image)
+'''''''''''''''''''''''''''''''''''''''''
 Use the command
 
 sudo docker run -it [image-tag]
 
+to obtain a terminal runing the image created.
+To remove a comtainer, list all of them with
+
+sudo docker container ls -a
+
+and remove the ones with the id xxxx
+
+sudo docker container rm xxxx
+
+
 3. Compile the test engine
 ''''''''''''''''''''''''''
-Move in the container in the directory colis-language/src/constraints/model
+In the terminal corresponding to the container, go to the directory
+colis-language/src/constraints/model
 (called from now MDIR)
 
 cd colis-language/src/constraints/model
