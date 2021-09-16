@@ -49,6 +49,7 @@ module type INTERPRETER = sig
     context : context;
     state : state;
   }
+
   val interp_program : input -> sym_state list -> program -> state list * state list * state list
 end
 
@@ -74,10 +75,16 @@ module type COMBINATORS = sig
     utility_context -> utility
 end
 
+module type CASE_SPEC = sig
+  type filesystem
+  type case_spec
+  val noop : case_spec
+  val apply_spec : filesystem -> case_spec -> filesystem list
+end
+
 module type SPECIFICATIONS = sig
   type state
   type case_spec
-  val noop : case_spec
   type utility = state -> (state * bool result) list
   type case
   val success_case: descr:string -> ?stdout:Stdout.t -> case_spec -> case
@@ -86,13 +93,16 @@ module type SPECIFICATIONS = sig
   val specification_cases : case list -> utility
 end
 
-module MakeInterpreter (Filesystem: sig type filesystem end) = struct
+module MakeInterpreter (Filesystem: sig type filesystem end) :
+  INTERPRETER
+  with type filesystem = Filesystem.filesystem =
+struct
 
   (* Application of the why3 module functor [symbolicInterpreter.Interpreter.MakeSemantics]:
      Instantiate the semantics with the given filesystem to obtain the state type. *)
   module Semantics = SymbolicInterpreter__Interpreter.MakeSemantics (Filesystem)
 
-  include Filesystem
+  type filesystem = Filesystem.filesystem
 
   type state = Semantics.state = {
     filesystem: filesystem;
@@ -129,12 +139,6 @@ module MakeInterpreter (Filesystem: sig type filesystem end) = struct
     {sta with log}
 
   open Semantics
-
-  type utility_context = Semantics__UtilityContext.utility_context = {
-    cwd: Path.normal;
-    env: string Env.SMap.t;
-    args: string list;
-  }
 
   type utility = state -> (state * bool result) list
 
@@ -206,7 +210,13 @@ module MakeInterpreter (Filesystem: sig type filesystem end) = struct
     dispatch ~name {ctx with args}
 end
 
-module MakeCombinators (Interpreter: INTERPRETER) = struct
+module type FILESYSTEM = sig type filesystem end
+
+module MakeCombinators (Interpreter: INTERPRETER) :
+  (COMBINATORS
+   with type state = Interpreter.state
+    and type utility = Interpreter.state -> (Interpreter.state * bool result) list) =
+struct
 
   include Interpreter
 
@@ -332,15 +342,17 @@ exception Incomplete_case_spec
 
 module MakeSpecifications
     (Interpreter: INTERPRETER)
-    (CaseSpec: sig
-       type case_spec
-       val noop : case_spec
-       val apply_spec : Interpreter.filesystem -> case_spec -> Interpreter.filesystem list
-     end) =
+    (CaseSpec: CASE_SPEC with type filesystem = Interpreter.filesystem) :
+  SPECIFICATIONS
+  with type state = Interpreter.state
+   and type utility = Interpreter.state -> (Interpreter.state * bool result) list
+   and type case_spec = CaseSpec.case_spec =
 struct
 
-  include Interpreter
-  include CaseSpec
+  type state = Interpreter.state
+  type utility = state -> (state * bool result) list
+  type case_spec = CaseSpec.case_spec
+  open CaseSpec
 
   type case = {
     result : bool result;
@@ -412,16 +424,14 @@ end
 
 module Constraints = struct
 
-  module Filesystem = struct
-    type filesystem = {
-      root: Var.t;
-      clause: Clause.sat_conj;
-      root0: Var.t option;
-    }
-  end
+  type filesystem = {
+    root: Var.t;
+    clause: Clause.sat_conj;
+    root0: Var.t option;
+  }
 
   module CaseSpec = struct
-    include Filesystem
+    type nonrec filesystem = filesystem
 
     type case_spec = Var.t -> Var.t -> Colis_constraints.t
 
@@ -429,7 +439,6 @@ module Constraints = struct
 
     (** Apply the case specifications to a filesystem, resulting in a list of possible filesystems. *)
     let apply_spec fs spec =
-      let open Filesystem in
       let root_is_root0 =
         (* fs.root0 = Some fs.root - garbare-collect fs.root only otherwise *)
         match fs.root0 with
@@ -447,12 +456,27 @@ module Constraints = struct
       List.map (fun clause -> {fs with clause; root=root'}) clauses
   end
 
+  module Filesystem = struct
+    type nonrec filesystem = filesystem
+  end
   module Interpreter = MakeInterpreter (Filesystem)
-  include MakeCombinators (Interpreter)
-  include MakeSpecifications (Interpreter) (CaseSpec)
-  include Filesystem
-  include Interpreter
-  include CaseSpec
+  module Combinators = MakeCombinators (Interpreter)
+  module Specifications = MakeSpecifications (Interpreter) (CaseSpec)
+
+  include (Interpreter : INTERPRETER
+           with type filesystem := filesystem
+            and type state = Interpreter.state
+            and type sym_state = Interpreter.sym_state)
+  include (CaseSpec : CASE_SPEC
+           with type filesystem := filesystem
+            and type case_spec = Var.t -> Var.t -> t)
+  include (Combinators : COMBINATORS
+           with type state := state
+            and type utility := utility)
+  include (Specifications : SPECIFICATIONS
+           with type state := state
+            and type case_spec := CaseSpec.case_spec
+            and type utility := state -> (state * bool result) list)
 
   type config = { prune_init_state : bool }
 
@@ -462,49 +486,72 @@ module Constraints = struct
     let conjs = Clause.add_to_sat_conj fs_clause Clause.true_sat_conj in
     let root0 = if config.prune_init_state then None else Some root in
     List.map (fun clause -> {clause; root; root0}) conjs
+
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
 end
 
 (* Transducers *)
 
 module Transducers = struct
 
-  module Filesystem = struct
-    type filesystem = unit
-  end
+  type filesystem = unit
 
   module CaseSpec = struct
-    include Filesystem
+    type nonrec filesystem = filesystem
     type case_spec = unit
     let noop = ()
     let apply_spec fs spec =
       ignore spec; [fs]
   end
 
+  module Filesystem = struct
+    type nonrec filesystem = filesystem
+  end
   module Interpreter = MakeInterpreter (Filesystem)
-  include MakeCombinators (Interpreter)
-  include MakeSpecifications (Interpreter) (CaseSpec)
-  include Filesystem
-  include Interpreter
-  include CaseSpec
+  module Combinators = MakeCombinators (Interpreter)
+  module Specifications = MakeSpecifications (Interpreter) (CaseSpec)
+
+  include (Interpreter : INTERPRETER
+           with type filesystem := filesystem
+            and type state = Interpreter.state
+            and type sym_state = Interpreter.sym_state)
+  include (CaseSpec : CASE_SPEC
+           with type filesystem := filesystem
+            and type case_spec = CaseSpec.case_spec)
+  include (Combinators : COMBINATORS
+           with type state := state
+            and type utility := utility)
+  include (Specifications : SPECIFICATIONS
+           with type state := state
+            and type case_spec := CaseSpec.case_spec
+            and type utility := state -> (state * bool result) list)
 
   type config = unit
 
   let filesystems : config -> FilesystemSpec.t -> Filesystem.filesystem list =
     fun _ _ -> failwith "SymbolicUtility.Transducers.filesystems"
+
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
 end
 
 (* Mixed *)
 
 module Mixed = struct
 
-  module Filesystem = struct
-    type filesystem =
-      | Constraints of Constraints.filesystem
-      | Transducers of Transducers.filesystem
-  end
+  type filesystem =
+    | Constraints of Constraints.Filesystem.filesystem
+    | Transducers of Transducers.Filesystem.filesystem
 
   module CaseSpec = struct
-    include Filesystem
+    type nonrec filesystem = filesystem
 
     (* The case_specs are wrapped in a closure because they may raise Incomplete_case_spec *)
     type case_spec = {
@@ -512,48 +559,66 @@ module Mixed = struct
       transducers: unit -> Transducers.CaseSpec.case_spec;
     }
 
-    let case_spec ?transducers ?constraints () : case_spec =
-      let case_spec_or_incomplete opt () =
-        match opt with Some x -> x | None -> raise Incomplete_case_spec in
-      {constraints = case_spec_or_incomplete constraints;
-       transducers = case_spec_or_incomplete transducers}
+  let case_spec ?transducers ?constraints () : case_spec =
+    let case_spec_or_incomplete opt () =
+      match opt with Some x -> x | None -> raise Incomplete_case_spec in
+    {constraints = case_spec_or_incomplete constraints;
+     transducers = case_spec_or_incomplete transducers}
 
     let noop : case_spec =
       case_spec
-        ~transducers:Transducers.noop
-        ~constraints:Constraints.noop
+        ~transducers:Transducers.CaseSpec.noop
+        ~constraints:Constraints.CaseSpec.noop
         ()
 
     let apply_spec fs spec =
       match fs with
       | Constraints fs ->
-        Constraints.apply_spec fs (spec.constraints ()) |>
+        Constraints.CaseSpec.apply_spec fs (spec.constraints ()) |>
         List.map (fun fs -> Constraints fs)
       | Transducers fs ->
-        Transducers.apply_spec fs (spec.transducers ()) |>
+        Transducers.CaseSpec.apply_spec fs (spec.transducers ()) |>
         List.map (fun fs -> Transducers fs)
   end
 
+  module Filesystem = struct
+    type nonrec filesystem = filesystem
+  end
   module Interpreter = MakeInterpreter (Filesystem)
-  include MakeCombinators (Interpreter)
-  include MakeSpecifications (Interpreter) (CaseSpec)
-  include Filesystem
-  include Interpreter
-  include CaseSpec
+  module Combinators = MakeCombinators (Interpreter)
+  module Specifications = MakeSpecifications (Interpreter) (CaseSpec)
 
-  let state_from_constraints (s : Constraints.state) : state = {
+  include (Interpreter : INTERPRETER
+           with type filesystem := filesystem
+            and type state = Interpreter.state
+            and type sym_state = Interpreter.sym_state)
+  include (CaseSpec : CASE_SPEC
+           with type filesystem := filesystem
+            and type case_spec = CaseSpec.case_spec)
+  include (Combinators : COMBINATORS
+           with type state := state
+            and type utility := utility)
+  include (Specifications : SPECIFICATIONS
+           with type state := state
+            and type case_spec := CaseSpec.case_spec
+            and type case = Specifications.case
+            and type utility := state -> (state * bool result) list)
+
+  let case_spec = CaseSpec.case_spec
+
+  let state_from_constraints (s : Constraints.Interpreter.state) : Interpreter.state = {
     filesystem=Constraints s.filesystem;
     stdin=s.stdin;
     stdout=s.stdout;
     log=s.log;
   }
 
-  let sym_state_from_constraints (s: Constraints.sym_state) : sym_state = {
+  let sym_state_from_constraints (s: Constraints.Interpreter.sym_state) : Interpreter.sym_state = {
     state = state_from_constraints s.state;
     context = s.context;
   }
 
-  let state_to_constraints (s: state) : Constraints.state =
+  let state_to_constraints (s: Interpreter.state) : Constraints.Interpreter.state =
     let filesystem =
       match s.filesystem with
       | Constraints fs -> fs
@@ -562,37 +627,58 @@ module Mixed = struct
 
   let interp_program_constraints inp stas pro =
     let stas' = List.map sym_state_from_constraints stas in
-    let normals, errors, failures = interp_program inp stas' pro in
+    let normals, errors, failures = Interpreter.interp_program inp stas' pro in
     List.map state_to_constraints normals, List.map state_to_constraints errors, List.map state_to_constraints failures
 
-  let state_from_transducers (s : Transducers.state) : state = {
+  let state_from_transducers (s : Transducers.Interpreter.state) : Interpreter.state = {
     filesystem=Transducers s.filesystem;
     stdin=s.stdin;
     stdout=s.stdout;
     log=s.log;
   }
 
-  let sym_state_from_transducers (s: Transducers.sym_state) : sym_state = {
+  let sym_state_from_transducers (s: Transducers.Interpreter.sym_state) : Interpreter.sym_state = {
     state = state_from_transducers s.state;
     context = s.context;
   }
 
-  let state_to_transducers (s: state) : Transducers.state =
+  let state_to_transducers (s: Interpreter.state) : Transducers.Interpreter.state =
     let filesystem =
       match s.filesystem with
       | Transducers fs -> fs
       | Constraints _ -> invalid_arg "state_to_transducers" in
-    {filesystem; stdin=s.stdin; stdout=s.stdout; log=s.log}
+    Transducers.Interpreter.{filesystem; stdin=s.stdin; stdout=s.stdout; log=s.log}
 
   let interp_program_transducers inp stas pro =
     let stas' = List.map sym_state_from_transducers stas in
-    let normals, errors, failures = interp_program inp stas' pro in
+    let normals, errors, failures = Interpreter.interp_program inp stas' pro in
     List.map state_to_transducers normals, List.map state_to_transducers errors, List.map state_to_transducers failures
+
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
 end
 
 module ConstraintsCompatibility = struct
 
-  include Mixed
+  include (Mixed.Interpreter : INTERPRETER
+           with type filesystem := Mixed.filesystem
+            and type state := Mixed.state)
+  include (Mixed.CaseSpec : CASE_SPEC
+           with type filesystem := Mixed.filesystem
+            and type case_spec := Mixed.case_spec)
+  include (Mixed.Combinators : COMBINATORS
+           with type state := Mixed.state
+            and type utility := Mixed.utility)
+  include (Mixed.Specifications : SPECIFICATIONS
+           with type state := Mixed.state
+            and type utility := Mixed.utility
+            and type case_spec := Mixed.case_spec
+            and type case = Mixed.case)
+
+  open Mixed.CaseSpec
 
   let success_case ~descr ?stdout constraints =
     success_case ~descr ?stdout (case_spec ~constraints ())
@@ -603,5 +689,11 @@ module ConstraintsCompatibility = struct
   let incomplete_case ~descr constraints =
     incomplete_case ~descr (case_spec ~constraints ())
 
-  let noop = Constraints.noop
+  let noop = Constraints.CaseSpec.noop
+
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
 end

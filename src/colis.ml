@@ -174,11 +174,7 @@ type sym_config = {
 
 module SymbolicConstraints = struct
 
-  type state = SymbolicUtility.Constraints.state
-  type sym_state = SymbolicUtility.Constraints.sym_state
-  type config = SymbolicUtility.Constraints.config = {
-    prune_init_state: bool;
-  }
+  include SymbolicUtility.Constraints
 
   let is_registered = SymbolicUtility.Mixed.is_registered
 

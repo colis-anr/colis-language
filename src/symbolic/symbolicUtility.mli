@@ -166,12 +166,18 @@ module type COMBINATORS = sig
       lists are accepted or not (refused by default). *)
 end
 
+module type CASE_SPEC = sig
+  type filesystem
+  type case_spec
+  val noop : case_spec
+  val apply_spec : filesystem -> case_spec -> filesystem list
+end
+
 (** {2 Specifications of a symbolic utility by specifications} *)
 module type SPECIFICATIONS = sig
   type state
 
   type case_spec
-  val noop : case_spec
 
   type utility = state -> (state * bool result) list
 
@@ -191,24 +197,22 @@ module type SPECIFICATIONS = sig
   val specification_cases : case list -> utility
 end
 
+module type FILESYSTEM = sig type filesystem end
+
 (** {1 Makers} *)
 
-module MakeInterpreter (Filesystem: sig type filesystem end) :
+module MakeInterpreter (Filesystem: FILESYSTEM) :
   INTERPRETER with type filesystem = Filesystem.filesystem
 
-module MakeCombinators (Interpreter: INTERPRETER) :
-  COMBINATORS with type state = Interpreter.state
+module MakeCombinators (Interpreter: INTERPRETER)
+  : COMBINATORS with type state = Interpreter.state
 
 module MakeSpecifications
     (Interpreter: INTERPRETER)
-    (CaseSpec: sig
-       type case_spec
-       val apply_spec : Interpreter.filesystem -> case_spec -> Interpreter.filesystem list
-       val noop : case_spec
-     end) :
-  SPECIFICATIONS
-  with type state = Interpreter.state
-   and type case_spec = CaseSpec.case_spec
+    (CaseSpec: CASE_SPEC with type filesystem = Interpreter.filesystem)
+  : SPECIFICATIONS
+    with type state = Interpreter.state
+     and type case_spec = CaseSpec.case_spec
 
 (** {1 Backends} *)
 
@@ -220,28 +224,32 @@ module Constraints : sig
 
   open Colis_constraints
 
-  (** A constraints-based filesystem is comprised of a root variable [root] and a
-     satisfiable constraint [clause]. If the variable [root0] is defined, its occurrences
-     in [clause] are not garbage-collected. *)
+  (** A constraints-based filesystem is comprised of a root variable [root]
+      and a satisfiable constraint [clause]. If the variable [root0] is
+      defined, its occurrences in [clause] are not garbage-collected. *)
   type filesystem = {
     root: Var.t;
     clause: Clause.sat_conj;
     root0: Var.t option;
   }
 
-  (** A case specification is a function [fun r r' -> c] from the current root [r] and
-     the new root [r] to a constraint clause [c]. *)
-  type case_spec = Var.t -> Var.t -> t
-
   include INTERPRETER
     with type filesystem := filesystem
 
+  (** A case specification is a function [fun r r' -> c] from the current root [r] and
+      the new root [r] to a constraint clause [c]. *)
+  include CASE_SPEC
+    with type filesystem := filesystem
+     and type case_spec = Var.t -> Var.t -> t
+
   include COMBINATORS
     with type state := state
+     and type utility := utility
 
   include SPECIFICATIONS
     with type state := state
      and type case_spec := case_spec
+     and type utility := utility
 
   type config = {
     prune_init_state: bool;
@@ -249,6 +257,12 @@ module Constraints : sig
   }
 
   val filesystems : config -> FilesystemSpec.t -> filesystem list
+
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
 end
 
 (** {2 Transducers} *)
@@ -259,20 +273,31 @@ module Transducers : sig
 
   (** Dummies only. TODO *)
   type filesystem = unit
-  type case_spec = unit
 
   include INTERPRETER
     with type filesystem := filesystem
 
+  include CASE_SPEC
+    with type filesystem := filesystem
+     and type case_spec = unit
+
   include COMBINATORS
     with type state := state
+     and type utility := utility
 
   include SPECIFICATIONS
     with type state := state
      and type case_spec := case_spec
+     and type utility := utility
 
   type config = unit
   val filesystems : config -> FilesystemSpec.t -> filesystem list
+
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
 end
 
 (** {2 Mixed constraints/transducers}
@@ -285,22 +310,29 @@ module Mixed : sig
     | Constraints of Constraints.filesystem
     | Transducers of Transducers.filesystem
 
-  type case_spec
-
-  (** A mixed case specification combines case specifications of the different backends.
-     If the case specification is left unspecified for a backends, it induces incomplete
-     behaviour for that backend independently of the specification case. *)
-  val case_spec : ?transducers:Transducers.case_spec -> ?constraints:Constraints.case_spec -> unit -> case_spec
-
   include INTERPRETER
     with type filesystem := filesystem
 
+  include CASE_SPEC
+    with type filesystem := filesystem
+
+  (** A mixed case specification combines case specifications of the different
+      backends. If the case specification is left unspecified for a backends,
+      it induces incomplete behaviour for that backend independently of the
+      specification case. *)
+  val case_spec :
+    ?transducers:Transducers.case_spec ->
+    ?constraints:Constraints.case_spec ->
+    unit -> case_spec
+
   include COMBINATORS
     with type state := state
+     and type utility := utility
 
   include SPECIFICATIONS
     with type state := state
      and type case_spec := case_spec
+     and type utility := utility
 
   (** Symbolically interprete a program using the constraints backend *)
   val interp_program_constraints : input -> Constraints.sym_state list -> program ->
@@ -310,7 +342,6 @@ module Mixed : sig
   val interp_program_transducers : input -> Transducers.sym_state list -> program ->
     (Transducers.state list * Transducers.state list * Transducers.state list)
 
-  (** Alias for easier access in the utility implementations. *)
   type utility_context = Semantics__UtilityContext.utility_context = {
     cwd: Colis_constraints.Path.normal;
     env: string Env.SMap.t;
@@ -321,14 +352,35 @@ end
 (** {2 Compatibility}
 
     Compatibility with module SymbolicUtility before functorization of the symbolic
-   engine: Create mixed utilities with the interface of constraints-based backend. *)
+    engine: Create mixed utilities with the interface of constraints-based backend. *)
 module ConstraintsCompatibility : sig
-  include module type of Mixed
-    with type filesystem = Mixed.filesystem
-     and type state = Mixed.state
 
-  val success_case: descr:string -> ?stdout:Stdout.t -> Constraints.case_spec -> case
-  val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Constraints.case_spec -> case
-  val incomplete_case: descr:string -> Constraints.case_spec -> case
+  include INTERPRETER
+    with type filesystem := Mixed.filesystem
+     and type state := Mixed.state
+
+  include CASE_SPEC
+    with type filesystem := Mixed.filesystem
+     and type case_spec := Mixed.case_spec
+
+  include COMBINATORS
+    with type state := Mixed.state
+     and type utility := Mixed.utility
+
+  include SPECIFICATIONS
+    with type state := Mixed.state
+     and type case_spec := Mixed.case_spec
+     and type utility := Mixed.utility
+     and type case := Mixed.case
+
+  val success_case: descr:string -> ?stdout:Stdout.t -> Constraints.case_spec -> Mixed.case
+  val error_case: descr:string -> ?stdout:Stdout.t -> ?error_message:string -> Constraints.case_spec -> Mixed.case
+  val incomplete_case: descr:string -> Constraints.case_spec -> Mixed.case
   val noop : Constraints.case_spec
+
+  type utility_context = Semantics__UtilityContext.utility_context = {
+    cwd: Colis_constraints.Path.normal;
+    env: string Env.SMap.t;
+    args: string list;
+  }
 end

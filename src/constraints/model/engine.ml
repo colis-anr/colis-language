@@ -42,26 +42,26 @@ let printStdout stdO =
 
 let rec run_model (res_l:(Colis.SymbolicUtility.Mixed.state *
             bool Colis__Semantics__Result.result)
-           list) (print_b:bool) (num:int) (cmd_mod) (mutate:bool)= 
+           list) (print_b:bool) (num:int) (cmd_mod) (mutate:bool)=
   match res_l with
   | [] -> ()
   | (state_,Ok x)::t ->
                   let (out_fs:Colis__.SymbolicUtility.Mixed.filesystem) = state_.filesystem in
                   printStdout state_.stdout ;
                   let s_c = match out_fs with Constraints r -> r.clause | _ -> failwith "not a good fs" in
-                  let rootb = match out_fs with Constraints r -> r.root0 | _ -> failwith "not a good root0" in 
-                  let roota = match out_fs with Constraints r -> r.root | _ -> failwith "not a good root" in  
+                  let rootb = match out_fs with Constraints r -> r.root0 | _ -> failwith "not a good root0" in
+                  let roota = match out_fs with Constraints r -> r.root | _ -> failwith "not a good root" in
                   let rootb = match rootb with | Some v -> v |None -> failwith "no root before" in
                   let s_c = Colis_constraints_efficient.sat_conj_to_literals (s_c) in
                   let s_c = List.of_seq s_c in
                   let s_c = clause_to_clause s_c in
                   let _ = if(print_b) then
                   ( Printf.fprintf out_f_l "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);
-                    Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);                 
-                  
+                    Format.printf "\n\n\n\tClause %d [RootB: %d ;RootA: %d; isError: %b] : \n"(num) (var_to_int rootb) (var_to_int roota) (not x);
+
                   print_clause (s_c)) else (Printf.fprintf out_f_l "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num);Format.printf "\n\n[MUTATION:%b]Clause %d: \n"(mutate)(num)) in
                   engine (s_c) ~m:mutate ~p:print_b ~rootb:(var_to_int rootb) ~roota:(var_to_int roota)();
-                  test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd_mod) (print_b); 
+                  test_files_1_2 (var_to_int rootb) (var_to_int roota) (s_c) (not x) (cmd_mod) (print_b);
                   run_model t print_b (num+1) cmd_mod mutate
   | _::t -> Printf.fprintf out_f_l "\n\n\tClause %d : Incomplete\n"(num);
             Format.printf "\n\n\tClause %d : Incomplete\n"(num);
@@ -76,7 +76,7 @@ let split_cmd (cmd) =
         match stl with
          |[]-> ([],[])
          |h::t -> let h_mod = (if(not (isOpt h))then
-                            (if(isRel h) then "."^cwd_s^"/"^h 
+                            (if(isRel h) then "."^cwd_s^"/"^h
                             else "./"^h)
                           else h) in     (*CHANGE HERE*)
                   let (hl_1,hl_2) = helper t in
@@ -84,16 +84,16 @@ let split_cmd (cmd) =
       in
       (List.hd sl,helper (List.tl sl))
 
-let get_result (cmd) ?(m = false) ?(p = true) () = 
-    
+let get_result (cmd) ?(m = false) ?(p = true) () =
+
     let (utility_context_:Colis__Semantics__UtilityContext.utility_context) = {
       cwd = cwd;
       env = Colis__.Env.SMap.empty;
       args = [];
-    } in   
-    let (utility_name,(args,args_mod)) = split_cmd (cmd) in  
-    let cmd_mod = utility_name^" "^(String.concat " " args_mod) in 
-    let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args) in  
+    } in
+    let (utility_name,(args,args_mod)) = split_cmd (cmd) in
+    let cmd_mod = utility_name^" "^(String.concat " " args_mod) in
+    let utility_ = Colis.SymbolicUtility.Mixed.call (utility_name) (utility_context_) (args) in
     let root_v = (Colis_constraints_common__Var.fresh ()) in
     let (initial_fs:Colis__.SymbolicUtility.Mixed.filesystem) = Constraints {
           root = root_v;
@@ -111,8 +111,8 @@ let get_result (cmd) ?(m = false) ?(p = true) () =
             Printf.fprintf out_f_l "\nCMD_Mod: %s" (cmd_mod);
             Format.printf "\nCMD_Mod: %s" (cmd_mod) in
 
-    let result_list = try utility_ initial_state with 
-                    e -> 
+    let result_list = try utility_ initial_state with
+                    e ->
                     let msg = Printexc.to_string e in
                     Printf.fprintf out_f_l "\nEXCEPTION: [%s]" msg;
                     Format.printf "\nEXCEPTION: [%s]" msg;
@@ -120,7 +120,7 @@ let get_result (cmd) ?(m = false) ?(p = true) () =
 
     let _ =  Printf.fprintf out_f_l "\nNo of Clauses : %d" (List.length result_list);
           Format.printf "\nNo of Clauses : %d" (List.length result_list) in
-    let _ = run_model result_list p 1 cmd_mod m in 
+    let _ = run_model result_list p 1 cmd_mod m in
     ()
 
 let rec loop_cmd (cmd_l) ?(m = false) ?(p = true) ()=
@@ -128,10 +128,10 @@ let rec loop_cmd (cmd_l) ?(m = false) ?(p = true) ()=
   |[] -> ()
   |h::t ->  Printf.fprintf out_f_l "-------------------------------------------------------------------------";
             Format.printf "-------------------------------------------------------------------------";
-            get_result h ~m:m ~p:p (); 
+            get_result h ~m:m ~p:p ();
             loop_cmd t ~m:m ~p:p ()
 
-let read_file filename = 
+let read_file filename =
   let lines = ref [] in
   let chan = open_in filename in
   try

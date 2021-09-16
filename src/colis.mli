@@ -111,11 +111,7 @@ type sym_config = {
 module SymbolicConstraints : sig
   open Constraints
 
-  type state = SymbolicUtility.Constraints.state
-  type sym_state = SymbolicUtility.Constraints.sym_state
-  type config = SymbolicUtility.Constraints.config = {
-    prune_init_state: bool; (** Prune the initial symbolic state during symbolic execution for a faster execution *)
-  }
+  include module type of SymbolicUtility.Constraints
 
   (** Test if an utility is registerered in the mixed backend (the actual backend for this
       module) *)
